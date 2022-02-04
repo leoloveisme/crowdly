@@ -1,0 +1,32 @@
+ <table width=100%>
+<tr>
+
+  <!-- left side menu -->
+
+<td>
+left menu
+</td>
+
+  <!-- end of left side menu -->
+
+    <!-- central part -->
+
+<td>
+Sitemap
+<br><br>
+<a href=""></a>
+<a href=""></a>
+</td>
+
+    <!-- end of the central part -->
+
+  <!-- right side menu -->
+
+<td>
+right menu
+</td>
+
+  <!-- end of right side menu -->
+
+</tr>
+</table>
