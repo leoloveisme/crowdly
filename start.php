@@ -43,5 +43,8 @@
 
   </tr>
   </table>
+  
+  <?php include ("modules/footer"); ?>  
+  
   </body>
 </html>

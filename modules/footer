@@ -1,9 +1,10 @@
+<br><br>
  <table width=100%>
 <tr>
 
   <!-- left side menu -->
 
-<td>
+<td valign=top>
 left menu
 </td>
 
@@ -11,18 +12,32 @@ left menu
 
     <!-- central part -->
 
-<td>
+<td valign=top>
 Sitemap
 <br><br>
+
+
+<a href="start.php">start.php</a>
+<br><br>
+
+<a href="home.php">home.php</a>
+<br><br>
+
+<a href="project_page.php">project_page.php</a>
+<br><br>
+
+<a href="index.php">index.php</a>
+<br><br>
+
 <a href=""></a>
-<a href=""></a>
+<br><br>
 </td>
 
     <!-- end of the central part -->
 
   <!-- right side menu -->
 
-<td>
+<td valign=top>
 right menu
 </td>
 

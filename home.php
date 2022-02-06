@@ -28,9 +28,9 @@
   <strong>Welcome</strong>, username
   
   <br><br>
-  <input type="text"> &nbsp; <input type="button" value="Search">
+  <input type="text" value="anything on the platform"> &nbsp; <input type="button" value="Search">
     <br><br>
-  <input type="button" value="Start new project">
+  <input type="button" value="Start new story / project">
   
   </td>
   

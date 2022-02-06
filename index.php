@@ -5,86 +5,52 @@
     <style></style>
   </head>
   <body>
+  
+  <?php include ("modules/header"); ?>
+  
   <table width=100%>
   <tr>
-  <td width=20%></td>
+
+  <!-- left side menu -->
+
+  <td width=20%>
+  
+  
+  </td>
+
+  <!-- end of left side menu -->
+  
+  
+   <!-- central part --> 
   
   <td valign=top width=60%>
-  <h1>Project name</h1>
   
-      <br><br>
+  <strong>Welcome</strong>, username
   
-  Last change: date time by username
-  
-  Text of the project
-  
- <br><br>
- 
- <font color=blue>Text from leoforce</font>
- 
   <br><br>
-date time
- 
- <br><br>
- 
- <font color=green>Text from archi</font> 
- 
-  <br><br>
- 
-date time
- 
- <br><br>
- 
-  <font color=red>Text from zarandcoder</font> 
- 
- <br><br>
- 
-date time
- 
-  <br><br>
-  
-  <input type="button" value="Save now">
-  
-
+  <input type="text" value="anything on the platform"> &nbsp; <input type="button" value="Search">
+    <br><br>
+  <input type="button" value="Start new story / project">
   
   </td>
   
+    <!-- end of the central part -->
+    
+  
+  <!-- right side menu -->
+  
 <td valign=top width=20%>
-Invite: <input type="button" value="Hide">
-<br><br>
-<input type=text" value="Email (separate multiple by comma)">
-<br><br>
-<input type="textarea" value="Hey, join this amazing project">
-<br><br>
-<input type="button" value="Clear"> &nbsp;<input type="button" value="Send"> 
-<br><br>
-Contributors: <input type="button" value="Hide">
-<br><br>
-<input type="checkbox" checked id="" name=""><font color=blue>leoforce</font>
-<br>
-<input type="checkbox" checked id="" name="">
-<font color=green>archi</font>
-<br>
-<input type="checkbox" checked id="" name="">
-<font color=red>zarandcoder</font>
-<br><br>
-<input type="button" value="Check all">
-&nbsp; 
-<input type="button" value="Uncheck all">
-<br><br>
-Settings: <input type="button" value="Hide">
-<br><br>
-<input type="checkbox" checked>Show date / time stamp
-<br><br>
-<input type="checkbox" checked>Show Last change
-<br><br>
-<input type="button" value="Check all">
-&nbsp; 
-<input type="button" value="Uncheck all">
-<br><br>
-<input type="checkbox" checked>Show everything
+
+
+
 </td> 
+
+  <!-- end of right side menu -->
+
   </tr>
   </table>
+
+<?php include ("modules/footer"); ?>
+
   </body>
 </html>
