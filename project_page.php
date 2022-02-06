@@ -5,12 +5,19 @@
     <style></style>
   </head>
   <body>
+  
+    <?php include ("modules/header"); ?>
+  
   <table width=100%>
   <tr>
   <td width=20%></td>
   
   <td valign=top width=60%>
-  <h1>Project name</h1>
+  <h1>Story name</h1>
+  
+      <br><br>
+  
+  Last change: date time by username
   
   Text of the project
   
@@ -41,14 +48,12 @@ date time
   
   <input type="button" value="Save now">
   
-    <br><br>
-  
-  Last change: date time by username
+
   
   </td>
   
 <td valign=top width=20%>
-Invite: <input type="button" value="Hide">
+<strong>Invite</strong>: <input type="button" value="Hide">
 <br><br>
 <input type=text" value="Email (separate multiple by comma)">
 <br><br>
@@ -56,7 +61,7 @@ Invite: <input type="button" value="Hide">
 <br><br>
 <input type="button" value="Clear"> &nbsp;<input type="button" value="Send"> 
 <br><br>
-Contributors: <input type="button" value="Hide">
+<strong>Contributors</strong>: <input type="button" value="Hide">
 <br><br>
 <input type="checkbox" checked id="" name=""><font color=blue>leoforce</font>
 <br>
@@ -70,7 +75,7 @@ Contributors: <input type="button" value="Hide">
 &nbsp; 
 <input type="button" value="Uncheck all">
 <br><br>
-Settings: <input type="button" value="Hide">
+<strong>Settings</strong>: <input type="button" value="Hide">
 <br><br>
 <input type="checkbox" checked>Show date / time stamp
 <br><br>
@@ -84,5 +89,8 @@ Settings: <input type="button" value="Hide">
 </td> 
   </tr>
   </table>
+
+<?php include ("modules/footer"); ?>  
+  
   </body>
 </html>
