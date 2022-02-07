@@ -10,16 +10,24 @@
   
   <table width=100%>
   <tr>
-  <td width=20%></td>
+  
+  
+  <td width=20% valign=top>
+  <strong>Chapter 1</strong>
+  <br>
+  Chapter 2
+  <br>
+  Chapter n
+  </td>
   
   <td valign=top width=60%>
   <h1>Story name</h1>
+    Last change: date time by username
+  <br><br>  
+    <strong>Chapter 1</strong>
+  <br><br>
   
-      <br><br>
-  
-  Last change: date time by username
-  
-  Text of the project
+  Text of the chapter
   
  <br><br>
  
