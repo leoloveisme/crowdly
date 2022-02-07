@@ -31,7 +31,22 @@
   <input type="text" value="anything on the platform"> &nbsp; <input type="button" value="Search">
     <br><br>
   <input type="button" value="Start new story / project">
-  
+  <br><br>
+  <h2>My stories</h2>
+    Story 1
+    <br><br>
+    Story 2
+      <br><br>
+    Story n
+    <br><br>  
+      <h2>Stories I contribute to</h2>
+      Story 1
+    <br><br>
+    Story 2
+      <br><br>
+    Story n
+    <br><br>      
+      
   </td>
   
     <!-- end of the central part -->
