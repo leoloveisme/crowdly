@@ -13,11 +13,32 @@
   
   
   <td width=20% valign=top>
-  <strong>Chapter 1</strong>
-  <br>
-  Chapter 2
-  <br>
-  Chapter n
+
+  <strong>My stories</strong>
+    <br><br>
+    Story 1
+<br><br>
+    <strong>Story 2</strong>
+      
+            <br><br>
+      <strong>Chapter 1</strong>
+    <br><br>
+    Chapter 2
+     <br><br>   
+         Chapter n
+    <br><br>
+      
+    Story n
+    <br><br>  
+      <strong>Stories I contribute to</strong>
+    <br><br>
+      Story 1
+    <br><br>
+    Story 2
+      <br><br>
+    Story n
+    <br><br>  
+
   </td>
   
   <td valign=top width=60%>

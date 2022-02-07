@@ -35,6 +35,12 @@
   <h2>My stories</h2>
     Story 1
     <br><br>
+      Chapter 1
+    <br><br>
+    Chapter 2
+     <br><br>   
+         Chapter n
+     <br><br>  
     Story 2
       <br><br>
     Story n
