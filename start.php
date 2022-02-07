@@ -5,6 +5,9 @@
     <style></style>
   </head>
   <body>
+  
+      <?php include ("modules/header"); ?>
+  
   <table width=100%>
   <tr>
   <td width=20%></td>

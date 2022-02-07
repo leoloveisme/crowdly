@@ -22,7 +22,7 @@
   
   <td valign=top width=60%>
   <h1>Story name</h1>
-    Last change: date time by username
+    Last change: date time by username <a href="" title="Jump to the changes">See the changes</a>
   <br><br>  
     <strong>Chapter 1</strong>
   <br><br>
@@ -93,7 +93,7 @@ date time
 &nbsp; 
 <input type="button" value="Uncheck all">
 <br><br>
-<input type="checkbox" checked>Show everything
+<input type="checkbox" checked>Show all parts (of this right menu)
 </td> 
   </tr>
   </table>
