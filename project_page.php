@@ -14,8 +14,7 @@
   
   <td width=20% valign=top>
 
-  <strong>My stories</strong>
-    <br><br>
+  <h3>My stories</h3>
     Story 1
 <br><br>
     <strong>Story 2</strong>
@@ -30,8 +29,7 @@
       
     Story n
     <br><br>  
-      <strong>Stories I contribute to</strong>
-    <br><br>
+      <h3>Stories I contribute to</h3>
       Story 1
     <br><br>
     Story 2
