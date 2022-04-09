@@ -79,7 +79,10 @@ date time
   
   </td>
   
+
 <td valign=top width=20%>
+<input type="checkbox" checked>Show all parts (of this right menu)
+<br><br>
 <strong>Invite</strong>: <input type="button" value="Hide">
 <br><br>
 <input type=text" value="Email (separate multiple by comma)">
@@ -111,8 +114,7 @@ date time
 <input type="button" value="Check all">
 &nbsp; 
 <input type="button" value="Uncheck all">
-<br><br>
-<input type="checkbox" checked>Show all parts (of this right menu)
+
 </td> 
   </tr>
   </table>

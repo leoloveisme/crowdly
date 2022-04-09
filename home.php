@@ -51,7 +51,14 @@
     Story 2
       <br><br>
     Story n
-    <br><br>      
+    <br><br>
+      <h2>Content by others</h2>
+      <h3>Reading</h3>
+            <h3>Read</h3>
+    <h3>Listen</h3>
+        <h3>Listened</h3>
+    <h3>Watch</h3>  
+        <h3>Watched</h3>       
       
   </td>
   
