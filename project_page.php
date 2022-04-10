@@ -8,7 +8,7 @@
   
     <?php include ("modules/header"); ?>
   
-  <table width=100%>
+  <table width=100% border=0>
   <tr>
   
   
@@ -81,7 +81,10 @@ date time
   
 
 <td valign=top width=20%>
-<input type="checkbox" checked>Show all parts (of this right menu)
+
+Interace language <select> <option>English</option> <option>中文</option> <option>العربية</option> <option>Русский</option> </select>
+<br><br>
+<input type="checkbox" checked>Show (uncollapse) all parts (of this right menu)
 <br><br>
 <strong>Invite</strong>: <input type="button" value="Hide">
 <br><br>

@@ -1,9 +1,9 @@
- <table width=100%>
+ <table width=100% border=0>
 <tr>
 
   <!-- left side menu -->
 
-<td>
+<td width=20%>
 <strong>Crowdly</strong>
 <br>
 where YOUR entertainment lives
@@ -13,8 +13,8 @@ where YOUR entertainment lives
 
     <!-- central part -->
 
-<td>
-central part
+<td align=left width=60%>
+<input value="Search"> <input type="button" value="Go"> 
 <br><br>
 <a href=""></a>
 <a href=""></a>
@@ -24,7 +24,7 @@ central part
 
   <!-- right side menu -->
 
-<td>
+<td width=20%>
 right menu
 </td>
 
