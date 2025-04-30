@@ -31,14 +31,11 @@
   
   <table>
   <tr>
-  <td><input type=button value="Read"></td>
-  <td><input type=button value="Listen"></td>
-    <td><input type=button value="Read & listen" title="Karaoke style"></td>
-  <td><input type=button value="Watch"></td>    
+  <td><input type=checkbox value="Read">Read</td>
+  <td><input type=checkbox value="Listen">Listen</td>
+  <td><input type=checkbox value="Watch">Watch</td>    
   </tr>
   </table>
-<br>  
-  Change language <select> <option>English</option> <option>中文</option> <option>العربية</option> <option>Русский</option> </select>
 
 </center>
 
