@@ -24,12 +24,11 @@
    <!-- central part --> 
   
   <td valign=top width=60%>
-  
-  <strong>Welcome</strong>, username
-  
+
+<!--  
   <br><br>
   <input type="text" value="anything on the platform"> &nbsp; <input type="button" value="Search">
-    <br><br>
+  <br><br> -->
   <input type="button" value="Start new story / project">
   
   </td>

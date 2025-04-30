@@ -5,7 +5,7 @@
   <!-- left side menu -->
 
 <td valign=top>
-left menu
+left menu footer
 </td>
 
   <!-- end of left side menu -->
@@ -44,7 +44,7 @@ Sitemap
   <!-- right side menu -->
 
 <td valign=top>
-right menu
+right menu footer
 </td>
 
   <!-- end of right side menu -->
