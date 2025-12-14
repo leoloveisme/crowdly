@@ -338,15 +338,24 @@ const Story = () => {
     setTitleInput(story?.title || "");
     setIsEditingTitle(true);
   };
+
   const handleCancelEditTitle = () => {
     setIsEditingTitle(false);
     setTitleInput(story?.title || "");
   };
+
   const handleChangeTitle = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTitleInput(e.target.value);
   };
+
   const handleSaveTitle = async () => {
-    if (!titleInput.trim() || !story_id) return;
+    if (savingTitle) return;
+    if (!titleInput.trim() || !story_id) {
+      setIsEditingTitle(false);
+      setTitleInput(story?.title || "");
+      return;
+    }
+
     setSavingTitle(true);
     const newTitle = titleInput.trim();
 
@@ -375,6 +384,16 @@ const Story = () => {
       console.error("Failed to update title", err);
       setSavingTitle(false);
       toast({ title: "Error", description: "Could not update title", variant: "destructive" });
+    }
+  };
+
+  const handleTitleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSaveTitle();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      handleCancelEditTitle();
     }
   };
 
@@ -843,8 +862,9 @@ const Story = () => {
             {/* EXPERIENCE SECTION */}
             <section>
               <div className="mb-2 flex items-center flex-wrap gap-2">
+                {/* Read-only story title for experience mode */}
                 <h1 className="text-3xl font-bold" style={{ wordBreak: "break-word" }}>
-                  <EditableText id="story-page-title">{story.title}</EditableText>
+                  {story.title}
                 </h1>
                 {story.visibility && (
                   <span
@@ -978,32 +998,22 @@ const Story = () => {
                         <input
                           type="text"
                           value={titleInput}
-                          className="border rounded px-3 py-2 text-2xl font-bold flex-1"
+                          className="border-b border-dashed border-blue-400 px-1 py-0.5 text-2xl font-bold flex-1 focus:outline-none"
                           onChange={handleChangeTitle}
+                          onKeyDown={handleTitleInputKeyDown}
+                          onBlur={handleSaveTitle}
                           disabled={savingTitle}
                         />
-                        <button
-                          onClick={handleSaveTitle}
-                          disabled={savingTitle}
-                          className="px-2 py-1 rounded bg-blue-500 text-white text-xs font-semibold hover:bg-blue-700 transition"
-                        >
-                          {savingTitle ? "Saving..." : "Save"}
-                        </button>
-                        <button
-                          onClick={handleCancelEditTitle}
-                          className="px-2 py-1 rounded bg-gray-200 text-gray-700 text-xs font-semibold hover:bg-gray-300"
-                        >
-                          Cancel
-                        </button>
                       </div>
                     ) : (
                       <>
-                        <h2 className="text-xl font-semibold">Edit story title and settings</h2>
+                        <span className="text-sm text-gray-500 mr-2">Story title:</span>
                         <button
+                          type="button"
                           onClick={handleStartEditTitle}
-                          className="ml-0 px-2 py-1 rounded border text-xs hover:bg-blue-50 border-blue-300"
+                          className="text-2xl font-bold border-b border-dashed border-blue-300 cursor-text px-1 py-0.5 hover:bg-blue-50"
                         >
-                          Edit title
+                          {story.title}
                         </button>
                       </>
                     )}
