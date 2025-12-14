@@ -49,6 +49,7 @@ const App = () => {
                 <Route path="/register" element={<Register />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="/story/:story_id" element={<Story />} />
+                <Route path="/story/:story_id/chapter/:chapter_id" element={<Story />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <EditingModeToggle />

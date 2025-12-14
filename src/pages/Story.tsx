@@ -120,7 +120,7 @@ const BranchesSection = ({ storyId }: { storyId: string }) => (
 
 // --- MAIN COMPONENT ---
 const Story = () => {
-  const { story_id } = useParams();
+  const { story_id, chapter_id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, roles, hasRole } = useAuth();
@@ -140,6 +140,8 @@ const Story = () => {
   const [chapterRevisionsLoading, setChapterRevisionsLoading] = useState(false);
   // UI tab state
   const [activeTab, setActiveTab] = useState<"story" | "contributors" | "revisions" | "branches">("story");
+  // Experience vs contribute modes for the story page
+  const [mode, setMode] = useState<"experience" | "contribute">("experience");
 
   // --- Add missing state hooks for title editing ---
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -273,6 +275,27 @@ const Story = () => {
     }
     // eslint-disable-next-line
   }, [story_id, user?.id]);
+
+  // If a chapter_id is in the URL, default to contribute mode so the chapter area is visible
+  useEffect(() => {
+    if (chapter_id) {
+      setMode("contribute");
+    }
+  }, [chapter_id]);
+
+  // When a specific chapter_id is present in the URL, scroll to and briefly highlight it
+  useEffect(() => {
+    if (!chapter_id) return;
+    if (!chapters || chapters.length === 0) return;
+    const el = document.getElementById("chapter-" + chapter_id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    el.classList.add("ring-2", "ring-blue-300", "ring-offset-2");
+    const timeout = window.setTimeout(() => {
+      el.classList.remove("ring-2", "ring-blue-300", "ring-offset-2");
+    }, 2000);
+    return () => window.clearTimeout(timeout);
+  }, [chapter_id, chapters]);
 
   // Permission checks
   const isOwner = user && story && story.creator_id === user.id;
@@ -816,204 +839,275 @@ const Story = () => {
 
         {/* Only render the tab section the user chose */}
         {activeTab === "story" && (
-          <div>
-            {/* --- keep all existing story editing, chapter, popover, etc. --- */}
-            {/* TITLE CRUD */}
-            <div className="flex items-center mb-2 gap-1 flex-wrap">
-              {isEditingTitle ? (
-                <div className="flex gap-2 items-center w-full max-w-xl">
-                  <input
-                    type="text"
-                    value={titleInput}
-                    className="border rounded px-3 py-2 text-2xl font-bold flex-1"
-                    onChange={handleChangeTitle}
-                    disabled={savingTitle}
-                  />
-                  <button
-                    onClick={handleSaveTitle}
-                    disabled={savingTitle}
-                    className="px-2 py-1 rounded bg-blue-500 text-white text-xs font-semibold hover:bg-blue-700 transition"
+          <div className="space-y-10">
+            {/* EXPERIENCE SECTION */}
+            <section>
+              <div className="mb-2 flex items-center flex-wrap gap-2">
+                <h1 className="text-3xl font-bold" style={{ wordBreak: "break-word" }}>
+                  <EditableText id="story-page-title">{story.title}</EditableText>
+                </h1>
+                {story.visibility && (
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs ${
+                      story.visibility === 'private'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-green-100 text-green-800'
+                    }`}
                   >
-                    {savingTitle ? "Saving..." : "Save"}
-                  </button>
-                  <button
-                    onClick={handleCancelEditTitle}
-                    className="px-2 py-1 rounded bg-gray-200 text-gray-700 text-xs font-semibold hover:bg-gray-300"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <h1 className="text-3xl font-bold" style={{ wordBreak: "break-word" }}>
-                    <EditableText id="story-page-title">{story.title}</EditableText>
-                  </h1>
-                  {story.visibility && (
-                    <span
-                      className={`ml-3 px-2 py-1 rounded-full text-xs ${
-                        story.visibility === 'private'
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-green-100 text-green-800'
-                      }`}
-                    >
-                      {story.visibility === 'private' ? 'Private' : 'Public'}
-                    </span>
-                  )}
-                  {story.published === false && (
-                    <span className="ml-2 px-2 py-1 rounded-full text-xs bg-gray-200 text-gray-700">
-                      Unpublished
-                    </span>
-                  )}
-                  <button
-                    onClick={handleStartEditTitle}
-                    className="ml-3 px-2 py-1 rounded border text-xs hover:bg-blue-50 border-blue-300"
-                  >
-                    Edit
-                  </button>
-                </>
-              )}
-              {/* Story-level controls */}
-              {user && (
-                <button
-                  onClick={handleCloneStory}
-                  className="ml-3 px-2 py-1 rounded border text-xs hover:bg-gray-50 border-gray-300"
-                >
-                  Clone
-                </button>
-              )}
-              {isOwner && (
-                <>
-                  <button
-                    onClick={toggleVisibility}
-                    className="ml-2 px-2 py-1 rounded border text-xs hover:bg-gray-50 border-gray-300"
-                  >
-                    {story.visibility === 'private' ? 'Make public' : 'Make private'}
-                  </button>
-                  <button
-                    onClick={togglePublished}
-                    className="ml-2 px-2 py-1 rounded border text-xs hover:bg-gray-50 border-gray-300"
-                  >
-                    {story.published === false ? 'Publish' : 'Unpublish'}
-                  </button>
-                </>
-              )}
-              {/* Show Delete Story button only to authorized users */}
-              {canDeleteStory && (
-                <button
-                  onClick={handleDeleteStory}
-                  className="ml-3 px-2 py-1 rounded bg-red-500 text-white text-xs font-semibold hover:bg-red-700 transition"
-                >
-                  Delete Story
-                </button>
-              )}
-            </div>
-
-            {/* Reactions and comments */}
-            <div className="mb-6 flex items-center gap-4 text-sm">
-              <button
-                type="button"
-                onClick={() => handleReact('like')}
-                className="px-3 py-1 rounded border bg-white hover:bg-gray-50"
-              >
-                👍 Like ({reactions.find(r => r.reaction_type === 'like')?.count ?? 0})
-              </button>
-              <button
-                type="button"
-                onClick={() => handleReact('dislike')}
-                className="px-3 py-1 rounded border bg-white hover:bg-gray-50"
-              >
-                👎 Dislike ({reactions.find(r => r.reaction_type === 'dislike')?.count ?? 0})
-              </button>
-            </div>
-
-            <div className="mb-8">
-              <h3 className="text-sm font-semibold mb-2">Comments</h3>
-              <div className="space-y-2 mb-3">
-                {comments.length === 0 ? (
-                  <div className="text-xs text-gray-500">No comments yet.</div>
-                ) : (
-                  comments.map((c) => (
-                    <div key={c.id} className="text-xs border-b py-1">
-                      <div className="text-gray-800">{c.body}</div>
-                      <div className="text-[10px] text-gray-400">{new Date(c.created_at).toLocaleString()}</div>
-                    </div>
-                  ))
+                    {story.visibility === 'private' ? 'Private' : 'Public'}
+                  </span>
+                )}
+                {story.published === false && (
+                  <span className="px-2 py-1 rounded-full text-xs bg-gray-200 text-gray-700">
+                    Unpublished
+                  </span>
                 )}
               </div>
-              <div className="flex gap-2 items-start">
-                <textarea
-                  className="flex-1 border rounded px-2 py-1 text-xs resize-none overflow-hidden"
-                  rows={1}
-                  placeholder="Add a comment..."
-                  value={newComment}
-                  onChange={(e) => {
-                    setNewComment(e.target.value);
-                    e.currentTarget.style.height = 'auto';
-                    e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
-                  }}
-                />
+
+              {/* Reactions and comments */}
+              <div className="mb-6 flex items-center gap-4 text-sm">
                 <button
                   type="button"
-                  onClick={handlePostComment}
-                  className="px-2 py-1 text-xs rounded bg-blue-500 text-white hover:bg-blue-600"
+                  onClick={() => handleReact('like')}
+                  className="px-3 py-1 rounded border bg-white hover:bg-gray-50"
                 >
-                  Post
+                  👍 Like ({reactions.find(r => r.reaction_type === 'like')?.count ?? 0})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleReact('dislike')}
+                  className="px-3 py-1 rounded border bg-white hover:bg-gray-50"
+                >
+                  👎 Dislike ({reactions.find(r => r.reaction_type === 'dislike')?.count ?? 0})
                 </button>
               </div>
-            </div>
 
-            {/* CHAPTERS CRUD */}
-            <div className="space-y-6">
-              {canCRUDChapters ? (
-                <ChapterEditor
-                  chapters={chapters}
-                  onCreate={handleCreateChapter}
-                  onUpdate={handleUpdateChapter}
-                  onDelete={handleDeleteChapter}
-                />
-              ) : (
-                <div className="my-6 p-4 rounded bg-gray-50 text-center text-gray-500">
-                  Please log in to add or edit chapters.
+              <div className="mb-8">
+                <h3 className="text-sm font-semibold mb-2">Comments</h3>
+                <div className="space-y-2 mb-3">
+                  {comments.length === 0 ? (
+                    <div className="text-xs text-gray-500">No comments yet.</div>
+                  ) : (
+                    comments.map((c) => (
+                      <div key={c.id} className="text-xs border-b py-1">
+                        <div className="text-gray-800">{c.body}</div>
+                        <div className="text-[10px] text-gray-400">{new Date(c.created_at).toLocaleString()}</div>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div className="flex gap-2 items-start">
+                  <textarea
+                    className="flex-1 border rounded px-2 py-1 text-xs resize-none overflow-hidden"
+                    rows={1}
+                    placeholder="Add a comment..."
+                    value={newComment}
+                    onChange={(e) => {
+                      setNewComment(e.target.value);
+                      e.currentTarget.style.height = 'auto';
+                      e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handlePostComment}
+                    className="px-2 py-1 text-xs rounded bg-blue-500 text-white hover:bg-blue-600"
+                  >
+                    Post
+                  </button>
+                </div>
+              </div>
+
+              {/* Read-only story text (experience mode content) */}
+              <div className="space-y-6">
+                {chapters.map((chapter) => (
+                  <div key={chapter.chapter_id} className="mb-8">
+                    <h2 className="text-xl font-semibold mb-2">{chapter.chapter_title}</h2>
+                    {Array.isArray(chapter.paragraphs)
+                      ? chapter.paragraphs.map((paragraph: string, idx: number) => (
+                          <p key={idx} className="mb-3">
+                            {paragraph}
+                          </p>
+                        ))
+                      : null}
+                  </div>
+                ))}
+                {chapters.length === 0 && (
+                  <p className="text-sm text-gray-500">No chapters have been added yet.</p>
+                )}
+              </div>
+            </section>
+
+            {/* CONTRIBUTION SECTION */}
+            <section className="border-t pt-6">
+              <div className="flex justify-center mb-4">
+                {mode === "experience" ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!user) {
+                        toast({
+                          title: "Login required",
+                          description: "You must be logged in to contribute to the story.",
+                          variant: "destructive",
+                        });
+                      }
+                      setMode("contribute");
+                    }}
+                    className="px-4 py-2 text-xs md:text-sm rounded-full border border-blue-300 bg-white text-blue-700 hover:bg-blue-50 shadow-sm"
+                  >
+                    I want to contribute to the story
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setMode("experience")}
+                    className="px-4 py-2 text-xs md:text-sm rounded-full border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 shadow-sm"
+                  >
+                    Back to experiencing the story
+                  </button>
+                )}
+              </div>
+
+              {mode === "contribute" && (
+                <div className="space-y-6">
+                  {/* TITLE CRUD & story-level controls */}
+                  <div className="flex items-center mb-2 gap-1 flex-wrap">
+                    {isEditingTitle ? (
+                      <div className="flex gap-2 items-center w-full max-w-xl">
+                        <input
+                          type="text"
+                          value={titleInput}
+                          className="border rounded px-3 py-2 text-2xl font-bold flex-1"
+                          onChange={handleChangeTitle}
+                          disabled={savingTitle}
+                        />
+                        <button
+                          onClick={handleSaveTitle}
+                          disabled={savingTitle}
+                          className="px-2 py-1 rounded bg-blue-500 text-white text-xs font-semibold hover:bg-blue-700 transition"
+                        >
+                          {savingTitle ? "Saving..." : "Save"}
+                        </button>
+                        <button
+                          onClick={handleCancelEditTitle}
+                          className="px-2 py-1 rounded bg-gray-200 text-gray-700 text-xs font-semibold hover:bg-gray-300"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <h2 className="text-xl font-semibold">Edit story title and settings</h2>
+                        <button
+                          onClick={handleStartEditTitle}
+                          className="ml-0 px-2 py-1 rounded border text-xs hover:bg-blue-50 border-blue-300"
+                        >
+                          Edit title
+                        </button>
+                      </>
+                    )}
+                    {/* Story-level controls */}
+                    {user && (
+                      <button
+                        onClick={handleCloneStory}
+                        className="ml-2 px-2 py-1 rounded border text-xs hover:bg-gray-50 border-gray-300"
+                      >
+                        Clone
+                      </button>
+                    )}
+                    {isOwner && (
+                      <>
+                        <button
+                          onClick={toggleVisibility}
+                          className="ml-2 px-2 py-1 rounded border text-xs hover:bg-gray-50 border-gray-300"
+                        >
+                          {story.visibility === 'private' ? 'Make public' : 'Make private'}
+                        </button>
+                        <button
+                          onClick={togglePublished}
+                          className="ml-2 px-2 py-1 rounded border text-xs hover:bg-gray-50 border-gray-300"
+                        >
+                          {story.published === false ? 'Publish' : 'Unpublish'}
+                        </button>
+                      </>
+                    )}
+                    {/* Show Delete Story button only to authorized users */}
+                    {canDeleteStory && (
+                      <button
+                        onClick={handleDeleteStory}
+                        className="ml-2 px-2 py-1 rounded bg-red-500 text-white text-xs font-semibold hover:bg-red-700 transition"
+                      >
+                        Delete Story
+                      </button>
+                    )}
+                  </div>
+
+                  {/* CHAPTERS CRUD & branching */}
+                  {canCRUDChapters ? (
+                    <ChapterEditor
+                      chapters={chapters}
+                      onCreate={handleCreateChapter}
+                      onUpdate={handleUpdateChapter}
+                      onDelete={handleDeleteChapter}
+                    />
+                  ) : (
+                    <div className="my-6 p-4 rounded bg-gray-50 text-center text-gray-500">
+                      Please log in to add or edit chapters.
+                    </div>
+                  )}
+
+                  {chapters.map((chapter) => (
+                    <div
+                      key={chapter.chapter_id}
+                      id={"chapter-" + chapter.chapter_id}
+                      className="mb-10"
+                    >
+                      <h3
+                        className="text-lg font-semibold mb-2 cursor-pointer"
+                        onDoubleClick={() =>
+                          navigate("/story/" + story.story_title_id + "/chapter/" + chapter.chapter_id)
+                        }
+                      >
+                        {chapter.chapter_title}
+                      </h3>
+                      {Array.isArray(chapter.paragraphs)
+                        ? chapter.paragraphs.map((paragraph, idx) => (
+                            <div key={idx} className="relative group mb-4">
+                              <div className="flex items-start gap-2">
+                                <p className="flex-1">{paragraph}</p>
+                                <ParagraphBranchPopover
+                                  trigger={
+                                    <button
+                                      className="opacity-0 group-hover:opacity-100 transition-opacity border rounded px-2 py-1 text-xs font-medium flex items-center gap-1 bg-white hover:bg-gray-100 shadow hover:shadow-md"
+                                      type="button"
+                                    >
+                                      <svg width="16" height="16" stroke="currentColor" fill="none" viewBox="0 0 24 24"><path strokeWidth="2" d="M6 3v6a6 6 0 006 6h6"></path><path strokeWidth="2" d="M18 21v-6a6 6 0 00-6-6H6"></path></svg>
+                                      Create Branch
+                                    </button>
+                                  }
+                                  // Supply chapter/paragraph info to onCreateBranch for DB
+                                  onCreateBranch={({ branchName, paragraphs, language, metadata }) =>
+                                    handleCreateBranchForParagraph({
+                                      branchName,
+                                      paragraphs,
+                                      language,
+                                      metadata,
+                                      chapterId: chapter.chapter_id,
+                                      paragraphIndex: idx,
+                                      paragraphText: paragraph,
+                                    })
+                                  }
+                                />
+                              </div>
+                            </div>
+                          ))
+                        : null}
+                    </div>
+                  ))}
                 </div>
               )}
-              {chapters.map((chapter) => (
-                <div key={chapter.chapter_id} className="mb-10">
-                  <h2 className="text-xl font-bold mb-2">{chapter.chapter_title}</h2>
-                  {Array.isArray(chapter.paragraphs)
-                    ? chapter.paragraphs.map((paragraph, idx) => (
-                        <div key={idx} className="relative group mb-4">
-                          <div className="flex items-start gap-2">
-                            <p className="flex-1">{paragraph}</p>
-                            <ParagraphBranchPopover
-                              trigger={
-                                <button
-                                  className="opacity-0 group-hover:opacity-100 transition-opacity border rounded px-2 py-1 text-xs font-medium flex items-center gap-1 bg-white hover:bg-gray-100 shadow hover:shadow-md"
-                                  type="button"
-                                >
-                                  <svg width="16" height="16" stroke="currentColor" fill="none" viewBox="0 0 24 24"><path strokeWidth="2" d="M6 3v6a6 6 0 006 6h6"></path><path strokeWidth="2" d="M18 21v-6a6 6 0 00-6-6H6"></path></svg>
-                                  Create Branch
-                                </button>
-                              }
-                              // Supply chapter/paragraph info to onCreateBranch for DB
-                              onCreateBranch={({ branchName, paragraphs, language, metadata }) =>
-                                handleCreateBranchForParagraph({
-                                  branchName,
-                                  paragraphs,
-                                  language,
-                                  metadata,
-                                  chapterId: chapter.chapter_id,
-                                  paragraphIndex: idx,
-                                  paragraphText: paragraph,
-                                })
-                              }
-                            />
-                          </div>
-                        </div>
-                      ))
-                    : null}
-                </div>
-              ))}
-            </div>
+            </section>
           </div>
         )}
         {activeTab === "contributors" && (
