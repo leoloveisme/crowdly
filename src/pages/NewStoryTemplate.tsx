@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -97,6 +97,7 @@ import RevisionCheckboxCell from "@/components/RevisionCheckboxCell";
 import { useAuth } from "@/contexts/AuthContext";
 import StorySelector from "@/components/StorySelector";
 import NewStoryDialog from "@/components/NewStoryDialog";
+import ParagraphBranchPopover from "@/components/ParagraphBranchPopover";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? `http://${window.location.hostname}:4000`;
 const DEFAULT_STORY_TITLE = "Story of my life";
@@ -139,6 +140,18 @@ const NewStoryTemplate = () => {
   const [savingTitle, setSavingTitle] = useState(false);
   const [storyTitleRevisions, setStoryTitleRevisions] = useState<any[]>([]);
   const [stories, setStories] = useState<any[]>([]); // List of all user's stories
+  const [editingChapterId, setEditingChapterId] = useState<string | null>(null);
+  const [editingChapterTitle, setEditingChapterTitle] = useState("");
+  const [editingParagraph, setEditingParagraph] = useState<{
+    chapterId: string;
+    index: number;
+  } | null>(null);
+  const [editingParagraphText, setEditingParagraphText] = useState("");
+  // Inline add-chapter UI for existing stories (web-style editor)
+  const [inlineAddChapterMode, setInlineAddChapterMode] = useState(false);
+  const [inlineNewChapterTitle, setInlineNewChapterTitle] = useState("");
+  const [inlineNewChapterBody, setInlineNewChapterBody] = useState("");
+  const inlineAddChapterRef = useRef<HTMLDivElement | null>(null);
 
   const togglePreview = () => setPreview((p) => !p);
 
@@ -264,7 +277,10 @@ const NewStoryTemplate = () => {
             body: JSON.stringify({
               title: mainTitle,
               chapterTitle: newChapterTitle,
-              paragraphs: [initialParagraphText],
+              paragraphs: initialParagraphText
+                .split(/\n+/)
+                .map((p: string) => p.trim())
+                .filter((p: string) => p.length > 0),
               userId: user.id,
             }),
           });
@@ -319,7 +335,10 @@ const NewStoryTemplate = () => {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               chapterTitle: newChapterTitle,
-              paragraphs: [initialParagraphText],
+              paragraphs: initialParagraphText
+                .split(/\n+/)
+                .map((p: string) => p.trim())
+                .filter((p: string) => p.length > 0),
             }),
           });
 
@@ -327,8 +346,15 @@ const NewStoryTemplate = () => {
             const body = await chapterRes.json().catch(() => ({}));
             console.error('Autosave failed to update chapter', { status: chapterRes.status, body });
             toast({
-              title: "Failed to autosave chapter",
-              description: body.error || body.details || "Unknown error",
+              description: (
+                <span>
+                  The new story has been created. Please, go to the{' '}
+                  <a href={`/story/${storyTitleId ?? ''}`} className="underline">
+                    story page
+                  </a>{' '}
+                  to edit it.
+                </span>
+              ),
               variant: "destructive",
             });
           }
@@ -610,6 +636,226 @@ const NewStoryTemplate = () => {
     }
   };
 
+  // Chapter title inline-edit handlers (web-style editor for existing stories)
+  const startEditChapterTitle = (chapter: any) => {
+    setEditingChapterId(chapter.chapter_id);
+    setEditingChapterTitle(chapter.chapter_title || "");
+  };
+
+  const cancelEditChapterTitle = () => {
+    setEditingChapterId(null);
+    setEditingChapterTitle("");
+  };
+
+  const handleChapterTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEditingChapterTitle(e.target.value);
+  };
+
+  const saveChapterTitle = async (chapter: any) => {
+    const newTitle = editingChapterTitle.trim();
+    setEditingChapterId(null);
+    if (!newTitle || newTitle === chapter.chapter_title) {
+      setEditingChapterTitle("");
+      return;
+    }
+    setEditingChapterTitle("");
+    await handleUpdateChapter(chapter.chapter_id, { chapter_title: newTitle });
+  };
+
+  const handleChapterTitleKeyDown = async (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    chapter: any,
+  ) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      await saveChapterTitle(chapter);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      cancelEditChapterTitle();
+    }
+  };
+
+  // Inline paragraph editing handlers
+  const startEditParagraph = (chapter: any, index: number, text: string) => {
+    setEditingParagraph({ chapterId: chapter.chapter_id, index });
+    setEditingParagraphText(text);
+  };
+
+  const cancelEditParagraph = () => {
+    setEditingParagraph(null);
+    setEditingParagraphText("");
+  };
+
+  const saveParagraph = async (chapter: any, index: number) => {
+    const raw = editingParagraphText;
+    setEditingParagraph(null);
+    if (!Array.isArray(chapter.paragraphs)) {
+      setEditingParagraphText("");
+      return;
+    }
+
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      // Empty -> delete this paragraph
+      const newParagraphs = [...chapter.paragraphs];
+      newParagraphs.splice(index, 1);
+      setEditingParagraphText("");
+      await handleUpdateChapter(chapter.chapter_id, { paragraphs: newParagraphs });
+      return;
+    }
+
+    const lines = raw
+      .split(/\n+/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+
+    const newParagraphs = [...chapter.paragraphs];
+    newParagraphs.splice(index, 1, ...lines);
+
+    setEditingParagraphText("");
+    await handleUpdateChapter(chapter.chapter_id, { paragraphs: newParagraphs });
+  };
+
+  const handleParagraphKeyDown = async (
+    e: React.KeyboardEvent<HTMLTextAreaElement>,
+    chapter: any,
+    index: number,
+  ) => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      await saveParagraph(chapter, index);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      cancelEditParagraph();
+    }
+  };
+
+  // Inline add-chapter handlers for existing stories (web-style editor)
+  const resetInlineNewChapterForm = () => {
+    setInlineNewChapterTitle("");
+    setInlineNewChapterBody("");
+    setInlineAddChapterMode(false);
+  };
+
+  const handleInlineSaveNewChapter = async () => {
+    const title = inlineNewChapterTitle.trim();
+    const body = inlineNewChapterBody.trim();
+    if (!title && !body) {
+      resetInlineNewChapterForm();
+      return;
+    }
+
+    const paragraphs = body
+      ? body
+          .split(/\n+/)
+          .map((p) => p.trim())
+          .filter(Boolean)
+      : [""];
+
+    await handleCreateChapter({
+      chapter_title: title || "New chapter",
+      paragraphs,
+    });
+    resetInlineNewChapterForm();
+  };
+
+  // Close or save the template's inline add-chapter container when clicking outside
+  useEffect(() => {
+    if (!inlineAddChapterMode) return;
+
+    const handleDocumentMouseDown = (event: MouseEvent) => {
+      if (!inlineAddChapterRef.current) return;
+      if (inlineAddChapterRef.current.contains(event.target as Node)) {
+        // Click happened inside the container; ignore.
+        return;
+      }
+
+      const title = inlineNewChapterTitle.trim();
+      const body = inlineNewChapterBody.trim();
+
+      if (!title && !body) {
+        // Nothing entered: just close the block.
+        resetInlineNewChapterForm();
+      } else {
+        // Content entered: save the new chapter.
+        handleInlineSaveNewChapter();
+      }
+    };
+
+    document.addEventListener("mousedown", handleDocumentMouseDown);
+    return () => {
+      document.removeEventListener("mousedown", handleDocumentMouseDown);
+    };
+  }, [inlineAddChapterMode, inlineNewChapterTitle, inlineNewChapterBody]);
+
+  // Branch creation logic for web-style editor
+  const handleCreateBranchForParagraph = async ({
+    branchName,
+    paragraphs,
+    language,
+    metadata,
+    chapterId,
+    paragraphIndex,
+    paragraphText,
+  }: {
+    branchName: string;
+    paragraphs: string[];
+    language: string;
+    metadata: any;
+    chapterId: string;
+    paragraphIndex: number;
+    paragraphText: string;
+  }) => {
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "You must be logged in to create a branch.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const branchText = paragraphs.join("\n\n");
+
+    try {
+      const res = await fetch(`${API_BASE}/paragraph-branches`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chapterId,
+          parentParagraphIndex: paragraphIndex,
+          parentParagraphText: branchName || paragraphText || "",
+          branchText,
+          userId: user.id,
+          language,
+          metadata: metadata ?? null,
+        }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        toast({
+          title: "Error",
+          description: body.error || "Failed to create branch.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Branch created",
+        description: "Your branch has been saved.",
+      });
+    } catch (e) {
+      console.error("Failed to create branch", e);
+      toast({
+        title: "Error",
+        description: "Something went wrong creating the branch.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // CRUD: Update Story Title (template-level)
   // Treat the title like the textarea: update local state and let
   // autosave create/update the story.
@@ -653,48 +899,41 @@ const NewStoryTemplate = () => {
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between gap-4">
-                  {/* Story title + inline edit */}
+                  {/* Story title inline editor (web-editor style) */}
                   <div className="flex-1">
                     {editingTitle ? (
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="text"
-                          value={newTitle}
-                          onChange={(e) => setNewTitle(e.target.value)}
-                          onBlur={() => {
+                      <Input
+                        type="text"
+                        value={newTitle}
+                        onChange={(e) => setNewTitle(e.target.value)}
+                        onBlur={() => {
+                          // On blur, save if changed and non-empty
+                          handleUpdateStoryTitle(newTitle);
+                          setEditingTitle(false);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            handleUpdateStoryTitle(newTitle);
+                            setEditingTitle(false);
+                          } else if (e.key === "Escape") {
                             setEditingTitle(false);
                             setNewTitle(mainTitle);
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              handleUpdateStoryTitle(newTitle);
-                              setEditingTitle(false);
-                            } else if (e.key === "Escape") {
-                              setEditingTitle(false);
-                              setNewTitle(mainTitle);
-                            }
-                          }}
-                          placeholder="Enter new title"
-                        />
-                        <Button onClick={() => handleUpdateStoryTitle(newTitle)}>
-                          {savingTitle ? "Saving..." : "Save"}
-                        </Button>
-                      </div>
+                          }
+                        }}
+                        placeholder="Enter title"
+                        className="border-b border-dashed border-blue-400 px-1 py-0.5 text-2xl font-bold flex-1 focus:outline-none"
+                      />
                     ) : (
-                      <div className="flex items-center gap-2">
-                        <CardTitle>{mainTitle}</CardTitle>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setEditingTitle(true);
-                            setNewTitle(mainTitle);
-                          }}
-                        >
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit
-                        </Button>
-                      </div>
+                      <button
+                        type="button"
+                        className="text-2xl font-bold border-b border-dashed border-blue-300 cursor-text px-1 py-0.5 hover:bg-blue-50"
+                        onClick={() => {
+                          setEditingTitle(true);
+                          setNewTitle(mainTitle);
+                        }}
+                      >
+                        {mainTitle}
+                      </button>
                     )}
                   </div>
 
@@ -716,11 +955,8 @@ const NewStoryTemplate = () => {
             <Card>
               <CardHeader>
                 <div className="space-y-4">
-                  {/* Chapter title */}
+                  {/* Chapter title input (no label, minimal web-editor style) */}
                   <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium">Chapter title</h4>
-                    </div>
                     <Input
                       placeholder="Enter chapter title"
                       value={newChapterTitle}
@@ -734,7 +970,6 @@ const NewStoryTemplate = () => {
 
                   {/* Chapter content: textarea or preview, depending on state */}
                   <div className="flex flex-col gap-2">
-                    <h4 className="font-medium">Chapter content</h4>
 
                     {!storyTitleId ? (
                       preview ? (
@@ -758,8 +993,9 @@ const NewStoryTemplate = () => {
                         </div>
                       ) : (
                         <textarea
-                          className="mt-2 w-full min-h-[8rem] border rounded p-2 text-sm"
+                          className="mt-2 w-full border rounded p-2 text-sm"
                           placeholder="Start writing your story..."
+                          rows={40}
                           value={initialParagraphText}
                           onChange={(e) => {
                             setInitialParagraphText(e.target.value);
@@ -777,21 +1013,210 @@ const NewStoryTemplate = () => {
                           chapters.map((chapter) => (
                             <div key={chapter.chapter_id}>
                               <h5 className="font-semibold mb-1">{chapter.chapter_title}</h5>
-                              {chapter.paragraphs && chapter.paragraphs.map((p: string, idx: number) => (
-                                <p key={idx} className="mb-2 text-sm leading-relaxed">{p}</p>
-                              ))}
+                              {Array.isArray(chapter.paragraphs)
+                                ? chapter.paragraphs.map((p: string, idx: number) =>
+                                    p
+                                      .split(/\n+/)
+                                      .filter((line) => line.trim().length > 0)
+                                      .map((line, lineIdx) => (
+                                        <p
+                                          key={`${idx}-${lineIdx}`}
+                                          className="mb-2 text-sm leading-relaxed"
+                                        >
+                                          {line}
+                                        </p>
+                                      )),
+                                  )
+                                : null}
                             </div>
                           ))
                         )}
                       </div>
                     ) : (
-                      // Once the story exists and not in preview, use the richer ChapterEditor
-                      <ChapterEditor
-                        chapters={chapters}
-                        onCreate={handleCreateChapter}
-                        onUpdate={handleUpdateChapter}
-                        onDelete={handleDeleteChapter}
-                      />
+                      // Once the story exists and not in preview, use the richer web-style editor
+                      <div className="space-y-6 mt-2">
+                        {chapters.map((chapter) => (
+                          <div
+                            key={chapter.chapter_id}
+                            id={"chapter-" + chapter.chapter_id}
+                            className="mb-10"
+                          >
+                            <div className="flex items-center gap-2 mb-2 group/chapter">
+                              {editingChapterId === chapter.chapter_id ? (
+                                <input
+                                  type="text"
+                                  value={editingChapterTitle}
+                                  onChange={handleChapterTitleChange}
+                                  onKeyDown={(e) => handleChapterTitleKeyDown(e, chapter)}
+                                  onBlur={() => saveChapterTitle(chapter)}
+                                  className="border-b border-dashed border-blue-400 px-1 py-0.5 text-lg font-semibold flex-1 focus:outline-none"
+                                  autoFocus
+                                />
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="text-left text-lg font-semibold cursor-text flex-1 border-b border-dashed border-transparent hover:border-blue-300 px-1 py-0.5"
+                                  onClick={() => startEditChapterTitle(chapter)}
+                                >
+                                  {chapter.chapter_title}
+                                </button>
+                              )}
+                              <div className="opacity-0 group-hover/chapter:opacity-100 transition-opacity flex items-center gap-1 text-xs text-gray-500">
+                                <button
+                                  type="button"
+                                  className="px-1 py-0.5 rounded hover:bg-gray-100"
+                                  onClick={() => startEditChapterTitle(chapter)}
+                                >
+                                  Rename
+                                </button>
+                                <button
+                                  type="button"
+                                  className="px-1 py-0.5 rounded hover:bg-red-50 text-red-600"
+                                  onClick={() => {
+                                    if (window.confirm("Delete this chapter? This cannot be undone.")) {
+                                      handleDeleteChapter(chapter.chapter_id);
+                                    }
+                                  }}
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                            {Array.isArray(chapter.paragraphs) && chapter.paragraphs.length > 0 ? (
+                              chapter.paragraphs.map((paragraph, idx) => (
+                                <div key={idx} className="relative group/paragraph mb-4">
+                                  <div className="flex items-start gap-2">
+                                    {editingParagraph &&
+                                    editingParagraph.chapterId === chapter.chapter_id &&
+                                    editingParagraph.index === idx ? (
+                                      <textarea
+                                        className="flex-1 border-b border-dashed border-blue-400 px-1 py-0.5 text-sm leading-relaxed focus:outline-none resize-none bg-blue-50/40 rounded"
+                                        value={editingParagraphText}
+                                        onChange={(e) => setEditingParagraphText(e.target.value)}
+                                        onBlur={() => saveParagraph(chapter, idx)}
+                                        onKeyDown={(e) => handleParagraphKeyDown(e, chapter, idx)}
+                                        rows={40}
+                                      />
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        className="flex-1 text-left cursor-text border-b border-dashed border-transparent hover:border-blue-300 px-1 py-0.5 rounded"
+                                        onClick={() => startEditParagraph(chapter, idx, paragraph)}
+                                      >
+                                        {paragraph}
+                                      </button>
+                                    )}
+                                    <ParagraphBranchPopover
+                                      trigger={
+                                        <button
+                                          className="opacity-0 group-hover/paragraph:opacity-100 transition-opacity border rounded px-2 py-1 text-xs font-medium flex items-center gap-1 bg-white hover:bg-gray-100 shadow hover:shadow-md"
+                                          type="button"
+                                        >
+                                          <svg width="16" height="16" stroke="currentColor" fill="none" viewBox="0 0 24 24"><path strokeWidth="2" d="M6 3v6a6 6 0 006 6h6"></path><path strokeWidth="2" d="M18 21v-6a6 6 0 00-6-6H6"></path></svg>
+                                          Create Branch
+                                        </button>
+                                      }
+                                      onCreateBranch={({ branchName, paragraphs, language, metadata }) =>
+                                        handleCreateBranchForParagraph({
+                                          branchName,
+                                          paragraphs,
+                                          language,
+                                          metadata,
+                                          chapterId: chapter.chapter_id,
+                                          paragraphIndex: idx,
+                                          paragraphText: paragraph,
+                                        })
+                                      }
+                                    />
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              // No paragraphs yet: show a single placeholder line so user sees where to type
+                              <div className="relative group/paragraph mb-4">
+                                <div className="flex items-start gap-2">
+                                  {editingParagraph &&
+                                  editingParagraph.chapterId === chapter.chapter_id &&
+                                  editingParagraph.index === 0 ? (
+                                    <textarea
+                                      className="flex-1 border-b border-dashed border-blue-400 px-1 py-0.5 text-sm leading-relaxed focus:outline-none resize-none bg-blue-50/40 rounded"
+                                      value={editingParagraphText}
+                                      onChange={(e) => setEditingParagraphText(e.target.value)}
+                                      onBlur={() => saveParagraph({ ...chapter, paragraphs: [""] }, 0)}
+                                      onKeyDown={(e) => handleParagraphKeyDown(e, { ...chapter, paragraphs: [""] }, 0)}
+                                      rows={40}
+                                    />
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      className="flex-1 text-left cursor-text border-b border-dashed border-transparent hover:border-blue-300 px-1 py-0.5 rounded text-sm text-gray-400"
+                                      onClick={() => startEditParagraph({ ...chapter, paragraphs: [""] }, 0, "")}
+                                    >
+                                      Start writing this chapter...
+                                    </button>
+                                  )}
+                                  <ParagraphBranchPopover
+                                    trigger={
+                                      <button
+                                        className="opacity-0 group-hover/paragraph:opacity-100 transition-opacity border rounded px-2 py-1 text-xs font-medium flex items-center gap-1 bg-white hover:bg-gray-100 shadow hover:shadow-md"
+                                        type="button"
+                                      >
+                                        <svg width="16" height="16" stroke="currentColor" fill="none" viewBox="0 0 24 24"><path strokeWidth="2" d="M6 3v6a6 6 0 006 6h6"></path><path strokeWidth="2" d="M18 21v-6a6 6 0 00-6-6H6"></path></svg>
+                                        Create Branch
+                                      </button>
+                                    }
+                                    onCreateBranch={({ branchName, paragraphs, language, metadata }) =>
+                                      handleCreateBranchForParagraph({
+                                        branchName,
+                                        paragraphs,
+                                        language,
+                                        metadata,
+                                        chapterId: chapter.chapter_id,
+                                        paragraphIndex: 0,
+                                        paragraphText: "",
+                                      })
+                                    }
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+
+                        {/* Minimal inline add-chapter control (same UX as story page) */}
+                        <div className="mt-6">
+                          {inlineAddChapterMode ? (
+                            <div
+                              className="border rounded p-3 bg-gray-50 space-y-2 max-w-xl"
+                              ref={inlineAddChapterRef}
+                              tabIndex={-1}
+                            >
+                              <input
+                                type="text"
+                                className="w-full border rounded px-2 py-1 text-sm"
+                                placeholder="New chapter title"
+                                value={inlineNewChapterTitle}
+                                onChange={(e) => setInlineNewChapterTitle(e.target.value)}
+                              />
+                              <textarea
+                                className="w-full border rounded px-2 py-1 text-sm resize-vertical min-h-[4rem]"
+                                placeholder="Chapter text (use blank lines to separate paragraphs)"
+                                value={inlineNewChapterBody}
+                                onChange={(e) => setInlineNewChapterBody(e.target.value)}
+                                rows={40}
+                              />
+                            </div>
+                          ) : (
+                            <button
+                              type="button"
+                              className="px-4 py-2 text-xs rounded-full border border-dashed border-blue-300 text-blue-700 hover:bg-blue-50"
+                              onClick={() => setInlineAddChapterMode(true)}
+                            >
+                              + Add chapter
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>

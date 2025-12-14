@@ -39,12 +39,37 @@ async function ensureStoryTitlePublishedColumn() {
   }
 }
 
+// Paragraph branches table for story paragraph branching (moved from Supabase)
+async function ensureParagraphBranchesTable() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS paragraph_branches (
+        id bigserial PRIMARY KEY,
+        chapter_id uuid NOT NULL REFERENCES stories(chapter_id) ON DELETE CASCADE,
+        parent_paragraph_index integer NOT NULL,
+        parent_paragraph_text text,
+        branch_text text NOT NULL,
+        user_id uuid REFERENCES local_users(id) ON DELETE SET NULL,
+        language text NOT NULL DEFAULT 'en',
+        metadata jsonb,
+        created_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    console.log('[init] ensured paragraph_branches table exists');
+  } catch (err) {
+    console.error('[init] failed to ensure paragraph_branches table:', err);
+  }
+}
+
 // Fire and forget; if this fails we log but do not crash the server
 ensureStoryAccessTable().catch((err) => {
   console.error('[init] ensureStoryAccessTable unhandled error:', err);
 });
 ensureStoryTitlePublishedColumn().catch((err) => {
   console.error('[init] ensureStoryTitlePublishedColumn unhandled error:', err);
+});
+ensureParagraphBranchesTable().catch((err) => {
+  console.error('[init] ensureParagraphBranchesTable unhandled error:', err);
 });
 
 app.get('/health', async (_req, res) => {
@@ -659,6 +684,134 @@ app.get('/comments', async (req, res) => {
   } catch (err) {
     console.error('[GET /comments] failed:', err);
     res.status(500).json({ error: 'Failed to fetch comments' });
+  }
+});
+
+// Paragraph branches: create
+app.post('/paragraph-branches', async (req, res) => {
+  const {
+    chapterId,
+    parentParagraphIndex,
+    parentParagraphText,
+    branchText,
+    userId,
+    language,
+    metadata,
+  } = req.body ?? {};
+
+  if (!chapterId || typeof parentParagraphIndex !== 'number' || !branchText) {
+    return res.status(400).json({
+      error: 'chapterId, parentParagraphIndex (number), and branchText are required',
+    });
+  }
+
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO paragraph_branches
+         (chapter_id, parent_paragraph_index, parent_paragraph_text, branch_text, user_id, language, metadata)
+       VALUES ($1, $2, $3, $4, $5, COALESCE($6, 'en'), $7)
+       RETURNING *`,
+      [
+        chapterId,
+        parentParagraphIndex,
+        parentParagraphText || null,
+        branchText,
+        userId || null,
+        language || 'en',
+        metadata ?? null,
+      ],
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error('[POST /paragraph-branches] failed:', err);
+    res.status(500).json({ error: 'Failed to create paragraph branch' });
+  }
+});
+
+// Paragraph branches: list across all stories (used by homepage BranchList)
+app.get('/paragraph-branches', async (_req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT pb.*, s.story_title_id, s.chapter_title
+       FROM paragraph_branches pb
+       JOIN stories s ON s.chapter_id = pb.chapter_id
+       ORDER BY pb.created_at DESC`,
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('[GET /paragraph-branches] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch paragraph branches' });
+  }
+});
+
+// Paragraph branches: list for a single story (used by StoryBranchList)
+app.get('/stories/:storyTitleId/branches', async (req, res) => {
+  const { storyTitleId } = req.params;
+  try {
+    const { rows } = await pool.query(
+      `SELECT pb.*, s.chapter_title
+       FROM paragraph_branches pb
+       JOIN stories s ON s.chapter_id = pb.chapter_id
+       WHERE s.story_title_id = $1
+       ORDER BY pb.created_at DESC`,
+      [storyTitleId],
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('[GET /stories/:storyTitleId/branches] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch story branches' });
+  }
+});
+
+// Paragraph branches: update
+app.patch('/paragraph-branches/:id', async (req, res) => {
+  const { id } = req.params;
+  const { branchText, parentParagraphText } = req.body ?? {};
+
+  if (!branchText && !parentParagraphText) {
+    return res.status(400).json({ error: 'branchText or parentParagraphText must be provided' });
+  }
+
+  const fields = [];
+  const values = [];
+  let idx = 1;
+
+  if (branchText !== undefined) {
+    fields.push(`branch_text = $${idx++}`);
+    values.push(branchText);
+  }
+  if (parentParagraphText !== undefined) {
+    fields.push(`parent_paragraph_text = $${idx++}`);
+    values.push(parentParagraphText);
+  }
+  values.push(id);
+
+  const sql = `UPDATE paragraph_branches SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`;
+
+  try {
+    const { rows } = await pool.query(sql, values);
+    if (!rows.length) {
+      return res.status(404).json({ error: 'Branch not found' });
+    }
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('[PATCH /paragraph-branches/:id] failed:', err);
+    res.status(500).json({ error: 'Failed to update paragraph branch' });
+  }
+});
+
+// Paragraph branches: delete
+app.delete('/paragraph-branches/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { rowCount } = await pool.query('DELETE FROM paragraph_branches WHERE id = $1', [id]);
+    if (!rowCount) {
+      return res.status(404).json({ error: 'Branch not found' });
+    }
+    res.status(204).send();
+  } catch (err) {
+    console.error('[DELETE /paragraph-branches/:id] failed:', err);
+    res.status(500).json({ error: 'Failed to delete paragraph branch' });
   }
 });
 

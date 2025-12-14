@@ -1,0 +1,9 @@
+Metadata-Version: 2.4
+Name: distraction-free-wysiwyg-editor
+Version: 0.1.0
+Summary: Crowdly editor - distraction free WYSIWYG Markdown / HTML editor
+Requires-Python: >=3.10
+Requires-Dist: pyside6
+Requires-Dist: markdown
+Requires-Dist: psycopg2-binary
+Requires-Dist: bcrypt

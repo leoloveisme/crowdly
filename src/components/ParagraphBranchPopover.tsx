@@ -49,6 +49,16 @@ const ParagraphBranchPopover: React.FC<Props> = ({ trigger, onCreateBranch }) =>
   const [metadataText, setMetadataText] = useState("");
   const [metadataError, setMetadataError] = useState("");
 
+  // Helper to check if the user has entered anything in the form.
+  // We only treat it as a change if there is actual branch text or metadata.
+  // Changing just name/language without text should not auto-create a branch.
+  const hasChanges = () => {
+    const anyParagraphText = paragraphs.some((p) => p.text.trim().length > 0);
+    if (anyParagraphText) return true;
+    if (metadataText.trim()) return true;
+    return false;
+  };
+
   // Add a new paragraph
   const handleAddParagraph = () => {
     setParagraphs([...paragraphs, { id: Math.random().toString(), text: "" }]);
@@ -74,10 +84,12 @@ const ParagraphBranchPopover: React.FC<Props> = ({ trigger, onCreateBranch }) =>
     setNewText("");
   };
 
-  // Create the branch!
-  const handleCreate = () => {
-    // Don’t allow empty paragraphs
-    if (paragraphs.some((p) => !p.text.trim())) return;
+  // Create the branch. Returns ``true`` when a branch was actually
+  // created and the form was reset, ``false`` otherwise.
+  const handleCreate = (): boolean => {
+    // Allow saving even if some paragraphs are empty; the backend or
+    // caller can decide how to treat them. Validation now only blocks
+    // on invalid JSON in the metadata field.
     let parsedMetadata: any = null;
     if (metadataText.trim()) {
       try {
@@ -85,20 +97,46 @@ const ParagraphBranchPopover: React.FC<Props> = ({ trigger, onCreateBranch }) =>
         setMetadataError("");
       } catch (e) {
         setMetadataError("Invalid JSON.");
-        return;
+        return false;
       }
     }
-    onCreateBranch({ branchName, paragraphs: paragraphs.map((p) => p.text), language, metadata: parsedMetadata });
-    setOpen(false);
+    const paragraphTexts = paragraphs
+      .map((p) => p.text.trim())
+      .filter((text) => text.length > 0);
+
+    if (paragraphTexts.length === 0) {
+      // No actual text; do not attempt to create a branch.
+      return false;
+    }
+
+    onCreateBranch({ branchName, paragraphs: paragraphTexts, language, metadata: parsedMetadata });
     setBranchName("");
     setParagraphs([{ id: Math.random().toString(), text: "" }]);
     setLanguage("en");
     setMetadataText("");
     setMetadataError("");
+    return true;
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) {
+          // If the user has entered anything, attempt to save the
+          // branch when the popover is dismissed. If nothing has
+          // changed, just close it.
+          if (hasChanges()) {
+            const created = handleCreate();
+            if (!created) {
+              // Creation failed (e.g. invalid JSON); keep popover open.
+              return;
+            }
+          }
+        }
+        setOpen(nextOpen);
+      }}
+    >
       <PopoverTrigger asChild>
         {trigger}
       </PopoverTrigger>
@@ -185,13 +223,22 @@ const ParagraphBranchPopover: React.FC<Props> = ({ trigger, onCreateBranch }) =>
             value={metadataText}
             placeholder='{"example": 42}'
             onChange={e => setMetadataText(e.target.value)}
-            className="min-h-[45px]"
+            // Approximate 20 lines and make it scrollable.
+            rows={20}
+            className="max-h-[320px] overflow-y-auto"
           />
           {metadataError && <div className="text-red-500 text-xs mt-1">{metadataError}</div>}
         </div>
         <div className="flex justify-end space-x-2 mt-6">
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={handleCreate} disabled={paragraphs.some((p) => !p.text.trim()) || !!metadataError}>
+          <Button
+            onClick={() => {
+              const created = handleCreate();
+              if (!created) return;
+              setOpen(false);
+            }}
+            disabled={paragraphs.some((p) => !p.text.trim()) || !!metadataError}
+          >
             Create Branch
           </Button>
         </div>

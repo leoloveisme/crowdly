@@ -8,6 +8,12 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    watch: {
+      // Avoid watching large legacy build artifacts to stay under OS file-watch limits
+      ignored: [
+        "**/web editor/dist/**",
+      ],
+    },
   },
   plugins: [
     react(),

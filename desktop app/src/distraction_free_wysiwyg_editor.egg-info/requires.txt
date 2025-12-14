@@ -1,0 +1,4 @@
+pyside6
+markdown
+psycopg2-binary
+bcrypt

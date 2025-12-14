@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,14 +6,17 @@ import { Pencil, Trash2, Save, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? `http://${window.location.hostname}:4000`;
+
 type Branch = {
-  id: string;
+  id: number;
   chapter_id: string;
   parent_paragraph_index: number;
-  parent_paragraph_text: string;
+  parent_paragraph_text: string | null;
   branch_text: string;
   created_at: string;
-  user_id: string;
+  user_id: string | null;
+  chapter_title?: string;
 };
 
 interface StoryBranchListProps {
@@ -33,62 +35,45 @@ const StoryBranchList: React.FC<StoryBranchListProps> = ({ storyId }) => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Fetch all branches for the story on mount
+  // Fetch all branches for the story on mount (from backend API instead of Supabase)
   useEffect(() => {
     let isMounted = true;
     const fetchBranches = async () => {
       setLoading(true);
       setError(null);
 
-      console.log("[BranchList] For StoryId: ", storyId);
-
-      // Fetch all chapters for this story to find chapter_ids
-      const { data: chapters, error: chaptersError } = await supabase
-        .from("stories")
-        .select("chapter_id, chapter_title")
-        .eq("story_title_id", storyId);
-
-      if (chaptersError) {
-        setError("Failed to fetch chapters for this story.");
-        setBranches([]);
-        setLoading(false);
-        setChapterInfo({ chapterIds: [], chaptersFetched: false });
-        return;
-      }
-
-      const chapterIds = chapters.map((c: { chapter_id: string }) => c.chapter_id);
-      setChapterInfo({ chapterIds, chaptersFetched: true });
-      console.log("[BranchList] Fetched chapterIds:", chapterIds);
-
-      if (chapterIds.length === 0) {
-        setBranches([]);
-        setLoading(false);
-        return;
-      }
-
-      // Fetch all paragraph branches for those chapters
-      const { data, error } = await supabase
-        .from("paragraph_branches")
-        .select("*")
-        .in("chapter_id", chapterIds)
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        setError("Failed to fetch branches.");
-        setBranches([]);
-        console.log("[BranchList] Error fetching branches:", error);
-      } else if (data && isMounted) {
-        setBranches(data);
-        console.log("[BranchList] Fetched branches:", data);
-        if (!data.length) {
-          // Show diagnostic in the UI
-          setError("No paragraph branches found for chapters in this story. (Check database links!)");
+      try {
+        const res = await fetch(`${API_BASE}/stories/${storyId}/branches`);
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          console.error('[StoryBranchList] Failed to fetch branches', { status: res.status, body });
+          setError('Failed to fetch branches.');
+          setBranches([]);
+          setLoading(false);
+          setChapterInfo({ chapterIds: [], chaptersFetched: false });
+          return;
         }
+        const data = await res.json();
+        if (!isMounted) return;
+        const arr = Array.isArray(data) ? data : [];
+        const chapterIds = Array.from(new Set(arr.map((b: any) => b.chapter_id)));
+        setChapterInfo({ chapterIds, chaptersFetched: true });
+        setBranches(arr);
+        if (!arr.length) {
+          setError('No paragraph branches found for chapters in this story.');
+        }
+      } catch (err) {
+        console.error('[StoryBranchList] Failed to fetch branches', err);
+        setError('Failed to fetch branches.');
+        setBranches([]);
+      } finally {
+        if (isMounted) setLoading(false);
       }
-      setLoading(false);
     };
 
-    fetchBranches();
+    if (storyId) {
+      fetchBranches();
+    }
     return () => {
       isMounted = false;
     };
@@ -107,45 +92,62 @@ const StoryBranchList: React.FC<StoryBranchListProps> = ({ storyId }) => {
   };
 
   const handleSave = async (branch: Branch) => {
-    const { error } = await supabase
-      .from("paragraph_branches")
-      .update({
-        branch_text: editBranchText,
-        parent_paragraph_text: editBranchName,
-      })
-      .eq("id", branch.id);
-    if (error) {
-      setError("Failed to update branch.");
-      toast({ title: "Error", description: "Failed to update branch.", variant: "destructive" });
-    } else {
+    try {
+      const res = await fetch(`${API_BASE}/paragraph-branches/${branch.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          branchText: editBranchText,
+          parentParagraphText: editBranchName,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        console.error('[StoryBranchList] Failed to update branch', { status: res.status, body });
+        setError('Failed to update branch.');
+        toast({ title: 'Error', description: 'Failed to update branch.', variant: 'destructive' });
+        return;
+      }
+      const updated = await res.json();
       setBranches(b =>
         b.map(item =>
           item.id === branch.id
-            ? { ...item, branch_text: editBranchText, parent_paragraph_text: editBranchName }
+            ? { ...item, branch_text: updated.branch_text, parent_paragraph_text: updated.parent_paragraph_text }
             : item
         )
       );
-      toast({ title: "Branch updated", description: "Saved branch changes." });
+      toast({ title: 'Branch updated', description: 'Saved branch changes.' });
       setEditId(null);
       setEditBranchText("");
       setEditBranchName("");
       setError(null);
+    } catch (err) {
+      console.error('[StoryBranchList] Failed to update branch', err);
+      setError('Failed to update branch.');
+      toast({ title: 'Error', description: 'Failed to update branch.', variant: 'destructive' });
     }
   };
 
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase
-      .from("paragraph_branches")
-      .delete()
-      .eq("id", id);
-    if (error) {
-      setError("Failed to delete branch.");
-      toast({ title: "Error", description: "Failed to delete branch.", variant: "destructive" });
-    } else {
+  const handleDelete = async (id: number) => {
+    try {
+      const res = await fetch(`${API_BASE}/paragraph-branches/${id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok && res.status !== 204) {
+        const body = await res.json().catch(() => ({}));
+        console.error('[StoryBranchList] Failed to delete branch', { status: res.status, body });
+        setError('Failed to delete branch.');
+        toast({ title: 'Error', description: 'Failed to delete branch.', variant: 'destructive' });
+        return;
+      }
       setBranches(b => b.filter(item => item.id !== id));
-      toast({ title: "Branch deleted" });
+      toast({ title: 'Branch deleted' });
       setDeleteId(null);
       setError(null);
+    } catch (err) {
+      console.error('[StoryBranchList] Failed to delete branch', err);
+      setError('Failed to delete branch.');
+      toast({ title: 'Error', description: 'Failed to delete branch.', variant: 'destructive' });
     }
   };
 

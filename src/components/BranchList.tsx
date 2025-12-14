@@ -1,18 +1,21 @@
 
 import React, { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Pencil, Trash2, Save, X } from "lucide-react";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? `http://${window.location.hostname}:4000`;
+
 type Branch = {
-  id: string;
+  id: number;
   chapter_id: string;
   parent_paragraph_index: number;
-  parent_paragraph_text: string;
+  parent_paragraph_text: string | null;
   branch_text: string;
   created_at: string;
+  story_title_id?: string;
+  chapter_title?: string;
 };
 
 interface BranchListProps {
@@ -28,23 +31,32 @@ const BranchList: React.FC<BranchListProps> = ({ className }) => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch all paragraph branches on mount
+  // Fetch all paragraph branches on mount (from backend API instead of Supabase)
   useEffect(() => {
     let isMounted = true;
     const fetchBranches = async () => {
       setLoading(true);
       setError(null);
-      const { data, error } = await supabase
-        .from("paragraph_branches")
-        .select("*")
-        .order("created_at", { ascending: false });
-      if (error) {
-        setError("Failed to fetch branches.");
+      try {
+        const res = await fetch(`${API_BASE}/paragraph-branches`);
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          console.error('Failed to fetch branches', { status: res.status, body });
+          setError('Failed to fetch branches.');
+          setBranches([]);
+        } else {
+          const data = await res.json();
+          if (isMounted) {
+            setBranches(Array.isArray(data) ? data : []);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch branches', err);
+        setError('Failed to fetch branches.');
         setBranches([]);
-      } else if (data && isMounted) {
-        setBranches(data);
+      } finally {
+        if (isMounted) setLoading(false);
       }
-      setLoading(false);
     };
     fetchBranches();
     return () => {
@@ -65,20 +77,26 @@ const BranchList: React.FC<BranchListProps> = ({ className }) => {
   };
 
   const handleSave = async (branch: Branch) => {
-    const { error } = await supabase
-      .from("paragraph_branches")
-      .update({
-        branch_text: editBranchText,
-        parent_paragraph_text: editBranchName,
-      })
-      .eq("id", branch.id);
-    if (error) {
-      setError("Failed to update branch.");
-    } else {
+    try {
+      const res = await fetch(`${API_BASE}/paragraph-branches/${branch.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          branchText: editBranchText,
+          parentParagraphText: editBranchName,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        console.error('Failed to update branch', { status: res.status, body });
+        setError('Failed to update branch.');
+        return;
+      }
+      const updated = await res.json();
       setBranches(b =>
         b.map(item =>
           item.id === branch.id
-            ? { ...item, branch_text: editBranchText, parent_paragraph_text: editBranchName }
+            ? { ...item, branch_text: updated.branch_text, parent_paragraph_text: updated.parent_paragraph_text }
             : item
         )
       );
@@ -86,20 +104,29 @@ const BranchList: React.FC<BranchListProps> = ({ className }) => {
       setEditBranchText("");
       setEditBranchName("");
       setError(null);
+    } catch (err) {
+      console.error('Failed to update branch', err);
+      setError('Failed to update branch.');
     }
   };
 
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase
-      .from("paragraph_branches")
-      .delete()
-      .eq("id", id);
-    if (error) {
-      setError("Failed to delete branch.");
-    } else {
+  const handleDelete = async (id: number) => {
+    try {
+      const res = await fetch(`${API_BASE}/paragraph-branches/${id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok && res.status !== 204) {
+        const body = await res.json().catch(() => ({}));
+        console.error('Failed to delete branch', { status: res.status, body });
+        setError('Failed to delete branch.');
+        return;
+      }
       setBranches(b => b.filter(item => item.id !== id));
       setDeleteId(null);
       setError(null);
+    } catch (err) {
+      console.error('Failed to delete branch', err);
+      setError('Failed to delete branch.');
     }
   };
 
