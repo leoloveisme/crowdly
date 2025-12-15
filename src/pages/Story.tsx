@@ -12,7 +12,11 @@ import ParagraphBranchPopover from "@/components/ParagraphBranchPopover";
 import StoryContentTypeSelector from "@/components/StoryContentTypeSelector";
 import StoryBranchList from "@/components/StoryBranchList";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? `http://${window.location.hostname}:4000`;
+// Use same-origin API base in development; dev server proxies to backend.
+// In production, VITE_API_BASE_URL can point at the deployed API.
+const API_BASE = import.meta.env.PROD
+  ? (import.meta.env.VITE_API_BASE_URL ?? "")
+  : "";
 
 type Contributor = {
   id: string;

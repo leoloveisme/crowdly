@@ -8,7 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? `http://${window.location.hostname}:4000`;
+// Use same-origin API base in development; dev server proxies to backend.
+// In production, VITE_API_BASE_URL can point at the deployed API.
+const API_BASE = import.meta.env.PROD
+  ? (import.meta.env.VITE_API_BASE_URL ?? "")
+  : "";
 
 const RegisterForm = () => {
   const [email, setEmail] = useState("");

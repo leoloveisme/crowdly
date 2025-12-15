@@ -6,13 +6,50 @@ import { componentTagger } from "lovable-tagger";
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
-    host: "::",
+    // Listen on all IPv4 interfaces so mobile devices on the LAN can reach Vite
+    host: "0.0.0.0",
     port: 8080,
     watch: {
       // Avoid watching large legacy build artifacts to stay under OS file-watch limits
       ignored: [
         "**/web editor/dist/**",
       ],
+    },
+    // Proxy API requests to the backend dev server on port 4000 so the
+    // frontend can use same-origin relative URLs (works better on mobile).
+    proxy: {
+      "/auth": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/story-titles": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/stories": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/chapters": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/reactions": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/comments": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/paragraph-branches": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/users": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
     },
   },
   plugins: [

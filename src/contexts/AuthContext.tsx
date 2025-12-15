@@ -34,7 +34,12 @@ interface AuthResponse {
   roles: UserRole[];
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? `http://${window.location.hostname}:4000`;
+// Default to same-origin API calls in development; Vite dev proxy will
+// forward to the backend (see vite.config.ts). In production, you can
+// override with VITE_API_BASE_URL if the API is on a different origin.
+const API_BASE = import.meta.env.PROD
+  ? (import.meta.env.VITE_API_BASE_URL ?? "")
+  : "";
 const STORAGE_KEY = "crowdly_auth_user";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

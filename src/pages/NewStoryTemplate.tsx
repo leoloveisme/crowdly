@@ -99,7 +99,11 @@ import StorySelector from "@/components/StorySelector";
 import NewStoryDialog from "@/components/NewStoryDialog";
 import ParagraphBranchPopover from "@/components/ParagraphBranchPopover";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? `http://${window.location.hostname}:4000`;
+// Use same-origin API base in development; dev server proxies to backend.
+// In production, VITE_API_BASE_URL can point at the deployed API.
+const API_BASE = import.meta.env.PROD
+  ? (import.meta.env.VITE_API_BASE_URL ?? "")
+  : "";
 const DEFAULT_STORY_TITLE = "Story of my life";
 const DEFAULT_CHAPTER_TITLE = "Chapter 1 - The day I was conceived";
 const showAdvanced = false; // hide advanced controls/cards for now

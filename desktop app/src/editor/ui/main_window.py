@@ -950,7 +950,23 @@ class MainWindow(QMainWindow):
                     ),
                 )
                 mapped = self._map_external_path_to_project_space(external_path)
-                doc.path = mapped
+
+                # Immediately create a local copy inside the project space.
+                # This ensures the user is always working on a project-space file
+                # and we never overwrite the original external file.
+                try:
+                    doc.save(mapped)
+                except Exception:
+                    # If we cannot create the copy (permissions, etc.), fall back
+                    # to opening the file from its original location.
+                    QMessageBox.warning(
+                        self,
+                        self.tr("Error"),
+                        self.tr(
+                            "Could not create a copy of this file within the project space."
+                        ),
+                    )
+                    doc.path = external_path
 
         self._document = doc
 

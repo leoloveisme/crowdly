@@ -5,7 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Pencil, Trash2, Save, X } from "lucide-react";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? `http://${window.location.hostname}:4000`;
+// Use same-origin API base in development; dev server proxies to backend.
+// In production, VITE_API_BASE_URL can point at the deployed API.
+const API_BASE = import.meta.env.PROD
+  ? (import.meta.env.VITE_API_BASE_URL ?? "")
+  : "";
 
 type Branch = {
   id: number;
