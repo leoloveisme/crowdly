@@ -699,7 +699,10 @@ app.post('/paragraph-branches', async (req, res) => {
     metadata,
   } = req.body ?? {};
 
-  if (!chapterId || typeof parentParagraphIndex !== 'number' || !branchText) {
+  // Allow empty string for branchText so that a "quick branch" can be
+  // created before the user has typed any content. We only reject if the
+  // value is truly missing/undefined/null.
+  if (!chapterId || typeof parentParagraphIndex !== 'number' || branchText === undefined || branchText === null) {
     return res.status(400).json({
       error: 'chapterId, parentParagraphIndex (number), and branchText are required',
     });

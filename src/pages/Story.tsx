@@ -155,6 +155,19 @@ const Story = () => {
     index: number;
   } | null>(null);
   const [editingParagraphText, setEditingParagraphText] = useState("");
+
+  // Inline branch paragraphs created via quick "Create Branch" action.
+  // Each entry represents a branch positioned under a specific base
+  // paragraph. Only the active branch is rendered as a textarea; all
+  // others are shown as inline text, like regular paragraphs.
+  const [inlineBranches, setInlineBranches] = useState<{
+    id: number;
+    chapterId: string;
+    parentParagraphIndex: number;
+    text: string;
+  }[]>([]);
+  const [editingBranchId, setEditingBranchId] = useState<number | null>(null);
+
   // Minimal inline "add chapter" UI in contribute mode
   const [addChapterMode, setAddChapterMode] = useState(false);
   const [newChapterTitle, setNewChapterTitle] = useState("");
@@ -644,24 +657,69 @@ const Story = () => {
     }
   };
 
-  // NEW: Branch creation logic
-  const handleCreateBranchForParagraph = async ({
-    branchName,
-    paragraphs,
-    language,
-    metadata,
-    chapterId,
-    paragraphIndex,
-    paragraphText,
-  }: {
-    branchName: string;
-    paragraphs: string[];
-    language: string;
-    metadata: any;
-    chapterId: string;
-    paragraphIndex: number;
-    paragraphText: string;
-  }) => {
+  // Legacy branch creation logic used by the configuration popover.
+  // This now updates an existing branch instead of creating a new one.
+  const handleConfigureExistingBranch = async (
+    branchId: number,
+    {
+      branchName,
+      paragraphs,
+    }: {
+      branchName: string;
+      paragraphs: string[];
+      language: string;
+      metadata: any;
+    },
+  ) => {
+    // Compose branch_text as joined array
+    const branch_text = paragraphs.join("\n\n");
+    try {
+      const res = await fetch(`${API_BASE}/paragraph-branches/${branchId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          branchText: branch_text,
+          parentParagraphText: branchName || undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        toast({
+          title: "Error",
+          description: body.error || "Failed to update branch.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Update local inline branch cache so the textarea reflects changes
+      const updated = await res.json();
+      setInlineBranches((prev) =>
+        prev.map((b) => (b.id === branchId ? { ...b, text: updated.branch_text ?? branch_text } : b)),
+      );
+
+      toast({
+        title: "Branch updated",
+        description: "Your branch has been updated.",
+      });
+    } catch (e) {
+      console.error("Failed to update branch", e);
+      toast({
+        title: "Error",
+        description: "Something went wrong updating the branch.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Quick inline branch creation: create an empty branch row and show a
+  // new editable paragraph directly under the source paragraph.
+  const handleQuickCreateBranch = async (
+    chapter: any,
+    paragraphIndex: number,
+    paragraphText: string,
+  ) => {
     if (!user) {
       toast({
         title: "Login Required",
@@ -670,21 +728,19 @@ const Story = () => {
       });
       return;
     }
-    // Compose branch_text as joined array (could be improved later)
-    const branch_text = paragraphs.join("\n\n");
-    // parent_paragraph_text: use provided or empty
+
     try {
       const res = await fetch(`${API_BASE}/paragraph-branches`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          chapterId,
+          chapterId: chapter.chapter_id,
           parentParagraphIndex: paragraphIndex,
-          parentParagraphText: branchName || paragraphText || "",
-          branchText: branch_text,
+          parentParagraphText: paragraphText || "",
+          branchText: "", // start empty; user will type into inline editor
           userId: user.id,
-          language,
-          metadata: metadata ?? null,
+          language: "en",
+          metadata: null,
         }),
       });
 
@@ -698,10 +754,18 @@ const Story = () => {
         return;
       }
 
-      toast({
-        title: "Branch created",
-        description: "Your branch has been saved.",
-      });
+      const created = await res.json();
+      setInlineBranches((prev) => [
+        ...prev,
+        {
+          id: created.id,
+          chapterId: created.chapter_id,
+          parentParagraphIndex: paragraphIndex,
+          text: "",
+        },
+      ]);
+      // Immediately focus this new branch for inline editing
+      setEditingBranchId(created.id);
     } catch (e) {
       console.error("Failed to create branch", e);
       toast({
@@ -710,6 +774,45 @@ const Story = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleInlineBranchTextChange = (branchId: number, text: string) => {
+    setInlineBranches((prev) => prev.map((b) => (b.id === branchId ? { ...b, text } : b)));
+  };
+
+  const handleInlineBranchBlur = async (branchId: number) => {
+    const branch = inlineBranches.find((b) => b.id === branchId);
+    if (!branch) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/paragraph-branches/${branchId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ branchText: branch.text ?? "" }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        console.error("Failed to save inline branch", { status: res.status, body });
+        toast({
+          title: "Error",
+          description: body.error || "Failed to save branch text.",
+          variant: "destructive",
+        });
+        return;
+      }
+    } catch (err) {
+      console.error("Failed to save inline branch", err);
+      toast({
+        title: "Error",
+        description: "Failed to save branch text.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // After saving, return this branch to read-only inline text mode
+    setEditingBranchId((current) => (current === branchId ? null : current));
   };
 
   // Only allow chapter/paragraph CRUD for logged-in users:
@@ -1295,101 +1398,228 @@ const Story = () => {
                           </div>
                           {Array.isArray(chapter.paragraphs) && chapter.paragraphs.length > 0 ? (
                             chapter.paragraphs.map((paragraph, idx) => (
-                              <div key={idx} className="relative group/paragraph mb-4">
+                              <div key={idx} className="mb-4">
+                                <div className="relative group/paragraph mb-2">
+                                  <div className="flex items-start gap-2">
+                                    {editingParagraph &&
+                                    editingParagraph.chapterId === chapter.chapter_id &&
+                                    editingParagraph.index === idx ? (
+                                      <textarea
+                                        className="flex-1 border-b border-dashed border-blue-400 px-1 py-0.5 text-sm leading-relaxed focus:outline-none resize-none bg-blue-50/40 rounded"
+                                        value={editingParagraphText}
+                                        onChange={(e) => setEditingParagraphText(e.target.value)}
+                                        onBlur={() => saveParagraph(chapter, idx)}
+                                        onKeyDown={(e) => handleParagraphKeyDown(e, chapter, idx)}
+                                        rows={40}
+                                      />
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        className="flex-1 text-left cursor-text border-b border-dashed border-transparent hover:border-blue-300 px-1 py-0.5 rounded"
+                                        onClick={() => startEditParagraph(chapter, idx, paragraph)}
+                                      >
+                                        {paragraph}
+                                      </button>
+                                    )}
+                                    <button
+                                      className="opacity-0 group-hover/paragraph:opacity-100 transition-opacity border rounded px-2 py-1 text-xs font-medium flex items-center gap-1 bg-white hover:bg-gray-100 shadow hover:shadow-md"
+                                      type="button"
+                                      onClick={() => handleQuickCreateBranch(chapter, idx, paragraph)}
+                                    >
+                                      <svg width="16" height="16" stroke="currentColor" fill="none" viewBox="0 0 24 24"><path strokeWidth="2" d="M6 3v6a6 6 0 006 6h6"></path><path strokeWidth="2" d="M18 21v-6a6 6 0 00-6-6H6"></path></svg>
+                                      Create Branch
+                                    </button>
+                                  </div>
+                                </div>
+
+                                {/* Inline branches created under this base paragraph */}
+                                {inlineBranches
+                                  .filter(
+                                    (b) =>
+                                      b.chapterId === chapter.chapter_id &&
+                                      b.parentParagraphIndex === idx,
+                                  )
+                                  .map((b) => (
+                                    <div
+                                      key={b.id}
+                                      className="relative group/paragraph ml-4 border-l border-dashed border-blue-200 pl-2 mb-2"
+                                    >
+                                      <div className="flex items-start gap-2">
+                                        {editingBranchId === b.id ? (
+                                          <textarea
+                                            className="flex-1 border-b border-dashed border-blue-400 px-1 py-0.5 text-sm leading-relaxed focus:outline-none resize-none bg-blue-50/40 rounded"
+                                            placeholder="This is new branch you can immediately type your text here"
+                                            value={b.text}
+                                            onChange={(e) =>
+                                              handleInlineBranchTextChange(b.id, e.target.value)
+                                            }
+                                            onBlur={() => handleInlineBranchBlur(b.id)}
+                                            rows={40}
+                                          />
+                                        ) : (
+                                          <button
+                                            type="button"
+                                            className="flex-1 text-left cursor-text border-b border-dashed border-transparent hover:border-blue-300 px-1 py-0.5 rounded text-sm leading-relaxed bg-blue-50/40"
+                                            onClick={() => setEditingBranchId(b.id)}
+                                          >
+                                            {b.text || (
+                                              <span className="text-gray-400 italic">
+                                                This is new branch you can immediately type your text here
+                                              </span>
+                                            )}
+                                          </button>
+                                        )}
+                                        <div className="flex flex-col gap-1 text-xs opacity-0 group-hover/paragraph:opacity-100 transition-opacity">
+                                          <button
+                                            type="button"
+                                            className="px-2 py-1 rounded border hover:bg-gray-50 border-gray-300"
+                                            onClick={() =>
+                                              handleQuickCreateBranch(
+                                                chapter,
+                                                idx,
+                                                b.text || paragraph,
+                                              )
+                                            }
+                                          >
+                                            Create Branch
+                                          </button>
+                                          <ParagraphBranchPopover
+                                            trigger={
+                                              <button
+                                                type="button"
+                                                className="px-2 py-1 rounded border hover:bg-gray-50 border-gray-300"
+                                              >
+                                                Configure branch
+                                              </button>
+                                            }
+                                            onCreateBranch={({ branchName, paragraphs }) =>
+                                              handleConfigureExistingBranch(b.id, {
+                                                branchName,
+                                                paragraphs,
+                                                language: "en",
+                                                metadata: null,
+                                              })
+                                            }
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                              </div>
+                            ))
+                          ) : (
+                            // No paragraphs yet: show a single placeholder line so user sees where to type
+                            <div className="mb-4">
+                              <div className="relative group/paragraph mb-2">
                                 <div className="flex items-start gap-2">
                                   {editingParagraph &&
                                   editingParagraph.chapterId === chapter.chapter_id &&
-                                  editingParagraph.index === idx ? (
+                                  editingParagraph.index === 0 ? (
                                     <textarea
                                       className="flex-1 border-b border-dashed border-blue-400 px-1 py-0.5 text-sm leading-relaxed focus:outline-none resize-none bg-blue-50/40 rounded"
                                       value={editingParagraphText}
                                       onChange={(e) => setEditingParagraphText(e.target.value)}
-                                      onBlur={() => saveParagraph(chapter, idx)}
-                                      onKeyDown={(e) => handleParagraphKeyDown(e, chapter, idx)}
+                                      onBlur={() => saveParagraph({ ...chapter, paragraphs: [""] }, 0)}
+                                      onKeyDown={(e) =>
+                                        handleParagraphKeyDown(e, { ...chapter, paragraphs: [""] }, 0)
+                                      }
                                       rows={40}
                                     />
                                   ) : (
                                     <button
                                       type="button"
-                                      className="flex-1 text-left cursor-text border-b border-dashed border-transparent hover:border-blue-300 px-1 py-0.5 rounded"
-                                      onClick={() => startEditParagraph(chapter, idx, paragraph)}
+                                      className="flex-1 text-left cursor-text border-b border-dashed border-transparent hover:border-blue-300 px-1 py-0.5 rounded text-sm text-gray-400"
+                                      onClick={() =>
+                                        startEditParagraph({ ...chapter, paragraphs: [""] }, 0, "")
+                                      }
                                     >
-                                      {paragraph}
+                                      Start writing this chapter...
                                     </button>
                                   )}
-                                  <ParagraphBranchPopover
-                                    trigger={
-                                      <button
-                                        className="opacity-0 group-hover/paragraph:opacity-100 transition-opacity border rounded px-2 py-1 text-xs font-medium flex items-center gap-1 bg-white hover:bg-gray-100 shadow hover:shadow-md"
-                                        type="button"
-                                      >
-                                        <svg width="16" height="16" stroke="currentColor" fill="none" viewBox="0 0 24 24"><path strokeWidth="2" d="M6 3v6a6 6 0 006 6h6"></path><path strokeWidth="2" d="M18 21v-6a6 6 0 00-6-6H6"></path></svg>
-                                        Create Branch
-                                      </button>
-                                    }
-                                    // Supply chapter/paragraph info to onCreateBranch for DB
-                                    onCreateBranch={({ branchName, paragraphs, language, metadata }) =>
-                                      handleCreateBranchForParagraph({
-                                        branchName,
-                                        paragraphs,
-                                        language,
-                                        metadata,
-                                        chapterId: chapter.chapter_id,
-                                        paragraphIndex: idx,
-                                        paragraphText: paragraph,
-                                      })
-                                    }
-                                  />
+                                  <button
+                                    className="opacity-0 group-hover/paragraph:opacity-100 transition-opacity border rounded px-2 py-1 text-xs font-medium flex items-center gap-1 bg-white hover:bg-gray-100 shadow hover:shadow-md"
+                                    type="button"
+                                    onClick={() => handleQuickCreateBranch(chapter, 0, "")}
+                                  >
+                                    <svg width="16" height="16" stroke="currentColor" fill="none" viewBox="0 0 24 24"><path strokeWidth="2" d="M6 3v6a6 6 0 006 6h6"></path><path strokeWidth="2" d="M18 21v-6a6 6 0 00-6-6H6"></path></svg>
+                                    Create Branch
+                                  </button>
                                 </div>
                               </div>
-                            ))
-                          ) : (
-                            // No paragraphs yet: show a single placeholder line so user sees where to type
-                            <div className="relative group/paragraph mb-4">
-                              <div className="flex items-start gap-2">
-                                {editingParagraph &&
-                                editingParagraph.chapterId === chapter.chapter_id &&
-                                editingParagraph.index === 0 ? (
-                                  <textarea
-                                    className="flex-1 border-b border-dashed border-blue-400 px-1 py-0.5 text-sm leading-relaxed focus:outline-none resize-none bg-blue-50/40 rounded"
-                                    value={editingParagraphText}
-                                    onChange={(e) => setEditingParagraphText(e.target.value)}
-                                    onBlur={() => saveParagraph({ ...chapter, paragraphs: [""] }, 0)}
-                                    onKeyDown={(e) => handleParagraphKeyDown(e, { ...chapter, paragraphs: [""] }, 0)}
-                                    rows={40}
-                                  />
-                                ) : (
-                                  <button
-                                    type="button"
-                                    className="flex-1 text-left cursor-text border-b border-dashed border-transparent hover:border-blue-300 px-1 py-0.5 rounded text-sm text-gray-400"
-                                    onClick={() => startEditParagraph({ ...chapter, paragraphs: [""] }, 0, "")}
+
+                              {/* Inline branches under empty chapter placeholder */}
+                              {inlineBranches
+                                .filter(
+                                  (b) =>
+                                    b.chapterId === chapter.chapter_id &&
+                                    b.parentParagraphIndex === 0,
+                                )
+                                .map((b) => (
+                                  <div
+                                    key={b.id}
+                                    className="relative group/paragraph ml-4 border-l border-dashed border-blue-200 pl-2 mb-2"
                                   >
-                                    Start writing this chapter...
-                                  </button>
-                                )}
-                                <ParagraphBranchPopover
-                                  trigger={
-                                    <button
-                                      className="opacity-0 group-hover/paragraph:opacity-100 transition-opacity border rounded px-2 py-1 text-xs font-medium flex items-center gap-1 bg-white hover:bg-gray-100 shadow hover:shadow-md"
-                                      type="button"
-                                    >
-                                      <svg width="16" height="16" stroke="currentColor" fill="none" viewBox="0 0 24 24"><path strokeWidth="2" d="M6 3v6a6 6 0 006 6h6"></path><path strokeWidth="2" d="M18 21v-6a6 6 0 00-6-6H6"></path></svg>
-                                      Create Branch
-                                    </button>
-                                  }
-                                  onCreateBranch={({ branchName, paragraphs, language, metadata }) =>
-                                    handleCreateBranchForParagraph({
-                                      branchName,
-                                      paragraphs,
-                                      language,
-                                      metadata,
-                                      chapterId: chapter.chapter_id,
-                                      paragraphIndex: 0,
-                                      paragraphText: "",
-                                    })
-                                  }
-                                />
-                              </div>
+                                    <div className="flex items-start gap-2">
+                                      {editingBranchId === b.id ? (
+                                        <textarea
+                                          className="flex-1 border-b border-dashed border-blue-400 px-1 py-0.5 text-sm leading-relaxed focus:outline-none resize-none bg-blue-50/40 rounded"
+                                          placeholder="This is new branch you can immediately type your text here. Later you can also configure it, should you want that"
+                                          value={b.text}
+                                          onChange={(e) =>
+                                            handleInlineBranchTextChange(b.id, e.target.value)
+                                          }
+                                          onBlur={() => handleInlineBranchBlur(b.id)}
+                                          rows={40}
+                                        />
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          className="flex-1 text-left cursor-text border-b border-dashed border-transparent hover:border-blue-300 px-1 py-0.5 rounded text-sm leading-relaxed bg-blue-50/40"
+                                          onClick={() => setEditingBranchId(b.id)}
+                                        >
+                                          {b.text || (
+                                            <span className="text-gray-400 italic">
+                                              This is new branch you can immediately type your text here. Later you can also configure it, should you want that
+                                            </span>
+                                          )}
+                                        </button>
+                                      )}
+                                      <div className="flex flex-col gap-1 text-xs opacity-0 group-hover/paragraph:opacity-100 transition-opacity">
+                                        <button
+                                          type="button"
+                                          className="px-2 py-1 rounded border hover:bg-gray-50 border-gray-300"
+                                          onClick={() =>
+                                            handleQuickCreateBranch(
+                                              chapter,
+                                              0,
+                                              b.text || "",
+                                            )
+                                          }
+                                        >
+                                          Create Branch
+                                        </button>
+                                        <ParagraphBranchPopover
+                                          trigger={
+                                            <button
+                                              type="button"
+                                              className="px-2 py-1 rounded border hover:bg-gray-50 border-gray-300"
+                                            >
+                                              Configure branch
+                                            </button>
+                                          }
+                                          onCreateBranch={({ branchName, paragraphs }) =>
+                                            handleConfigureExistingBranch(b.id, {
+                                              branchName,
+                                              paragraphs,
+                                              language: "en",
+                                              metadata: null,
+                                            })
+                                          }
+                                        />
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
                             </div>
                           )}
                         </div>

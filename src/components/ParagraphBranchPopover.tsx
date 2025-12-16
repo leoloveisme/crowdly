@@ -239,7 +239,7 @@ const ParagraphBranchPopover: React.FC<Props> = ({ trigger, onCreateBranch }) =>
             }}
             disabled={paragraphs.some((p) => !p.text.trim()) || !!metadataError}
           >
-            Create Branch
+            Save
           </Button>
         </div>
       </PopoverContent>
