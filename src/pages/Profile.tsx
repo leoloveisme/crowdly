@@ -181,7 +181,7 @@ const Profile = () => {
     { 
       id: 1, 
       storyTitle: "The story title", 
-      chapterName: "Chapter title/edit",  
+      chapterName: "In the unknown",  
       date: "2023-05-01",
       time: "11:28",
       words: 550,

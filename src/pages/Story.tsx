@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import ParagraphBranchPopover from "@/components/ParagraphBranchPopover";
 import StoryContentTypeSelector from "@/components/StoryContentTypeSelector";
 import StoryBranchList from "@/components/StoryBranchList";
+import ContributionsModule, { ContributionRow } from "@/modules/contributions";
 
 // Use same-origin API base in development; dev server proxies to backend.
 // In production, VITE_API_BASE_URL can point at the deployed API.
@@ -135,6 +136,21 @@ const Story = () => {
     visibility?: string;
     published?: boolean;
   } | null>(null);
+
+  // Helper: count "words" in a paragraph in a way that ignores
+  // punctuation and collapses multiple whitespace. This is used for the
+  // Contributions tab word counts so that they are consistent and
+  // independent of how the database may tokenize text.
+  const countWords = (text: string | null | undefined): number => {
+    if (!text) return 0;
+    // Replace any sequence of non-letter/number characters with a single
+    // space, then split on whitespace.
+    const cleaned = String(text)
+      .replace(/[^\p{L}\p{N}]+/gu, " ")
+      .trim();
+    if (!cleaned) return 0;
+    return cleaned.split(/\s+/).length;
+  };
   const [chapters, setChapters] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [storyError, setStoryError] = useState<{ status: number; message: string } | null>(null);
@@ -142,8 +158,11 @@ const Story = () => {
   const [contributorsLoading, setContributorsLoading] = useState(false);
   const [chapterRevisions, setChapterRevisions] = useState<any[]>([]);
   const [chapterRevisionsLoading, setChapterRevisionsLoading] = useState(false);
+  // Story contributions (paragraph-level) for Contributions tab
+  const [contributions, setContributions] = useState<ContributionRow[]>([]);
+  const [contributionsLoading, setContributionsLoading] = useState(false);
   // UI tab state
-  const [activeTab, setActiveTab] = useState<"story" | "contributors" | "revisions" | "branches">("story");
+  const [activeTab, setActiveTab] = useState<"story" | "contributions" | "contributors" | "revisions" | "branches">("story");
   // Experience vs contribute modes for the story page
   const [mode, setMode] = useState<"experience" | "contribute">("experience");
   // Inline chapter title editing in contribute mode
@@ -843,7 +862,7 @@ const Story = () => {
     }
   };
 
-  // Load story title revisions, reactions, and comments when story_id changes
+  // Load story title revisions, reactions, comments, and contributions when story_id changes
   useEffect(() => {
     const load = async () => {
       if (!story_id) return;
@@ -865,6 +884,38 @@ const Story = () => {
         }
       } catch (err) {
         console.error('Failed to fetch comments', err);
+      }
+      // Contributions for this story
+      try {
+        setContributionsLoading(true);
+        const contribRes = await fetch(`${API_BASE}/stories/${story_id}/contributions`);
+        if (contribRes.ok) {
+          const raw = await contribRes.json();
+          const rows = Array.isArray(raw) ? raw : [];
+          const mapped: ContributionRow[] = rows.map((row: any, index: number) => ({
+            id: row.id ?? `${row.chapter_id ?? 'ch'}-${row.paragraph_index ?? index}-${row.revision_number ?? ''}`,
+            story_title: row.story_title ?? '',
+            chapter_title: row.chapter_title ?? '',
+            paragraph: row.new_paragraph ?? '',
+            user: row.user_email ?? 'Unknown',
+            date: row.created_at ? new Date(row.created_at).toLocaleString() : '',
+            // Always compute word count on the frontend using the same
+            // logic so results are stable and not tied to DB
+            // tokenization details.
+            words: countWords(row.new_paragraph),
+            likes: typeof row.likes === 'number' ? row.likes : 0,
+            dislikes: typeof row.dislikes === 'number' ? row.dislikes : 0,
+            comments: typeof row.comments === 'number' ? row.comments : 0,
+          }));
+          setContributions(mapped);
+        } else {
+          setContributions([]);
+        }
+      } catch (err) {
+        console.error('Failed to fetch story contributions', err);
+        setContributions([]);
+      } finally {
+        setContributionsLoading(false);
       }
     };
     load();
@@ -1096,6 +1147,17 @@ const Story = () => {
               }`}
             >
               <BookText size={18} /> Story
+            </button>
+            <button
+              aria-label="Contributions"
+              onClick={() => setActiveTab("contributions")}
+              className={`flex items-center px-3 py-2 rounded transition font-medium text-sm gap-2 ${
+                activeTab === "contributions"
+                  ? "bg-white border border-blue-300 text-blue-600 shadow-sm"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              <BookText size={18} /> Contributions
             </button>
             <button
               aria-label="Contributors"
@@ -1667,6 +1729,15 @@ const Story = () => {
                 </div>
               )}
             </section>
+          </div>
+        )}
+        {activeTab === "contributions" && (
+          <div className="mt-6">
+            {contributionsLoading ? (
+              <div className="text-sm text-gray-500">Loading contributions...</div>
+            ) : (
+              <ContributionsModule contributions={contributions} />
+            )}
           </div>
         )}
         {activeTab === "contributors" && (

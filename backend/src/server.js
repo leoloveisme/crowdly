@@ -437,7 +437,15 @@ app.get('/users/:userId/stories', async (req, res) => {
 
 // Create a new chapter
 app.post('/chapters', async (req, res) => {
-  const { storyTitleId, chapterTitle, paragraphs, episodeNumber, partNumber, chapterIndex } = req.body ?? {};
+  const {
+    storyTitleId,
+    chapterTitle,
+    paragraphs,
+    episodeNumber,
+    partNumber,
+    chapterIndex,
+    userId,
+  } = req.body ?? {};
 
   if (!storyTitleId || !chapterTitle || !Array.isArray(paragraphs)) {
     return res.status(400).json({ error: 'storyTitleId, chapterTitle, and paragraphs[] are required' });
@@ -452,7 +460,52 @@ app.post('/chapters', async (req, res) => {
       'INSERT INTO stories (story_title_id, episode_number, part_number, chapter_index, chapter_title, paragraphs) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
       [storyTitleId, ep, part, idx, chapterTitle, paragraphs],
     );
-    res.status(201).json(rows[0]);
+    const chapterRow = rows[0];
+
+    // Best-effort 1: record the chapter creator as a contributor in
+    // story_access so they appear in the Contributors tab even if they
+    // have not yet edited existing chapters.
+    if (userId) {
+      try {
+        await pool.query(
+          `INSERT INTO story_access (story_title_id, user_id, role)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (story_title_id, user_id) DO NOTHING`,
+          [storyTitleId, userId, 'contributor'],
+        );
+      } catch (accessErr) {
+        console.error('[POST /chapters] failed to insert story_access row for contributor:', accessErr);
+        // Do not fail chapter creation if story_access insert fails.
+      }
+
+      // Best-effort 2: create an initial chapter_revisions row so this
+      // creation is visible as a text contribution and is attributed to
+      // the user in chapter_revisions.created_by.
+      try {
+        const nextRev = await getNextChapterRevisionNumber(chapterRow.chapter_id);
+        await pool.query(
+          `INSERT INTO chapter_revisions
+             (chapter_id, prev_chapter_title, new_chapter_title, prev_paragraphs, new_paragraphs, created_by, revision_number, revision_reason, language)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+          [
+            chapterRow.chapter_id,
+            null,
+            chapterTitle,
+            null,
+            paragraphs,
+            userId,
+            nextRev,
+            'Chapter created',
+            'en',
+          ],
+        );
+      } catch (revErr) {
+        console.error('[POST /chapters] failed to insert initial chapter_revision:', revErr);
+        // Again, do not fail chapter creation if revision insert fails.
+      }
+    }
+
+    res.status(201).json(chapterRow);
   } catch (err) {
     console.error('[POST /chapters] failed:', err);
     res.status(500).json({ error: 'Failed to create chapter' });
@@ -565,6 +618,105 @@ app.get('/chapter-revisions/:chapterId', async (req, res) => {
   } catch (err) {
     console.error('[GET /chapter-revisions/:chapterId] failed:', err);
     res.status(500).json({ error: 'Failed to fetch chapter revisions' });
+  }
+});
+
+// List paragraph-level contributions for a story.
+// This aggregates chapter_revisions (expanding the paragraphs array)
+// across all chapters belonging to the given story_title_id. This works
+// for both legacy stories and new ones. Reactions and comments are
+// aggregated per (chapter_id, paragraph_index).
+app.get('/stories/:storyTitleId/contributions', async (req, res) => {
+  const { storyTitleId } = req.params;
+
+  try {
+    const { rows } = await pool.query(
+      `WITH reactions_agg AS (
+         SELECT
+           chapter_id,
+           paragraph_index,
+           COUNT(*) FILTER (WHERE reaction_type = 'like') AS likes,
+           COUNT(*) FILTER (WHERE reaction_type = 'dislike') AS dislikes
+         FROM reactions
+         WHERE story_title_id = $1
+         GROUP BY chapter_id, paragraph_index
+       ),
+       comments_agg AS (
+         SELECT
+           chapter_id,
+           paragraph_index,
+           COUNT(*) AS comments
+         FROM comments
+         WHERE story_title_id = $1
+         GROUP BY chapter_id, paragraph_index
+       ),
+       paragraph_contribs AS (
+         -- Contributions recorded via chapter_revisions (new revision system)
+         SELECT
+           cr.id::text AS id,
+           s.chapter_id,
+           st.title AS story_title,
+           s.chapter_title,
+           (t.idx - 1) AS paragraph_index,
+           t.paragraph_text AS new_paragraph,
+           cr.created_at,
+           cr.revision_number,
+           u.email AS user_email
+         FROM chapter_revisions cr
+         JOIN stories s ON s.chapter_id = cr.chapter_id
+         JOIN story_title st ON st.story_title_id = s.story_title_id
+         LEFT JOIN local_users u ON u.id = cr.created_by
+         CROSS JOIN LATERAL unnest(cr.new_paragraphs) WITH ORDINALITY AS t(paragraph_text, idx)
+         WHERE s.story_title_id = $1
+
+         UNION ALL
+
+         -- Legacy contributions where chapters have a contributor_id but
+         -- no explicit chapter_revisions rows. Treat each paragraph of
+         -- those chapters as a contribution.
+         SELECT
+           ('chapter-' || s.chapter_id::text || '-' || t.idx)::text AS id,
+           s.chapter_id,
+           st.title AS story_title,
+           s.chapter_title,
+           (t.idx - 1) AS paragraph_index,
+           t.paragraph_text AS new_paragraph,
+           s.created_at AS created_at,
+           0::integer AS revision_number,
+           u.email AS user_email
+         FROM stories s
+         JOIN story_title st ON st.story_title_id = s.story_title_id
+         LEFT JOIN local_users u ON u.id = s.contributor_id
+         CROSS JOIN LATERAL unnest(s.paragraphs) WITH ORDINALITY AS t(paragraph_text, idx)
+         WHERE s.story_title_id = $1
+           AND s.contributor_id IS NOT NULL
+       )
+       SELECT
+         pc.id,
+         pc.story_title,
+         pc.chapter_title,
+         pc.paragraph_index,
+         pc.new_paragraph,
+         pc.created_at,
+         pc.revision_number,
+         pc.user_email,
+         cardinality(regexp_split_to_array(coalesce(pc.new_paragraph, ''), E'\\s+')) AS words,
+         COALESCE(ra.likes, 0) AS likes,
+         COALESCE(ra.dislikes, 0) AS dislikes,
+         COALESCE(ca.comments, 0) AS comments
+       FROM paragraph_contribs pc
+       LEFT JOIN reactions_agg ra
+         ON ra.chapter_id = pc.chapter_id AND ra.paragraph_index = pc.paragraph_index
+       LEFT JOIN comments_agg ca
+         ON ca.chapter_id = pc.chapter_id AND ca.paragraph_index = pc.paragraph_index
+       ORDER BY pc.created_at DESC, pc.revision_number DESC, pc.paragraph_index ASC`,
+      [storyTitleId],
+    );
+
+    res.json(rows);
+  } catch (err) {
+    console.error('[GET /stories/:storyTitleId/contributions] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch story contributions' });
   }
 });
 
@@ -839,16 +991,46 @@ app.get('/stories/:storyTitleId/contributors', async (req, res) => {
          SELECT DISTINCT s.contributor_id AS user_id, 'contributor'::text AS role
          FROM stories s
          WHERE s.story_title_id = $1 AND s.contributor_id IS NOT NULL
+       ),
+       access_contributors AS (
+         SELECT sa.user_id,
+                -- Map story_access roles to contributor labels; owner will
+                -- be filtered out later because creator already covers it.
+                CASE
+                  WHEN sa.role = 'owner' THEN 'creator'
+                  ELSE 'contributor'
+                END AS role
+         FROM story_access sa
+         WHERE sa.story_title_id = $1
+       ),
+       comment_contributors AS (
+         SELECT DISTINCT c.user_id, 'contributor'::text AS role
+         FROM comments c
+         WHERE c.story_title_id = $1 AND c.user_id IS NOT NULL
+       ),
+       reaction_contributors AS (
+         SELECT DISTINCT r.user_id, 'contributor'::text AS role
+         FROM reactions r
+         WHERE r.story_title_id = $1 AND r.user_id IS NOT NULL
        )
-       SELECT DISTINCT u.id, u.email, c.role
+       SELECT DISTINCT
+         COALESCE(u.id, c.user_id)      AS id,
+         COALESCE(u.email, c.user_id::text) AS email,
+         c.role
        FROM (
          SELECT * FROM creator
          UNION ALL
          SELECT * FROM chapter_contributors
          UNION ALL
          SELECT * FROM story_contributors
+         UNION ALL
+         SELECT * FROM access_contributors
+         UNION ALL
+         SELECT * FROM comment_contributors
+         UNION ALL
+         SELECT * FROM reaction_contributors
        ) c
-       JOIN local_users u ON u.id = c.user_id`,
+       LEFT JOIN local_users u ON u.id = c.user_id`,
       [storyTitleId],
     );
 
