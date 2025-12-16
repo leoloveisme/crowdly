@@ -105,7 +105,7 @@ const CrowdlyHeader = () => {
             </Link>
             <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-900 via-pink-800 to-indigo-400 bg-clip-text text-transparent hidden md:block px-2">
               <EditableText id="header-title">
-                Crowdly where YOUR entertainment is
+                Crowdly where YOUR entertainment (l)i(ve)s
               </EditableText>
             </h1>
           </div>

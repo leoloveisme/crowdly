@@ -21,7 +21,7 @@
     </message>
     <message>
         <source>New directory</source>
-        <translation>Новая папка</translation>
+        <translation>Создать новую папку</translation>
     </message>
     <message>
         <source>Open</source>
@@ -29,7 +29,7 @@
     </message>
     <message>
         <source>Story on the web</source>
-        <translation>История в интернете</translation>
+        <translation>Историю из интернета</translation>
     </message>
     <message>
         <source>File</source>

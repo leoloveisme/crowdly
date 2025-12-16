@@ -3,6 +3,26 @@
   padding: 24px;
 }
 
+.topbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.topbar-btn {
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.95);
+  color: #111;
+  padding: 6px 10px;
+  border-radius: 10px;
+  font: 12px/1.2 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  cursor: pointer;
+}
+
+.topbar-btn:hover {
+  background: #f3f3f3;
+}
+
 .doc {
   display: flex;
   flex-direction: column;

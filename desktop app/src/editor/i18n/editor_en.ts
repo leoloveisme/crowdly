@@ -21,7 +21,7 @@
     </message>
     <message>
       <source>New directory</source>
-      <translation>New directory</translation>
+      <translation>Create new directory</translation>
     </message>
     <message>
       <source>Open</source>

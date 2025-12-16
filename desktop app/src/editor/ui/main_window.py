@@ -23,8 +23,9 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
     QInputDialog,
+    QDialog,
 )
-from PySide6.QtCore import Qt, QTimer, QEvent, QCoreApplication
+from PySide6.QtCore import Qt, QTimer, QEvent, QCoreApplication, QObject, QThread, Signal
 from PySide6.QtGui import QAction, QActionGroup
 
 from ..document import Document
@@ -899,13 +900,217 @@ class MainWindow(QMainWindow):
             )
 
     def _open_story_on_web(self) -> None:  # pragma: no cover - UI wiring
-        """Open a story from the web (placeholder)."""
+        """Open a story from the web and import it into the project space."""
 
-        QMessageBox.information(
-            self,
-            self.tr("Not implemented"),
-            self.tr("Opening a story from the web is not implemented yet."),
-        )
+        import traceback
+
+        try:
+            # Ensure project space is configured (local-first requirement).
+            if self._project_space_path is None:
+                QMessageBox.information(
+                    self,
+                    self.tr("Project space required"),
+                    self.tr("Please create or choose your project space first."),
+                )
+                self._choose_project_space()
+                if self._project_space_path is None:
+                    return
+
+            try:
+                from .open_story_dialog import OpenStoryDialog
+            except Exception as exc:  # pragma: no cover
+                QMessageBox.warning(
+                    self,
+                    self.tr("Error"),
+                    self.tr("Could not open the web-story dialog.\n\nDetails: {error}").format(
+                        error=str(exc)
+                    ),
+                )
+                return
+
+            dialog = OpenStoryDialog(self)
+            if dialog.exec() != QDialog.DialogCode.Accepted:
+                return
+
+            story_url = dialog.value()
+            if not story_url:
+                return
+
+            self._start_crowdly_fetch(story_url)
+        except Exception:
+            # Never allow an exception in a Qt slot to terminate the app.
+            traceback.print_exc()
+            QMessageBox.critical(
+                self,
+                self.tr("Error"),
+                self.tr("An unexpected error occurred while opening the web story."),
+            )
+
+    def _start_crowdly_fetch(
+        self,
+        story_url: str,
+        *,
+        credentials: tuple[str, str] | None = None,
+    ) -> None:  # pragma: no cover - UI wiring
+        """Start fetching a story from Crowdly on a background thread."""
+
+        import traceback
+
+        try:
+            thread = _CrowdlyFetchThread(story_input=story_url, credentials=credentials, parent=self)
+
+            # UI handlers (queued back to the UI thread by Qt).
+            thread.storyFetched.connect(self._on_crowdly_story_fetched)
+            thread.fetchFailed.connect(
+                lambda err: self._on_crowdly_story_fetch_failed(err, story_url=story_url)
+            )
+
+            # Ensure thread resources are reclaimed.
+            thread.finished.connect(thread.deleteLater)
+
+            # Keep reference so it is not GC'ed mid-flight.
+            self._crowdly_fetch_thread = thread
+
+            bar = self.statusBar()
+            if bar is not None:
+                bar.showMessage(self.tr("Fetching story from the web..."))
+
+            thread.start()
+        except Exception:
+            traceback.print_exc()
+            QMessageBox.critical(
+                self,
+                self.tr("Error"),
+                self.tr("An unexpected error occurred while starting the web fetch."),
+            )
+
+    def _on_crowdly_story_fetched(self, story) -> None:  # pragma: no cover - UI wiring
+        """Handle a successful Crowdly fetch by persisting locally and loading."""
+
+        import traceback
+
+        # Clear any temporary status message.
+        bar = self.statusBar()
+        if bar is not None:
+            bar.clearMessage()
+
+        if self._project_space_path is None:
+            QMessageBox.warning(
+                self,
+                self.tr("Error"),
+                self.tr("Project space is not set."),
+            )
+            return
+
+        try:
+            from ..story_import import (
+                map_story_to_document,
+                persist_import_metadata,
+                suggest_local_path,
+            )
+
+            doc = map_story_to_document(story)
+            local_path = suggest_local_path(self._project_space_path, story)
+            doc.save(local_path)
+            persist_import_metadata(local_path, story)
+
+            bar = self.statusBar()
+            if bar is not None:
+                bar.showMessage(self.tr("Imported story to: {path}").format(path=local_path))
+        except Exception:
+            # Log full traceback so it's visible during development.
+            traceback.print_exc()
+            QMessageBox.warning(
+                self,
+                self.tr("Error"),
+                self.tr("Failed to save the imported story locally."),
+            )
+            return
+
+        self._document = doc
+        self._last_change_from_preview = False
+
+        old_state = self.editor.blockSignals(True)
+        try:
+            self.editor.setPlainText(doc.content)
+        finally:
+            self.editor.blockSignals(old_state)
+
+        self.preview.set_markdown(doc.content)
+        self._update_document_stats_label()
+
+    def _on_crowdly_story_fetch_failed(self, error: object, *, story_url: str) -> None:  # pragma: no cover - UI wiring
+        """Show a user-friendly error when a web story cannot be loaded."""
+
+        import traceback
+
+        try:
+            bar = self.statusBar()
+            if bar is not None:
+                bar.clearMessage()
+
+            kind = None
+            message = None
+            if isinstance(error, dict):
+                kind = error.get("kind")
+                message = error.get("message")
+
+            if not message:
+                message = str(error)
+
+            if kind == "auth_required":
+                # Private story: ask for login and retry.
+                try:
+                    from .crowdly_login_dialog import CrowdlyLoginDialog
+                except Exception as exc:  # pragma: no cover
+                    QMessageBox.warning(
+                        self,
+                        self.tr("Open story failed"),
+                        self.tr("Login dialog is unavailable.\n\nDetails: {error}").format(
+                            error=str(exc)
+                        ),
+                    )
+                    return
+
+                dlg = CrowdlyLoginDialog(self)
+                if dlg.exec() != QDialog.DialogCode.Accepted:
+                    return
+
+                creds = dlg.credentials()
+                if creds is None:
+                    QMessageBox.warning(
+                        self,
+                        self.tr("Login"),
+                        self.tr("Username and password are required."),
+                    )
+                    return
+
+                self._start_crowdly_fetch(
+                    story_url, credentials=(creds.username, creds.password)
+                )
+                return
+
+            # Not the owner / no access.
+            if kind == "access_denied":
+                QMessageBox.warning(
+                    self,
+                    self.tr("Open story failed"),
+                    self.tr("You don't have access to the story."),
+                )
+                return
+
+            QMessageBox.warning(
+                self,
+                self.tr("Open story failed"),
+                message,
+            )
+        except Exception:
+            traceback.print_exc()
+            QMessageBox.critical(
+                self,
+                self.tr("Error"),
+                self.tr("An unexpected error occurred while handling the web-story error."),
+            )
 
     def _open_document(self) -> None:  # pragma: no cover - UI wiring
         """Open an existing Markdown document and load it into the editor."""
@@ -1005,3 +1210,50 @@ class MainWindow(QMainWindow):
         self._settings.project_space = None
         save_settings(self._settings)
         self._update_project_space_status()
+
+
+class _CrowdlyFetchThread(QThread):
+    """QThread that fetches a story and emits results back to the UI thread.
+
+    This avoids moveToThread + deleteLater timing pitfalls that can cause Qt
+    cross-thread warnings and, in some environments, segfaults.
+    """
+
+    storyFetched = Signal(object)
+    fetchFailed = Signal(object)
+
+    def __init__(
+        self,
+        *,
+        story_input: str,
+        credentials: tuple[str, str] | None = None,
+        parent: QObject | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self._story_input = story_input
+        self._credentials = credentials
+
+    def run(self) -> None:
+        import traceback
+
+        try:
+            from ..crowdly_client import CrowdlyClient, api_base_url_from_story_url
+
+            api_base = api_base_url_from_story_url(self._story_input)
+            client = CrowdlyClient(api_base, credentials=self._credentials)
+            story = client.fetch_story(self._story_input)
+            self.storyFetched.emit(story)
+        except Exception as exc:
+            traceback.print_exc()
+            try:
+                from ..crowdly_client import CrowdlyClientError
+
+                if isinstance(exc, CrowdlyClientError):
+                    self.fetchFailed.emit({"kind": exc.kind, "message": str(exc)})
+                    return
+            except Exception:
+                pass
+
+            self.fetchFailed.emit(
+                {"kind": "unknown", "message": f"Unexpected error: {exc}"}
+            )

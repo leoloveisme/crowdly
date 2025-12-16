@@ -7,9 +7,10 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+import traceback
 
 from PySide6.QtCore import QTranslator
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QMessageBox
 
 from . import settings
 from .ui.main_window import MainWindow
@@ -24,6 +25,20 @@ def main() -> None:
     """
 
     app = QApplication(sys.argv)
+
+    # Ensure unexpected exceptions in Qt callbacks are logged and surfaced.
+    def _excepthook(exc_type, exc, tb):
+        traceback.print_exception(exc_type, exc, tb)
+        try:
+            QMessageBox.critical(
+                None,
+                "Unexpected error",
+                f"{exc_type.__name__}: {exc}",
+            )
+        except Exception:
+            pass
+
+    sys.excepthook = _excepthook
 
     app_settings = settings.load_settings()
 

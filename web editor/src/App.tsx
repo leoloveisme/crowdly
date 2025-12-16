@@ -224,6 +224,16 @@ const App: React.FC = () => {
     [saveAllFromDom]
   );
 
+  const resetToSample = useCallback(() => {
+    // Don't let the current DOM overwrite our reset state.
+    deactivateEditing({ skipSave: true });
+    hideControlsEverywhere();
+
+    const next = buildInitialBlocks();
+    setBlocks(next);
+    persistBlocks(next);
+  }, [deactivateEditing, hideControlsEverywhere, persistBlocks]);
+
   const activateEditing = useCallback((blockId: string) => {
     const Aloha = window.Aloha;
     if (!Aloha?.ready || !Aloha?.jQuery) return;
@@ -525,6 +535,16 @@ const App: React.FC = () => {
   // Render all blocks (including hidden) so Aloha can bootstrap them once.
   return (
     <div className="page">
+      <div className="topbar" onPointerDown={(e) => e.stopPropagation()}>
+        <button
+          type="button"
+          className="topbar-btn"
+          onClick={() => resetToSample()}
+          title="Restore the sample story title/chapter/paragraph"
+        >
+          Reset to sample
+        </button>
+      </div>
       {!hasVisibleContent ? (
         <div className="empty-state">
           <p>There is nothing left here.</p>

@@ -29,6 +29,10 @@ class Settings:
     # translations will be done in a later iteration.
     interface_language: str = "en"
 
+    # Base URL for the Crowdly web platform.
+    # Example: "https://crowdly.example"
+    crowdly_base_url: str | None = None
+
 
 def _get_config_dir() -> Path:
     """Return the directory where configuration files are stored."""
@@ -58,10 +62,12 @@ def load_settings() -> Settings:
     project_space = Path(project_space_value) if project_space_value else None
 
     interface_language = raw.get("interface_language", "en")
+    crowdly_base_url = raw.get("crowdly_base_url")
 
     return Settings(
         project_space=project_space,
         interface_language=interface_language,
+        crowdly_base_url=crowdly_base_url,
     )
 
 
@@ -75,6 +81,10 @@ def save_settings(settings: Settings) -> None:
     # Serialise Path objects to strings for JSON.
     if isinstance(data.get("project_space"), Path):
         data["project_space"] = str(data["project_space"])
+
+    # Normalise empty strings.
+    if not data.get("crowdly_base_url"):
+        data["crowdly_base_url"] = None
 
     cfg_path = _get_config_path()
     cfg_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
