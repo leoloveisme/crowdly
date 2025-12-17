@@ -25,6 +25,22 @@ type Contributor = {
   role: string;
 };
 
+type Proposal = {
+  id: string;
+  story_title_id: string;
+  target_type: "story_title" | "chapter" | "paragraph" | "branch";
+  target_chapter_id: string | null;
+  target_branch_id: number | null;
+  target_path: string | null;
+  proposed_text: string;
+  author_user_id: string;
+  status: "undecided" | "approved" | "declined";
+  decided_by: string | null;
+  decided_at: string | null;
+  created_at: string;
+  author_email?: string;
+};
+
 // --- Modular components for each section ---
 const ContributorsSection = ({
   contributors,
@@ -161,6 +177,9 @@ const Story = () => {
   // Story contributions (paragraph-level) for Contributions tab
   const [contributions, setContributions] = useState<ContributionRow[]>([]);
   const [contributionsLoading, setContributionsLoading] = useState(false);
+  // CRDT-style proposals (initial lightweight implementation)
+  const [proposals, setProposals] = useState<Proposal[]>([]);
+  const [proposalsLoading, setProposalsLoading] = useState(false);
   // UI tab state
   const [activeTab, setActiveTab] = useState<"story" | "contributions" | "contributors" | "revisions" | "branches">("story");
   // Experience vs contribute modes for the story page
@@ -168,6 +187,10 @@ const Story = () => {
   // Inline chapter title editing in contribute mode
   const [editingChapterId, setEditingChapterId] = useState<string | null>(null);
   const [editingChapterTitle, setEditingChapterTitle] = useState("");
+  // When adding a chapter, optionally remember the chapter after which
+  // the new one should appear. If null, the new chapter is appended at
+  // the end (existing behavior).
+  const [insertAfterChapterId, setInsertAfterChapterId] = useState<string | null>(null);
   // Inline paragraph editing state (contribute mode)
   const [editingParagraph, setEditingParagraph] = useState<{
     chapterId: string;
@@ -507,27 +530,58 @@ const Story = () => {
     }
 
     const trimmed = raw.trim();
-    if (!trimmed) {
-      // Empty -> delete this paragraph
+
+    // Story initiator edits go directly into canonical chapter text;
+    // contributors submit proposals instead so they can be approved or
+    // declined later.
+    if (isOwner) {
+      if (!trimmed) {
+        // Empty -> delete this paragraph
+        const newParagraphs = [...chapter.paragraphs];
+        newParagraphs.splice(index, 1);
+        setEditingParagraphText("");
+        await handleUpdateChapter(chapter.chapter_id, { paragraphs: newParagraphs });
+        return;
+      }
+
+      // Split on newlines so each line becomes its own paragraph
+      const lines = raw
+        .split(/\n+/)
+        .map((p) => p.trim())
+        .filter(Boolean);
+
       const newParagraphs = [...chapter.paragraphs];
-      newParagraphs.splice(index, 1);
+      // Replace the edited paragraph with one or more new ones
+      newParagraphs.splice(index, 1, ...lines);
+
       setEditingParagraphText("");
       await handleUpdateChapter(chapter.chapter_id, { paragraphs: newParagraphs });
       return;
     }
 
-    // Split on newlines so each line becomes its own paragraph
-    const lines = raw
-      .split(/\n+/)
-      .map((p) => p.trim())
-      .filter(Boolean);
-
-    const newParagraphs = [...chapter.paragraphs];
-    // Replace the edited paragraph with one or more new ones
-    newParagraphs.splice(index, 1, ...lines);
-
-    setEditingParagraphText("");
-    await handleUpdateChapter(chapter.chapter_id, { paragraphs: newParagraphs });
+    // Non-owner: create a proposal instead of modifying canonical text.
+    try {
+      const proposedText = trimmed ? raw : ""; // empty string means delete
+      await createProposal({
+        targetType: "paragraph",
+        targetChapterId: chapter.chapter_id,
+        targetPath: String(index),
+        proposedText,
+      });
+      toast({
+        title: "Change proposed",
+        description: "Your paragraph changes are pending review.",
+      });
+    } catch (err) {
+      console.error("Failed to submit paragraph proposal", err);
+      toast({
+        title: "Error",
+        description: "Failed to submit paragraph proposal.",
+        variant: "destructive",
+      });
+    } finally {
+      setEditingParagraphText("");
+    }
   };
 
   const handleParagraphKeyDown = async (
@@ -550,6 +604,7 @@ const Story = () => {
     setNewChapterTitle("");
     setNewChapterBody("");
     setAddChapterMode(false);
+    setInsertAfterChapterId(null);
   };
 
   const handleSaveNewChapter = async () => {
@@ -623,8 +678,45 @@ const Story = () => {
         toast({ title: "Error", description: body.error || "Failed to add chapter", variant: "destructive" });
         return;
       }
-      toast({ title: "Chapter Created", description: `Added chapter "${chapter_title}".` });
-      fetchStoryAndChapters();
+
+      const created = await res.json();
+      toast({ title: "Chapter Created", description: `Added chapter \"${chapter_title}\".` });
+
+      // Compute the new chapter order in the UI so that, when requested,
+      // the new chapter appears directly below the chapter whose menu
+      // was used. Otherwise, append it at the end.
+      const current = Array.isArray(chapters) ? chapters : [];
+      let newChapters: any[];
+      const withoutCreated = current.filter((ch) => ch.chapter_id !== created.chapter_id);
+
+      if (!insertAfterChapterId) {
+        newChapters = [...withoutCreated, created];
+      } else {
+        const idx = withoutCreated.findIndex((ch) => ch.chapter_id === insertAfterChapterId);
+        if (idx === -1) {
+          newChapters = [...withoutCreated, created];
+        } else {
+          const before = withoutCreated.slice(0, idx + 1);
+          const after = withoutCreated.slice(idx + 1);
+          newChapters = [...before, created, ...after];
+        }
+      }
+
+      setChapters(newChapters);
+
+      // Persist the ordering in the backend so that future loads show
+      // the same chapter order.
+      try {
+        await fetch(`${API_BASE}/stories/${story_id}/chapters/reorder`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chapterIds: newChapters.map((ch) => ch.chapter_id),
+          }),
+        });
+      } catch (orderErr) {
+        console.error("Failed to persist chapter reorder", orderErr);
+      }
     } catch (err) {
       console.error("Failed to create chapter", err);
       toast({ title: "Error", description: "Failed to add chapter", variant: "destructive" });
@@ -692,36 +784,63 @@ const Story = () => {
   ) => {
     // Compose branch_text as joined array
     const branch_text = paragraphs.join("\n\n");
-    try {
-      const res = await fetch(`${API_BASE}/paragraph-branches/${branchId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          branchText: branch_text,
-          parentParagraphText: branchName || undefined,
-        }),
-      });
 
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        toast({
-          title: "Error",
-          description: body.error || "Failed to update branch.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Update local inline branch cache so the textarea reflects changes
-      const updated = await res.json();
-      setInlineBranches((prev) =>
-        prev.map((b) => (b.id === branchId ? { ...b, text: updated.branch_text ?? branch_text } : b)),
-      );
-
+    if (!user) {
       toast({
-        title: "Branch updated",
-        description: "Your branch has been updated.",
+        title: "Login required",
+        description: "You must be logged in to edit a branch.",
+        variant: "destructive",
       });
+      return;
+    }
+
+    try {
+      if (isOwner) {
+        const res = await fetch(`${API_BASE}/paragraph-branches/${branchId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            branchText: branch_text,
+            parentParagraphText: branchName || undefined,
+          }),
+        });
+
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          toast({
+            title: "Error",
+            description: body.error || "Failed to update branch.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Update local inline branch cache so the textarea reflects changes
+        const updated = await res.json();
+        setInlineBranches((prev) =>
+          prev.map((b) => (b.id === branchId ? { ...b, text: updated.branch_text ?? branch_text } : b)),
+        );
+
+        toast({
+          title: "Branch updated",
+          description: "Your branch has been updated.",
+        });
+      } else {
+        await createProposal({
+          targetType: "branch",
+          targetBranchId: branchId,
+          proposedText: branch_text,
+          targetPath: null,
+        });
+        // Keep local inline state so the contributor still sees their text
+        setInlineBranches((prev) =>
+          prev.map((b) => (b.id === branchId ? { ...b, text: branch_text } : b)),
+        );
+        toast({
+          title: "Branch proposal submitted",
+          description: "Your branch changes are pending review.",
+        });
+      }
     } catch (e) {
       console.error("Failed to update branch", e);
       toast({
@@ -803,22 +922,47 @@ const Story = () => {
     const branch = inlineBranches.find((b) => b.id === branchId);
     if (!branch) return;
 
-    try {
-      const res = await fetch(`${API_BASE}/paragraph-branches/${branchId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ branchText: branch.text ?? "" }),
+    if (!user) {
+      toast({
+        title: "Login required",
+        description: "You must be logged in to edit a branch.",
+        variant: "destructive",
       });
+      return;
+    }
 
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        console.error("Failed to save inline branch", { status: res.status, body });
-        toast({
-          title: "Error",
-          description: body.error || "Failed to save branch text.",
-          variant: "destructive",
+    try {
+      if (isOwner) {
+        // Story initiator: write directly to canonical branch text
+        const res = await fetch(`${API_BASE}/paragraph-branches/${branchId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ branchText: branch.text ?? "" }),
         });
-        return;
+
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          console.error("Failed to save inline branch", { status: res.status, body });
+          toast({
+            title: "Error",
+            description: body.error || "Failed to save branch text.",
+            variant: "destructive",
+          });
+          return;
+        }
+      } else {
+        // Contributors: send a proposal instead of modifying canonical text
+        const proposedText = branch.text ?? "";
+        await createProposal({
+          targetType: "branch",
+          targetBranchId: branch.id,
+          proposedText,
+          targetPath: null,
+        });
+        toast({
+          title: "Branch proposal submitted",
+          description: "Your branch changes are pending review.",
+        });
       }
     } catch (err) {
       console.error("Failed to save inline branch", err);
@@ -830,7 +974,7 @@ const Story = () => {
       return;
     }
 
-    // After saving, return this branch to read-only inline text mode
+    // After saving or proposing, return this branch to read-only inline text mode
     setEditingBranchId((current) => (current === branchId ? null : current));
   };
 
@@ -862,7 +1006,82 @@ const Story = () => {
     }
   };
 
-  // Load story title revisions, reactions, comments, and contributions when story_id changes
+  type ProposalTargetType = "story_title" | "chapter" | "paragraph" | "branch";
+
+  async function createProposal(args: {
+    targetType: ProposalTargetType;
+    targetChapterId?: string;
+    targetBranchId?: number;
+    targetPath?: string | null;
+    proposedText: string;
+  }) {
+    if (!story_id) return;
+    if (!user) {
+      toast({
+        title: "Login required",
+        description: "You must be logged in to submit a proposal.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/stories/${story_id}/proposals`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          targetType: args.targetType,
+          targetChapterId: args.targetChapterId,
+          targetBranchId: args.targetBranchId,
+          targetPath: args.targetPath ?? null,
+          proposedText: args.proposedText,
+          authorUserId: user.id,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        console.error("Failed to create proposal", { status: res.status, body });
+        toast({
+          title: "Error",
+          description: body.error || "Failed to submit proposal.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Refresh proposals so the Contributions tab and experience view reflect the new entry
+      await fetchProposals();
+    } catch (err) {
+      console.error("Failed to create proposal", err);
+      toast({
+        title: "Error",
+        description: "Failed to submit proposal.",
+        variant: "destructive",
+      });
+    }
+  }
+
+  // Helper to load proposals for this story (currently only undecided proposals)
+  const fetchProposals = async () => {
+    if (!story_id) return;
+    try {
+      setProposalsLoading(true);
+      const res = await fetch(`${API_BASE}/stories/${story_id}/proposals?status=undecided`);
+      if (!res.ok) {
+        setProposals([]);
+        return;
+      }
+      const data = await res.json();
+      setProposals(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Failed to fetch proposals", err);
+      setProposals([]);
+    } finally {
+      setProposalsLoading(false);
+    }
+  };
+
+  // Load story title revisions, reactions, comments, contributions, and proposals when story_id changes
   useEffect(() => {
     const load = async () => {
       if (!story_id) return;
@@ -917,6 +1136,9 @@ const Story = () => {
       } finally {
         setContributionsLoading(false);
       }
+
+      // Proposals (undecided) for this story
+      await fetchProposals();
     };
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1110,6 +1332,52 @@ const Story = () => {
     }
   };
 
+  const handleApproveProposal = async (proposalId: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/proposals/${proposalId}/approve`, {
+        method: "POST",
+      });
+      if (!res.ok && res.status !== 204) {
+        const body = await res.json().catch(() => ({}));
+        toast({
+          title: "Error",
+          description: body.error || "Failed to approve proposal",
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({ title: "Proposal approved", description: "Changes have been merged into the story." });
+      // Refresh story/chapters and proposals so UI reflects the merge
+      await fetchStoryAndChapters();
+      await fetchProposals();
+    } catch (err) {
+      console.error("Failed to approve proposal", err);
+      toast({ title: "Error", description: "Failed to approve proposal", variant: "destructive" });
+    }
+  };
+
+  const handleDeclineProposal = async (proposalId: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/proposals/${proposalId}/decline`, {
+        method: "POST",
+      });
+      if (!res.ok && res.status !== 204) {
+        const body = await res.json().catch(() => ({}));
+        toast({
+          title: "Error",
+          description: body.error || "Failed to decline proposal",
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({ title: "Proposal declined", description: "This proposal will no longer appear in the story view." });
+      await fetchProposals();
+    } catch (err) {
+      console.error("Failed to decline proposal", err);
+      toast({ title: "Error", description: "Failed to decline proposal", variant: "destructive" });
+    }
+  };
+
   if (!story) {
     return (
       <div className="flex flex-col min-h-screen">
@@ -1283,17 +1551,52 @@ const Story = () => {
                   <div key={chapter.chapter_id} className="mb-8">
                     <h2 className="text-xl font-semibold mb-2">{chapter.chapter_title}</h2>
                     {Array.isArray(chapter.paragraphs)
-                      ? chapter.paragraphs.map((paragraph: string, idx: number) =>
+                      ? chapter.paragraphs.map((paragraph: string, idx: number) => {
                           // Support legacy data where a single string may contain newlines
-                          paragraph
+                          const lines = paragraph
                             .split(/\n+/)
-                            .filter((line) => line.trim().length > 0)
-                            .map((line, lineIdx) => (
-                              <p key={`${idx}-${lineIdx}`} className="mb-3">
-                                {line}
-                              </p>
-                            )),
-                        )
+                            .filter((line) => line.trim().length > 0);
+
+                          const paragraphProposals = proposals.filter(
+                            (p) =>
+                              p.target_type === "paragraph" &&
+                              p.target_chapter_id === chapter.chapter_id &&
+                              (p.target_path ?? "") === String(idx),
+                          );
+
+                          return (
+                            <div key={idx} className="mb-3">
+                              {lines.map((line, lineIdx) => (
+                                <p key={`${idx}-${lineIdx}`} className="mb-1">
+                                  {line}
+                                </p>
+                              ))}
+
+                              {paragraphProposals.length > 0 && (
+                                <div className="mt-1 space-y-1">
+                                  {paragraphProposals.map((p) => (
+                                    <div
+                                      key={p.id}
+                                      className="text-xs text-purple-900 bg-purple-50 border border-dashed border-purple-200 rounded px-2 py-1"
+                                    >
+                                      <div className="whitespace-pre-wrap">
+                                        {p.proposed_text || (
+                                          <span className="italic text-purple-500">
+                                            (Proposed deletion of this paragraph)
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="mt-0.5 text-[10px] text-purple-500">
+                                        Proposed by {p.author_email || "Unknown user"} ·{" "}
+                                        {new Date(p.created_at).toLocaleString()}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })
                       : null}
                   </div>
                 ))}
@@ -1444,6 +1747,19 @@ const Story = () => {
                                 onClick={() => startEditChapterTitle(chapter)}
                               >
                                 Rename
+                              </button>
+                              <button
+                                type="button"
+                                className="px-1 py-0.5 rounded hover:bg-gray-100"
+                                onClick={() => {
+                                  // Open the inline add-chapter editor and
+                                  // remember that the new chapter should be
+                                  // inserted directly after this one.
+                                  setInsertAfterChapterId(chapter.chapter_id);
+                                  setAddChapterMode(true);
+                                }}
+                              >
+                                Add another chapter
                               </button>
                               <button
                                 type="button"
@@ -1714,7 +2030,10 @@ const Story = () => {
                           <button
                             type="button"
                             className="px-4 py-2 text-xs rounded-full border border-dashed border-blue-300 text-blue-700 hover:bg-blue-50"
-                            onClick={() => setAddChapterMode(true)}
+                            onClick={() => {
+                              setInsertAfterChapterId(null);
+                              setAddChapterMode(true);
+                            }}
                           >
                             + Add chapter
                           </button>
@@ -1732,11 +2051,75 @@ const Story = () => {
           </div>
         )}
         {activeTab === "contributions" && (
-          <div className="mt-6">
+          <div className="mt-6 space-y-8">
             {contributionsLoading ? (
               <div className="text-sm text-gray-500">Loading contributions...</div>
             ) : (
               <ContributionsModule contributions={contributions} />
+            )}
+
+            {(isOwner || hasRole("platform_admin") || hasRole("editor")) && (
+              <section>
+                <h2 className="text-xl font-semibold mb-3">Proposed changes (approval required)</h2>
+                <div className="bg-white border rounded p-4 shadow-sm text-sm space-y-3">
+                  {proposalsLoading ? (
+                    <div className="text-gray-500">Loading proposals...</div>
+                  ) : proposals.length === 0 ? (
+                    <div className="text-gray-400">No pending proposals.</div>
+                  ) : (
+                    <ul className="space-y-3">
+                      {proposals.map((p) => {
+                        const chapterTitle =
+                          p.target_chapter_id && Array.isArray(chapters)
+                            ? chapters.find((ch) => ch.chapter_id === p.target_chapter_id)?.chapter_title ?? ""
+                            : "";
+                        const targetLabel =
+                          p.target_type === "story_title"
+                            ? "Story title"
+                            : p.target_type === "chapter"
+                            ? `Chapter: ${chapterTitle || p.target_chapter_id || "(unknown)"}`
+                            : p.target_type === "paragraph"
+                            ? `Paragraph in ${chapterTitle || "chapter"}${
+                                p.target_path ? ` #${p.target_path}` : ""
+                              }`
+                            : "Branch";
+                        return (
+                          <li key={p.id} className="border-b last:border-b-0 pb-3 last:pb-0">
+                            <div className="flex flex-col gap-1">
+                              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                                <div className="font-medium">{targetLabel}</div>
+                                <div className="text-xs text-gray-500">
+                                  {p.author_email || "Unknown user"} · {" "}
+                                  {new Date(p.created_at).toLocaleString()}
+                                </div>
+                              </div>
+                              <div className="text-xs text-gray-700 whitespace-pre-wrap bg-gray-50 rounded px-2 py-1 max-h-40 overflow-auto">
+                                {p.proposed_text}
+                              </div>
+                              <div className="flex gap-2 mt-2">
+                                <button
+                                  type="button"
+                                  onClick={() => handleApproveProposal(p.id)}
+                                  className="px-3 py-1 text-xs rounded bg-green-500 text-white hover:bg-green-600"
+                                >
+                                  OK &amp; merge
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeclineProposal(p.id)}
+                                  className="px-3 py-1 text-xs rounded bg-red-500 text-white hover:bg-red-600"
+                                >
+                                  Deny
+                                </button>
+                              </div>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </div>
+              </section>
             )}
           </div>
         )}
