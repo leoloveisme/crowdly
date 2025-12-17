@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import { randomUUID } from 'crypto';
 import { pool } from './db.js';
 import { loginWithEmailPassword, registerWithEmailPassword } from './auth.js';
 
@@ -58,6 +59,18 @@ async function ensureParagraphBranchesTable() {
     console.log('[init] ensured paragraph_branches table exists');
   } catch (err) {
     console.error('[init] failed to ensure paragraph_branches table:', err);
+  }
+}
+
+// Some of our tables (story revisions, CRDT docs, creative spaces, etc.)
+// rely on gen_random_uuid(). Ensure the pgcrypto extension is available
+// so that function exists.
+async function ensurePgcryptoExtension() {
+  try {
+    await pool.query("CREATE EXTENSION IF NOT EXISTS pgcrypto");
+    console.log('[init] ensured pgcrypto extension exists');
+  } catch (err) {
+    console.error('[init] failed to ensure pgcrypto extension:', err);
   }
 }
 
@@ -148,7 +161,11 @@ async function ensureProposalsTable() {
         story_title_id    uuid NOT NULL REFERENCES story_title(story_title_id) ON DELETE CASCADE,
         target_type       proposal_target NOT NULL,
         target_chapter_id uuid NULL REFERENCES stories(chapter_id) ON DELETE CASCADE,
-        target_branch_id  bigint NULL REFERENCES paragraph_branches(id) ON DELETE CASCADE,
+        -- Note: we intentionally do NOT add a foreign key here because the
+        -- existing paragraph_branches.id type may differ between
+        -- deployments (uuid vs bigint). We only store the identifier and
+        -- validate at the application level.
+        target_branch_id  uuid NULL,
         target_path       text NULL,
         proposed_text     text NOT NULL,
         author_user_id    uuid NOT NULL REFERENCES local_users(id) ON DELETE CASCADE,
@@ -190,7 +207,55 @@ async function ensureProposalsTable() {
   }
 }
 
+async function ensureCreativeSpacesTable() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS creative_spaces (
+        id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id     text NOT NULL,
+        name        text NOT NULL,
+        description text,
+        path        text,
+        created_at  timestamptz NOT NULL DEFAULT now(),
+        updated_at  timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+
+    // In case the table was created earlier with a foreign key to
+    // local_users(id), drop that constraint and ensure user_id is text so
+    // we can store both local and Supabase user ids without FK violations.
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1
+          FROM information_schema.table_constraints
+          WHERE constraint_name = 'creative_spaces_user_id_fkey'
+            AND table_name = 'creative_spaces'
+        ) THEN
+          ALTER TABLE creative_spaces DROP CONSTRAINT creative_spaces_user_id_fkey;
+        END IF;
+      END
+      $$;
+    `);
+
+    await pool.query(
+      'ALTER TABLE creative_spaces ALTER COLUMN user_id TYPE text USING user_id::text',
+    );
+
+    await pool.query(
+      'CREATE INDEX IF NOT EXISTS creative_spaces_user_idx ON creative_spaces(user_id)',
+    );
+    console.log('[init] ensured creative_spaces table exists');
+  } catch (err) {
+    console.error('[init] failed to ensure creative_spaces table:', err);
+  }
+}
+
 // Fire and forget; if this fails we log but do not crash the server
+ensurePgcryptoExtension().catch((err) => {
+  console.error('[init] ensurePgcryptoExtension unhandled error:', err);
+});
 ensureStoryAccessTable().catch((err) => {
   console.error('[init] ensureStoryAccessTable unhandled error:', err);
 });
@@ -205,6 +270,9 @@ ensureCrdtDocumentsTables().catch((err) => {
 });
 ensureProposalsTable().catch((err) => {
   console.error('[init] ensureProposalsTable unhandled error:', err);
+});
+ensureCreativeSpacesTable().catch((err) => {
+  console.error('[init] ensureCreativeSpacesTable unhandled error:', err);
 });
 
 app.get('/health', async (_req, res) => {
@@ -605,6 +673,203 @@ app.get('/users/:userId/stories', async (req, res) => {
   } catch (err) {
     console.error('[GET /users/:userId/stories] failed:', err);
     res.status(500).json({ error: 'Failed to fetch user stories' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Creative spaces (project spaces) CRUD
+// ---------------------------------------------------------------------------
+
+// List creative spaces for a user
+app.get('/creative-spaces', async (req, res) => {
+  const userId = req.query.userId;
+  if (!userId) {
+    return res.status(400).json({ error: 'userId query parameter is required' });
+  }
+
+  try {
+    const { rows } = await pool.query(
+      'SELECT * FROM creative_spaces WHERE user_id = $1 ORDER BY created_at ASC',
+      [userId],
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('[GET /creative-spaces] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch creative spaces' });
+  }
+});
+
+// Ensure at least one creative space exists for a user, creating a
+// default "No name creative space" if necessary. This is intended for
+// synchronisation flows coming from desktop or other apps.
+app.post('/creative-spaces/ensure-default', async (req, res) => {
+  const { userId } = req.body ?? {};
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+
+  try {
+    const existing = await pool.query(
+      'SELECT * FROM creative_spaces WHERE user_id = $1 ORDER BY created_at ASC LIMIT 1',
+      [userId],
+    );
+    if (existing.rows.length > 0) {
+      return res.json(existing.rows[0]);
+    }
+
+    const id = randomUUID();
+    const { rows } = await pool.query(
+      'INSERT INTO creative_spaces (id, user_id, name) VALUES ($1, $2, $3) RETURNING *',
+      [id, userId, 'No name creative space'],
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error('[POST /creative-spaces/ensure-default] failed:', err);
+    res.status(500).json({ error: 'Failed to ensure default creative space' });
+  }
+});
+
+// Create a new creative space
+app.post('/creative-spaces', async (req, res) => {
+  const { userId, name, description, path } = req.body ?? {};
+
+  console.error('[POST /creative-spaces] incoming body:', req.body);
+
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+
+  const trimmedName = typeof name === 'string' ? name.trim() : '';
+  const finalName = trimmedName || 'No name creative space';
+
+  try {
+    const id = randomUUID();
+    const { rows } = await pool.query(
+      'INSERT INTO creative_spaces (id, user_id, name, description, path) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [id, userId, finalName, description || null, path || null],
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error('[POST /creative-spaces] failed:', {
+      error: err,
+      userId,
+      name,
+      description,
+      path,
+    });
+    res.status(500).json({ error: 'Failed to create creative space' });
+  }
+});
+
+// Update (rename / edit) a creative space owned by the user
+app.patch('/creative-spaces/:spaceId', async (req, res) => {
+  const { spaceId } = req.params;
+  const { userId, name, description, path } = req.body ?? {};
+
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+
+  const fields = [];
+  const values = [];
+  let idx = 1;
+
+  if (name !== undefined) {
+    const trimmedName = typeof name === 'string' ? name.trim() : '';
+    const finalName = trimmedName || 'No name creative space';
+    fields.push(`name = $${idx++}`);
+    values.push(finalName);
+  }
+  if (description !== undefined) {
+    fields.push(`description = $${idx++}`);
+    values.push(description || null);
+  }
+  if (path !== undefined) {
+    fields.push(`path = $${idx++}`);
+    values.push(path || null);
+  }
+
+  if (fields.length === 0) {
+    return res.status(400).json({ error: 'No fields to update' });
+  }
+
+  // Always bump updated_at
+  fields.push(`updated_at = now()`);
+
+  values.push(spaceId, userId);
+
+  const sql = `UPDATE creative_spaces
+               SET ${fields.join(', ')}
+               WHERE id = $${idx++} AND user_id = $${idx}
+               RETURNING *`;
+
+  try {
+    const { rows } = await pool.query(sql, values);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Creative space not found' });
+    }
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('[PATCH /creative-spaces/:spaceId] failed:', err);
+    res.status(500).json({ error: 'Failed to update creative space' });
+  }
+});
+
+// Delete a creative space owned by the user
+app.delete('/creative-spaces/:spaceId', async (req, res) => {
+  const { spaceId } = req.params;
+  const { userId } = req.body ?? {};
+
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+
+  try {
+    const { rowCount } = await pool.query(
+      'DELETE FROM creative_spaces WHERE id = $1 AND user_id = $2',
+      [spaceId, userId],
+    );
+    if (rowCount === 0) {
+      return res.status(404).json({ error: 'Creative space not found' });
+    }
+    res.status(204).send();
+  } catch (err) {
+    console.error('[DELETE /creative-spaces/:spaceId] failed:', err);
+    res.status(500).json({ error: 'Failed to delete creative space' });
+  }
+});
+
+// Clone a creative space (shallow clone for now: just duplicate metadata).
+// Later, when creative space folders/files are modelled in the DB, this
+// endpoint can be extended to deep-clone that structure as well.
+app.post('/creative-spaces/:spaceId/clone', async (req, res) => {
+  const { spaceId } = req.params;
+  const { userId } = req.body ?? {};
+
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+
+  try {
+    const existingRes = await pool.query(
+      'SELECT * FROM creative_spaces WHERE id = $1 AND user_id = $2',
+      [spaceId, userId],
+    );
+    if (existingRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Creative space not found' });
+    }
+    const src = existingRes.rows[0];
+
+    const cloneName = `${src.name || 'No name creative space'} (copy)`;
+    const { rows } = await pool.query(
+      'INSERT INTO creative_spaces (user_id, name, description, path) VALUES ($1, $2, $3, $4) RETURNING *',
+      [userId, cloneName, src.description || null, src.path || null],
+    );
+
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error('[POST /creative-spaces/:spaceId/clone] failed:', err);
+    res.status(500).json({ error: 'Failed to clone creative space' });
   }
 });
 

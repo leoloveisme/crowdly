@@ -65,6 +65,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import RevisionComparison from "@/components/RevisionComparison";
 import CommunicationsSection from "@/components/CommunicationsSection";
 import StatsDisplay from "@/components/StatsDisplay";
+import CreativeSpacesModule, { CreativeSpace } from "@/modules/creative spaces";
 
 // Use same-origin API base in development; dev server proxies to backend.
 // In production, VITE_API_BASE_URL can point at the deployed API.
@@ -108,6 +109,12 @@ const Profile = () => {
     roles: string[];
   }[]>([]);
   const [storiesLoading, setStoriesLoading] = useState(false);
+
+  // Creative spaces: for now, this is just a placeholder list. In a
+  // later step we will fetch real creative spaces from the backend and
+  // keep them in sync with the desktop app's project spaces.
+  const [creativeSpaces, setCreativeSpaces] = useState<CreativeSpace[]>([]);
+  const [creativeSpacesLoading, setCreativeSpacesLoading] = useState(false);
 
   // Legacy state starts, merged for compatibility
   const [newInterest, setNewInterest] = useState("");
@@ -319,6 +326,32 @@ const Profile = () => {
     fetchOrCreateProfile();
   }, [userId, userEmail, authUser]);
 
+  // Load creative spaces for the current user
+  useEffect(() => {
+    const fetchSpaces = async () => {
+      if (!authUser?.id) return;
+      setCreativeSpacesLoading(true);
+      try {
+        const res = await fetch(`${API_BASE}/creative-spaces?userId=${authUser.id}`);
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          console.error('Failed to fetch creative spaces', { status: res.status, body });
+          setCreativeSpaces([]);
+        } else {
+          const data = await res.json();
+          setCreativeSpaces(Array.isArray(data) ? data : []);
+        }
+      } catch (err) {
+        console.error('Failed to fetch creative spaces', err);
+        setCreativeSpaces([]);
+      } finally {
+        setCreativeSpacesLoading(false);
+      }
+    };
+
+    fetchSpaces();
+  }, [authUser]);
+
   // Load stories the user is creating / co-creating
   useEffect(() => {
     const fetchUserStories = async () => {
@@ -441,6 +474,139 @@ const Profile = () => {
   const handleNotifChange = (key: keyof typeof profile, val: boolean) => {
     saveProfileField(key, val);
     setProfile((p) => ({ ...p, [key]: val }));
+  };
+
+  // Creative space CRUD handlers
+  const handleCreateCreativeSpace = async () => {
+    if (!authUser?.id) return;
+    const name = window.prompt(
+      "Name of the new creative space (leave blank for 'No name creative space')",
+      "",
+    );
+
+    try {
+      const res = await fetch(`${API_BASE}/creative-spaces`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: authUser.id,
+          // backend will substitute default if name is missing/empty
+          name: name ?? "",
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error("Failed to create creative space", { status: res.status, body });
+        toast({
+          title: "Error",
+          description: body.error || "Failed to create creative space.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setCreativeSpaces((prev) => [...prev, body]);
+    } catch (err) {
+      console.error("Failed to create creative space", err);
+      toast({
+        title: "Error",
+        description: "Failed to create creative space.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRenameCreativeSpace = async (space: CreativeSpace) => {
+    if (!authUser?.id) return;
+    const newName = window.prompt("Rename creative space", space.name || "");
+    if (newName === null) return; // cancelled
+
+    try {
+      const res = await fetch(`${API_BASE}/creative-spaces/${space.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: authUser.id, name: newName }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error("Failed to rename creative space", { status: res.status, body });
+        toast({
+          title: "Error",
+          description: body.error || "Failed to rename creative space.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setCreativeSpaces((prev) => prev.map((s) => (s.id === space.id ? body : s)));
+    } catch (err) {
+      console.error("Failed to rename creative space", err);
+      toast({
+        title: "Error",
+        description: "Failed to rename creative space.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteCreativeSpace = async (space: CreativeSpace) => {
+    if (!authUser?.id) return;
+    const ok = window.confirm("Delete this creative space? This cannot be undone.");
+    if (!ok) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/creative-spaces/${space.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: authUser.id }),
+      });
+      if (!res.ok && res.status !== 204) {
+        const body = await res.json().catch(() => ({}));
+        console.error("Failed to delete creative space", { status: res.status, body });
+        toast({
+          title: "Error",
+          description: body.error || "Failed to delete creative space.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setCreativeSpaces((prev) => prev.filter((s) => s.id !== space.id));
+    } catch (err) {
+      console.error("Failed to delete creative space", err);
+      toast({
+        title: "Error",
+        description: "Failed to delete creative space.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCloneCreativeSpace = async (space: CreativeSpace) => {
+    if (!authUser?.id) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/creative-spaces/${space.id}/clone`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: authUser.id }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error("Failed to clone creative space", { status: res.status, body });
+        toast({
+          title: "Error",
+          description: body.error || "Failed to clone creative space.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setCreativeSpaces((prev) => [...prev, body]);
+    } catch (err) {
+      console.error("Failed to clone creative space", err);
+      toast({
+        title: "Error",
+        description: "Failed to clone creative space.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Only render the UI after loading
@@ -869,6 +1035,20 @@ const Profile = () => {
             isPreviewMode={previewMode} 
             onSave={handleBioSave}
             className="mb-8"
+          />
+        </div>
+        {/* Creative space(s) */}
+        <div className="mb-8">
+          <h2 className="text-xl font-bold mb-2">
+            Creative space(s)
+          </h2>
+          <CreativeSpacesModule
+            spaces={creativeSpaces}
+            isLoading={creativeSpacesLoading}
+            onCreate={handleCreateCreativeSpace}
+            onRename={handleRenameCreativeSpace}
+            onDelete={handleDeleteCreativeSpace}
+            onClone={handleCloneCreativeSpace}
           />
         </div>
         
