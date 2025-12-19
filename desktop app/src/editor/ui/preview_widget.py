@@ -31,7 +31,8 @@ class PreviewWidget(QWidget):
     """
 
     # Emits the current content as a string representing the edited document.
-    # Today this is the HTML produced by QTextEdit.toHtml().
+    # We emit Markdown so the source editor, local file, and backend sync all
+    # remain Markdown-based (sending raw HTML to the backend breaks story pages).
     markdownEdited = Signal(str)
 
     def __init__(self, parent: object | None = None) -> None:
@@ -96,9 +97,17 @@ class PreviewWidget(QWidget):
         self._btn_align_right.clicked.connect(self._align_right)
         toolbar_layout.addWidget(self._btn_align_right)
 
-        # Paragraph type: Title / Paragraph / Text
+        # Paragraph type selector (story/chapter structure).
         self._block_style = QComboBox(toolbar)
-        self._block_style.addItems(["Title", "Paragraph", "Text"])
+        self._block_style.addItems(
+            [
+                "Story title",
+                "Chapter title",
+                "Paragraph",
+                "Branch paragraph",
+                "Text",
+            ]
+        )
         self._block_style.currentIndexChanged.connect(self._apply_block_style)
         toolbar_layout.addWidget(self._block_style)
 
@@ -212,24 +221,28 @@ class PreviewWidget(QWidget):
         self._merge_char_format(_update)
 
     def _apply_block_style(self, index: int) -> None:
-        """Apply a simple block-level style: Title / Paragraph / Text.
+        """Apply a block-level style.
 
-        For now this drives the heading level and a basic font size so that
-        the effect is clearly visible in the WYSIWYG editor.
+        Indices correspond to the combobox items:
+        - 0: Story title (H1)
+        - 1: Chapter title (H2)
+        - 2: Paragraph
+        - 3: Branch paragraph (placeholder for now; treated like paragraph)
+        - 4: Text
         """
 
         cursor: QTextCursor = self._editor.textCursor()
         block_fmt = cursor.blockFormat()
         char_fmt = cursor.charFormat()
 
-        if index == 0:  # Title
+        if index == 0:  # Story title
             block_fmt.setHeadingLevel(1)
-            # Make titles visually distinct but let zoom control actual size.
+            char_fmt.setFontWeight(QFont.Weight.Bold)
+        elif index == 1:  # Chapter title
+            block_fmt.setHeadingLevel(2)
             char_fmt.setFontWeight(QFont.Weight.Bold)
         else:
             block_fmt.setHeadingLevel(0)
-            # Paragraph/Text: normal weight; size is controlled globally
-            # via zoom and the editor's base font.
             char_fmt.setFontWeight(QFont.Weight.Normal)
 
         cursor.mergeBlockFormat(block_fmt)
@@ -299,9 +312,9 @@ class PreviewWidget(QWidget):
         if self._updating_from_source:
             return
 
-        # Use HTML so that rich formatting (including alignment) is preserved
-        # when syncing back to the source editor.
-        self.markdownEdited.emit(self._editor.toHtml())
+        # Emit Markdown so the source editor + backend receive clean Markdown,
+        # not a full HTML document (<!DOCTYPE ...><html>...).
+        self.markdownEdited.emit(self._editor.toMarkdown())
 
     def wheelEvent(self, event) -> None:  # pragma: no cover - UI wiring
         """Support Ctrl+wheel zooming for the WYSIWYG editor.

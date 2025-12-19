@@ -11,6 +11,7 @@ from datetime import datetime
 from pathlib import Path
 
 from . import storage
+from . import file_metadata
 
 
 @dataclass
@@ -54,6 +55,15 @@ class Document:
             raise ValueError("Cannot save a document without a file path")
 
         storage.write_text(target, self.content)
+
+        # Best-effort: if this file is associated with a Crowdly story, update
+        # the change_date metadata automatically.
+        try:
+            file_metadata.touch_change_date(target)
+        except Exception:
+            # Never fail a save due to metadata issues.
+            pass
+
         self.path = target
         self.is_dirty = False
         self.last_saved_at = datetime.now()

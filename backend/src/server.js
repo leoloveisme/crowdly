@@ -40,6 +40,62 @@ async function ensureStoryTitlePublishedColumn() {
   }
 }
 
+async function ensureStoryTitleGenreAndTagsColumns() {
+  try {
+    await pool.query('ALTER TABLE story_title ADD COLUMN IF NOT EXISTS genre text');
+    await pool.query('ALTER TABLE story_title ADD COLUMN IF NOT EXISTS tags text[]');
+    console.log('[init] ensured story_title.genre and story_title.tags columns exist');
+  } catch (err) {
+    console.error('[init] failed to ensure story_title.genre/tags columns:', err);
+  }
+}
+
+async function ensureStoryTitleUpdatedAtColumn() {
+  try {
+    await pool.query('ALTER TABLE story_title ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now()');
+    console.log('[init] ensured story_title.updated_at column exists');
+  } catch (err) {
+    console.error('[init] failed to ensure story_title.updated_at column:', err);
+  }
+}
+
+// Mapping tables for desktop story metadata.
+// Per spec:
+// - author_id is stored in table `authors`
+// - initiator_id is stored in table `story_initiators`
+// Both tables have creator_id as their primary key.
+async function ensureAuthorsTable() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS authors (
+        creator_id uuid PRIMARY KEY REFERENCES local_users(id) ON DELETE CASCADE,
+        author_id  uuid NOT NULL REFERENCES local_users(id) ON DELETE CASCADE,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    console.log('[init] ensured authors table exists');
+  } catch (err) {
+    console.error('[init] failed to ensure authors table:', err);
+  }
+}
+
+async function ensureStoryInitiatorsTable() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS story_initiators (
+        creator_id uuid PRIMARY KEY REFERENCES local_users(id) ON DELETE CASCADE,
+        initiator_id uuid NOT NULL REFERENCES local_users(id) ON DELETE CASCADE,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    console.log('[init] ensured story_initiators table exists');
+  } catch (err) {
+    console.error('[init] failed to ensure story_initiators table:', err);
+  }
+}
+
 // Paragraph branches table for story paragraph branching (moved from Supabase)
 async function ensureParagraphBranchesTable() {
   try {
@@ -262,6 +318,18 @@ ensureStoryAccessTable().catch((err) => {
 ensureStoryTitlePublishedColumn().catch((err) => {
   console.error('[init] ensureStoryTitlePublishedColumn unhandled error:', err);
 });
+ensureStoryTitleGenreAndTagsColumns().catch((err) => {
+  console.error('[init] ensureStoryTitleGenreAndTagsColumns unhandled error:', err);
+});
+ensureStoryTitleUpdatedAtColumn().catch((err) => {
+  console.error('[init] ensureStoryTitleUpdatedAtColumn unhandled error:', err);
+});
+ensureAuthorsTable().catch((err) => {
+  console.error('[init] ensureAuthorsTable unhandled error:', err);
+});
+ensureStoryInitiatorsTable().catch((err) => {
+  console.error('[init] ensureStoryInitiatorsTable unhandled error:', err);
+});
 ensureParagraphBranchesTable().catch((err) => {
   console.error('[init] ensureParagraphBranchesTable unhandled error:', err);
 });
@@ -315,6 +383,161 @@ app.post('/auth/register', async (req, res) => {
   } catch (err) {
     console.error('[auth/register] failed:', err);
     res.status(400).json({ error: err.message || 'Failed to register account' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Profile endpoints (local Postgres-backed user profiles)
+// ---------------------------------------------------------------------------
+
+// Fetch or lazily create a profile row for the given user id. This is used
+// by the web Profile page when authenticating against the local backend.
+app.get('/profiles/:userId', async (req, res) => {
+  const { userId } = req.params;
+
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+
+  try {
+    const existing = await pool.query('SELECT * FROM profiles WHERE id = $1', [userId]);
+    if (existing.rows.length > 0) {
+      return res.json(existing.rows[0]);
+    }
+
+    // No profile yet: create a minimal one using the local_users email as
+    // username (if available) and sensible defaults.
+    let username = 'user';
+    try {
+      const userRes = await pool.query('SELECT email FROM local_users WHERE id = $1', [userId]);
+      if (userRes.rows.length > 0 && userRes.rows[0].email) {
+        username = userRes.rows[0].email;
+      }
+    } catch (lookupErr) {
+      console.error('[GET /profiles/:userId] failed to look up local_users row:', lookupErr);
+    }
+
+    try {
+      const insertRes = await pool.query(
+        `INSERT INTO profiles (
+           id,
+           username,
+           created_at,
+           updated_at,
+           notify_app,
+           notify_email,
+           notify_phone
+         )
+         VALUES ($1, $2, now(), now(), true, true, false)
+         RETURNING *`,
+        [userId, username],
+      );
+      return res.status(201).json(insertRes.rows[0]);
+    } catch (insertErr) {
+      // If the username is already taken (e.g. an older Supabase profile
+      // row exists for this email), generate a unique fallback username
+      // based on the user id and try once more.
+      if (insertErr && insertErr.code === '23505') {
+        const fallbackUsername = `${username}-${String(userId).slice(0, 8)}`;
+        console.warn(
+          '[GET /profiles/:userId] username already exists, retrying with fallback username',
+          { userId, username, fallbackUsername },
+        );
+        try {
+          const insertRes2 = await pool.query(
+            `INSERT INTO profiles (
+               id,
+               username,
+               created_at,
+               updated_at,
+               notify_app,
+               notify_email,
+               notify_phone
+             )
+             VALUES ($1, $2, now(), now(), true, true, false)
+             RETURNING *`,
+            [userId, fallbackUsername],
+          );
+          return res.status(201).json(insertRes2.rows[0]);
+        } catch (insertErr2) {
+          console.error(
+            '[GET /profiles/:userId] fallback username insert also failed:',
+            insertErr2,
+          );
+          return res.status(500).json({ error: 'Failed to create default profile' });
+        }
+      }
+
+      console.error('[GET /profiles/:userId] failed to insert default profile:', insertErr);
+      return res.status(500).json({ error: 'Failed to create default profile' });
+    }
+  } catch (err) {
+    console.error('[GET /profiles/:userId] failed:', err);
+    return res.status(500).json({ error: 'Failed to load profile' });
+  }
+});
+
+// Patch a profile row. Accepts any subset of profile fields and updates
+// updated_at automatically. The caller is responsible for enforcing that the
+// user is editing their own profile (frontend passes authUser.id).
+app.patch('/profiles/:userId', async (req, res) => {
+  const { userId } = req.params;
+  const body = req.body ?? {};
+
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+
+  const allowedFields = [
+    'first_name',
+    'last_name',
+    'nickname',
+    'about',
+    'bio',
+    'profile_image_url',
+    'birthday',
+    'languages',
+    'social_facebook',
+    'social_snapchat',
+    'social_instagram',
+    'social_other',
+    'telephone',
+    'notify_phone',
+    'notify_app',
+    'notify_email',
+    'interests',
+    'username',
+  ];
+
+  const fields = [];
+  const values = [];
+  let idx = 1;
+
+  for (const key of allowedFields) {
+    if (Object.prototype.hasOwnProperty.call(body, key)) {
+      fields.push(`${key} = $${idx++}`);
+      values.push(body[key]);
+    }
+  }
+
+  if (fields.length === 0) {
+    return res.status(400).json({ error: 'No fields to update' });
+  }
+
+  fields.push('updated_at = now()');
+  values.push(userId);
+
+  const sql = `UPDATE profiles SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`;
+
+  try {
+    const { rows } = await pool.query(sql, values);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+    return res.json(rows[0]);
+  } catch (err) {
+    console.error('[PATCH /profiles/:userId] failed:', err);
+    return res.status(500).json({ error: 'Failed to update profile' });
   }
 });
 
@@ -943,6 +1166,13 @@ app.post('/chapters', async (req, res) => {
       }
     }
 
+    // Bump story_title.updated_at so desktop clients can detect remote changes.
+    try {
+      await pool.query('UPDATE story_title SET updated_at = now() WHERE story_title_id = $1', [storyTitleId]);
+    } catch (errTs) {
+      console.error('[POST /chapters] failed to bump story_title.updated_at:', errTs);
+    }
+
     res.status(201).json(chapterRow);
   } catch (err) {
     console.error('[POST /chapters] failed:', err);
@@ -962,7 +1192,7 @@ app.patch('/chapters/:chapterId', async (req, res) => {
   try {
     // Fetch existing chapter for revision data
     const existingRes = await pool.query(
-      'SELECT chapter_title, paragraphs FROM stories WHERE chapter_id = $1',
+      'SELECT story_title_id, chapter_title, paragraphs FROM stories WHERE chapter_id = $1',
       [chapterId],
     );
     if (existingRes.rows.length === 0) {
@@ -1035,6 +1265,15 @@ app.patch('/chapters/:chapterId', async (req, res) => {
           ],
         );
       }
+    }
+
+    // Bump story_title.updated_at so desktop clients can detect remote changes.
+    try {
+      if (existing.story_title_id) {
+        await pool.query('UPDATE story_title SET updated_at = now() WHERE story_title_id = $1', [existing.story_title_id]);
+      }
+    } catch (errTs) {
+      console.error('[PATCH /chapters/:chapterId] failed to bump story_title.updated_at:', errTs);
     }
 
     res.json(updated);
@@ -1163,10 +1402,30 @@ app.delete('/chapters/:chapterId', async (req, res) => {
   const { chapterId } = req.params;
 
   try {
+    // Look up story_title_id first so we can bump updated_at.
+    let storyTitleId = null;
+    try {
+      const lookup = await pool.query('SELECT story_title_id FROM stories WHERE chapter_id = $1', [chapterId]);
+      if (lookup.rows.length > 0) {
+        storyTitleId = lookup.rows[0].story_title_id;
+      }
+    } catch (errLookup) {
+      console.error('[DELETE /chapters/:chapterId] failed to look up story_title_id:', errLookup);
+    }
+
     const { rowCount } = await pool.query('DELETE FROM stories WHERE chapter_id = $1', [chapterId]);
     if (rowCount === 0) {
       return res.status(404).json({ error: 'Chapter not found' });
     }
+
+    if (storyTitleId) {
+      try {
+        await pool.query('UPDATE story_title SET updated_at = now() WHERE story_title_id = $1', [storyTitleId]);
+      } catch (errTs) {
+        console.error('[DELETE /chapters/:chapterId] failed to bump story_title.updated_at:', errTs);
+      }
+    }
+
     res.status(204).send();
   } catch (err) {
     console.error('[DELETE /chapters/:chapterId] failed:', err);
@@ -1893,10 +2152,17 @@ app.patch('/story-titles/:storyTitleId', async (req, res) => {
 // Update story visibility / published flags (no revision)
 app.patch('/story-titles/:storyTitleId/settings', async (req, res) => {
   const { storyTitleId } = req.params;
-  const { visibility, published } = req.body ?? {};
+  const { visibility, published, genre, tags } = req.body ?? {};
 
-  if (visibility === undefined && published === undefined) {
-    return res.status(400).json({ error: 'At least one of visibility or published must be provided' });
+  if (
+    visibility === undefined &&
+    published === undefined &&
+    genre === undefined &&
+    tags === undefined
+  ) {
+    return res.status(400).json({
+      error: 'At least one of visibility, published, genre, or tags must be provided',
+    });
   }
 
   const fields = [];
@@ -1911,6 +2177,14 @@ app.patch('/story-titles/:storyTitleId/settings', async (req, res) => {
     fields.push(`published = $${idx++}`);
     values.push(Boolean(published));
   }
+  if (genre !== undefined) {
+    fields.push(`genre = $${idx++}`);
+    values.push(genre || null);
+  }
+  if (tags !== undefined) {
+    fields.push(`tags = $${idx++}`);
+    values.push(Array.isArray(tags) ? tags : null);
+  }
   values.push(storyTitleId);
 
   const sql = `UPDATE story_title SET ${fields.join(', ')} WHERE story_title_id = $${idx} RETURNING *`;
@@ -1924,6 +2198,276 @@ app.patch('/story-titles/:storyTitleId/settings', async (req, res) => {
   } catch (err) {
     console.error('[PATCH /story-titles/:storyTitleId/settings] failed:', err);
     res.status(500).json({ error: 'Failed to update story settings' });
+  }
+});
+
+// Desktop sync endpoint: sync story metadata and full story content.
+// Body: {
+//   userId: uuid,
+//   title: string,
+//   metadata?: { author_id?: uuid, initiator_id?: uuid, genre?: string|null, tags?: string[]|null },
+//   chapters: [{ chapterTitle: string, paragraphs: string[] }]
+// }
+app.post('/story-titles/:storyTitleId/sync-desktop', async (req, res) => {
+  const { storyTitleId } = req.params;
+  const { userId, title, metadata, chapters } = req.body ?? {};
+
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+  if (!storyTitleId) {
+    return res.status(400).json({ error: 'storyTitleId is required' });
+  }
+  if (typeof title !== 'string' || !title.trim()) {
+    return res.status(400).json({ error: 'title is required' });
+  }
+  if (!Array.isArray(chapters) || chapters.length === 0) {
+    return res.status(400).json({ error: 'chapters[] is required' });
+  }
+
+  const client = await pool.connect();
+
+  const getNextStoryTitleRevisionNumberTx = async (storyId) => {
+    const { rows } = await client.query(
+      'SELECT revision_number FROM story_title_revisions WHERE story_title_id = $1 ORDER BY revision_number DESC LIMIT 1',
+      [storyId],
+    );
+    if (rows.length === 0) return 1;
+    return Number(rows[0].revision_number) + 1;
+  };
+
+  const getNextChapterRevisionNumberTx = async (chapterId) => {
+    const { rows } = await client.query(
+      'SELECT revision_number FROM chapter_revisions WHERE chapter_id = $1 ORDER BY revision_number DESC LIMIT 1',
+      [chapterId],
+    );
+    if (rows.length === 0) return 1;
+    return Number(rows[0].revision_number) + 1;
+  };
+
+  const getNextParagraphRevisionNumberTx = async (chapterId, paragraphIndex) => {
+    const { rows } = await client.query(
+      'SELECT revision_number FROM paragraph_revisions WHERE chapter_id = $1 AND paragraph_index = $2 ORDER BY revision_number DESC LIMIT 1',
+      [chapterId, paragraphIndex],
+    );
+    if (rows.length === 0) return 1;
+    return Number(rows[0].revision_number) + 1;
+  };
+
+  try {
+    await client.query('BEGIN');
+
+    const storyRes = await client.query(
+      'SELECT story_title_id, title, creator_id, genre, tags FROM story_title WHERE story_title_id = $1 FOR UPDATE',
+      [storyTitleId],
+    );
+    if (storyRes.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Story not found' });
+    }
+
+    const storyRow = storyRes.rows[0];
+    const creatorId = storyRow.creator_id;
+
+    // 1) Sync title (with revision)
+    const newTitle = title.trim();
+    if (newTitle !== storyRow.title) {
+      await client.query(
+        'UPDATE story_title SET title = $1 WHERE story_title_id = $2',
+        [newTitle, storyTitleId],
+      );
+
+      const nextRevision = await getNextStoryTitleRevisionNumberTx(storyTitleId);
+      await client.query(
+        'INSERT INTO story_title_revisions (story_title_id, prev_title, new_title, created_by, revision_number, revision_reason, language) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+        [storyTitleId, storyRow.title, newTitle, userId, nextRevision, 'Desktop sync', 'en'],
+      );
+    }
+
+    // 2) Sync story_title settings/metadata stored on story_title
+    const genre = metadata?.genre;
+    const tags = metadata?.tags;
+    if (genre !== undefined || tags !== undefined) {
+      const fields = [];
+      const values = [];
+      let idx = 1;
+      if (genre !== undefined) {
+        fields.push(`genre = $${idx++}`);
+        values.push(genre || null);
+      }
+      if (tags !== undefined) {
+        fields.push(`tags = $${idx++}`);
+        values.push(Array.isArray(tags) ? tags : null);
+      }
+      values.push(storyTitleId);
+      await client.query(
+        `UPDATE story_title SET ${fields.join(', ')} WHERE story_title_id = $${idx}`,
+        values,
+      );
+    }
+
+    // 3) Sync author/initiator mapping tables (creator_id as key)
+    const authorId = metadata?.author_id || creatorId;
+    const initiatorId = metadata?.initiator_id || creatorId;
+
+    if (creatorId) {
+      await client.query(
+        `INSERT INTO authors (creator_id, author_id, updated_at)
+         VALUES ($1, $2, now())
+         ON CONFLICT (creator_id)
+         DO UPDATE SET author_id = EXCLUDED.author_id, updated_at = now()`,
+        [creatorId, authorId],
+      );
+
+      await client.query(
+        `INSERT INTO story_initiators (creator_id, initiator_id, updated_at)
+         VALUES ($1, $2, now())
+         ON CONFLICT (creator_id)
+         DO UPDATE SET initiator_id = EXCLUDED.initiator_id, updated_at = now()`,
+        [creatorId, initiatorId],
+      );
+    }
+
+    // 4) Sync chapters + paragraphs by position
+    const existingChaptersRes = await client.query(
+      'SELECT chapter_id, chapter_index, chapter_title, paragraphs FROM stories WHERE story_title_id = $1 ORDER BY episode_number NULLS FIRST, part_number NULLS FIRST, chapter_index ASC, created_at ASC',
+      [storyTitleId],
+    );
+    const existingChapters = existingChaptersRes.rows;
+
+    const incoming = chapters.map((c) => ({
+      chapterTitle: typeof c?.chapterTitle === 'string' && c.chapterTitle.trim() ? c.chapterTitle.trim() : 'Chapter',
+      paragraphs: Array.isArray(c?.paragraphs) ? c.paragraphs : [],
+    }));
+
+    const minLen = Math.min(existingChapters.length, incoming.length);
+
+    for (let i = 0; i < minLen; i++) {
+      const ex = existingChapters[i];
+      const inc = incoming[i];
+
+      const desiredIndex = i + 1;
+      const indexChanged = Number(ex.chapter_index) !== desiredIndex;
+
+      const titleChanged = ex.chapter_title !== inc.chapterTitle;
+      const paragraphsChanged = JSON.stringify(ex.paragraphs ?? null) !== JSON.stringify(inc.paragraphs ?? null);
+
+      // If nothing changed (including ordering), do nothing.
+      if (!indexChanged && !titleChanged && !paragraphsChanged) {
+        continue;
+      }
+
+      // If only ordering changed, update chapter_index without creating a revision.
+      if (indexChanged && !titleChanged && !paragraphsChanged) {
+        await client.query(
+          'UPDATE stories SET chapter_index = $1 WHERE chapter_id = $2',
+          [desiredIndex, ex.chapter_id],
+        );
+        continue;
+      }
+
+      // Content changed: update chapter row.
+      const updatedRes = await client.query(
+        'UPDATE stories SET chapter_index = $1, chapter_title = $2, paragraphs = $3 WHERE chapter_id = $4 RETURNING chapter_title, paragraphs',
+        [desiredIndex, inc.chapterTitle, inc.paragraphs, ex.chapter_id],
+      );
+      const updated = updatedRes.rows[0];
+
+      // Record chapter revision (only when content changes).
+      const nextRev = await getNextChapterRevisionNumberTx(ex.chapter_id);
+      await client.query(
+        `INSERT INTO chapter_revisions
+           (chapter_id, prev_chapter_title, new_chapter_title, prev_paragraphs, new_paragraphs, created_by, revision_number, revision_reason, language)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [
+          ex.chapter_id,
+          ex.chapter_title,
+          updated.chapter_title,
+          ex.paragraphs,
+          updated.paragraphs,
+          userId,
+          nextRev,
+          'Desktop sync',
+          'en',
+        ],
+      );
+
+      // Best-effort paragraph revisions for changed paragraphs.
+      if (Array.isArray(ex.paragraphs) && Array.isArray(updated.paragraphs)) {
+        const maxLen = Math.max(ex.paragraphs.length, updated.paragraphs.length);
+        for (let p = 0; p < maxLen; p++) {
+          const prevP = ex.paragraphs[p] ?? null;
+          const newP = updated.paragraphs[p] ?? null;
+          if (prevP === newP || newP == null) continue;
+          const nextParRev = await getNextParagraphRevisionNumberTx(ex.chapter_id, p);
+          await client.query(
+            `INSERT INTO paragraph_revisions
+               (chapter_id, paragraph_index, prev_paragraph, new_paragraph, created_by, revision_number, revision_reason, language)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            [ex.chapter_id, p, prevP, newP, userId, nextParRev, 'Desktop sync', 'en'],
+          );
+        }
+      }
+    }
+
+    // Create new chapters if needed
+    for (let i = minLen; i < incoming.length; i++) {
+      const inc = incoming[i];
+      const insertRes = await client.query(
+        'INSERT INTO stories (story_title_id, episode_number, part_number, chapter_index, chapter_title, paragraphs) VALUES ($1, $2, $3, $4, $5, $6) RETURNING chapter_id',
+        [storyTitleId, null, null, i + 1, inc.chapterTitle, inc.paragraphs],
+      );
+      const chapterId = insertRes.rows[0].chapter_id;
+
+      // Initial revision for new chapter
+      const nextRev = await getNextChapterRevisionNumberTx(chapterId);
+      await client.query(
+        `INSERT INTO chapter_revisions
+           (chapter_id, prev_chapter_title, new_chapter_title, prev_paragraphs, new_paragraphs, created_by, revision_number, revision_reason, language)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [chapterId, null, inc.chapterTitle, null, inc.paragraphs, userId, nextRev, 'Desktop sync (created)', 'en'],
+      );
+
+      // Ensure story_access contributor row exists (best-effort)
+      try {
+        await client.query(
+          `INSERT INTO story_access (story_title_id, user_id, role)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (story_title_id, user_id) DO NOTHING`,
+          [storyTitleId, userId, 'contributor'],
+        );
+      } catch (errAccess) {
+        console.error('[POST /story-titles/:storyTitleId/sync-desktop] failed to insert story_access row:', errAccess);
+      }
+    }
+
+    // Delete extra chapters if local has fewer
+    for (let i = incoming.length; i < existingChapters.length; i++) {
+      const ex = existingChapters[i];
+      await client.query('DELETE FROM stories WHERE chapter_id = $1', [ex.chapter_id]);
+    }
+
+    // Bump story_title.updated_at for desktop sync.
+    try {
+      await client.query('UPDATE story_title SET updated_at = now() WHERE story_title_id = $1', [storyTitleId]);
+    } catch (errTs) {
+      console.error('[POST /story-titles/:storyTitleId/sync-desktop] failed to bump story_title.updated_at:', errTs);
+    }
+
+    await client.query('COMMIT');
+
+    return res.json({
+      ok: true,
+      storyTitleId,
+      syncedChapters: incoming.length,
+      deletedChapters: Math.max(0, existingChapters.length - incoming.length),
+    });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('[POST /story-titles/:storyTitleId/sync-desktop] failed:', err);
+    return res.status(500).json({ error: 'Failed to sync story from desktop', details: err?.message || String(err) });
+  } finally {
+    client.release();
   }
 });
 

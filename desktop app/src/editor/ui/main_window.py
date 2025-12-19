@@ -30,6 +30,8 @@ from PySide6.QtGui import QAction, QActionGroup
 
 from ..document import Document
 from ..settings import Settings, save_settings
+from .. import file_metadata
+from .. import story_sync
 from .editor_widget import EditorWidget
 from .preview_widget import PreviewWidget
 
@@ -61,6 +63,19 @@ class MainWindow(QMainWindow):
         self._sync_web_platform = False
         self._sync_dropbox = False
         self._sync_google_drive = False
+
+        # Best-effort web sync debouncer.
+        self._web_sync_timer = QTimer(self)
+        self._web_sync_timer.setSingleShot(True)
+        self._web_sync_timer.timeout.connect(self._maybe_sync_story_to_web)
+
+        # Polling timer to pull updates from the web (bi-directional sync).
+        self._web_pull_timer = QTimer(self)
+        self._web_pull_timer.setInterval(8000)
+        self._web_pull_timer.timeout.connect(self._poll_web_updates)
+
+        # Cached Crowdly web credentials for the current app session.
+        self._crowdly_web_credentials: tuple[str, str] | None = None
 
         # Track where the last content change originated from so that we can
         # decide whether re-rendering the preview from Markdown is safe.
@@ -223,6 +238,21 @@ class MainWindow(QMainWindow):
         view_menu = menu.addMenu(self.tr("View"))
         self._view_menu = view_menu
 
+        story_settings_menu = menu.addMenu(self.tr("Story settings"))
+        self._story_settings_menu = story_settings_menu
+        self._action_view_story_metadata = story_settings_menu.addAction(
+            self.tr("View story metadata"),
+            self._view_story_metadata,
+        )
+        self._action_set_story_genre = story_settings_menu.addAction(
+            self.tr("Add genre"),
+            self._set_or_clear_story_genre,
+        )
+        self._action_refresh_story_from_web = story_settings_menu.addAction(
+            self.tr("Refresh from web"),
+            self._refresh_story_from_web,
+        )
+
         # Both the Markdown/HTML editor and the WYSIWYG preview are available;
         # the View menu lets the user decide which panes are visible.
         self._action_view_md_editor = view_menu.addAction(
@@ -342,10 +372,9 @@ class MainWindow(QMainWindow):
     def _on_preview_markdown_changed(self, text: str) -> None:  # pragma: no cover
         """Handle text changes from the WYSIWYG preview.
 
-        *text* is the HTML representation of the current document as edited in
-        the preview. We treat this as the canonical source so that rich
-        formatting (such as alignment) is preserved, while still allowing the
-        left-hand editor to display and edit the same content as plain text.
+        *text* is the Markdown representation of the current document as edited
+        in the preview. We treat this as the canonical source so that the local
+        file and backend sync remain Markdown-based.
         """
 
         self._document.set_content(text)
@@ -436,6 +465,10 @@ class MainWindow(QMainWindow):
 
         self._document.save(target_path)
 
+        # After a successful save, optionally sync to the web backend.
+        if self._sync_web_platform:
+            self._schedule_web_sync()
+
     def _change_interface_language(self, code: str) -> None:  # pragma: no cover - UI wiring
         """Update the preferred interface language in settings.
 
@@ -510,6 +543,14 @@ class MainWindow(QMainWindow):
             self._settings_menu.setTitle(self.tr("Settings"))
         if hasattr(self, "_view_menu"):
             self._view_menu.setTitle(self.tr("View"))
+        if hasattr(self, "_story_settings_menu"):
+            self._story_settings_menu.setTitle(self.tr("Story settings"))
+        if hasattr(self, "_action_view_story_metadata"):
+            self._action_view_story_metadata.setText(self.tr("View story metadata"))
+        if hasattr(self, "_action_set_story_genre"):
+            self._action_set_story_genre.setText(self.tr("Add genre"))
+        if hasattr(self, "_action_refresh_story_from_web"):
+            self._action_refresh_story_from_web.setText(self.tr("Refresh from web"))
         if hasattr(self, "_action_view_md_editor"):
             self._action_view_md_editor.setText(
                 self.tr("Markdown (MD) / HTML editor")
@@ -747,10 +788,30 @@ class MainWindow(QMainWindow):
         )
 
     def _toggle_sync_web_platform(self) -> None:  # pragma: no cover - UI wiring
-        """Toggle synchronisation with the web platform (placeholder)."""
+        """Toggle synchronisation with the web platform."""
 
         self._sync_web_platform = not self._sync_web_platform
         self._retranslate_ui()
+
+        # Start/stop polling for remote updates.
+        try:
+            if self._sync_web_platform:
+                # (Re)start polling timer unconditionally.
+                if self._web_pull_timer.isActive():
+                    self._web_pull_timer.stop()
+                self._web_pull_timer.start()
+
+                # On enable, force a pull once so toggling OFF->ON always has an effect
+                # (it reconciles local state with the remote state immediately).
+                self._start_pull_from_web(force=True)
+            else:
+                # Stop polling + pending push debounce.
+                if self._web_pull_timer.isActive():
+                    self._web_pull_timer.stop()
+                if self._web_sync_timer.isActive():
+                    self._web_sync_timer.stop()
+        except Exception:
+            pass
 
     def _toggle_sync_dropbox(self) -> None:  # pragma: no cover - UI wiring
         """Toggle synchronisation with Dropbox (placeholder)."""
@@ -1173,6 +1234,16 @@ class MainWindow(QMainWindow):
                     )
                     doc.path = external_path
 
+        # If this is a Crowdly-imported story (sidecar exists) but xattrs were
+        # not written (older files), hydrate xattrs so story settings + sync
+        # work without requiring re-import.
+        try:
+            from ..story_import import hydrate_xattrs_from_sidecar
+
+            hydrate_xattrs_from_sidecar(doc.path)  # type: ignore[arg-type]
+        except Exception:
+            pass
+
         self._document = doc
 
         # Populate editor and preview without triggering autosave. We update
@@ -1210,6 +1281,617 @@ class MainWindow(QMainWindow):
         self._settings.project_space = None
         save_settings(self._settings)
         self._update_project_space_status()
+
+    def _get_current_document_path(self) -> Path | None:
+        """Return the current document path, if it exists on disk."""
+
+        path = getattr(self._document, "path", None)
+        if not isinstance(path, Path):
+            return None
+        if not path.exists():
+            return None
+        return path
+
+    def _view_story_metadata(self) -> None:  # pragma: no cover - UI wiring
+        """Display Crowdly story metadata for the current file."""
+
+        import traceback
+
+        try:
+            path = self._get_current_document_path()
+            if path is None:
+                QMessageBox.information(
+                    self,
+                    self.tr("Story metadata"),
+                    self.tr("No file is currently loaded."),
+                )
+                return
+
+            if not file_metadata.has_story_metadata(path):
+                QMessageBox.information(
+                    self,
+                    self.tr("Story metadata"),
+                    self.tr("This file is not associated with a Crowdly story."),
+                )
+                return
+
+            md = file_metadata.read_story_metadata(path)
+
+            # Render in a simple, readable block.
+            lines = [
+                f"author_id: {md.author_id or ''}",
+                f"initiator_id: {md.initiator_id or ''}",
+                f"story_id: {md.story_id or ''}",
+                f"story_title: {md.story_title or ''}",
+                f"genre: {md.genre or ''}",
+                f"tags: {md.tags or ''}",
+                f"creation_date: {md.creation_date or ''}",
+                f"change_date: {md.change_date or ''}",
+                f"last_sync_date: {md.last_sync_date or ''}",
+            ]
+
+            QMessageBox.information(
+                self,
+                self.tr("Story metadata"),
+                "\n".join(lines),
+            )
+        except Exception:
+            traceback.print_exc()
+            QMessageBox.critical(
+                self,
+                self.tr("Error"),
+                self.tr("An unexpected error occurred while reading story metadata."),
+            )
+
+    def _set_or_clear_story_genre(self) -> None:  # pragma: no cover - UI wiring
+        """Set/change/clear the story genre in file metadata."""
+
+        import traceback
+
+        try:
+            path = self._get_current_document_path()
+            if path is None:
+                QMessageBox.information(
+                    self,
+                    self.tr("Genre"),
+                    self.tr("No file is currently loaded."),
+                )
+                return
+
+            if not file_metadata.has_story_metadata(path):
+                QMessageBox.information(
+                    self,
+                    self.tr("Genre"),
+                    self.tr("This file is not associated with a Crowdly story."),
+                )
+                return
+
+            current = file_metadata.get_attr(path, file_metadata.FIELD_GENRE) or ""
+
+            options = [
+                "YA",
+                "sci-fi",
+                "fantasy",
+                "horror",
+                "thriller",
+                "comedy",
+                "dramedy",
+                "other…",
+                "(delete genre)",
+            ]
+
+            # Preselect current value if it matches.
+            try:
+                current_idx = options.index(current) if current in options else 0
+            except Exception:
+                current_idx = 0
+
+            choice, ok = QInputDialog.getItem(
+                self,
+                self.tr("Choose genre"),
+                self.tr("Genre:"),
+                options,
+                current=current_idx,
+                editable=False,
+            )
+            if not ok:
+                return
+
+            choice = (choice or "").strip()
+            if not choice:
+                return
+
+            if choice == "(delete genre)":
+                file_metadata.clear_genre(path)
+                file_metadata.touch_change_date(path)
+                QMessageBox.information(self, self.tr("Genre"), self.tr("Genre deleted."))
+            elif choice == "other…":
+                other, ok2 = QInputDialog.getText(
+                    self,
+                    self.tr("Other genre"),
+                    self.tr("Enter genre:"),
+                    text=current if current and current not in options else "",
+                )
+                if not ok2:
+                    return
+                other = (other or "").strip()
+                if not other:
+                    return
+                file_metadata.set_genre(path, other)
+                file_metadata.touch_change_date(path)
+                QMessageBox.information(
+                    self,
+                    self.tr("Genre"),
+                    self.tr("Genre updated."),
+                )
+            else:
+                file_metadata.set_genre(path, choice)
+                file_metadata.touch_change_date(path)
+                QMessageBox.information(
+                    self,
+                    self.tr("Genre"),
+                    self.tr("Genre updated."),
+                )
+
+            # Best-effort: if web sync is enabled, schedule a sync attempt.
+            if getattr(self, "_sync_web_platform", False):
+                self._schedule_web_sync()
+        except Exception:
+            traceback.print_exc()
+            QMessageBox.critical(
+                self,
+                self.tr("Error"),
+                self.tr("An unexpected error occurred while updating genre."),
+            )
+
+    def _refresh_story_from_web(self) -> None:  # pragma: no cover - UI wiring
+        """Manual refresh: pull latest content from the web."""
+
+        try:
+            self._start_pull_from_web(force=True)
+        except Exception:
+            pass
+
+    def _schedule_web_sync(self) -> None:  # pragma: no cover - UI wiring
+        """Debounce and schedule a web sync attempt."""
+
+        # Avoid hammering the backend on every autosave keystroke.
+        if self._web_sync_timer.isActive():
+            self._web_sync_timer.stop()
+        self._web_sync_timer.start(1200)
+
+    def _ensure_crowdly_web_credentials(self) -> tuple[str, str] | None:
+        """Return cached web credentials, or prompt the user."""
+
+        if self._crowdly_web_credentials is not None:
+            return self._crowdly_web_credentials
+
+        try:
+            from .crowdly_login_dialog import CrowdlyLoginDialog
+        except Exception:
+            return None
+
+        dlg = CrowdlyLoginDialog(self)
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return None
+
+        creds = dlg.credentials()
+        if creds is None:
+            return None
+
+        self._crowdly_web_credentials = (creds.username, creds.password)
+        return self._crowdly_web_credentials
+
+    def _poll_web_updates(self) -> None:  # pragma: no cover
+        """Poll the backend for remote updates and pull if needed."""
+
+        try:
+            self._start_pull_from_web(force=False)
+        except Exception:
+            return
+
+    def _start_pull_from_web(self, *, force: bool, credentials: tuple[str, str] | None = None) -> None:  # pragma: no cover
+        """Start a background pull if the remote story has changed."""
+
+        import traceback
+
+        path = self._get_current_document_path()
+        if path is None:
+            return
+        if not file_metadata.has_story_metadata(path):
+            return
+
+        story_id = file_metadata.get_attr(path, file_metadata.FIELD_STORY_ID)
+        source_url = file_metadata.get_attr(path, file_metadata.FIELD_SOURCE_URL)
+        if not story_id or not source_url:
+            return
+
+        # Don't start if pull already running.
+        thread = getattr(self, "_story_pull_thread", None)
+        if isinstance(thread, _StoryPullThread) and thread.isRunning():
+            return
+
+        # Start background check/pull without credentials first (for public stories).
+        # If the backend responds with auth_required, we'll prompt and retry with credentials.
+        thread = _StoryPullThread(
+            story_id=story_id,
+            source_url=source_url,
+            credentials=credentials,
+            local_path=path,
+            force=force,
+            parent=self,
+        )
+        thread.pullAvailable.connect(self._on_story_pull_available)
+        thread.pullFailed.connect(self._on_story_pull_failed)
+        thread.finished.connect(self._on_story_pull_finished)
+        thread.finished.connect(thread.deleteLater)
+        self._story_pull_thread = thread
+
+        bar = self.statusBar()
+        if bar is not None:
+            bar.showMessage(self.tr("Checking for web updates..."), 2000)
+
+        thread.start()
+
+    def _maybe_sync_story_to_web(self) -> None:  # pragma: no cover
+        """Best-effort: sync the current local story back to the Crowdly backend."""
+
+        import traceback
+
+        try:
+            path = self._get_current_document_path()
+            if path is None:
+                return
+
+            if not file_metadata.has_story_metadata(path):
+                return
+
+            story_id = file_metadata.get_attr(path, file_metadata.FIELD_STORY_ID)
+            source_url = file_metadata.get_attr(path, file_metadata.FIELD_SOURCE_URL)
+            body_format = file_metadata.get_attr(path, file_metadata.FIELD_BODY_FORMAT)
+            if not story_id or not source_url:
+                return
+
+            # If a sync is already running, don't start a second one.
+            thread = getattr(self, "_story_sync_thread", None)
+            if isinstance(thread, _StorySyncThread) and thread.isRunning():
+                return
+
+            creds = self._ensure_crowdly_web_credentials()
+            if creds is None:
+                return
+
+            md = file_metadata.read_story_metadata(path)
+
+            # Skip sync when nothing changed since last sync.
+            try:
+                changed_at = file_metadata.parse_human(md.change_date)
+                synced_at = file_metadata.parse_human(md.last_sync_date)
+                if changed_at is not None and synced_at is not None and changed_at <= synced_at:
+                    return
+            except Exception:
+                pass
+
+            # Parse content into chapters.
+            story = story_sync.parse_story_from_content(self._document.content, body_format=body_format)
+
+            # Keep file metadata story_title in sync with parsed title.
+            try:
+                file_metadata.set_attr(path, file_metadata.FIELD_STORY_TITLE, story.title)
+            except Exception:
+                pass
+
+            # Prepare metadata payload.
+            tags_list = None
+            if md.tags:
+                # Accept comma-separated list.
+                tags_list = [t.strip() for t in md.tags.split(",") if t.strip()]
+
+            meta_payload = {
+                "author_id": md.author_id,
+                "initiator_id": md.initiator_id,
+                "genre": md.genre,
+                "tags": tags_list,
+            }
+
+            api_base = None
+            try:
+                from ..crowdly_client import api_base_url_from_story_url
+
+                api_base = api_base_url_from_story_url(source_url)
+            except Exception:
+                api_base = None
+
+            if not api_base:
+                return
+
+            # Start thread.
+            thread = _StorySyncThread(
+                api_base=api_base,
+                story_id=story_id,
+                title=story.title,
+                chapters=story_sync.to_json_payload(story)["chapters"],
+                metadata=meta_payload,
+                credentials=creds,
+                local_path=path,
+                parent=self,
+            )
+
+            thread.syncSucceeded.connect(self._on_story_sync_succeeded)
+            thread.syncFailed.connect(self._on_story_sync_failed)
+            thread.finished.connect(self._on_story_sync_finished)
+            thread.finished.connect(thread.deleteLater)
+            self._story_sync_thread = thread
+
+            bar = self.statusBar()
+            if bar is not None:
+                bar.showMessage(self.tr("Syncing story to the web..."))
+
+            thread.start()
+        except Exception:
+            traceback.print_exc()
+
+    def _on_story_sync_succeeded(self, result: object) -> None:  # pragma: no cover
+        import traceback
+
+        try:
+            bar = self.statusBar()
+            if bar is not None:
+                bar.showMessage(self.tr("Story synced to the web."), 5000)
+        except Exception:
+            traceback.print_exc()
+
+    def _on_story_sync_failed(self, error: object) -> None:  # pragma: no cover
+        import traceback
+
+        try:
+            bar = self.statusBar()
+            if bar is not None:
+                bar.clearMessage()
+
+            msg = str(error)
+            QMessageBox.warning(
+                self,
+                self.tr("Sync failed"),
+                self.tr("Could not sync story to the web.\n\nDetails: {error}").format(error=msg),
+            )
+        except Exception:
+            traceback.print_exc()
+
+    def _on_story_pull_available(self, payload: object) -> None:  # pragma: no cover
+        """Apply pulled content if it's newer and safe."""
+
+        import traceback
+
+        try:
+            if not isinstance(payload, dict):
+                return
+
+            path = self._get_current_document_path()
+            if path is None:
+                return
+
+            new_content = payload.get("content")
+            remote_updated_at = payload.get("remote_updated_at")
+
+            if not isinstance(new_content, str) or not new_content:
+                return
+
+            md = file_metadata.read_story_metadata(path)
+
+            # If local has unsynced changes, prompt before overwriting.
+            try:
+                changed_at = file_metadata.parse_human(md.change_date)
+                synced_at = file_metadata.parse_human(md.last_sync_date)
+                local_unsynced = changed_at is not None and synced_at is not None and changed_at > synced_at
+            except Exception:
+                local_unsynced = False
+
+            if local_unsynced:
+                box = QMessageBox(self)
+                box.setWindowTitle(self.tr("Remote update available"))
+                box.setText(
+                    self.tr(
+                        "The story was updated on the web, but this file has unsynced local changes."
+                    )
+                )
+                pull_btn = box.addButton(self.tr("Pull (overwrite local)"), QMessageBox.AcceptRole)
+                push_btn = box.addButton(self.tr("Push local"), QMessageBox.DestructiveRole)
+                box.addButton(self.tr("Cancel"), QMessageBox.RejectRole)
+                box.exec()
+
+                clicked = box.clickedButton()
+                if clicked == push_btn:
+                    self._schedule_web_sync()
+                    return
+                if clicked != pull_btn:
+                    return
+
+            # Apply content.
+            self._document.set_content(new_content)
+            self._last_change_from_preview = False
+
+            old_state = self.editor.blockSignals(True)
+            try:
+                self.editor.setPlainText(new_content)
+            finally:
+                self.editor.blockSignals(old_state)
+
+            self.preview.set_markdown(new_content)
+            self._update_document_stats_label()
+
+            # Save immediately and update xattrs.
+            try:
+                self._document.save(path)
+            except Exception:
+                pass
+
+            try:
+                file_metadata.touch_last_sync_date(path)
+                if isinstance(remote_updated_at, str) and remote_updated_at:
+                    file_metadata.set_attr(path, file_metadata.FIELD_REMOTE_UPDATED_AT, remote_updated_at)
+            except Exception:
+                pass
+
+            bar = self.statusBar()
+            if bar is not None:
+                bar.showMessage(self.tr("Pulled latest story from the web."), 5000)
+        except Exception:
+            traceback.print_exc()
+
+    def _on_story_pull_failed(self, error: object) -> None:  # pragma: no cover
+        # Polling failures should be silent-ish, but if auth is required we
+        # prompt once and retry.
+        import traceback
+
+        try:
+            kind = None
+            message = None
+            if isinstance(error, dict):
+                kind = error.get("kind")
+                message = error.get("message")
+            if not message:
+                message = str(error)
+
+            if kind == "auth_required":
+                creds = self._ensure_crowdly_web_credentials()
+                if creds is None:
+                    return
+                # Retry immediately, forcing a pull check, now with credentials.
+                self._start_pull_from_web(force=True, credentials=creds)
+                return
+
+            # For non-auth failures, log message and show a brief status bar hint.
+            bar = self.statusBar()
+            if bar is not None:
+                bar.showMessage(self.tr("Web update check failed."), 3000)
+            print(f"[web-pull] failed: {message}")
+        except Exception:
+            traceback.print_exc()
+
+    def _on_story_pull_finished(self) -> None:  # pragma: no cover
+        # Clear stale thread reference so future pulls aren't blocked.
+        self._story_pull_thread = None
+
+    def _on_story_sync_finished(self) -> None:  # pragma: no cover
+        self._story_sync_thread = None
+
+
+class _StoryPullThread(QThread):
+    """Background thread that checks and pulls a story from the Crowdly backend."""
+
+    pullAvailable = Signal(object)
+    pullFailed = Signal(object)
+
+    def __init__(
+        self,
+        *,
+        story_id: str,
+        source_url: str,
+        credentials: tuple[str, str] | None,
+        local_path: Path,
+        force: bool,
+        parent: QObject | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self._story_id = story_id
+        self._source_url = source_url
+        self._credentials = credentials
+        self._local_path = local_path
+        self._force = force
+
+    def run(self) -> None:
+        import traceback
+
+        try:
+            from ..crowdly_client import CrowdlyClient, api_base_url_from_story_url
+
+            api_base = api_base_url_from_story_url(self._source_url)
+            client = CrowdlyClient(api_base, credentials=self._credentials)
+
+            # 1) Check story_title.updated_at
+            title_row = client.get_story_title_row(self._story_id)
+            updated_raw = title_row.get("updated_at") or title_row.get("updatedAt")
+            remote_updated_at = updated_raw if isinstance(updated_raw, str) else None
+
+            local_remote = file_metadata.get_attr(self._local_path, file_metadata.FIELD_REMOTE_UPDATED_AT)
+            if not self._force and remote_updated_at and local_remote and remote_updated_at == local_remote:
+                return
+
+            # 2) Fetch full story markdown
+            story = client.fetch_story(self._source_url)
+
+            self.pullAvailable.emit(
+                {
+                    "content": story.body,
+                    "remote_updated_at": remote_updated_at,
+                }
+            )
+        except Exception as exc:
+            traceback.print_exc()
+            try:
+                from ..crowdly_client import CrowdlyClientError
+
+                if isinstance(exc, CrowdlyClientError):
+                    self.pullFailed.emit({"kind": exc.kind, "message": str(exc)})
+                    return
+            except Exception:
+                pass
+
+            self.pullFailed.emit({"kind": "unknown", "message": str(exc)})
+
+
+class _StorySyncThread(QThread):
+    """Background thread that syncs a local story back to the Crowdly backend."""
+
+    syncSucceeded = Signal(object)
+    syncFailed = Signal(object)
+
+    def __init__(
+        self,
+        *,
+        api_base: str,
+        story_id: str,
+        title: str,
+        chapters: list[dict],
+        metadata: dict,
+        credentials: tuple[str, str],
+        local_path: Path,
+        parent: QObject | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self._api_base = api_base
+        self._story_id = story_id
+        self._title = title
+        self._chapters = chapters
+        self._metadata = metadata
+        self._credentials = credentials
+        self._local_path = local_path
+
+    def run(self) -> None:
+        import traceback
+
+        try:
+            from ..crowdly_client import CrowdlyClient
+
+            client = CrowdlyClient(self._api_base, credentials=self._credentials)
+            result = client.sync_desktop_story(
+                self._story_id,
+                title=self._title,
+                chapters=self._chapters,
+                metadata=self._metadata,
+            )
+
+            # Update last_sync_date on success.
+            try:
+                file_metadata.touch_last_sync_date(self._local_path)
+            except Exception:
+                pass
+
+            self.syncSucceeded.emit(result)
+        except Exception as exc:
+            traceback.print_exc()
+            self.syncFailed.emit(str(exc))
 
 
 class _CrowdlyFetchThread(QThread):

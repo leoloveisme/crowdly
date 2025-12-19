@@ -37,6 +37,7 @@ class CrowdlyStory:
     body_format: str  # "markdown" | "html" | "unknown"
     updated_at: datetime | None
     source_url: str
+    creator_id: str | None = None
 
 
 class CrowdlyClientError(RuntimeError):
@@ -161,6 +162,25 @@ class CrowdlyClient:
             raise CrowdlyClientError("Story ID must not contain spaces.", kind="invalid_input")
         return raw
 
+    def get_story_title_row(self, story_id: str) -> dict[str, Any]:
+        """Fetch the raw story_title row (best-effort auth)."""
+
+        if not self.base_url:
+            raise CrowdlyClientError("Crowdly base URL is not configured.", kind="config")
+
+        user_id: str | None = None
+        if self._credentials is not None:
+            user_id = self.login()
+
+        title_url = f"{self.base_url}/story-titles/{story_id}"
+        if user_id:
+            title_url = title_url + "?" + urlencode({"userId": user_id})
+
+        row = self._http_get_json(title_url)
+        if not isinstance(row, dict):
+            raise CrowdlyClientError("Unexpected story title response.", kind="invalid_response")
+        return row
+
     def fetch_story(self, story_url: str) -> CrowdlyStory:
         """Fetch a story from Crowdly backend and assemble a Markdown document."""
 
@@ -174,17 +194,15 @@ class CrowdlyClient:
             user_id = self.login()
 
         # Story title (visibility/access enforced here).
-        title_url = f"{self.base_url}/story-titles/{story_id}"
-        if user_id:
-            title_url = title_url + "?" + urlencode({"userId": user_id})
-
-        title_row = self._http_get_json(title_url)
-        if not isinstance(title_row, dict):
-            raise CrowdlyClientError("Unexpected story title response.", kind="invalid_response")
+        title_row = self.get_story_title_row(story_id)
 
         story_title = title_row.get("title")
         if not isinstance(story_title, str) or not story_title.strip():
             story_title = "Untitled"
+
+        creator_id = title_row.get("creator_id") or title_row.get("creatorId")
+        if not isinstance(creator_id, str) or not creator_id.strip():
+            creator_id = None
 
         updated_at: datetime | None = None
         updated_raw = title_row.get("updated_at") or title_row.get("updatedAt")
@@ -227,9 +245,29 @@ class CrowdlyClient:
             body_format="markdown",
             updated_at=updated_at,
             source_url=story_url,
+            creator_id=creator_id,
         )
 
     # Internal helpers -------------------------------------------------
+
+    def sync_desktop_story(
+        self,
+        story_id: str,
+        *,
+        title: str,
+        chapters: list[dict[str, Any]],
+        metadata: dict[str, Any] | None,
+    ) -> Any:
+        """Sync story metadata + full content to the backend (desktop endpoint)."""
+
+        user_id = self.login()  # raises on auth error
+        payload = {
+            "userId": user_id,
+            "title": title,
+            "metadata": metadata or {},
+            "chapters": chapters,
+        }
+        return self._http_post_json(f"{self.base_url}/story-titles/{story_id}/sync-desktop", payload)
 
     def _http_post_json(self, url: str, payload: dict[str, Any]) -> Any:
         raw = json.dumps(payload).encode("utf-8")

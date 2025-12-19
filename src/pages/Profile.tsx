@@ -66,6 +66,7 @@ import RevisionComparison from "@/components/RevisionComparison";
 import CommunicationsSection from "@/components/CommunicationsSection";
 import StatsDisplay from "@/components/StatsDisplay";
 import CreativeSpacesModule, { CreativeSpace } from "@/modules/creative spaces";
+import ProfileInformation from "@/modules/profile information";
 
 // Use same-origin API base in development; dev server proxies to backend.
 // In production, VITE_API_BASE_URL can point at the deployed API.
@@ -258,73 +259,103 @@ const Profile = () => {
     getUser();
   }, [authUser]);
 
-  // Load or create profile for current user (Supabase legacy)
-  // When using local auth (authUser), skip Supabase and just use the
-  // in-memory INITIAL_PROFILE to avoid network errors against paused
-  // Supabase projects.
+  // Load or create profile for current user.
+  // Prefer the local backend (/profiles/:userId) when using local auth.
+  // Fall back to Supabase-only profiles when there is no local auth user.
   useEffect(() => {
-    if (!userId || !userEmail) return;
-
-    // If we have a local-auth user, skip Supabase profile entirely
-    if (authUser) {
-      console.log('[Profile] Skipping Supabase profile fetch because local auth user is present');
-      setIsLoading(false);
-      return;
-    }
-
-    const fetchOrCreateProfile = async () => {
-      try {
-        setIsLoading(true);
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", userId)
-          .maybeSingle();
-        if (error) {
-          console.error('[Profile] Failed to load profile from Supabase', error);
-          // If Supabase is unreachable, avoid noisy toasts
-          if (!String(error.message).includes('Failed to fetch')) {
+    const loadProfile = async () => {
+      // Local auth: use backend profiles table
+      if (authUser?.id && authUser?.email) {
+        try {
+          setIsLoading(true);
+          const res = await fetch(`${API_BASE}/profiles/${authUser.id}`);
+          const body = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            console.error('[Profile] Failed to load profile from backend', { status: res.status, body });
             toast({
               title: "Failed to load profile",
-              description: error.message,
+              description: body.error || "Could not load profile from database.",
               variant: "destructive",
             });
+            setIsLoading(false);
+            return;
           }
-          setIsLoading(false);
-          return;
-        }
-        if (data) {
           setProfile({
             ...INITIAL_PROFILE,
-            ...data,
-            interests: data.interests || [],
-            languages: data.languages || [],
+            ...body,
+            interests: body.interests || [],
+            languages: body.languages || [],
           });
-        } else {
-          // Create an empty profile (must provide required username)
-          const { error: insertError } = await supabase
+        } catch (err) {
+          console.error('[Profile] Failed to load profile from backend', err);
+          toast({
+            title: "Failed to load profile",
+            description: "Could not connect to the profile service.",
+            variant: "destructive",
+          });
+        } finally {
+          setIsLoading(false);
+        }
+        return;
+      }
+
+      // Legacy Supabase profile flow (no local auth user)
+      if (!userId || !userEmail) return;
+
+      const fetchOrCreateProfile = async () => {
+        try {
+          setIsLoading(true);
+          const { data, error } = await supabase
             .from("profiles")
-            .insert([{ id: userId, username: userEmail }]);
-          if (insertError) {
-            console.error('[Profile] Failed to create Supabase profile', insertError);
-            if (!String(insertError.message).includes('Failed to fetch')) {
+            .select("*")
+            .eq("id", userId)
+            .maybeSingle();
+          if (error) {
+            console.error('[Profile] Failed to load profile from Supabase', error);
+            if (!String(error.message).includes('Failed to fetch')) {
               toast({
-                title: "Failed to create user profile",
-                description: insertError.message,
+                title: "Failed to load profile",
+                description: error.message,
                 variant: "destructive",
               });
             }
-          } else {
-            setProfile({ ...INITIAL_PROFILE, username: userEmail });
+            setIsLoading(false);
+            return;
           }
+          if (data) {
+            setProfile({
+              ...INITIAL_PROFILE,
+              ...data,
+              interests: data.interests || [],
+              languages: data.languages || [],
+            });
+          } else {
+            const { error: insertError } = await supabase
+              .from("profiles")
+              .insert([{ id: userId, username: userEmail }]);
+            if (insertError) {
+              console.error('[Profile] Failed to create Supabase profile', insertError);
+              if (!String(insertError.message).includes('Failed to fetch')) {
+                toast({
+                  title: "Failed to create user profile",
+                  description: insertError.message,
+                  variant: "destructive",
+                });
+              }
+            } else {
+              setProfile({ ...INITIAL_PROFILE, username: userEmail });
+            }
+          }
+        } finally {
+          setIsLoading(false);
         }
-      } finally {
-        setIsLoading(false);
-      }
+      };
+
+      fetchOrCreateProfile();
     };
 
-    fetchOrCreateProfile();
-  }, [userId, userEmail, authUser]);
+    loadProfile();
+  }, [authUser, userId, userEmail, toast]);
 
   // Load creative spaces for the current user
   useEffect(() => {
@@ -378,8 +409,40 @@ const Profile = () => {
     fetchUserStories();
   }, [authUser]);
 
-  // Save profile field (generic handler)
+  // Save profile field (generic handler). When using local auth, this writes
+  // to the backend /profiles/:userId endpoint. For legacy Supabase-only
+  // users, it still updates Supabase.
   const saveProfileField = async (key: keyof typeof profile, value: any) => {
+    // Local backend profile (preferred)
+    if (authUser?.id) {
+      setProfile((prev) => ({ ...prev, [key]: value }));
+      try {
+        const res = await fetch(`${API_BASE}/profiles/${authUser.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ [key]: value }),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          console.error("[Profile] Failed to update profile field", key, { status: res.status, body });
+          toast({
+            title: "Failed to update",
+            description: body.error || "Could not save your profile information.",
+            variant: "destructive",
+          });
+        }
+      } catch (err) {
+        console.error("[Profile] Failed to update profile field", key, err);
+        toast({
+          title: "Failed to update",
+          description: "Network error while saving profile information.",
+          variant: "destructive",
+        });
+      }
+      return;
+    }
+
+    // Supabase legacy path
     if (!userId) return;
     setProfile((prev) => ({ ...prev, [key]: value }));
     const updateObj: any = {};
@@ -389,13 +452,13 @@ const Profile = () => {
       toast({
         title: "Failed to update",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
       });
     } else {
       toast({
         title: "Saved",
         description: `Your ${key.replace(/_/g, " ")} has been updated.`,
-        duration: 1500
+        duration: 1500,
       });
     }
   };
@@ -415,11 +478,9 @@ const Profile = () => {
     setProfile((p) => ({ ...p, interests: updated }));
   };
 
-  // Avatar/image
+  // Avatar/image (legacy for sections outside ProfileInformation)
   const handleProfileImageChange = (imageUrl: string) => {
     saveProfileField("profile_image_url", imageUrl);
-    setProfile((p) => ({ ...p, profile_image_url: imageUrl }));
-    setIsUploadDialogOpen(false);
   };
 
   // Bio/about
@@ -428,32 +489,11 @@ const Profile = () => {
     setProfile((p) => ({ ...p, bio }));
   };
 
-  // Editing fields (allow generic for text fields)
-  const startEditing = (field: string, value: string) => {
-    if (previewMode) return;
-    setEditField(field);
-    setTempFieldValue(value || "");
-  };
-  const saveField = () => {
-    if (!editField) return;
-    saveProfileField(editField as keyof typeof profile, tempFieldValue);
-    setEditField(null);
-  };
-  const cancelEditing = () => setEditField(null);
+  // Inline editing for Profile Information fields is now handled inside the
+  // ProfileInformation module via blur-to-save behaviour.
 
-  // Languages
-  const handleAddLanguage = (lang: string) => {
-    if (!lang || profile.languages.includes(lang)) return;
-    const updated = [...profile.languages, lang];
-    saveProfileField("languages", updated);
-    setProfile((p) => ({ ...p, languages: updated }));
-    setNewLanguage("");
-  };
-  const handleRemoveLanguage = (lang: string) => {
-    const updated = profile.languages.filter((l: string) => l !== lang);
-    saveProfileField("languages", updated);
-    setProfile((p) => ({ ...p, languages: updated }));
-  };
+  // Languages are now managed inside the ProfileInformation module via
+  // saveProfileField.
 
   // Social links
   const handleSocialChange = (key: keyof typeof profile, value: string) => {
@@ -702,325 +742,11 @@ const Profile = () => {
         </div>
         
         {/* Profile Information Section */}
-        <div className="mb-8">
-          <div className="flex items-center mb-4">
-            <h2 className="text-xl font-bold mr-2">
-              <EditableText id="profile-information-heading">Profile information</EditableText>
-            </h2>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Left column for profile picture */}
-            <div className="flex flex-col items-center space-y-3">
-              <div className="relative">
-                <Avatar className="h-32 w-32 border-2 border-gray-200">
-                  {profile.profile_image_url ? (
-                    <AvatarImage src={profile.profile_image_url} alt={profile.first_name || "Avatar"} />
-                  ) : (
-                    <AvatarFallback className="bg-purple-100 text-purple-600 text-4xl">
-                      <User className="h-16 w-16" />
-                    </AvatarFallback>
-                  )}
-                </Avatar>
-                {!previewMode && (
-                  <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button
-                        className="absolute bottom-0 right-0 rounded-full w-8 h-8 p-0 bg-purple-600 hover:bg-purple-700"
-                        onClick={() => setIsUploadDialogOpen(true)}
-                      >
-                        <PencilLine className="h-4 w-4" />
-                      </Button>
-                    </DialogTrigger>
-                    <ProfilePictureUpload onImageChange={handleProfileImageChange} />
-                  </Dialog>
-                )}
-              </div>
-              {!previewMode && (
-                <Button
-                  variant="outline"
-                  className="text-purple-600 border-purple-600 hover:bg-purple-50"
-                  onClick={() => setIsUploadDialogOpen(true)}
-                >
-                  <EditableText id="change-photo-text">Change photo</EditableText>
-                </Button>
-              )}
-            </div>
-            
-            {/* Right: profile details */}
-            <div className="md:col-span-2 space-y-6">
-              {/* Editable fields */}
-              {/* First Name */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm text-gray-500">
-                    <EditableText id="first-name">First name</EditableText>
-                  </Label>
-                  {!previewMode && editField === 'first_name' ? (
-                    <div className="flex space-x-2">
-                      <Button size="sm" variant="ghost" onClick={cancelEditing} className="h-6 w-6 p-0">
-                        <X className="h-4 w-4" />
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={saveField} className="h-6 w-6 p-0 text-green-600">
-                        <Check className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : !previewMode ? (
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
-                      onClick={() => startEditing('first_name', profile.first_name)}
-                      className="h-6 p-0 text-purple-600 hover:text-purple-800 hover:bg-transparent"
-                    >
-                      <EditableText id="edit-button">Edit</EditableText>
-                    </Button>
-                  ) : null}
-                </div>
-                {!previewMode && editField === 'first_name' ? (
-                  <Input 
-                    value={tempFieldValue}
-                    onChange={(e) => setTempFieldValue(e.target.value)}
-                    className="mt-1"
-                    autoFocus
-                  />
-                ) : (
-                  <div className="font-medium">{profile.first_name || <span className="text-gray-400 italic">No first name set</span>}</div>
-                )}
-              </div>
-              {/* Last Name */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm text-gray-500">
-                    <EditableText id="last-name">Last name</EditableText>
-                  </Label>
-                  {!previewMode && editField === 'last_name' ? (
-                    <div className="flex space-x-2">
-                      <Button size="sm" variant="ghost" onClick={cancelEditing} className="h-6 w-6 p-0">
-                        <X className="h-4 w-4" />
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={saveField} className="h-6 w-6 p-0 text-green-600">
-                        <Check className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : !previewMode ? (
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
-                      onClick={() => startEditing('last_name', profile.last_name)}
-                      className="h-6 p-0 text-purple-600 hover:text-purple-800 hover:bg-transparent"
-                    >
-                      <EditableText id="edit-button">Edit</EditableText>
-                    </Button>
-                  ) : null}
-                </div>
-                {!previewMode && editField === 'last_name' ? (
-                  <Input 
-                    value={tempFieldValue}
-                    onChange={(e) => setTempFieldValue(e.target.value)}
-                    className="mt-1"
-                    autoFocus
-                  />
-                ) : (
-                  <div className="font-medium text-gray-800">{profile.last_name || <span className="text-gray-400 italic">No last name set</span>}</div>
-                )}
-              </div>
-              {/* Nickname */}
-              <div className="space-y-1">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm text-gray-500">
-                    <EditableText id="nickname-label">Nickname</EditableText>
-                  </Label>
-                  {!previewMode && editField === 'nickname' ? (
-                    <div className="flex space-x-2">
-                      <Button size="sm" variant="ghost" onClick={cancelEditing} className="h-6 w-6 p-0">
-                        <X className="h-4 w-4" />
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={saveField} className="h-6 w-6 p-0 text-green-600">
-                        <Check className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ) : !previewMode ? (
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
-                      onClick={() => startEditing('nickname', profile.nickname)}
-                      className="h-6 p-0 text-purple-600 hover:text-purple-800 hover:bg-transparent"
-                    >
-                      <EditableText id="edit-button">Edit</EditableText>
-                    </Button>
-                  ) : null}
-                </div>
-                {!previewMode && editField === 'nickname' ? (
-                  <Input 
-                    value={tempFieldValue}
-                    onChange={(e) => setTempFieldValue(e.target.value)}
-                    className="mt-1"
-                    autoFocus
-                  />
-                ) : (
-                  <div className="font-medium text-gray-800">
-                    {profile.nickname ? profile.nickname : (
-                      <span className="text-gray-400 italic">
-                        <EditableText id="no-nickname-text">No nickname set</EditableText>
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-              {/* Birthday */}
-              <div className="space-y-1">
-                <Label className="text-sm text-gray-500">Birthday (optional)</Label>
-                {!previewMode && editField === "birthday" ? (
-                  <div className="flex gap-2">
-                    <Input
-                      type="date"
-                      value={tempFieldValue}
-                      onChange={e => setTempFieldValue(e.target.value)}
-                    />
-                    <Button size="sm" variant="ghost" onClick={cancelEditing}>
-                      <X className="h-4 w-4" />
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={saveField}>
-                      <Check className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : !previewMode ? (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => startEditing("birthday", profile.birthday || "")}
-                    className="h-6 p-0 text-purple-600 hover:text-purple-800 hover:bg-transparent"
-                  >
-                    <EditableText id="edit-button">Edit</EditableText>
-                  </Button>
-                ) : null}
-                {!previewMode && editField === "birthday" ? null : (
-                  <div className="font-medium text-gray-800">
-                    {profile.birthday ? new Date(profile.birthday).toLocaleDateString() : <span className="text-gray-400 italic">No birthday set</span>}
-                  </div>
-                )}
-              </div>
-              {/* Telephone */}
-              <div className="space-y-1">
-                <Label className="text-sm text-gray-500">
-                  <Smartphone className="w-4 h-4 inline mb-1 mr-1" /> Telephone (optional)
-                </Label>
-                {!previewMode && editField === "telephone" ? (
-                  <div className="flex gap-2">
-                    <Input
-                      type="tel"
-                      value={tempFieldValue}
-                      onChange={e => setTempFieldValue(e.target.value)}
-                    />
-                    <Button size="sm" variant="ghost" onClick={cancelEditing}>
-                      <X className="h-4 w-4" />
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={saveField}>
-                      <Check className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : !previewMode ? (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => startEditing("telephone", profile.telephone || "")}
-                    className="h-6 p-0 text-purple-600 hover:text-purple-800 hover:bg-transparent"
-                  >
-                    <EditableText id="edit-button">Edit</EditableText>
-                  </Button>
-                ) : null}
-                {!previewMode && editField === "telephone" ? null : (
-                  <div className="font-medium text-gray-800">
-                    {profile.telephone ? profile.telephone : <span className="text-gray-400 italic">No telephone set</span>}
-                  </div>
-                )}
-              </div>
-              {/* Languages */}
-              <div className="space-y-1">
-                <Label className="text-sm text-gray-500">
-                  <Languages className="w-4 h-4 inline mb-1 mr-1" /> Languages (optional)
-                </Label>
-                {!previewMode && (
-                  <div className="flex gap-2">
-                    <Input
-                      value={newLanguage}
-                      onChange={(e) => setNewLanguage(e.target.value)}
-                      placeholder="Add language"
-                      className="flex-grow"
-                      onKeyDown={e => {
-                        if (e.key === "Enter") {
-                          handleAddLanguage(newLanguage);
-                          setNewLanguage("");
-                        }
-                      }}
-                    />
-                    <Button
-                      onClick={() => {
-                        handleAddLanguage(newLanguage);
-                        setNewLanguage("");
-                      }}
-                      size="sm"
-                    >
-                      <EditableText id="add-language">Add</EditableText>
-                    </Button>
-                  </div>
-                )}
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {profile.languages.map((lang, idx) => (
-                    <div key={idx} className="bg-gray-100 rounded-full px-3 py-1 flex items-center gap-1">
-                      <span>{lang}</span>
-                      {!previewMode && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-4 w-4 p-0"
-                          onClick={() => handleRemoveLanguage(lang)}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              {/* Socials */}
-              <div className="space-y-1">
-                <Label className="text-sm text-gray-500">
-                  <Facebook className="w-4 h-4 inline mb-1 mr-1" /> Facebook
-                </Label>
-                <Input
-                  value={profile.social_facebook || ""}
-                  onChange={e => handleSocialChange("social_facebook", e.target.value)}
-                  placeholder="Facebook username/url"
-                  disabled={previewMode}
-                />
-                <Label className="text-sm text-gray-500">
-                  <Instagram className="w-4 h-4 inline mb-1 mr-1" /> Instagram
-                </Label>
-                <Input
-                  value={profile.social_instagram || ""}
-                  onChange={e => handleSocialChange("social_instagram", e.target.value)}
-                  placeholder="Instagram username/url"
-                  disabled={previewMode}
-                />
-                <Label className="text-sm text-gray-500">Snapchat</Label>
-                <Input
-                  value={profile.social_snapchat || ""}
-                  onChange={e => handleSocialChange("social_snapchat", e.target.value)}
-                  placeholder="Snapchat"
-                  disabled={previewMode}
-                />
-                <Label className="text-sm text-gray-500">Other Social</Label>
-                <Input
-                  value={profile.social_other || ""}
-                  onChange={e => handleSocialChange("social_other", e.target.value)}
-                  placeholder="Other social"
-                  disabled={previewMode}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+        <ProfileInformation
+          profile={profile}
+          previewMode={previewMode}
+          onSaveField={(field, value) => saveProfileField(field as keyof typeof profile, value)}
+        />
 
         <div className="mb-8">
           <p className="text-xl text-gray-600 mb-4">
@@ -1453,14 +1179,16 @@ const Profile = () => {
           </Tabs>
         </div>
 
-        <Link 
-          to="/account-administration" 
-          className="block p-2 hover:bg-gray-100 rounded-md transition-colors"
-        >
-          <EditableText id="account-administration">
-            Account Administration
-          </EditableText>
-        </Link>
+        {!previewMode && (
+          <Link 
+            to="/account-administration" 
+            className="block p-2 hover:bg-gray-100 rounded-md transition-colors"
+          >
+            <EditableText id="account-administration">
+              Account Administration
+            </EditableText>
+          </Link>
+        )}
       </div>
       
       <CrowdlyFooter />
