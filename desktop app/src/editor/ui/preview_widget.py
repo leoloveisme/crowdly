@@ -183,6 +183,16 @@ class PreviewWidget(QWidget):
 
         return self._editor.toMarkdown()
 
+    def get_html(self) -> str:
+        """Return the current content as HTML.
+
+        This exposes the underlying QTextEdit HTML for versioning and
+        revisioning pipelines that want a high-fidelity representation
+        alongside the Markdown.
+        """
+
+        return self._editor.toHtml()
+
     # Internal helpers -----------------------------------------------------
 
     def _merge_char_format(self, callback) -> None:

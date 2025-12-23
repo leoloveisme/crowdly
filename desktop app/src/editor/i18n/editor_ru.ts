@@ -219,5 +219,113 @@
         <source>Logged in as: {username}</source>
         <translation>Вы вошли как: {username}</translation>
     </message>
+    <message>
+        <source>Web sync: off</source>
+        <translation>Веб-синхронизация: выкл.</translation>
+    </message>
+    <message>
+        <source>Web sync: enabled</source>
+        <translation>Веб-синхронизация: вкл.</translation>
+    </message>
+    <message>
+        <source>Web sync: connected as {username}</source>
+        <translation>Веб-синхронизация: подключено как {username}</translation>
+    </message>
+    <message>
+        <source>Web login failed</source>
+        <translation>Ошибка входа на веб-платформу</translation>
+    </message>
+    <message>
+        <source>Please double-check your login data and re-enter them again.
+
+If nothing works, please get help and possibly contact support.</source>
+        <translation>Пожалуйста, тщательно проверьте свои данные для входа и введите их ещё раз.
+
+Если ничего не помогает, обратитесь за помощью и, при необходимости, свяжитесь со службой поддержки.</translation>
+    </message>
+    <message>
+        <source>Syncing story to the web...</source>
+        <translation>Синхронизация истории с веб-платформой...</translation>
+    </message>
+    <message>
+        <source>Story synced to the web.</source>
+        <translation>История синхронизирована с веб-платформой.</translation>
+    </message>
+    <message>
+        <source>Sync failed</source>
+        <translation>Синхронизация не удалась</translation>
+    </message>
+    <message>
+        <source>Could not sync story to the web.
+
+Details: {error}</source>
+        <translation>Не удалось синхронизировать историю с веб-платформой.
+
+Подробности: {error}</translation>
+    </message>
+    <message>
+        <source>Pulled latest story from the web.</source>
+        <translation>Загружена последняя версия истории с веб-платформы.</translation>
+    </message>
+    <message>
+        <source>Web update check failed.</source>
+        <translation>Проверка обновлений на веб-платформе не удалась.</translation>
+    </message>
+    <message>
+        <source>Story settings</source>
+        <translation>Настройки истории</translation>
+    </message>
+    <message>
+        <source>View story metadata</source>
+        <translation>Показать метаданные истории</translation>
+    </message>
+    <message>
+        <source>Add genre</source>
+        <translation>Добавить жанр</translation>
+    </message>
+    <message>
+        <source>Refresh from web</source>
+        <translation>Обновить из интернета</translation>
+    </message>
+    <message>
+        <source>Story metadata</source>
+        <translation>Метаданные истории</translation>
+    </message>
+    <message>
+        <source>No file is currently loaded.</source>
+        <translation>Файл не загружен.</translation>
+    </message>
+    <message>
+        <source>This file is not associated with a Crowdly story.</source>
+        <translation>Этот файл не связан с историей Crowdly.</translation>
+    </message>
+    <message>
+        <source>Genre</source>
+        <translation>Жанр</translation>
+    </message>
+    <message>
+        <source>Choose genre</source>
+        <translation>Выберите жанр</translation>
+    </message>
+    <message>
+        <source>Genre:</source>
+        <translation>Жанр:</translation>
+    </message>
+    <message>
+        <source>Other genre</source>
+        <translation>Другой жанр</translation>
+    </message>
+    <message>
+        <source>Enter genre:</source>
+        <translation>Введите жанр:</translation>
+    </message>
+    <message>
+        <source>Genre deleted.</source>
+        <translation>Жанр удалён.</translation>
+    </message>
+    <message>
+        <source>Genre updated.</source>
+        <translation>Жанр обновлён.</translation>
+    </message>
 </context>
 </TS>

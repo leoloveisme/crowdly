@@ -32,6 +32,7 @@ from ..document import Document
 from ..settings import Settings, save_settings
 from .. import file_metadata
 from .. import story_sync
+from ..versioning import local_queue
 from .editor_widget import EditorWidget
 from .preview_widget import PreviewWidget
 
@@ -317,11 +318,16 @@ class MainWindow(QMainWindow):
         self._stats_label = QLabel(self)
         bar.addPermanentWidget(self._stats_label, 0)
 
+        # Sync status label (between stats and user info).
+        self._sync_status_label = QLabel(self)
+        bar.addPermanentWidget(self._sync_status_label, 0)
+
         # Right-aligned user label.
         self._user_label = QLabel(self)
         bar.addPermanentWidget(self._user_label, 0)
 
         self._update_document_stats_label()
+        self._update_sync_status_label()
         self._update_user_status_label()
 
     # Internal helpers ----------------------------------------------------
@@ -464,6 +470,22 @@ class MainWindow(QMainWindow):
             return
 
         self._document.save(target_path)
+
+        # Enqueue a local versioning snapshot under the `.crowdly` directory
+        # so that all changes are captured for later revision/diff pipelines.
+        try:
+            device_id = getattr(self._settings, "device_id", None) or "desktop"
+            body_md = self.preview.get_markdown()
+            body_html = self.preview.get_html()
+            local_queue.enqueue_full_snapshot_update(
+                target_path,
+                device_id=device_id,
+                body_md=body_md,
+                body_html=body_html,
+            )
+        except Exception:
+            # Versioning must never interfere with core autosave.
+            pass
 
         # After a successful save, optionally sync to the web backend.
         if self._sync_web_platform:
@@ -613,6 +635,7 @@ class MainWindow(QMainWindow):
 
         # Update status bar dynamic labels that depend on translations.
         self._update_document_stats_label()
+        self._update_sync_status_label()
         self._update_user_status_label()
 
         # Language entries within the submenu.
@@ -691,6 +714,41 @@ class MainWindow(QMainWindow):
         label.setText(
             self.tr("Logged in as: {username}").format(username=self._username)
         )
+
+    def _update_sync_status_label(self) -> None:
+        """Update the sync status label in the status bar."""
+
+        label = getattr(self, "_sync_status_label", None)
+        if label is None:
+            return
+
+        if getattr(self, "_sync_web_platform", False):
+            # Prefer the explicit web credentials username when available,
+            # otherwise fall back to the desktop username.
+            web_user = None
+            try:
+                creds = getattr(self, "_crowdly_web_credentials", None)
+                if isinstance(creds, tuple) and len(creds) >= 1:
+                    web_user = creds[0]
+            except Exception:
+                web_user = None
+
+            if not web_user:
+                try:
+                    candidate = getattr(self, "_username", None)
+                    if isinstance(candidate, str) and candidate and candidate != "username":
+                        web_user = candidate
+                except Exception:
+                    web_user = None
+
+            if web_user:
+                text = self.tr("Web sync: connected as {username}").format(username=web_user)
+            else:
+                text = self.tr("Web sync: enabled")
+        else:
+            text = self.tr("Web sync: off")
+
+        label.setText(text)
 
     # Slots ---------------------------------------------------------------
 
@@ -788,30 +846,64 @@ class MainWindow(QMainWindow):
         )
 
     def _toggle_sync_web_platform(self) -> None:  # pragma: no cover - UI wiring
-        """Toggle synchronisation with the web platform."""
+        """Toggle synchronisation with the web platform.
 
-        self._sync_web_platform = not self._sync_web_platform
-        self._retranslate_ui()
+        When enabling sync we require valid Crowdly web credentials. If the
+        user cancels the login dialog or credentials cannot be obtained, the
+        checkbox is reverted and synchronisation remains disabled.
+        """
 
-        # Start/stop polling for remote updates.
         try:
-            if self._sync_web_platform:
-                # (Re)start polling timer unconditionally.
+            # Use the action's checked state as the desired target state.
+            enabling: bool
+            if hasattr(self, "_action_sync_web") and isinstance(self._action_sync_web, QAction):
+                enabling = self._action_sync_web.isChecked()
+            else:
+                # Fallback for safety if the action is unavailable.
+                enabling = not self._sync_web_platform
+
+            if enabling:
+                creds = self._ensure_crowdly_web_credentials()
+                if not creds:
+                    # User aborted or did not provide credentials -> keep sync off.
+                    if hasattr(self, "_action_sync_web") and isinstance(self._action_sync_web, QAction):
+                        self._action_sync_web.blockSignals(True)
+                        self._action_sync_web.setChecked(False)
+                        self._action_sync_web.blockSignals(False)
+                    self._sync_web_platform = False
+                    self._retranslate_ui()
+                    # Do not start any timers.
+                    return
+
+                # We have credentials: enable sync and start polling.
+                self._sync_web_platform = True
+                self._retranslate_ui()
+                self._update_sync_status_label()
+
                 if self._web_pull_timer.isActive():
                     self._web_pull_timer.stop()
                 self._web_pull_timer.start()
 
-                # On enable, force a pull once so toggling OFF->ON always has an effect
-                # (it reconciles local state with the remote state immediately).
-                self._start_pull_from_web(force=True)
+                # On enable, force a pull once so toggling OFF->ON always has an
+                # effect (it reconciles local state with the remote state
+                # immediately). Use authenticated credentials so private stories
+                # work without extra prompts.
+                self._start_pull_from_web(force=True, credentials=creds)
             else:
-                # Stop polling + pending push debounce.
+                # Turning sync off: stop polling + pending push debounce.
+                self._sync_web_platform = False
                 if self._web_pull_timer.isActive():
                     self._web_pull_timer.stop()
                 if self._web_sync_timer.isActive():
                     self._web_sync_timer.stop()
+                self._retranslate_ui()
+                self._update_sync_status_label()
         except Exception:
-            pass
+            # Best-effort: fall back to a safe "sync off" state.
+            try:
+                self._handle_web_auth_failure(None)
+            except Exception:
+                pass
 
     def _toggle_sync_dropbox(self) -> None:  # pragma: no cover - UI wiring
         """Toggle synchronisation with Dropbox (placeholder)."""
@@ -858,6 +950,8 @@ class MainWindow(QMainWindow):
         self._logged_in = False
         self._username = "username"
         self._retranslate_ui()
+        self._update_user_status_label()
+        self._update_sync_status_label()
         QMessageBox.information(
             self,
             self.tr("Logout"),
@@ -872,6 +966,7 @@ class MainWindow(QMainWindow):
         self._logged_in = True
         self._retranslate_ui()
         self._update_user_status_label()
+        self._update_sync_status_label()
 
     def _on_view_md_toggled(self, checked: bool) -> None:  # pragma: no cover
         """Show or hide the Markdown/HTML editor pane via the View menu.
@@ -1075,6 +1170,13 @@ class MainWindow(QMainWindow):
             doc.save(local_path)
             persist_import_metadata(local_path, story)
 
+            # Ensure the per-directory `.crowdly` folder exists so subsequent
+            # autosaves can start queueing versioning payloads immediately.
+            try:
+                local_queue.ensure_crowdly_dir_for_document(local_path)
+            except Exception:
+                pass
+
             bar = self.statusBar()
             if bar is not None:
                 bar.showMessage(self.tr("Imported story to: {path}").format(path=local_path))
@@ -1133,7 +1235,17 @@ class MainWindow(QMainWindow):
                     )
                     return
 
-                dlg = CrowdlyLoginDialog(self)
+                # Reuse the desktop username/email when available.
+                default_username = None
+                try:
+                    if getattr(self, "_logged_in", False):
+                        candidate = getattr(self, "_username", None)
+                        if isinstance(candidate, str) and candidate and candidate != "username":
+                            default_username = candidate
+                except Exception:
+                    default_username = None
+
+                dlg = CrowdlyLoginDialog(self, default_username=default_username)
                 if dlg.exec() != QDialog.DialogCode.Accepted:
                     return
 
@@ -1145,6 +1257,14 @@ class MainWindow(QMainWindow):
                         self.tr("Username and password are required."),
                     )
                     return
+
+                # Cache web credentials so that later sync/pull operations can
+                # reuse them without forcing another login.
+                try:
+                    self._crowdly_web_credentials = (creds.username, creds.password)
+                    self._update_sync_status_label()
+                except Exception:
+                    pass
 
                 self._start_crowdly_fetch(
                     story_url, credentials=(creds.username, creds.password)
@@ -1445,10 +1565,17 @@ class MainWindow(QMainWindow):
             )
 
     def _refresh_story_from_web(self) -> None:  # pragma: no cover - UI wiring
-        """Manual refresh: pull latest content from the web."""
+        """Manual refresh: pull the latest content from the web.
+
+        If the story requires authentication, prompt once for credentials and
+        only start the pull if login succeeds.
+        """
 
         try:
-            self._start_pull_from_web(force=True)
+            creds = self._ensure_crowdly_web_credentials()
+            if not creds:
+                return
+            self._start_pull_from_web(force=True, credentials=creds)
         except Exception:
             pass
 
@@ -1461,7 +1588,11 @@ class MainWindow(QMainWindow):
         self._web_sync_timer.start(1200)
 
     def _ensure_crowdly_web_credentials(self) -> tuple[str, str] | None:
-        """Return cached web credentials, or prompt the user."""
+        """Return cached web credentials, or prompt the user.
+
+        If credentials are not yet known for this session, a modal login
+        dialog is shown. On success the credentials are cached for reuse.
+        """
 
         if self._crowdly_web_credentials is not None:
             return self._crowdly_web_credentials
@@ -1471,22 +1602,107 @@ class MainWindow(QMainWindow):
         except Exception:
             return None
 
-        dlg = CrowdlyLoginDialog(self)
+        # Reuse the desktop username/email when available so the user only
+        # needs to type their password for web sync.
+        default_username = None
+        try:
+            if getattr(self, "_logged_in", False):
+                candidate = getattr(self, "_username", None)
+                if isinstance(candidate, str) and candidate and candidate != "username":
+                    default_username = candidate
+        except Exception:
+            default_username = None
+
+        dlg = CrowdlyLoginDialog(self, default_username=default_username)
         if dlg.exec() != QDialog.DialogCode.Accepted:
             return None
 
         creds = dlg.credentials()
         if creds is None:
+            QMessageBox.warning(
+                self,
+                self.tr("Login"),
+                self.tr("Username and password are required."),
+            )
             return None
 
         self._crowdly_web_credentials = (creds.username, creds.password)
+        self._update_sync_status_label()
         return self._crowdly_web_credentials
 
-    def _poll_web_updates(self) -> None:  # pragma: no cover
-        """Poll the backend for remote updates and pull if needed."""
+    def _handle_web_auth_failure(self, message: str | None) -> None:  # pragma: no cover - UI wiring
+        """Handle web authentication failures in a user-friendly way.
+
+        - Clears cached web credentials so the next attempt will re-prompt.
+        - Turns off web synchronisation and keeps the menu checkbox in sync.
+        - Shows a clear, actionable error message.
+        """
+
+        # Clear cached credentials so the next attempt asks again.
+        try:
+            self._crowdly_web_credentials = None
+        except Exception:
+            pass
+
+        # Ensure sync is turned off and timers are stopped.
+        self._sync_web_platform = False
+        try:
+            if self._web_pull_timer.isActive():
+                self._web_pull_timer.stop()
+        except Exception:
+            pass
+        try:
+            if self._web_sync_timer.isActive():
+                self._web_sync_timer.stop()
+        except Exception:
+            pass
+
+        # Keep the action state consistent without retriggering this handler.
+        if hasattr(self, "_action_sync_web") and isinstance(self._action_sync_web, QAction):
+            try:
+                self._action_sync_web.blockSignals(True)
+                self._action_sync_web.setChecked(False)
+                self._action_sync_web.blockSignals(False)
+            except Exception:
+                pass
 
         try:
-            self._start_pull_from_web(force=False)
+            self._retranslate_ui()
+            self._update_sync_status_label()
+        except Exception:
+            pass
+
+        # Show a friendly message to the user.
+        try:
+            text = self.tr(
+                "Please double-check your login data and re-enter them again.\n\n"
+                "If nothing works, please get help and possibly contact support."
+            )
+            if message:
+                text = f"{text}\n\n{message}"
+            QMessageBox.warning(
+                self,
+                self.tr("Web login failed"),
+                text,
+            )
+        except Exception:
+            # If even the dialog fails, at least don't crash the app.
+            pass
+
+    def _poll_web_updates(self) -> None:  # pragma: no cover
+        """Poll the backend for remote updates and pull if needed.
+
+        When web credentials are available we use them, so private stories do
+        not trigger additional login prompts.
+        """
+
+        try:
+            creds = getattr(self, "_crowdly_web_credentials", None)
+        except Exception:
+            creds = None
+
+        try:
+            self._start_pull_from_web(force=False, credentials=creds)
         except Exception:
             return
 
@@ -1650,6 +1866,12 @@ class MainWindow(QMainWindow):
                 bar.clearMessage()
 
             msg = str(error)
+            # If the backend reports an authentication failure, treat it as a
+            # login problem and guide the user to correct their credentials.
+            if "Login failed" in msg or "auth" in msg.lower():
+                self._handle_web_auth_failure(msg)
+                return
+
             QMessageBox.warning(
                 self,
                 self.tr("Sync failed"),
@@ -1679,7 +1901,9 @@ class MainWindow(QMainWindow):
 
             md = file_metadata.read_story_metadata(path)
 
-            # If local has unsynced changes, prompt before overwriting.
+            # If local has unsynced changes, avoid noisy modal prompts.
+            # For now we prefer the local copy and simply schedule a web sync
+            # (the backend/CRDT layer is responsible for reconciling changes).
             try:
                 changed_at = file_metadata.parse_human(md.change_date)
                 synced_at = file_metadata.parse_human(md.last_sync_date)
@@ -1688,24 +1912,11 @@ class MainWindow(QMainWindow):
                 local_unsynced = False
 
             if local_unsynced:
-                box = QMessageBox(self)
-                box.setWindowTitle(self.tr("Remote update available"))
-                box.setText(
-                    self.tr(
-                        "The story was updated on the web, but this file has unsynced local changes."
-                    )
-                )
-                pull_btn = box.addButton(self.tr("Pull (overwrite local)"), QMessageBox.AcceptRole)
-                push_btn = box.addButton(self.tr("Push local"), QMessageBox.DestructiveRole)
-                box.addButton(self.tr("Cancel"), QMessageBox.RejectRole)
-                box.exec()
-
-                clicked = box.clickedButton()
-                if clicked == push_btn:
+                try:
                     self._schedule_web_sync()
-                    return
-                if clicked != pull_btn:
-                    return
+                except Exception:
+                    pass
+                return
 
             # Apply content.
             self._document.set_content(new_content)
@@ -1740,8 +1951,12 @@ class MainWindow(QMainWindow):
             traceback.print_exc()
 
     def _on_story_pull_failed(self, error: object) -> None:  # pragma: no cover
-        # Polling failures should be silent-ish, but if auth is required we
-        # prompt once and retry.
+        """Handle failures when checking for or pulling remote updates.
+
+        Authentication problems disable sync and prompt the user once; other
+        transient errors are surfaced only via the status bar/logs.
+        """
+
         import traceback
 
         try:
@@ -1753,12 +1968,8 @@ class MainWindow(QMainWindow):
             if not message:
                 message = str(error)
 
-            if kind == "auth_required":
-                creds = self._ensure_crowdly_web_credentials()
-                if creds is None:
-                    return
-                # Retry immediately, forcing a pull check, now with credentials.
-                self._start_pull_from_web(force=True, credentials=creds)
+            if kind in ("auth_required", "auth_failed"):
+                self._handle_web_auth_failure(message)
                 return
 
             # For non-auth failures, log message and show a brief status bar hint.

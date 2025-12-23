@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass, asdict
 from pathlib import Path
 import json
+import uuid
 
 
 CONFIG_DIR_NAME = "crowdly_editor"
@@ -33,6 +34,10 @@ class Settings:
     # Example: "https://crowdly.example"
     crowdly_base_url: str | None = None
 
+    # Stable identifier for this desktop installation, used for versioning
+    # payloads and CRDT-style update streams.
+    device_id: str | None = None
+
 
 def _get_config_dir() -> Path:
     """Return the directory where configuration files are stored."""
@@ -46,29 +51,49 @@ def _get_config_path() -> Path:
 
 
 def load_settings() -> Settings:
-    """Load settings from disk, returning defaults if none exist."""
+    """Load settings from disk, returning defaults if none exist.
+
+    When loading an existing configuration that predates the device_id
+    field we transparently generate and persist a new UUID.
+    """
 
     cfg_path = _get_config_path()
     if not cfg_path.is_file():
-        return Settings()
+        settings = Settings()
+        settings.device_id = str(uuid.uuid4())
+        save_settings(settings)
+        return settings
 
     try:
         raw = json.loads(cfg_path.read_text(encoding="utf-8"))
     except Exception:
         # Fall back to defaults if the file is unreadable or corrupted.
-        return Settings()
+        settings = Settings()
+        settings.device_id = str(uuid.uuid4())
+        save_settings(settings)
+        return settings
 
     project_space_value = raw.get("project_space")
     project_space = Path(project_space_value) if project_space_value else None
 
     interface_language = raw.get("interface_language", "en")
     crowdly_base_url = raw.get("crowdly_base_url")
+    device_id = raw.get("device_id") or str(uuid.uuid4())
 
-    return Settings(
+    settings = Settings(
         project_space=project_space,
         interface_language=interface_language,
         crowdly_base_url=crowdly_base_url,
+        device_id=device_id,
     )
+
+    # Ensure device_id is persisted for older configs.
+    try:
+        save_settings(settings)
+    except Exception:
+        pass
+
+    return settings
 
 
 def save_settings(settings: Settings) -> None:
@@ -85,6 +110,10 @@ def save_settings(settings: Settings) -> None:
     # Normalise empty strings.
     if not data.get("crowdly_base_url"):
         data["crowdly_base_url"] = None
+
+    # Always ensure a device_id exists for versioning.
+    if not data.get("device_id"):
+        data["device_id"] = str(uuid.uuid4())
 
     cfg_path = _get_config_path()
     cfg_path.write_text(json.dumps(data, indent=2), encoding="utf-8")

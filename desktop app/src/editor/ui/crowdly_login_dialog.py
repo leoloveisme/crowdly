@@ -35,9 +35,14 @@ class CrowdlyCredentials:
 
 
 class CrowdlyLoginDialog(QDialog):
-    """Prompt for Crowdly web credentials."""
+    """Prompt for Crowdly web credentials.
 
-    def __init__(self, parent: object | None = None) -> None:
+    The dialog can optionally be initialised with a default user name/email,
+    typically taken from the already-logged-in desktop user, so that the user
+    only needs to enter their password.
+    """
+
+    def __init__(self, parent: object | None = None, *, default_username: str | None = None) -> None:
         super().__init__(parent)
 
         self.setWindowTitle(self.tr("Please login"))
@@ -49,6 +54,8 @@ class CrowdlyLoginDialog(QDialog):
         form = QFormLayout(form_widget)
 
         self._username = QLineEdit(form_widget)
+        if default_username:
+            self._username.setText(default_username)
         form.addRow(QLabel(self.tr("Email"), form_widget), self._username)
 
         pwd_widget = QWidget(form_widget)

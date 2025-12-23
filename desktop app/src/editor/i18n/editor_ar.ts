@@ -219,5 +219,113 @@
       <source>Logged in as: {username}</source>
       <translation>Logged in as: {username}</translation>
     </message>
+    <message>
+      <source>Web sync: off</source>
+      <translation>Web sync: off</translation>
+    </message>
+    <message>
+      <source>Web sync: enabled</source>
+      <translation>Web sync: enabled</translation>
+    </message>
+    <message>
+      <source>Web sync: connected as {username}</source>
+      <translation>Web sync: connected as {username}</translation>
+    </message>
+    <message>
+      <source>Web login failed</source>
+      <translation>Web login failed</translation>
+    </message>
+    <message>
+      <source>Please double-check your login data and re-enter them again.
+
+If nothing works, please get help and possibly contact support.</source>
+      <translation>Please double-check your login data and re-enter them again.
+
+If nothing works, please get help and possibly contact support.</translation>
+    </message>
+    <message>
+      <source>Syncing story to the web...</source>
+      <translation>Syncing story to the web...</translation>
+    </message>
+    <message>
+      <source>Story synced to the web.</source>
+      <translation>Story synced to the web.</translation>
+    </message>
+    <message>
+      <source>Sync failed</source>
+      <translation>Sync failed</translation>
+    </message>
+    <message>
+      <source>Could not sync story to the web.
+
+Details: {error}</source>
+      <translation>Could not sync story to the web.
+
+Details: {error}</translation>
+    </message>
+    <message>
+      <source>Pulled latest story from the web.</source>
+      <translation>Pulled latest story from the web.</translation>
+    </message>
+    <message>
+      <source>Web update check failed.</source>
+      <translation>Web update check failed.</translation>
+    </message>
+    <message>
+      <source>Story settings</source>
+      <translation>Story settings</translation>
+    </message>
+    <message>
+      <source>View story metadata</source>
+      <translation>View story metadata</translation>
+    </message>
+    <message>
+      <source>Add genre</source>
+      <translation>Add genre</translation>
+    </message>
+    <message>
+      <source>Refresh from web</source>
+      <translation>Refresh from web</translation>
+    </message>
+    <message>
+      <source>Story metadata</source>
+      <translation>Story metadata</translation>
+    </message>
+    <message>
+      <source>No file is currently loaded.</source>
+      <translation>No file is currently loaded.</translation>
+    </message>
+    <message>
+      <source>This file is not associated with a Crowdly story.</source>
+      <translation>This file is not associated with a Crowdly story.</translation>
+    </message>
+    <message>
+      <source>Genre</source>
+      <translation>Genre</translation>
+    </message>
+    <message>
+      <source>Choose genre</source>
+      <translation>Choose genre</translation>
+    </message>
+    <message>
+      <source>Genre:</source>
+      <translation>Genre:</translation>
+    </message>
+    <message>
+      <source>Other genre</source>
+      <translation>Other genre</translation>
+    </message>
+    <message>
+      <source>Enter genre:</source>
+      <translation>Enter genre:</translation>
+    </message>
+    <message>
+      <source>Genre deleted.</source>
+      <translation>Genre deleted.</translation>
+    </message>
+    <message>
+      <source>Genre updated.</source>
+      <translation>Genre updated.</translation>
+    </message>
   </context>
 </TS>
