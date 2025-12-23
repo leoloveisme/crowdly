@@ -2,8 +2,6 @@
 
 Crowd created entertainment entertainemnt platform - where YOUR eintertainment (l)i(ve)s
 
-## Project info
-
 Crowdly – Multi creator / crowd created entertainment entertainment platform – think Audible + Netflix + Github + Wattpad (text, pictures, audio and / or video [3D VR / AR and / or MR]) and all this is AI assisted. 
 
 Currently the project is in the development and in it's very baby shoes. The idea behind the project is quite mature, however the realisation still isn't, because there is quite a lot to be developed, and there're unfortunately also financial constraints atm of (me) writing this. // UPDATE: The project has reached it's MVP stage.
