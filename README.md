@@ -18,4 +18,4 @@ The platform envisioned to be easy to use for not information technologies advan
 
 Re-write any favorite story to your liking: change characters, places, beginnings and endings....
 
-#crowdly
+#crowdly #crowd_created_eintertainment #crowdcreatedentertainment #entertainment_platform #entertainmentplatform 
