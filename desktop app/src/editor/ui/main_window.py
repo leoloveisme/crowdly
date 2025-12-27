@@ -24,6 +24,9 @@ from PySide6.QtWidgets import (
     QWidget,
     QInputDialog,
     QDialog,
+    QTabWidget,
+    QTabBar,
+    QLineEdit,
 )
 from PySide6.QtCore import Qt, QTimer, QEvent, QCoreApplication, QObject, QThread, Signal
 from PySide6.QtGui import QAction, QActionGroup
@@ -82,8 +85,14 @@ class MainWindow(QMainWindow):
         # decide whether re-rendering the preview from Markdown is safe.
         self._last_change_from_preview = False
 
-        # Current in-memory document being edited.
+        # Current in-memory document being edited. With multiple tabs, this
+        # always refers to the document in the *active* tab.
         self._document = Document()
+
+        # Per-tab state (documents and their associated editor/preview widgets).
+        self._tab_documents: list[Document] = []
+        self._tab_widgets: list[tuple[EditorWidget, PreviewWidget]] = []
+        self._current_tab_index: int = 0
 
         # Simple debounced autosave timer (milliseconds).
         self._autosave_interval_ms = 2000
@@ -129,6 +138,14 @@ class MainWindow(QMainWindow):
         self._action_new_directory = new_menu.addAction(
             self.tr("New directory"), self._new_directory
         )
+        # Workspace creation helpers.
+        self._action_new_tab = new_menu.addAction(
+            self.tr("Tab"), self._new_tab
+        )
+        self._action_new_window = new_menu.addAction(
+            self.tr("Window"), self._new_window
+        )
+
         open_menu = menu.addMenu(self.tr("Open"))
         self._open_menu = open_menu
 
@@ -283,26 +300,31 @@ class MainWindow(QMainWindow):
         self._preview_toggle.toggled.connect(self._set_preview_visible)
         top_layout.addWidget(self._preview_toggle)
 
-        # Main content: horizontal splitter with editor and preview.
-        splitter = QSplitter(Qt.Orientation.Horizontal, container)
+        # Main content: a QTabWidget, each tab containing an editor + preview
+        # splitter so multiple documents can be open at once.
+        self._tab_widget = QTabWidget(container)
 
-        self.editor = EditorWidget(splitter)
-        self.preview = PreviewWidget(splitter)
+        # Use a custom tab bar that supports inline renaming.
+        rename_tab_bar = _RenamableTabBar(self._tab_widget)
+        self._tab_widget.setTabBar(rename_tab_bar)
 
-        splitter.addWidget(self.editor)
-        splitter.addWidget(self.preview)
-        splitter.setStretchFactor(0, 3)
-        splitter.setStretchFactor(1, 2)
+        self._tab_widget.setTabsClosable(True)
+        self._tab_widget.currentChanged.connect(self._on_tab_changed)
+        self._tab_widget.tabCloseRequested.connect(self._on_tab_close_requested)
 
-        # Keep document and preview in sync with editor content.
-        self.editor.textChangedWithContent.connect(self._on_editor_text_changed)
-        self.preview.markdownEdited.connect(self._on_preview_markdown_changed)
+        # Create the initial tab backed by the initial in-memory document.
+        self._create_tab_for_document(self._document)
 
-        # Assemble layout: top bar above the splitter.
+        # Assemble layout: top bar above the tab widget.
         root_layout.addWidget(top_bar)
-        root_layout.addWidget(splitter, 1)
+        root_layout.addWidget(self._tab_widget, 1)
 
         self.setCentralWidget(container)
+
+        # After the first tab is created, keep the per-tab document mapping in
+        # sync with the active document.
+        if not self._tab_documents:
+            self._tab_documents.append(self._document)
 
         # Ensure there is a status bar and a permanent label for current
         # project space so that it is always visible in the bottom-left.
@@ -399,6 +421,110 @@ class MainWindow(QMainWindow):
         self._autosave_timer.start(self._autosave_interval_ms)
 
         self._update_document_stats_label()
+
+    def _create_tab_for_document(self, document: Document, title: str | None = None) -> int:
+        """Create a new tab for *document* and return its index."""
+
+        # Each tab contains its own splitter with editor and preview widgets.
+        splitter = QSplitter(Qt.Orientation.Horizontal, self._tab_widget)
+
+        editor = EditorWidget(splitter)
+        preview = PreviewWidget(splitter)
+
+        splitter.addWidget(editor)
+        splitter.addWidget(preview)
+        splitter.setStretchFactor(0, 3)
+        splitter.setStretchFactor(1, 2)
+
+        # Keep document and preview in sync with editor content for this tab.
+        editor.textChangedWithContent.connect(self._on_editor_text_changed)
+        preview.markdownEdited.connect(self._on_preview_markdown_changed)
+
+        index = self._tab_widget.addTab(
+            splitter,
+            title or self.tr("Tab {index}").format(index=self._tab_widget.count() + 1),
+        )
+
+        # Ensure our parallel tab state lists stay aligned with the QTabWidget.
+        self._tab_documents.insert(index, document)
+        self._tab_widgets.insert(index, (editor, preview))
+
+        # If this is the very first tab, make its widgets the active ones.
+        if self._tab_widget.count() == 1:
+            self.editor = editor
+            self.preview = preview
+            self._current_tab_index = 0
+
+            # Ensure preview visibility matches the toggle state.
+            if hasattr(self, "_preview_toggle"):
+                self._set_preview_visible(self._preview_toggle.isChecked())
+
+        return index
+
+    def _on_tab_close_requested(self, index: int) -> None:  # pragma: no cover - UI wiring
+        """Handle requests to close a tab via its 'x' button.
+
+        At least one tab is always kept open; closing the last remaining tab is
+        ignored for now.
+        """
+
+        if index < 0 or index >= len(self._tab_widgets):
+            return
+
+        # Do not allow closing the last remaining tab.
+        if self._tab_widget.count() <= 1:
+            return
+
+        # Remove the tab from the QTabWidget first; Qt will pick a new current
+        # index automatically.
+        self._tab_widget.removeTab(index)
+
+        # Remove parallel state entries.
+        try:
+            self._tab_documents.pop(index)
+            self._tab_widgets.pop(index)
+        except Exception:
+            pass
+
+        # Determine the new current index and synchronise our state.
+        new_index = self._tab_widget.currentIndex()
+        if 0 <= new_index < len(self._tab_widgets):
+            self._on_tab_changed(new_index)
+        else:
+            # Fallback: if indices get out of sync for any reason, reset to a
+            # safe default when there is still at least one tab.
+            if self._tab_widgets:
+                self._on_tab_changed(0)
+
+    def _on_tab_changed(self, index: int) -> None:  # pragma: no cover - UI wiring
+        """Switch active editor/preview and document when the tab changes."""
+
+        if index < 0 or index >= len(self._tab_widgets):
+            return
+
+        self._current_tab_index = index
+
+        # Update active widgets.
+        self.editor, self.preview = self._tab_widgets[index]
+
+        # Switch the in-memory document to the one associated with this tab.
+        self._document = self._tab_documents[index]
+
+        # Make sure the UI reflects the new document's content and statistics.
+        # We avoid emitting extra change signals by blocking them while
+        # updating the editor programmatically.
+        old_state = self.editor.blockSignals(True)
+        try:
+            self.editor.setPlainText(self._document.content)
+        finally:
+            self.editor.blockSignals(old_state)
+
+        self.preview.set_markdown(self._document.content)
+        self._update_document_stats_label()
+
+        # Keep the preview visibility in sync with the global toggle.
+        if hasattr(self, "_preview_toggle"):
+            self._set_preview_visible(self._preview_toggle.isChecked())
 
     def _set_preview_visible(self, visible: bool) -> None:  # pragma: no cover - UI wiring
         """Show or hide the preview pane without affecting the editor.
@@ -555,6 +681,10 @@ class MainWindow(QMainWindow):
             self._action_new_document.setText(self.tr("New document"))
         if hasattr(self, "_action_new_directory"):
             self._action_new_directory.setText(self.tr("New directory"))
+        if hasattr(self, "_action_new_tab"):
+            self._action_new_tab.setText(self.tr("Tab"))
+        if hasattr(self, "_action_new_window"):
+            self._action_new_window.setText(self.tr("Window"))
         if hasattr(self, "_open_menu"):
             self._open_menu.setTitle(self.tr("Open"))
         if hasattr(self, "_action_open_story_web"):
@@ -753,15 +883,21 @@ class MainWindow(QMainWindow):
     # Slots ---------------------------------------------------------------
 
     def _new_document(self) -> None:  # pragma: no cover - UI wiring
-        """Save the current document (if needed) and start a new blank one."""
+        """Save the current document (if needed) and start a new blank one.
+
+        This only affects the *current* tab; other tabs keep their documents
+        unchanged.
+        """
 
         # Ensure any pending autosave is processed immediately.
         if self._autosave_timer.isActive():
             self._autosave_timer.stop()
         self._perform_autosave()
 
-        # Reset in-memory document to a fresh, unsaved instance.
+        # Reset in-memory document to a fresh, unsaved instance for this tab.
         self._document = Document()
+        if 0 <= self._current_tab_index < len(self._tab_documents):
+            self._tab_documents[self._current_tab_index] = self._document
 
         # Clear editor content without triggering autosave or preview updates.
         old_state = self.editor.blockSignals(True)
@@ -773,6 +909,41 @@ class MainWindow(QMainWindow):
         # Clear preview explicitly.
         if self.preview.isVisible():
             self.preview.set_markdown("")
+
+    def _new_tab(self) -> None:  # pragma: no cover - UI wiring
+        """Create a new tab with its own independent document."""
+
+        new_doc = Document()
+        index = self._create_tab_for_document(new_doc)
+        self._tab_documents[index] = new_doc
+        self._tab_widget.setCurrentIndex(index)
+
+    def _new_window(self) -> None:  # pragma: no cover - UI wiring
+        """Open a new top-level editor window sharing the same settings."""
+
+        app = QCoreApplication.instance()
+        if app is None:
+            return
+
+        try:
+            # Reuse the current settings instance so preferences are shared.
+            new_window = MainWindow(self._settings, parent=None, translator=self._translator)
+            new_window.show()
+
+            # Keep a strong reference attached to the QApplication instance so
+            # Python's garbage collector doesn't close the window prematurely.
+            extra = getattr(app, "_extra_windows", None)
+            if not isinstance(extra, list):
+                extra = []
+                setattr(app, "_extra_windows", extra)
+            extra.append(new_window)
+        except Exception:
+            # Never let window-creation failures terminate the app.
+            QMessageBox.critical(
+                self,
+                self.tr("Error"),
+                self.tr("An unexpected error occurred while opening a new window."),
+            )
 
     def _export_as_pdf(self) -> None:  # pragma: no cover - UI wiring
         """Export the current document as a PDF file.
@@ -1191,6 +1362,8 @@ class MainWindow(QMainWindow):
             return
 
         self._document = doc
+        if 0 <= self._current_tab_index < len(self._tab_documents):
+            self._tab_documents[self._current_tab_index] = self._document
         self._last_change_from_preview = False
 
         old_state = self.editor.blockSignals(True)
@@ -1365,6 +1538,8 @@ class MainWindow(QMainWindow):
             pass
 
         self._document = doc
+        if 0 <= self._current_tab_index < len(self._tab_documents):
+            self._tab_documents[self._current_tab_index] = self._document
 
         # Populate editor and preview without triggering autosave. We update
         # the preview explicitly.
@@ -2103,6 +2278,93 @@ class _StorySyncThread(QThread):
         except Exception as exc:
             traceback.print_exc()
             self.syncFailed.emit(str(exc))
+
+
+class _RenamableTabBar(QTabBar):
+    """A QTabBar that supports inline renaming of tab labels.
+
+    - Double-clicking a tab starts editing its title in-place.
+    - Pressing Enter or clicking away (focus loss) commits the new title.
+    """
+
+    def __init__(self, parent: QObject | None = None) -> None:
+        super().__init__(parent)
+        self._editor: QLineEdit | None = None
+        self._editing_index: int | None = None
+
+    def mousePressEvent(self, event):  # pragma: no cover - UI wiring
+        """Start inline rename when clicking on the tab label *and* preserve
+        normal tab switching.
+
+        A single left-click on a tab's text both selects the tab and makes it
+        editable. Clicking the close button or outside any tab falls back to
+        the default behaviour.
+        """
+
+        index = self.tabAt(event.position().toPoint())
+        if index < 0:
+            return super().mousePressEvent(event)
+
+        # If the click lands on the close button, let the default handler
+        # manage it (so the 'x' still closes the tab as usual).
+        if self.tabsClosable():
+            close_rect = self.tabRect(index)
+            close_size = close_rect.height()
+            close_region = close_rect.adjusted(
+                close_rect.width() - close_size,
+                0,
+                0,
+                0,
+            )
+            if close_region.contains(event.position().toPoint()):
+                return super().mousePressEvent(event)
+
+        # First, let the base class handle normal tab selection.
+        super().mousePressEvent(event)
+
+        # Then, for left-clicks on the label area, begin inline rename.
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._begin_inline_rename(index)
+            return
+
+    def _begin_inline_rename(self, index: int) -> None:
+        if index < 0 or index >= self.count():
+            return
+
+        # If an editor is already active, commit its changes first.
+        if self._editor is not None:
+            self._commit_inline_rename()
+
+        rect = self.tabRect(index)
+        editor = QLineEdit(self)
+        editor.setFrame(False)
+        editor.setText(self.tabText(index))
+        editor.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        editor.setGeometry(rect)
+        editor.show()
+        editor.raise_()
+        editor.selectAll()
+        editor.setFocus()
+
+        editor.editingFinished.connect(self._commit_inline_rename)
+
+        self._editor = editor
+        self._editing_index = index
+
+    def _commit_inline_rename(self) -> None:
+        if self._editor is None or self._editing_index is None:
+            return
+
+        text = self._editor.text().strip()
+        index = self._editing_index
+
+        # If the name is emptied, keep the old title rather than blank.
+        if text:
+            self.setTabText(index, text)
+
+        self._editor.deleteLater()
+        self._editor = None
+        self._editing_index = None
 
 
 class _CrowdlyFetchThread(QThread):
