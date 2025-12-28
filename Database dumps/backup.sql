@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict vWRdUL6TdZkFT2zpifYm8emIV0QN3268sMNPIxeSFJAaRgXE2HPhTFeKjrV3AZF
+\restrict 85zfy7HkZxYsoZgwaXbVzWFxBxcD1HI8xJc5xQSjUm659gToc4qfMDLKDTXy3kW
 
 -- Dumped from database version 16.11 (Ubuntu 16.11-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.11 (Ubuntu 16.11-0ubuntu0.24.04.1)
@@ -225,6 +225,29 @@ CREATE TABLE public.comments (
 
 
 ALTER TABLE public.comments OWNER TO lad;
+
+--
+-- Name: contributions; Type: TABLE; Schema: public; Owner: lad
+--
+
+CREATE TABLE public.contributions (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    story_title_id uuid NOT NULL,
+    chapter_id uuid,
+    branch_id uuid,
+    paragraph_index integer,
+    target_type text NOT NULL,
+    source text NOT NULL,
+    source_id text,
+    author_user_id uuid,
+    status public.contribution_status NOT NULL,
+    words integer DEFAULT 0 NOT NULL,
+    new_paragraph text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.contributions OWNER TO lad;
 
 --
 -- Name: crdt_changes; Type: TABLE; Schema: public; Owner: lad
@@ -725,6 +748,51 @@ COPY public.comments (id, user_id, story_title_id, chapter_id, paragraph_index, 
 
 
 --
+-- Data for Name: contributions; Type: TABLE DATA; Schema: public; Owner: lad
+--
+
+COPY public.contributions (id, story_title_id, chapter_id, branch_id, paragraph_index, target_type, source, source_id, author_user_id, status, words, new_paragraph, created_at) FROM stdin;
+679fdfa5-434c-43f3-8e17-9b8ca62f4700	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	44a93f69-03fa-4a4b-8218-c370477362be	\N	0	paragraph	legacy-backfill	679fdfa5-434c-43f3-8e17-9b8ca62f4700	cad23ca1-121d-448f-8947-ddd5048ecb15	approved	2	indeed so	2025-12-23 11:39:51.722+01
+f8e8fed5-b79d-4b01-9a63-639a23cb7295	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	1028d940-b3ca-4253-b6c3-afd634ff0923	\N	0	paragraph	legacy-backfill	f8e8fed5-b79d-4b01-9a63-639a23cb7295	cad23ca1-121d-448f-8947-ddd5048ecb15	approved	2	indeed so	2025-12-23 11:39:51.722+01
+4e05c3d7-6e67-468b-9cea-1e1cbf255869	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	44a93f69-03fa-4a4b-8218-c370477362be	\N	0	paragraph	legacy-backfill	4e05c3d7-6e67-468b-9cea-1e1cbf255869	aef37573-600e-4442-9ae1-63a05799d9a0	approved	2	indeed so	2025-12-23 11:36:48.454+01
+f95f704c-66ac-43ba-9cce-b49453176a54	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	44a93f69-03fa-4a4b-8218-c370477362be	\N	0	paragraph	legacy-backfill	f95f704c-66ac-43ba-9cce-b49453176a54	aef37573-600e-4442-9ae1-63a05799d9a0	approved	2	indeed so	2025-12-23 11:14:13.629+01
+42ef5ae1-2f87-427a-9b4f-02f300348ad4	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	eb752fad-3eae-458a-97c5-6fa67e389bed	\N	0	paragraph	legacy-backfill	42ef5ae1-2f87-427a-9b4f-02f300348ad4	aef37573-600e-4442-9ae1-63a05799d9a0	approved	3	New text here	2025-12-23 11:14:13.629+01
+e5fc449f-5e3d-4265-86f4-c052f9125517	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	e2bac731-67c3-4955-8d9d-83a8a98574ef	\N	0	paragraph	legacy-backfill	e5fc449f-5e3d-4265-86f4-c052f9125517	aef37573-600e-4442-9ae1-63a05799d9a0	approved	14	I do NOT like it. Here are TOO MANY children... and they are noisy.	2025-12-23 11:14:13.629+01
+f4e33ea6-8d1a-4d40-9571-9286cef89fa1	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	9c50c0af-3cb5-405d-8502-c8d73feeda34	\N	0	paragraph	legacy-backfill	f4e33ea6-8d1a-4d40-9571-9286cef89fa1	aef37573-600e-4442-9ae1-63a05799d9a0	approved	1	Alpha	2025-12-23 11:14:13.629+01
+79e50738-b187-48c1-b198-c8cb2c5677bb	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	ba894805-d466-4ed5-b6e6-b276f9bbc232	\N	0	paragraph	legacy-backfill	79e50738-b187-48c1-b198-c8cb2c5677bb	aef37573-600e-4442-9ae1-63a05799d9a0	approved	5	YEAH, YEah, Yeah... yeah... WTH....	2025-12-23 11:14:13.629+01
+6d83f73e-12b9-46bd-b150-65df00502c47	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	f3fd75b4-7102-4e30-a757-2eb609398ea6	\N	0	paragraph	legacy-backfill	6d83f73e-12b9-46bd-b150-65df00502c47	aef37573-600e-4442-9ae1-63a05799d9a0	approved	4	First real life experiences	2025-12-23 11:14:13.629+01
+2e0aebc8-fd4a-4e83-8ac8-397a328ee722	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	520ff5b7-fc08-4c04-bdbb-8de2ad202972	\N	0	paragraph	legacy-backfill	2e0aebc8-fd4a-4e83-8ac8-397a328ee722	aef37573-600e-4442-9ae1-63a05799d9a0	approved	2	as always	2025-12-23 11:14:13.629+01
+50ff5c66-de90-428f-a1ec-3e32e2b8bf7f	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	126491a2-b0e9-4ade-80bb-7ced696abeb2	\N	0	paragraph	legacy-backfill	50ff5c66-de90-428f-a1ec-3e32e2b8bf7f	aef37573-600e-4442-9ae1-63a05799d9a0	approved	3	Good and bad	2025-12-23 11:14:13.629+01
+3af70f52-2045-4870-a5da-4c22cb2c9c76	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	1028d940-b3ca-4253-b6c3-afd634ff0923	\N	0	paragraph	legacy-backfill	3af70f52-2045-4870-a5da-4c22cb2c9c76	aef37573-600e-4442-9ae1-63a05799d9a0	approved	2	indeed so	2025-12-23 11:14:13.629+01
+a76a193c-796c-4b66-a7e4-aeb2ce189ca5	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	b9f1de59-0c10-472f-8174-093d351f0e0c	\N	0	paragraph	legacy-backfill	a76a193c-796c-4b66-a7e4-aeb2ce189ca5	aef37573-600e-4442-9ae1-63a05799d9a0	approved	1	One	2025-12-23 11:14:13.629+01
+dc115143-2179-431a-a624-5c6a42f502d3	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	eb752fad-3eae-458a-97c5-6fa67e389bed	\N	0	paragraph	legacy-backfill	dc115143-2179-431a-a624-5c6a42f502d3	aef37573-600e-4442-9ae1-63a05799d9a0	approved	2	indeed so	2025-12-23 11:13:16.439+01
+76791185-50b5-43d1-8def-b6daa2ef7eab	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	520ff5b7-fc08-4c04-bdbb-8de2ad202972	\N	0	paragraph	legacy-backfill	76791185-50b5-43d1-8def-b6daa2ef7eab	aef37573-600e-4442-9ae1-63a05799d9a0	approved	2	as always	2025-12-23 11:13:16.439+01
+c190ac4c-e808-4396-b5c9-15684939876f	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	44a93f69-03fa-4a4b-8218-c370477362be	\N	0	paragraph	legacy-backfill	c190ac4c-e808-4396-b5c9-15684939876f	aef37573-600e-4442-9ae1-63a05799d9a0	approved	14	I do NOT like it. Here are TOO MANY children... and they are noisy.	2025-12-19 11:58:25.148+01
+a5686414-c6c1-49ca-9557-d12116bb6e94	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	44a93f69-03fa-4a4b-8218-c370477362be	\N	0	paragraph	legacy-backfill	a5686414-c6c1-49ca-9557-d12116bb6e94	cad23ca1-121d-448f-8947-ddd5048ecb15	approved	14	I do NOT like it. Here are TOO MANY children... and they are noisy.	2025-12-19 11:57:05.859+01
+d188dbbb-771d-466f-be3d-30c1b1066835	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	44a93f69-03fa-4a4b-8218-c370477362be	\N	0	paragraph	legacy-backfill	d188dbbb-771d-466f-be3d-30c1b1066835	aef37573-600e-4442-9ae1-63a05799d9a0	approved	14	I do NOT like it. Here are TOO MANY children... and they are noisy.	2025-12-19 11:56:06.9+01
+15aecd40-cf0a-4cbc-8015-08cc9060746d	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	44a93f69-03fa-4a4b-8218-c370477362be	\N	0	paragraph	legacy-backfill	15aecd40-cf0a-4cbc-8015-08cc9060746d	cad23ca1-121d-448f-8947-ddd5048ecb15	approved	14	I do NOT like it. Here are TOO MANY children... and they are noisy.	2025-12-19 11:52:47.971+01
+d48e39ef-ce03-4bf4-adc3-f4d53bea13a9	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	e2bac731-67c3-4955-8d9d-83a8a98574ef	\N	0	paragraph	legacy-backfill	d48e39ef-ce03-4bf4-adc3-f4d53bea13a9	cad23ca1-121d-448f-8947-ddd5048ecb15	approved	3	Good and bad	2025-12-19 11:52:47.971+01
+63a12e7f-e375-4006-8f57-e3100f42d887	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	44a93f69-03fa-4a4b-8218-c370477362be	\N	0	paragraph	legacy-backfill	63a12e7f-e375-4006-8f57-e3100f42d887	aef37573-600e-4442-9ae1-63a05799d9a0	approved	14	I do NOT like it. Here are TOO MANY children... and they are noisy.	2025-12-19 11:50:57.021+01
+608b7d2b-16bc-4ab7-8b6b-4fc6eb4ac51f	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	e2bac731-67c3-4955-8d9d-83a8a98574ef	\N	0	paragraph	legacy-backfill	608b7d2b-16bc-4ab7-8b6b-4fc6eb4ac51f	cad23ca1-121d-448f-8947-ddd5048ecb15	approved	3	Good and bad	2025-12-19 11:37:06.909+01
+73340177-e779-47c7-a047-1fc1d61a63e4	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	44a93f69-03fa-4a4b-8218-c370477362be	\N	0	paragraph	legacy-backfill	73340177-e779-47c7-a047-1fc1d61a63e4	aef37573-600e-4442-9ae1-63a05799d9a0	approved	14	I do NOT like it. Here are TOO MANY children... and they are noisy.	2025-12-19 11:27:33.569+01
+46175b2e-16c0-480a-bea4-8dee87497e83	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	f3fd75b4-7102-4e30-a757-2eb609398ea6	\N	0	paragraph	legacy-backfill	46175b2e-16c0-480a-bea4-8dee87497e83	aef37573-600e-4442-9ae1-63a05799d9a0	approved	1	One	2025-12-19 11:10:42.353+01
+ea9d74b0-a9fb-43d7-a7ab-9ce739296f5e	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	ba894805-d466-4ed5-b6e6-b276f9bbc232	\N	0	paragraph	legacy-backfill	ea9d74b0-a9fb-43d7-a7ab-9ce739296f5e	cad23ca1-121d-448f-8947-ddd5048ecb15	approved	3	New text here	2025-12-19 11:07:03.489+01
+298b7b85-c46b-4d9d-ba29-014d7c905129	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	eb752fad-3eae-458a-97c5-6fa67e389bed	\N	0	paragraph	legacy-backfill	298b7b85-c46b-4d9d-ba29-014d7c905129	cad23ca1-121d-448f-8947-ddd5048ecb15	approved	2	indeed so	2025-12-19 11:07:03.489+01
+330e90e5-f7ee-47c0-a164-6a1d79e3fa7b	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	4dcdcd7c-b983-422f-8463-3edd7883497a	\N	0	paragraph	legacy-backfill	330e90e5-f7ee-47c0-a164-6a1d79e3fa7b	aef37573-600e-4442-9ae1-63a05799d9a0	approved	2	test text	2025-12-17 14:32:45.956+01
+b2249803-b3b4-479b-aeea-8ed0858cb4b6	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	ba894805-d466-4ed5-b6e6-b276f9bbc232	\N	0	paragraph	legacy-backfill	b2249803-b3b4-479b-aeea-8ed0858cb4b6	aef37573-600e-4442-9ae1-63a05799d9a0	approved	2	indeed so	2025-12-17 14:25:58.756+01
+8ba2e8c3-97a4-400e-94b9-0d5199dfc5df	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	9c50c0af-3cb5-405d-8502-c8d73feeda34	\N	0	paragraph	legacy-backfill	8ba2e8c3-97a4-400e-94b9-0d5199dfc5df	aef37573-600e-4442-9ae1-63a05799d9a0	approved	5	YEAH, YEah, Yeah... yeah... WTH....	2025-12-16 20:01:34.232+01
+122a7812-a88a-4560-b7d8-7cf009d8c031	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	126491a2-b0e9-4ade-80bb-7ced696abeb2	\N	0	paragraph	legacy-backfill	122a7812-a88a-4560-b7d8-7cf009d8c031	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	approved	4	First real life experiences	2025-12-16 19:56:01.99+01
+3d6fa31e-ecaf-4975-8933-4dc662ed5d82	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	9c50c0af-3cb5-405d-8502-c8d73feeda34	\N	0	paragraph	legacy-backfill	3d6fa31e-ecaf-4975-8933-4dc662ed5d82	cad23ca1-121d-448f-8947-ddd5048ecb15	approved	5	YEAH, YEan, Yeah... yeah... WTH....	2025-12-16 19:49:54.275+01
+dea23ff6-926c-4878-bd47-35ea41385625	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	b9f1de59-0c10-472f-8174-093d351f0e0c	\N	2	paragraph	proposal-backfill	dea23ff6-926c-4878-bd47-35ea41385625	cad23ca1-121d-448f-8947-ddd5048ecb15	undecided	2	Three\n\nFour	2025-12-27 19:41:08.156+01
+1b0c0218-c5eb-4e03-b87e-9ee99a4dff90	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	b9f1de59-0c10-472f-8174-093d351f0e0c	\N	1	paragraph	proposal-backfill	1b0c0218-c5eb-4e03-b87e-9ee99a4dff90	cad23ca1-121d-448f-8947-ddd5048ecb15	undecided	2	Beta\nGamma	2025-12-19 11:09:01.879+01
+ba8efeb0-b1c9-4697-9f14-30bd1de70b6a	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	b9f1de59-0c10-472f-8174-093d351f0e0c	\N	1	paragraph	proposal-backfill	ba8efeb0-b1c9-4697-9f14-30bd1de70b6a	cad23ca1-121d-448f-8947-ddd5048ecb15	undecided	2	Beta\nGamma	2025-12-19 11:08:41.975+01
+c213c3b3-59a3-40e9-8935-a2d0b75bed13	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	eb752fad-3eae-458a-97c5-6fa67e389bed	\N	0	paragraph	proposal-backfill	c213c3b3-59a3-40e9-8935-a2d0b75bed13	cad23ca1-121d-448f-8947-ddd5048ecb15	undecided	6	New text here. One gets excited. 	2025-12-27 19:42:25.906+01
+615ce439-5890-4d93-968c-eb8fa8ec267f	7b4cb567-de6c-4728-92d7-56a529c9970f	7fdb3b9a-9cac-4f8f-b73e-75d3d0d489b3	\N	0	paragraph	legacy-backfill	615ce439-5890-4d93-968c-eb8fa8ec267f	aef37573-600e-4442-9ae1-63a05799d9a0	approved	10	test\nand this is just a message from Leo Love \n\n\n\n\n\n\n	2025-12-11 15:43:23.249+01
+5d320e88-1080-4f96-a20d-90143f3432c2	7b4cb567-de6c-4728-92d7-56a529c9970f	7fdb3b9a-9cac-4f8f-b73e-75d3d0d489b3	\N	0	paragraph	legacy-backfill	5d320e88-1080-4f96-a20d-90143f3432c2	aef37573-600e-4442-9ae1-63a05799d9a0	approved	10	test\nand this is just a message from Leo Love 	2025-12-11 15:42:05.107+01
+\.
+
+
+--
 -- Data for Name: crdt_changes; Type: TABLE DATA; Schema: public; Owner: lad
 --
 
@@ -747,6 +815,8 @@ COPY public.crdt_documents (id, doc_key, story_title_id, chapter_id, branch_id, 
 COPY public.crdt_proposals (id, story_title_id, target_type, target_chapter_id, target_branch_id, target_path, proposed_text, author_user_id, status, decided_by, decided_at, created_at, doc_id) FROM stdin;
 ba8efeb0-b1c9-4697-9f14-30bd1de70b6a	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	paragraph	b9f1de59-0c10-472f-8174-093d351f0e0c	\N	1	Beta\nGamma	cad23ca1-121d-448f-8947-ddd5048ecb15	undecided	\N	\N	2025-12-19 11:08:41.975855+01	\N
 1b0c0218-c5eb-4e03-b87e-9ee99a4dff90	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	paragraph	b9f1de59-0c10-472f-8174-093d351f0e0c	\N	1	Beta\nGamma	cad23ca1-121d-448f-8947-ddd5048ecb15	undecided	\N	\N	2025-12-19 11:09:01.879772+01	\N
+dea23ff6-926c-4878-bd47-35ea41385625	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	paragraph	b9f1de59-0c10-472f-8174-093d351f0e0c	\N	2	Three\n\nFour	cad23ca1-121d-448f-8947-ddd5048ecb15	undecided	\N	\N	2025-12-27 19:41:08.156923+01	\N
+c213c3b3-59a3-40e9-8935-a2d0b75bed13	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	paragraph	eb752fad-3eae-458a-97c5-6fa67e389bed	\N	0	New text here. One gets excited. 	cad23ca1-121d-448f-8947-ddd5048ecb15	undecided	\N	\N	2025-12-27 19:42:25.906272+01	\N
 \.
 
 
@@ -993,8 +1063,8 @@ a6c76f24-d604-4ed2-8b83-74b5640df229	Story of my life	2025-12-14 14:04:07.489924
 19065447-aaf0-4e4f-8847-0869de1be7dd	Story of my life	2025-12-14 14:14:40.364576+01	2025-12-14 14:14:40.364576+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N
 e1ab0869-1759-441e-892d-de376789149b	Story of my life	2025-12-14 14:35:07.685379+01	2025-12-14 14:35:07.685379+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N
 ab1c8307-21cd-49c3-b236-c05db1eeaa45	Untitled	2025-12-10 14:32:23.583943+01	2025-12-10 14:32:23.583943+01	aef37573-600e-4442-9ae1-63a05799d9a0	private	t	\N	\N
-afc0ca9b-5a67-46a0-b01c-9da9d27ae642	Story of my life	2025-12-14 14:05:33.645236+01	2025-12-23 11:39:51.722611+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N
 263cffb0-1899-44b9-8e2d-581114963274	Story of my amazing life	2025-12-10 13:54:58.980704+01	2025-12-23 12:14:16.371036+01	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	public	t	\N	\N
+afc0ca9b-5a67-46a0-b01c-9da9d27ae642	Currently, the most active story	2025-12-14 14:05:33.645236+01	2025-12-23 11:39:51.722611+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N
 \.
 
 
@@ -1030,6 +1100,7 @@ e764cd7d-9c09-48df-a7c7-ccc7487af2d9	0bef9edd-18fd-4e1c-aa57-5ef9f8788ba9	Story 
 0626c0b7-47bf-4d93-bb70-7563c191f3c7	19065447-aaf0-4e4f-8847-0869de1be7dd	\N	Story of my life	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-14 14:14:40.364576+01	Initial creation	en	1
 e6c997ae-6413-4ada-989d-fc0fd86218fa	e1ab0869-1759-441e-892d-de376789149b	\N	Story of my life	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-14 14:35:07.685379+01	Cloned from story 19065447-aaf0-4e4f-8847-0869de1be7dd	en	1
 0544949a-f686-4bbe-abf5-313e34ccd301	ab1c8307-21cd-49c3-b236-c05db1eeaa45	Story of my wonderful life	Untitled	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-19 10:32:07.197304+01	Desktop sync	en	3
+09ba5277-17dc-4a11-af76-09a3110844e9	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	Story of my life	Currently, the most active story	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-28 14:44:57.46638+01	Manual update	en	3
 \.
 
 
@@ -1115,6 +1186,14 @@ ALTER TABLE ONLY public.chapter_revisions
 
 ALTER TABLE ONLY public.comments
     ADD CONSTRAINT comments_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: contributions contributions_pkey; Type: CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.contributions
+    ADD CONSTRAINT contributions_pkey PRIMARY KEY (id);
 
 
 --
@@ -1318,6 +1397,20 @@ ALTER TABLE ONLY public.user_roles
 
 
 --
+-- Name: contributions_story_idx; Type: INDEX; Schema: public; Owner: lad
+--
+
+CREATE INDEX contributions_story_idx ON public.contributions USING btree (story_title_id, status, created_at DESC);
+
+
+--
+-- Name: contributions_user_idx; Type: INDEX; Schema: public; Owner: lad
+--
+
+CREATE INDEX contributions_user_idx ON public.contributions USING btree (author_user_id, status, created_at DESC);
+
+
+--
 -- Name: crdt_changes_doc_ts_idx; Type: INDEX; Schema: public; Owner: lad
 --
 
@@ -1451,6 +1544,30 @@ ALTER TABLE ONLY public.comments
 
 ALTER TABLE ONLY public.comments
     ADD CONSTRAINT comments_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.local_users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: contributions contributions_author_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.contributions
+    ADD CONSTRAINT contributions_author_user_id_fkey FOREIGN KEY (author_user_id) REFERENCES public.local_users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: contributions contributions_chapter_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.contributions
+    ADD CONSTRAINT contributions_chapter_id_fkey FOREIGN KEY (chapter_id) REFERENCES public.stories(chapter_id) ON DELETE CASCADE;
+
+
+--
+-- Name: contributions contributions_story_title_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.contributions
+    ADD CONSTRAINT contributions_story_title_id_fkey FOREIGN KEY (story_title_id) REFERENCES public.story_title(story_title_id) ON DELETE CASCADE;
 
 
 --
@@ -1641,5 +1758,5 @@ ALTER TABLE ONLY public.story_title_revisions
 -- PostgreSQL database dump complete
 --
 
-\unrestrict vWRdUL6TdZkFT2zpifYm8emIV0QN3268sMNPIxeSFJAaRgXE2HPhTFeKjrV3AZF
+\unrestrict 85zfy7HkZxYsoZgwaXbVzWFxBxcD1HI8xJc5xQSjUm659gToc4qfMDLKDTXy3kW
 
