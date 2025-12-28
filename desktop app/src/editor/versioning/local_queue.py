@@ -155,3 +155,39 @@ def enqueue_full_snapshot_update(
         # during development via stderr/tracebacks if the app is run in a
         # terminal, but are otherwise silent.
         return
+
+
+def load_full_snapshots(document_path: Path) -> List[dict]:
+    """Return decoded full-snapshot payloads for *document_path*.
+
+    Each returned dict contains at least ``body_md``, ``body_html``,
+    ``saved_at``, ``device_id`` and ``device_seq`` keys when available.
+    Snapshots are ordered from oldest to newest based on the queue order.
+    """
+
+    try:
+        if not isinstance(document_path, Path):
+            return []
+
+        queue_path = _queue_path_for(document_path)
+        queue = UpdateQueue(queue_path)
+        updates = queue.read_all()
+    except Exception:
+        return []
+
+    snapshots: List[dict] = []
+    for upd in updates:
+        try:
+            raw = base64.b64decode(upd.update_b64.encode("ascii"))
+            payload = json.loads(raw.decode("utf-8"))
+            if not isinstance(payload, dict):
+                continue
+            # Attach device metadata so callers can use it if desired.
+            payload.setdefault("device_id", upd.device_id)
+            payload.setdefault("device_seq", upd.device_seq)
+            snapshots.append(payload)
+        except Exception:
+            # Skip malformed entries without aborting the whole read.
+            continue
+
+    return snapshots

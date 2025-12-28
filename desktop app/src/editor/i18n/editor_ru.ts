@@ -24,6 +24,14 @@
         <translation>Создать новую папку</translation>
     </message>
     <message>
+        <source>Tab</source>
+        <translation>Таб</translation>
+    </message>
+    <message>
+        <source>Window</source>
+        <translation>Окно</translation>
+    </message>
+    <message>
         <source>Open</source>
         <translation>Открыть</translation>
     </message>

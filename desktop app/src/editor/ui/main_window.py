@@ -38,6 +38,7 @@ from .. import story_sync
 from ..versioning import local_queue
 from .editor_widget import EditorWidget
 from .preview_widget import PreviewWidget
+from .compare_revisions import CompareRevisionsWindow
 
 
 class MainWindow(QMainWindow):
@@ -269,6 +270,10 @@ class MainWindow(QMainWindow):
         self._action_refresh_story_from_web = story_settings_menu.addAction(
             self.tr("Refresh from web"),
             self._refresh_story_from_web,
+        )
+        self._action_compare_revisions = story_settings_menu.addAction(
+            self.tr("Compare revisions"),
+            self._open_compare_revisions,
         )
 
         # Both the Markdown/HTML editor and the WYSIWYG preview are available;
@@ -703,6 +708,8 @@ class MainWindow(QMainWindow):
             self._action_set_story_genre.setText(self.tr("Add genre"))
         if hasattr(self, "_action_refresh_story_from_web"):
             self._action_refresh_story_from_web.setText(self.tr("Refresh from web"))
+        if hasattr(self, "_action_compare_revisions"):
+            self._action_compare_revisions.setText(self.tr("Compare revisions"))
         if hasattr(self, "_action_view_md_editor"):
             self._action_view_md_editor.setText(
                 self.tr("Markdown (MD) / HTML editor")
@@ -1586,6 +1593,39 @@ class MainWindow(QMainWindow):
         if not path.exists():
             return None
         return path
+
+    def _open_compare_revisions(self) -> None:  # pragma: no cover - UI wiring
+        """Open the Compare revisions window for the current document."""
+
+        path = self._get_current_document_path()
+        if path is None:
+            QMessageBox.information(
+                self,
+                self.tr("Compare revisions"),
+                self.tr("No file is currently loaded."),
+            )
+            return
+
+        try:
+            window = CompareRevisionsWindow(document_path=path, parent=self)
+            window.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+            window.showMaximized()
+
+            # Keep a strong reference attached to the QApplication instance so
+            # Python's garbage collector doesn't close the window prematurely.
+            app = QCoreApplication.instance()
+            if app is not None:
+                extra = getattr(app, "_compare_windows", None)
+                if not isinstance(extra, list):
+                    extra = []
+                    setattr(app, "_compare_windows", extra)
+                extra.append(window)
+        except Exception:
+            QMessageBox.warning(
+                self,
+                self.tr("Compare revisions"),
+                self.tr("The Compare revisions window could not be opened."),
+            )
 
     def _view_story_metadata(self) -> None:  # pragma: no cover - UI wiring
         """Display Crowdly story metadata for the current file."""
