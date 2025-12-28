@@ -288,6 +288,10 @@ Details: {error}</translation>
       <translation>Refresh from web</translation>
     </message>
     <message>
+      <source>Compare revisions</source>
+      <translation>Compare revisions</translation>
+    </message>
+    <message>
       <source>Story metadata</source>
       <translation>Story metadata</translation>
     </message>

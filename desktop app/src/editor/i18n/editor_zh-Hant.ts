@@ -81,11 +81,11 @@
     </message>
     <message>
       <source>Preview</source>
-      <translation>Preview</translation>
+      <translation>Distraction free editing</translation>
     </message>
     <message>
       <source>Show or hide the preview pane</source>
-      <translation>Show or hide the preview pane</translation>
+      <translation>Activate / De-activate distraction free editing</translation>
     </message>
     <message>
       <source>Current project space: {path}</source>
@@ -286,6 +286,10 @@ Details: {error}</translation>
     <message>
       <source>Refresh from web</source>
       <translation>Refresh from web</translation>
+    </message>
+    <message>
+      <source>Compare revisions</source>
+      <translation>Compare revisions</translation>
     </message>
     <message>
       <source>Story metadata</source>

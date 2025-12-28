@@ -89,7 +89,7 @@
     </message>
     <message>
         <source>Preview</source>
-        <translation type="unfinished">Режим редактирования без отвлечений вкл / выкл</translation>
+        <translation>Режим редактирования без отвлечений</translation>
     </message>
     <message>
         <source>Show or hide the preview pane</source>
@@ -294,6 +294,10 @@ Details: {error}</source>
     <message>
         <source>Refresh from web</source>
         <translation>Обновить из интернета</translation>
+    </message>
+    <message>
+        <source>Compare revisions</source>
+        <translation>Сравнить версии</translation>
     </message>
     <message>
         <source>Story metadata</source>
