@@ -19,25 +19,9 @@ interface StatsDisplayProps {
     likes: number;
     contributions: number;
   };
-  contributions: Array<{
-    id: number;
-    storyTitle: string;
-    chapterName: string;
-    date: string;
-    words: number;
-    likes: number;
-    status: string;
-  }>;
-  onFilterChange: (filter: string) => void;
-  currentFilter: string;
 }
 
-const StatsDisplay: React.FC<StatsDisplayProps> = ({ 
-  stats, 
-  contributions, 
-  onFilterChange,
-  currentFilter
-}) => {
+const StatsDisplay: React.FC<StatsDisplayProps> = ({ stats }) => {
   return (
     <div className="space-y-6">
       <h3 className="text-lg font-semibold">
@@ -83,71 +67,9 @@ const StatsDisplay: React.FC<StatsDisplayProps> = ({
         </Card>
       </div>
       
-      <h3 className="text-lg font-semibold mt-8">
-        <EditableText id="contributions-heading">Contributions</EditableText>
-      </h3>
-      
-      <div className="flex items-center gap-4 mb-4">
-        <div className="flex space-x-4 text-sm">
-          <button 
-            className={`${currentFilter === 'total' ? 'text-blue-500 font-medium' : 'text-gray-500'}`}
-            onClick={() => onFilterChange('total')}
-          >
-            <EditableText id="filter-total">total</EditableText>
-          </button>
-          <button 
-            className={`${currentFilter === 'approved' ? 'text-blue-500 font-medium' : 'text-gray-500'}`}
-            onClick={() => onFilterChange('approved')}
-          >
-            <EditableText id="filter-approved">approved</EditableText>
-          </button>
-          <button 
-            className={`${currentFilter === 'denied' ? 'text-blue-500 font-medium' : 'text-gray-500'}`}
-            onClick={() => onFilterChange('denied')}
-          >
-            <EditableText id="filter-denied">denied</EditableText>
-          </button>
-          <button 
-            className={`${currentFilter === 'undecided' ? 'text-blue-500 font-medium' : 'text-gray-500'}`}
-            onClick={() => onFilterChange('undecided')}
-          >
-            <EditableText id="filter-undecided">undecided</EditableText>
-          </button>
-        </div>
-      </div>
-      
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>
-              <EditableText id="story-title-heading">Story Title</EditableText>
-            </TableHead>
-            <TableHead>
-              <EditableText id="chapter-heading">Chapter</EditableText>
-            </TableHead>
-            <TableHead>
-              <EditableText id="date-heading">Date</EditableText>
-            </TableHead>
-            <TableHead>
-              <EditableText id="words-heading">Words</EditableText>
-            </TableHead>
-            <TableHead>
-              <EditableText id="likes-heading">Likes</EditableText>
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {contributions.map(contribution => (
-            <TableRow key={contribution.id}>
-              <TableCell>{contribution.storyTitle}</TableCell>
-              <TableCell>{contribution.chapterName}</TableCell>
-              <TableCell>{contribution.date}</TableCell>
-              <TableCell>{contribution.words}</TableCell>
-              <TableCell>{contribution.likes}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      {/* Detailed contributions table is now rendered via ContributionsModule
+          in the Profile page. This component focuses purely on high-level
+          overview cards. */}
     </div>
   );
 };

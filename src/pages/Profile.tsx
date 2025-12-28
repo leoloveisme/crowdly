@@ -67,6 +67,7 @@ import CommunicationsSection from "@/components/CommunicationsSection";
 import StatsDisplay from "@/components/StatsDisplay";
 import CreativeSpacesModule, { CreativeSpace } from "@/modules/creative spaces";
 import ProfileInformation from "@/modules/profile information";
+import ContributionsModule, { ContributionRow as ProfileContributionRow } from "@/modules/contributions";
 
 // Use same-origin API base in development; dev server proxies to backend.
 // In production, VITE_API_BASE_URL can point at the deployed API.
@@ -143,17 +144,21 @@ const Profile = () => {
   ];
 
   // Add contribution filter state
-  const [contributionFilter, setContributionFilter] = useState("total");
+  const [contributionFilter, setContributionFilter] = useState<"total" | "approved" | "denied" | "undecided">("total");
 
-  // Stats for the stats display component
+  // User contributions loaded from backend
+  const [contributions, setContributions] = useState<ProfileContributionRow[]>([]);
+  const [contributionsLoading, setContributionsLoading] = useState(false);
+
+  // Stats for the stats display component (derive contributions count from data)
   const statsOverview = {
     stories: 5,
     views: 50,
     likes: 10,
-    contributions: 5
+    contributions: contributions.length,
   };
 
-  // Stats for stories and contributions
+  // Stats for stories and contributions (placeholder numbers for now)
   const stats = {
     author: {
       text: 5,
@@ -184,45 +189,57 @@ const Profile = () => {
     }
   };
 
-  // Updated contributions data to match the screenshot
-  const contributions = [
-    { 
-      id: 1, 
-      storyTitle: "The story title", 
-      chapterName: "In the unknown",  
-      date: "2023-05-01",
-      time: "11:28",
-      words: 550,
-      likes: 3,
-      status: "approved"
-    },
-    { 
-      id: 2, 
-      storyTitle: "Another story", 
-      chapterName: "Chapter 5",
-      date: "2023-05-03",
-      time: "14:15",
-      words: 320,
-      likes: 7,
-      status: "denied"
-    },
-    { 
-      id: 3, 
-      storyTitle: "Epic Journey", 
-      chapterName: "Introduction",
-      date: "2023-05-05",
-      time: "09:45",
-      words: 480,
-      likes: 12,
-      status: "undecided"
-    }
-  ];
-
-  // Filter for contributions (for StatsDisplay)
-  const filteredContributions = contributions.filter(contribution => {
-    if (contributionFilter === "total") return true;
-    return contribution.status === contributionFilter;
-  });
+  // Load contributions for this user from backend when userId changes
+  useEffect(() => {
+    const loadContributions = async () => {
+      if (!userId) {
+        setContributions([]);
+        return;
+      }
+      try {
+        setContributionsLoading(true);
+        const params = new URLSearchParams();
+        if (userEmail) {
+          params.set("email", userEmail);
+        }
+        const query = params.toString();
+        const url = query
+          ? `${API_BASE}/users/${userId}/contributions?${query}`
+          : `${API_BASE}/users/${userId}/contributions`;
+        const res = await fetch(url);
+        if (!res.ok) {
+          console.error('[Profile] Failed to load contributions', res.status);
+          setContributions([]);
+          return;
+        }
+        const data = await res.json().catch(() => []);
+        if (!Array.isArray(data)) {
+          setContributions([]);
+          return;
+        }
+        const mapped: ProfileContributionRow[] = data.map((row: any, index: number) => ({
+          id: row.id ?? index,
+          story_title: row.story_title ?? '',
+          chapter_title: row.chapter_title ?? '',
+          paragraph: row.new_paragraph ?? '',
+          user: userEmail || '',
+          date: row.created_at ? new Date(row.created_at).toLocaleString() : '',
+          words: typeof row.words === 'number' ? row.words : 0,
+          likes: typeof row.likes === 'number' ? row.likes : 0,
+          dislikes: typeof row.dislikes === 'number' ? row.dislikes : 0,
+          comments: typeof row.comments === 'number' ? row.comments : 0,
+          status: (row.status as ProfileContributionRow['status']) || 'approved',
+        }));
+        setContributions(mapped);
+      } catch (err) {
+        console.error('[Profile] Error loading contributions', err);
+        setContributions([]);
+      } finally {
+        setContributionsLoading(false);
+      }
+    };
+    loadContributions();
+  }, [userId, userEmail]);
 
   // Toggle preview mode function
   const togglePreviewMode = () => {
@@ -854,13 +871,21 @@ const Profile = () => {
  
         {/* Stats & Activity Section - Only shown when not in preview mode */}
         {!previewMode && (
-          <div className="mb-12">
-            <StatsDisplay
-              stats={statsOverview}
-              contributions={filteredContributions}
-              onFilterChange={setContributionFilter}
-              currentFilter={contributionFilter}
-            />
+          <div className="mb-12 space-y-6">
+            <StatsDisplay stats={statsOverview} />
+
+            <div>
+              {contributionsLoading ? (
+                <div className="text-sm text-gray-500">Loading contributions...</div>
+              ) : (
+                <ContributionsModule
+                  contributions={contributions}
+                  currentFilter={contributionFilter}
+                  onFilterChange={setContributionFilter}
+                  titleId="profile-contributions-heading"
+                />
+              )}
+            </div>
           </div>
         )}
 
@@ -1002,42 +1027,15 @@ const Profile = () => {
                 </Card>
               </div>
               
-              {/* Author tab additional content */}
-              <h3 className="text-lg font-semibold mt-6">
-                <EditableText id="contributions-heading">Contributions</EditableText>
-              </h3>
-              
-              <div className="flex items-center gap-4 mb-4">
-                <div className="flex items-center">
-                  <HelpCircle className="h-4 w-4 text-gray-400 mr-2" />
-                </div>
-                <div className="flex space-x-4 text-sm">
-                  <button 
-                    className={`${contributionFilter === 'total' ? 'text-blue-500' : 'text-gray-500'}`}
-                    onClick={() => setContributionFilter('total')}
-                  >
-                    <EditableText id="filter-total">total</EditableText>
-                  </button>
-                  <button 
-                    className={`${contributionFilter === 'approved' ? 'text-blue-500' : 'text-gray-500'}`}
-                    onClick={() => setContributionFilter('approved')}
-                  >
-                    <EditableText id="filter-approved">approved</EditableText>
-                  </button>
-                  <button 
-                    className={`${contributionFilter === 'denied' ? 'text-blue-500' : 'text-gray-500'}`}
-                    onClick={() => setContributionFilter('denied')}
-                  >
-                    <EditableText id="filter-denied">denied</EditableText>
-                  </button>
-                  <button 
-                    className={`${contributionFilter === 'undecided' ? 'text-blue-500' : 'text-gray-500'}`}
-                    onClick={() => setContributionFilter('undecided')}
-                  >
-                    <EditableText id="filter-undecided">undecided</EditableText>
-                  </button>
-                </div>
-              </div>
+            {/* Author tab additional content */}
+            <h3 className="text-lg font-semibold mt-6">
+              <EditableText id="author-contributions-heading">Contributions</EditableText>
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">
+              <EditableText id="author-contributions-help">
+                Below is a list of your contributions across all stories. Use the tabs above the table to filter by status.
+              </EditableText>
+            </p>
             </TabsContent>
             
             {/* Consumer Tab Content */}

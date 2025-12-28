@@ -17,6 +17,8 @@ import EditableText from "@/components/EditableText";
 // expects the caller to provide the data; it does not fetch from the
 // backend.
 
+export type ContributionStatus = "approved" | "denied" | "undecided";
+
 export interface ContributionRow {
   id: string | number;
   story_title: string;
@@ -28,24 +30,63 @@ export interface ContributionRow {
   likes: number;
   dislikes: number;
   comments: number;
+  status: ContributionStatus;
 }
 
 export interface ContributionsModuleProps {
   contributions: ContributionRow[];
+  currentFilter: "total" | ContributionStatus;
+  onFilterChange: (filter: "total" | ContributionStatus) => void;
   className?: string;
   titleId?: string; // EditableText id for the main heading
 }
 
 const ContributionsModule: React.FC<ContributionsModuleProps> = ({
   contributions,
+  currentFilter,
+  onFilterChange,
   className,
   titleId = "contributions-module-heading",
 }) => {
+  const filtered =
+    currentFilter === "total"
+      ? contributions
+      : contributions.filter((row) => row.status === currentFilter);
+
   return (
     <div className={className}>
       <h3 className="text-lg font-semibold mb-4">
         <EditableText id={titleId}>Contributions</EditableText>
       </h3>
+
+      <div className="flex items-center gap-4 mb-4">
+        <div className="flex space-x-4 text-sm">
+          <button
+            className={`${currentFilter === "total" ? "text-blue-500 font-medium" : "text-gray-500"}`}
+            onClick={() => onFilterChange("total")}
+          >
+            <EditableText id="filter-total">total</EditableText>
+          </button>
+          <button
+            className={`${currentFilter === "approved" ? "text-blue-500 font-medium" : "text-gray-500"}`}
+            onClick={() => onFilterChange("approved")}
+          >
+            <EditableText id="filter-approved">approved</EditableText>
+          </button>
+          <button
+            className={`${currentFilter === "denied" ? "text-blue-500 font-medium" : "text-gray-500"}`}
+            onClick={() => onFilterChange("denied")}
+          >
+            <EditableText id="filter-denied">denied</EditableText>
+          </button>
+          <button
+            className={`${currentFilter === "undecided" ? "text-blue-500 font-medium" : "text-gray-500"}`}
+            onClick={() => onFilterChange("undecided")}
+          >
+            <EditableText id="filter-undecided">undecided</EditableText>
+          </button>
+        </div>
+      </div>
 
       <Table>
         <TableHeader>
@@ -80,7 +121,7 @@ const ContributionsModule: React.FC<ContributionsModuleProps> = ({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {contributions.map((row) => (
+          {filtered.map((row) => (
             <TableRow key={row.id}>
               <TableCell className="whitespace-nowrap max-w-[200px] truncate" title={row.story_title}>
                 {row.story_title}
@@ -101,7 +142,7 @@ const ContributionsModule: React.FC<ContributionsModuleProps> = ({
               <TableCell className="text-right">{row.comments}</TableCell>
             </TableRow>
           ))}
-          {contributions.length === 0 && (
+          {filtered.length === 0 && (
             <TableRow>
               <TableCell colSpan={9} className="text-center text-sm text-gray-500 py-4">
                 <EditableText id="contrib-empty-state">No contributions yet.</EditableText>

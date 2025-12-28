@@ -21,6 +21,16 @@ interface NewestStory {
   story_title_id: string;
 }
 
+
+interface MostActiveStory {
+  chapter_id: string;
+  chapter_title: string;
+  created_at: string;
+  story_title: string;
+  story_title_id: string;
+  last_activity_at: string;
+}
+
 const BranchList = React.lazy(() => import("@/components/BranchList"));
 
 const Index = () => {
@@ -42,6 +52,10 @@ const Index = () => {
   // State for newest stories
   const [newestStories, setNewestStories] = useState<NewestStory[]>([]);
   const [loadingStories, setLoadingStories] = useState(true);
+
+  // State for most active stories
+  const [mostActiveStories, setMostActiveStories] = useState<MostActiveStory[]>([]);
+  const [loadingMostActive, setLoadingMostActive] = useState(true);
 
   useEffect(() => {
     const fetchNewestStories = async () => {
@@ -74,6 +88,40 @@ const Index = () => {
     };
 
     fetchNewestStories();
+  }, []);
+
+  useEffect(() => {
+    const fetchMostActiveStories = async () => {
+      setLoadingMostActive(true);
+      try {
+        const params = new URLSearchParams({ limit: "9" });
+        const res = await fetch(`${API_BASE}/stories/most-active?${params.toString()}`);
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          console.error("Error fetching most active stories", { status: res.status, body });
+          setMostActiveStories([]);
+        } else {
+          const data = await res.json();
+          setMostActiveStories(
+            (data as any[]).map((item) => ({
+              chapter_id: item.chapter_id,
+              chapter_title: item.chapter_title,
+              created_at: item.created_at,
+              story_title_id: item.story_title_id,
+              story_title: item.story_title || "Untitled Story",
+              last_activity_at: item.last_activity_at || item.created_at,
+            })),
+          );
+        }
+      } catch (err) {
+        console.error("Error fetching most active stories", err);
+        setMostActiveStories([]);
+      } finally {
+        setLoadingMostActive(false);
+      }
+    };
+
+    fetchMostActiveStories();
   }, []);
 
   return (
@@ -265,12 +313,28 @@ const Index = () => {
                 <CardDescription className="text-xs mt-0.5">Stories with ongoing activity and updates</CardDescription>
               </CardHeader>
               <CardContent className="p-4 bg-white dark:bg-gray-800 rounded-b-xl">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* Placeholder for active stories */}
-                  <div className="h-28 rounded bg-green-100 dark:bg-emerald-900/20 flex items-center justify-center text-green-700 dark:text-green-300 text-base font-medium">Story preview</div>
-                  <div className="h-28 rounded bg-green-100 dark:bg-emerald-900/20 flex items-center justify-center text-green-700 dark:text-green-300 text-base font-medium">Story preview</div>
-                  <div className="h-28 rounded bg-green-100 dark:bg-emerald-900/20 flex items-center justify-center text-green-700 dark:text-green-300 text-base font-medium">Story preview</div>
-                </div>
+                {loadingMostActive ? (
+                  <div className="text-center text-gray-400 py-6 text-sm">Loading...</div>
+                ) : mostActiveStories.length === 0 ? (
+                  <div className="text-center text-gray-400 py-6 text-sm">No active stories found</div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {mostActiveStories.map((story) => (
+                      <Link
+                        key={story.chapter_id}
+                        to={`/story/${story.story_title_id}`}
+                        className="block rounded-md bg-white dark:bg-slate-800/80 hover:bg-emerald-50 dark:hover:bg-emerald-900/40 transition p-4 shadow ring-1 ring-emerald-100 dark:ring-emerald-900/30 hover-scale group"
+                        title={story.story_title}
+                      >
+                        <div className="font-medium text-base mb-0.5 truncate text-emerald-700 dark:text-emerald-100 group-hover:underline">{story.story_title}</div>
+                        <div className="text-xs text-gray-700 dark:text-gray-300">{story.chapter_title}</div>
+                        <div className="text-[11px] text-gray-400 mt-1">
+                          Last activity: {new Date(story.last_activity_at || story.created_at).toLocaleString()}
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </section>

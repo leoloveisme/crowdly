@@ -174,9 +174,12 @@ const Story = () => {
   const [contributorsLoading, setContributorsLoading] = useState(false);
   const [chapterRevisions, setChapterRevisions] = useState<any[]>([]);
   const [chapterRevisionsLoading, setChapterRevisionsLoading] = useState(false);
+  // Active chapter for the "experiencing the story" view
+  const [currentChapterId, setCurrentChapterId] = useState<string | null>(null);
   // Story contributions (paragraph-level) for Contributions tab
   const [contributions, setContributions] = useState<ContributionRow[]>([]);
   const [contributionsLoading, setContributionsLoading] = useState(false);
+  const [contributionFilter, setContributionFilter] = useState<"total" | "approved" | "denied" | "undecided">("total");
   // CRDT-style proposals (initial lightweight implementation)
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [proposalsLoading, setProposalsLoading] = useState(false);
@@ -348,6 +351,29 @@ const Story = () => {
     }
     // eslint-disable-next-line
   }, [story_id, user?.id]);
+
+  // Keep currentChapterId in sync with loaded chapters and optional chapter_id param
+  useEffect(() => {
+    if (!Array.isArray(chapters) || chapters.length === 0) {
+      setCurrentChapterId(null);
+      return;
+    }
+
+    // If URL specifies a chapter_id and it exists, prefer that
+    if (chapter_id) {
+      const found = chapters.find((ch) => ch.chapter_id === chapter_id);
+      if (found) {
+        setCurrentChapterId(chapter_id);
+        return;
+      }
+    }
+
+    // Fallback: ensure currentChapterId always points at a real chapter
+    const hasCurrent = currentChapterId && chapters.some((ch) => ch.chapter_id === currentChapterId);
+    if (!hasCurrent) {
+      setCurrentChapterId(chapters[0].chapter_id);
+    }
+  }, [chapters, chapter_id, currentChapterId]);
 
   // If a chapter_id is in the URL, default to contribute mode so the chapter area is visible
   useEffect(() => {
@@ -1125,6 +1151,7 @@ const Story = () => {
             likes: typeof row.likes === 'number' ? row.likes : 0,
             dislikes: typeof row.dislikes === 'number' ? row.dislikes : 0,
             comments: typeof row.comments === 'number' ? row.comments : 0,
+            status: (row.status as ContributionRow['status']) || 'approved',
           }));
           setContributions(mapped);
         } else {
@@ -1395,13 +1422,53 @@ const Story = () => {
   }
 
 
+  // Derive helpers for the active chapter in experience mode
+  const currentChapterIndex =
+    currentChapterId && Array.isArray(chapters)
+      ? chapters.findIndex((ch) => ch.chapter_id === currentChapterId)
+      : chapters.length > 0
+      ? 0
+      : -1;
+  const currentChapter =
+    currentChapterIndex >= 0 && currentChapterIndex < chapters.length
+      ? chapters[currentChapterIndex]
+      : null;
+
+  const goToChapterIndex = (index: number) => {
+    if (!Array.isArray(chapters) || chapters.length === 0) return;
+    const clamped = Math.max(0, Math.min(index, chapters.length - 1));
+    const target = chapters[clamped];
+    if (!target) return;
+    setCurrentChapterId(target.chapter_id);
+    const el = document.getElementById("experience-top");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
+  const handlePreviousChapter = () => {
+    if (currentChapterIndex > 0) {
+      goToChapterIndex(currentChapterIndex - 1);
+    }
+  };
+
+  const handleNextChapter = () => {
+    if (currentChapterIndex >= 0 && currentChapterIndex < chapters.length - 1) {
+      goToChapterIndex(currentChapterIndex + 1);
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       <CrowdlyHeader />
 
       {/* --- STORY CONTENT TYPE SELECTOR --- */}
       <main className="flex-grow container mx-auto px-4 py-8 max-w-3xl">
-        <StoryContentTypeSelector chapters={chapters} />
+        <StoryContentTypeSelector
+          chapters={chapters}
+          currentChapterIndex={currentChapterIndex}
+          onSelectChapter={goToChapterIndex}
+        />
         {/* --- TABS & NAVIGATION HEADER --- */}
         <nav className="container mx-auto max-w-3xl px-4 pt-8">
           <div className="flex flex-row items-center gap-2 border rounded-lg bg-gray-50 overflow-x-auto">
@@ -1546,12 +1613,15 @@ const Story = () => {
               </div>
 
               {/* Read-only story text (experience mode content) */}
-              <div className="space-y-6">
-                {chapters.map((chapter) => (
-                  <div key={chapter.chapter_id} className="mb-8">
-                    <h2 className="text-xl font-semibold mb-2">{chapter.chapter_title}</h2>
-                    {Array.isArray(chapter.paragraphs)
-                      ? chapter.paragraphs.map((paragraph: string, idx: number) => {
+              <div id="experience-top" className="space-y-6">
+                {currentChapter && (
+                  <div key={currentChapter.chapter_id} className="mb-8">
+                    <div className="mb-4">
+                      <h2 className="text-xl font-semibold">{currentChapter.chapter_title}</h2>
+                    </div>
+
+                    {Array.isArray(currentChapter.paragraphs)
+                      ? currentChapter.paragraphs.map((paragraph: string, idx: number) => {
                           // Support legacy data where a single string may contain newlines
                           const lines = paragraph
                             .split(/\n+/)
@@ -1560,7 +1630,7 @@ const Story = () => {
                           const paragraphProposals = proposals.filter(
                             (p) =>
                               p.target_type === "paragraph" &&
-                              p.target_chapter_id === chapter.chapter_id &&
+                              p.target_chapter_id === currentChapter.chapter_id &&
                               (p.target_path ?? "") === String(idx),
                           );
 
@@ -1599,10 +1669,12 @@ const Story = () => {
                         })
                       : null}
                   </div>
-                ))}
+                )}
                 {chapters.length === 0 && (
                   <p className="text-sm text-gray-500">No chapters have been added yet.</p>
                 )}
+
+                {/* Chapter list and navigation live in StoryContentTypeSelector above */}
               </div>
             </section>
 
@@ -2055,7 +2127,11 @@ const Story = () => {
             {contributionsLoading ? (
               <div className="text-sm text-gray-500">Loading contributions...</div>
             ) : (
-              <ContributionsModule contributions={contributions} />
+              <ContributionsModule
+                contributions={contributions}
+                currentFilter={contributionFilter}
+                onFilterChange={setContributionFilter}
+              />
             )}
 
             {(isOwner || hasRole("platform_admin") || hasRole("editor")) && (

@@ -308,6 +308,58 @@ async function ensureCreativeSpacesTable() {
   }
 }
 
+// Record per-paragraph and proposal-based contributions in a dedicated table
+// so we can easily query contributions per story and per user.
+async function ensureContributionsTable() {
+  try {
+    // Ensure contribution_status enum exists (Supabase migration already creates
+    // it, but this is a safe guard for local dev).
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'contribution_status') THEN
+          CREATE TYPE contribution_status AS ENUM ('approved', 'rejected', 'undecided');
+        END IF;
+      END
+      $$;
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS contributions (
+        id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        story_title_id   uuid NOT NULL REFERENCES story_title(story_title_id) ON DELETE CASCADE,
+        chapter_id       uuid NULL REFERENCES stories(chapter_id) ON DELETE CASCADE,
+        branch_id        uuid NULL,
+        paragraph_index  integer NULL,
+        target_type      text NOT NULL,
+        source           text NOT NULL,
+        source_id        text NULL,
+        author_user_id   uuid NULL REFERENCES local_users(id) ON DELETE SET NULL,
+        status           contribution_status NOT NULL,
+        words            integer NOT NULL DEFAULT 0,
+        new_paragraph    text,
+        created_at       timestamptz NOT NULL DEFAULT now()
+      );
+    `);
+
+    // Ensure new_paragraph column exists even if table was created earlier
+    await pool.query(
+      'ALTER TABLE contributions ADD COLUMN IF NOT EXISTS new_paragraph text',
+    );
+
+    await pool.query(
+      'CREATE INDEX IF NOT EXISTS contributions_story_idx ON contributions(story_title_id, status, created_at DESC)',
+    );
+    await pool.query(
+      'CREATE INDEX IF NOT EXISTS contributions_user_idx ON contributions(author_user_id, status, created_at DESC)',
+    );
+
+    console.log('[init] ensured contributions table exists');
+  } catch (err) {
+    console.error('[init] failed to ensure contributions table:', err);
+  }
+}
+
 // Fire and forget; if this fails we log but do not crash the server
 ensurePgcryptoExtension().catch((err) => {
   console.error('[init] ensurePgcryptoExtension unhandled error:', err);
@@ -341,6 +393,9 @@ ensureProposalsTable().catch((err) => {
 });
 ensureCreativeSpacesTable().catch((err) => {
   console.error('[init] ensureCreativeSpacesTable unhandled error:', err);
+});
+ensureContributionsTable().catch((err) => {
+  console.error('[init] ensureContributionsTable unhandled error:', err);
 });
 
 app.get('/health', async (_req, res) => {
@@ -754,7 +809,10 @@ app.post('/stories/template', async (req, res) => {
   }
 });
 
-// List newest stories across the platform (by chapter created_at)
+// List newest stories across the platform.
+// Returns at most one chapter per story_title (the newest chapter),
+// so the frontend shows distinct stories instead of multiple chapters
+// from the same story.
 app.get('/stories/newest', async (req, res) => {
   const rawLimit = req.query.limit;
   const parsed = rawLimit ? parseInt(String(rawLimit), 10) : 10;
@@ -762,15 +820,30 @@ app.get('/stories/newest', async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      `SELECT s.chapter_id,
-              s.chapter_title,
-              s.created_at,
-              s.story_title_id,
-              st.title AS story_title
-       FROM stories s
-       JOIN story_title st ON st.story_title_id = s.story_title_id
-       WHERE st.visibility = 'public' AND st.published = true
-       ORDER BY s.created_at DESC
+      `WITH latest_chapter AS (
+         SELECT
+           s.chapter_id,
+           s.chapter_title,
+           s.created_at,
+           s.story_title_id,
+           ROW_NUMBER() OVER (
+             PARTITION BY s.story_title_id
+             ORDER BY s.created_at DESC, s.chapter_index DESC
+           ) AS rn
+         FROM stories s
+         JOIN story_title st ON st.story_title_id = s.story_title_id
+         WHERE st.visibility = 'public' AND st.published = true
+       )
+       SELECT
+         lc.chapter_id,
+         lc.chapter_title,
+         lc.created_at,
+         lc.story_title_id,
+         st.title AS story_title
+       FROM latest_chapter lc
+       JOIN story_title st ON st.story_title_id = lc.story_title_id
+       WHERE lc.rn = 1
+       ORDER BY lc.created_at DESC
        LIMIT $1`,
       [limit],
     );
@@ -778,6 +851,91 @@ app.get('/stories/newest', async (req, res) => {
   } catch (err) {
     console.error('[GET /stories/newest] failed:', err);
     res.status(500).json({ error: 'Failed to fetch newest stories' });
+  }
+});
+
+// List most active stories across the platform, ordered by recent activity
+// and overall content volume (chapters, paragraphs, branches).
+app.get('/stories/most-active', async (req, res) => {
+  const rawLimit = req.query.limit;
+  const parsed = rawLimit ? parseInt(String(rawLimit), 10) : 10;
+  const limit = Number.isFinite(parsed) && parsed > 0 && parsed <= 50 ? parsed : 10;
+
+  try {
+    const { rows } = await pool.query(
+      `WITH story_stats AS (
+         SELECT
+           st.story_title_id,
+           st.title,
+           GREATEST(
+             MAX(s.created_at),
+             MAX(s.updated_at),
+             MAX(cr.created_at),
+             MAX(pr.created_at),
+             MAX(cc.created_at),
+             MAX(cl.created_at),
+             MAX(r.created_at)
+           ) AS last_activity_at,
+           COUNT(DISTINCT s.chapter_id) AS chapter_count,
+           COALESCE(SUM(COALESCE(cardinality(s.paragraphs), 0)), 0) AS paragraph_count,
+           COUNT(DISTINCT pb.id) AS branch_count
+         FROM story_title st
+         JOIN stories s ON s.story_title_id = st.story_title_id
+         LEFT JOIN chapter_revisions cr ON cr.chapter_id = s.chapter_id
+         LEFT JOIN paragraph_revisions pr ON pr.chapter_id = s.chapter_id
+         LEFT JOIN chapter_comments cc ON cc.chapter_id = s.chapter_id
+         LEFT JOIN chapter_likes cl ON cl.chapter_id = s.chapter_id
+         LEFT JOIN reactions r ON r.chapter_id = s.chapter_id
+         LEFT JOIN paragraph_branches pb ON pb.chapter_id = s.chapter_id
+         WHERE st.visibility = 'public' AND st.published = true
+         GROUP BY st.story_title_id, st.title
+       ),
+       scored AS (
+         SELECT
+           story_title_id,
+           title,
+           last_activity_at,
+           chapter_count,
+           paragraph_count,
+           branch_count,
+           (chapter_count + paragraph_count + branch_count) AS content_score
+         FROM story_stats
+       ),
+       latest_chapter AS (
+         SELECT
+           s.story_title_id,
+           s.chapter_id,
+           s.chapter_title,
+           s.created_at,
+           ROW_NUMBER() OVER (
+             PARTITION BY s.story_title_id
+             ORDER BY s.created_at DESC, s.chapter_index DESC
+           ) AS rn
+         FROM stories s
+       )
+       SELECT
+         sc.story_title_id,
+         sc.title AS story_title,
+         lc.chapter_id,
+         lc.chapter_title,
+         lc.created_at,
+         sc.last_activity_at,
+         sc.chapter_count,
+         sc.paragraph_count,
+         sc.branch_count,
+         sc.content_score
+       FROM scored sc
+       JOIN latest_chapter lc ON lc.story_title_id = sc.story_title_id AND lc.rn = 1
+       WHERE sc.last_activity_at IS NOT NULL
+       ORDER BY sc.last_activity_at DESC, sc.content_score DESC, sc.title ASC
+       LIMIT $1`,
+      [limit],
+    );
+
+    res.json(rows);
+  } catch (err) {
+    console.error('[GET /stories/most-active] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch most active stories' });
   }
 });
 
@@ -1298,102 +1456,300 @@ app.get('/chapter-revisions/:chapterId', async (req, res) => {
   }
 });
 
-// List paragraph-level contributions for a story.
-// This aggregates chapter_revisions (expanding the paragraphs array)
-// across all chapters belonging to the given story_title_id. This works
-// for both legacy stories and new ones. Reactions and comments are
-// aggregated per (chapter_id, paragraph_index).
+// Helper to compute word count in SQL-compatible way for raw text
+function countWordsFromText(text) {
+  if (!text) return 0;
+  const cleaned = String(text)
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+  if (!cleaned) return 0;
+  return cleaned.split(/\s+/).length;
+}
+
+// Helper: map DB contribution_status -> frontend-friendly status label
+function mapDbStatusToFrontend(status) {
+  if (status === 'rejected') return 'denied';
+  return status || 'approved';
+}
+
+// List contributions for a story from the dedicated contributions table.
+// Falls back to legacy aggregation if no rows exist yet, and seeds the
+// contributions table best-effort so future reads are cheaper.
 app.get('/stories/:storyTitleId/contributions', async (req, res) => {
   const { storyTitleId } = req.params;
 
   try {
-    const { rows } = await pool.query(
-      `WITH reactions_agg AS (
-         SELECT
-           chapter_id,
-           paragraph_index,
-           COUNT(*) FILTER (WHERE reaction_type = 'like') AS likes,
-           COUNT(*) FILTER (WHERE reaction_type = 'dislike') AS dislikes
-         FROM reactions
-         WHERE story_title_id = $1
-         GROUP BY chapter_id, paragraph_index
-       ),
-       comments_agg AS (
-         SELECT
-           chapter_id,
-           paragraph_index,
-           COUNT(*) AS comments
-         FROM comments
-         WHERE story_title_id = $1
-         GROUP BY chapter_id, paragraph_index
-       ),
-       paragraph_contribs AS (
-         -- Contributions recorded via chapter_revisions (new revision system)
-         SELECT
-           cr.id::text AS id,
-           s.chapter_id,
-           st.title AS story_title,
-           s.chapter_title,
-           (t.idx - 1) AS paragraph_index,
-           t.paragraph_text AS new_paragraph,
-           cr.created_at,
-           cr.revision_number,
-           u.email AS user_email
-         FROM chapter_revisions cr
-         JOIN stories s ON s.chapter_id = cr.chapter_id
-         JOIN story_title st ON st.story_title_id = s.story_title_id
-         LEFT JOIN local_users u ON u.id = cr.created_by
-         CROSS JOIN LATERAL unnest(cr.new_paragraphs) WITH ORDINALITY AS t(paragraph_text, idx)
-         WHERE s.story_title_id = $1
-
-         UNION ALL
-
-         -- Legacy contributions where chapters have a contributor_id but
-         -- no explicit chapter_revisions rows. Treat each paragraph of
-         -- those chapters as a contribution.
-         SELECT
-           ('chapter-' || s.chapter_id::text || '-' || t.idx)::text AS id,
-           s.chapter_id,
-           st.title AS story_title,
-           s.chapter_title,
-           (t.idx - 1) AS paragraph_index,
-           t.paragraph_text AS new_paragraph,
-           s.created_at AS created_at,
-           0::integer AS revision_number,
-           u.email AS user_email
-         FROM stories s
-         JOIN story_title st ON st.story_title_id = s.story_title_id
-         LEFT JOIN local_users u ON u.id = s.contributor_id
-         CROSS JOIN LATERAL unnest(s.paragraphs) WITH ORDINALITY AS t(paragraph_text, idx)
-         WHERE s.story_title_id = $1
-           AND s.contributor_id IS NOT NULL
-       )
-       SELECT
-         pc.id,
-         pc.story_title,
-         pc.chapter_title,
-         pc.paragraph_index,
-         pc.new_paragraph,
-         pc.created_at,
-         pc.revision_number,
-         pc.user_email,
-         cardinality(regexp_split_to_array(coalesce(pc.new_paragraph, ''), E'\\s+')) AS words,
-         COALESCE(ra.likes, 0) AS likes,
-         COALESCE(ra.dislikes, 0) AS dislikes,
-         COALESCE(ca.comments, 0) AS comments
-       FROM paragraph_contribs pc
-       LEFT JOIN reactions_agg ra
-         ON ra.chapter_id = pc.chapter_id AND ra.paragraph_index = pc.paragraph_index
-       LEFT JOIN comments_agg ca
-         ON ca.chapter_id = pc.chapter_id AND ca.paragraph_index = pc.paragraph_index
-       ORDER BY pc.created_at DESC, pc.revision_number DESC, pc.paragraph_index ASC`,
+    // First, try to read from the contributions table.
+    const { rows: contribRows } = await pool.query(
+      `SELECT c.*, st.title AS story_title, s.chapter_title
+       FROM contributions c
+       LEFT JOIN story_title st ON st.story_title_id = c.story_title_id
+       LEFT JOIN stories s ON s.chapter_id = c.chapter_id
+       WHERE c.story_title_id = $1
+       ORDER BY c.created_at DESC, c.paragraph_index ASC`,
       [storyTitleId],
     );
 
-    res.json(rows);
+    let rows = contribRows;
+
+    if (rows.length === 0) {
+      // Legacy fallback: derive contributions from revisions and legacy
+      // contributor chapters, mark them as approved, and seed the
+      // contributions table for this story.
+      const { rows: legacyRows } = await pool.query(
+        `WITH paragraph_contribs AS (
+           SELECT
+             cr.id::text AS id,
+             s.story_title_id,
+             s.chapter_id,
+             st.title AS story_title,
+             s.chapter_title,
+             (t.idx - 1) AS paragraph_index,
+             t.paragraph_text AS new_paragraph,
+             cr.created_at,
+             cr.revision_number,
+             cr.created_by     AS author_user_id
+           FROM chapter_revisions cr
+           JOIN stories s ON s.chapter_id = cr.chapter_id
+           JOIN story_title st ON st.story_title_id = s.story_title_id
+           CROSS JOIN LATERAL unnest(cr.new_paragraphs) WITH ORDINALITY AS t(paragraph_text, idx)
+           WHERE s.story_title_id = $1
+
+           UNION ALL
+
+           SELECT
+             ('chapter-' || s.chapter_id::text || '-' || t.idx)::text AS id,
+             s.story_title_id,
+             s.chapter_id,
+             st.title AS story_title,
+             s.chapter_title,
+             (t.idx - 1) AS paragraph_index,
+             t.paragraph_text AS new_paragraph,
+             s.created_at AS created_at,
+             0::integer AS revision_number,
+             s.contributor_id AS author_user_id
+           FROM stories s
+           JOIN story_title st ON st.story_title_id = s.story_title_id
+           CROSS JOIN LATERAL unnest(s.paragraphs) WITH ORDINALITY AS t(paragraph_text, idx)
+           WHERE s.story_title_id = $1
+             AND s.contributor_id IS NOT NULL
+         )
+         SELECT * FROM paragraph_contribs
+         ORDER BY created_at DESC, revision_number DESC, paragraph_index ASC`,
+        [storyTitleId],
+      );
+
+      rows = legacyRows.map((row) => ({
+        id: row.id,
+        story_title_id: row.story_title_id,
+        chapter_id: row.chapter_id,
+        branch_id: null,
+        paragraph_index: row.paragraph_index,
+        target_type: 'paragraph',
+        source: 'legacy-backfill',
+        source_id: row.id,
+        author_user_id: row.author_user_id,
+        status: 'approved',
+        words: countWordsFromText(row.new_paragraph),
+        created_at: row.created_at,
+        story_title: row.story_title,
+        chapter_title: row.chapter_title,
+        new_paragraph: row.new_paragraph,
+      }));
+
+      // Also include existing proposals for this story as contributions so
+      // undecided/declined/approved proposals appear in the Contributions
+      // tab. This is a one-time backfill for stories that predate the
+      // dedicated contributions table.
+      try {
+        const { rows: proposalRows } = await pool.query(
+          `SELECT p.id::text,
+                  p.story_title_id,
+                  p.target_chapter_id,
+                  st.title AS story_title,
+                  s.chapter_title,
+                  p.target_type,
+                  p.target_path,
+                  p.proposed_text,
+                  p.created_at,
+                  p.author_user_id,
+                  p.status
+           FROM crdt_proposals p
+           LEFT JOIN stories s ON s.chapter_id = p.target_chapter_id
+           LEFT JOIN story_title st ON st.story_title_id = p.story_title_id
+           WHERE p.story_title_id = $1`,
+          [storyTitleId],
+        );
+
+        for (const p of proposalRows) {
+          let paragraphIndex = null;
+          if (p.target_type === 'paragraph' && typeof p.target_path === 'string') {
+            const parsed = parseInt(p.target_path, 10);
+            if (!Number.isNaN(parsed)) paragraphIndex = parsed;
+          }
+
+          const status =
+            p.status === 'declined'
+              ? 'rejected'
+              : p.status === 'approved'
+              ? 'approved'
+              : 'undecided';
+
+          rows.push({
+            id: p.id,
+            story_title_id: p.story_title_id,
+            chapter_id: p.target_chapter_id,
+            branch_id: null,
+            paragraph_index: paragraphIndex,
+            target_type: p.target_type,
+            source: 'proposal-backfill',
+            source_id: p.id,
+            author_user_id: p.author_user_id,
+            status,
+            words: countWordsFromText(p.proposed_text),
+            created_at: p.created_at,
+            story_title: p.story_title,
+            chapter_title: p.chapter_title,
+            new_paragraph: p.proposed_text,
+          });
+        }
+      } catch (propErr) {
+        console.error('[GET /stories/:storyTitleId/contributions] failed to backfill proposals', propErr);
+      }
+
+      // Best-effort: seed contributions table with these rows.
+      try {
+        for (const row of rows) {
+          await pool.query(
+            `INSERT INTO contributions
+               (id, story_title_id, chapter_id, branch_id, paragraph_index, target_type, source, source_id, author_user_id, status, words, new_paragraph, created_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::contribution_status, $11, $12, $13)
+             ON CONFLICT (id) DO NOTHING`,
+            [
+              row.id,
+              row.story_title_id,
+              row.chapter_id,
+              row.branch_id,
+              row.paragraph_index,
+              row.target_type,
+              row.source,
+              row.source_id,
+              row.author_user_id,
+              row.status,
+              row.words,
+              row.new_paragraph,
+              row.created_at,
+            ],
+          );
+        }
+      } catch (seedErr) {
+        console.error('[GET /stories/:storyTitleId/contributions] failed to seed contributions table', seedErr);
+      }
+    }
+
+    // Attach reactions and comment counts
+    const { rows: reactions } = await pool.query(
+      `SELECT chapter_id, paragraph_index,
+              COUNT(*) FILTER (WHERE reaction_type = 'like') AS likes,
+              COUNT(*) FILTER (WHERE reaction_type = 'dislike') AS dislikes
+       FROM reactions
+       WHERE story_title_id = $1
+       GROUP BY chapter_id, paragraph_index`,
+      [storyTitleId],
+    );
+    const { rows: comments } = await pool.query(
+      `SELECT chapter_id, paragraph_index, COUNT(*) AS comments
+       FROM comments
+       WHERE story_title_id = $1
+       GROUP BY chapter_id, paragraph_index`,
+      [storyTitleId],
+    );
+
+    const reactionKey = (r) => `${r.chapter_id ?? 'null'}:${r.paragraph_index ?? 'null'}`;
+    const reactionMap = new Map(reactions.map((r) => [reactionKey(r), r]));
+    const commentMap = new Map(comments.map((c) => [reactionKey(c), c]));
+
+    const response = rows.map((row) => {
+      const key = reactionKey(row);
+      const r = reactionMap.get(key);
+      const c = commentMap.get(key);
+      return {
+        id: row.id,
+        story_title: row.story_title,
+        chapter_title: row.chapter_title,
+        paragraph_index: row.paragraph_index,
+        new_paragraph: row.new_paragraph,
+        created_at: row.created_at,
+        revision_number: row.revision_number ?? 0,
+        user_email: row.author_email || row.user_email || null,
+        words: row.words ?? countWordsFromText(row.new_paragraph),
+        likes: r ? Number(r.likes) : 0,
+        dislikes: r ? Number(r.dislikes) : 0,
+        comments: c ? Number(c.comments) : 0,
+        status: mapDbStatusToFrontend(row.status || 'approved'),
+      };
+    });
+
+    res.json(response);
   } catch (err) {
     console.error('[GET /stories/:storyTitleId/contributions] failed:', err);
-    res.status(500).json({ error: 'Failed to fetch story contributions' });
+    res.status(500).json({
+      error: 'Failed to fetch story contributions',
+      details: err?.message || String(err),
+    });
+  }
+});
+
+// List contributions for a user across all stories. We primarily match by
+// author_user_id, but also allow an optional email hint so that existing
+// rows can still be found even if the caller only knows the email.
+app.get('/users/:userId/contributions', async (req, res) => {
+  const { userId } = req.params;
+  const { status, email } = req.query;
+
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+
+  try {
+    const params = [userId, email || null];
+    let where = '(c.author_user_id = $1 OR ($2::text IS NOT NULL AND u.email = $2))';
+
+    if (status && typeof status === 'string') {
+      params.push(status);
+      where += ' AND c.status = $3::contribution_status';
+    }
+
+    const { rows } = await pool.query(
+      `SELECT c.*, st.title AS story_title, s.chapter_title
+       FROM contributions c
+       LEFT JOIN story_title st ON st.story_title_id = c.story_title_id
+       LEFT JOIN stories s ON s.chapter_id = c.chapter_id
+       LEFT JOIN local_users u ON u.id = c.author_user_id
+       WHERE ${where}
+       ORDER BY c.created_at DESC, c.paragraph_index ASC
+       LIMIT 500`,
+      params,
+    );
+
+    const response = rows.map((row) => ({
+      id: row.id,
+      story_title: row.story_title,
+      chapter_title: row.chapter_title,
+      paragraph_index: row.paragraph_index,
+      new_paragraph: row.new_paragraph,
+      created_at: row.created_at,
+      words: row.words,
+      likes: 0,
+      dislikes: 0,
+      comments: 0,
+      status: mapDbStatusToFrontend(row.status),
+    }));
+
+    res.json(response);
+  } catch (err) {
+    console.error('[GET /users/:userId/contributions] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch user contributions' });
   }
 });
 
@@ -1664,7 +2020,42 @@ app.post('/stories/:storyTitleId/proposals', async (req, res) => {
       ],
     );
 
-    res.status(201).json(rows[0]);
+    const proposal = rows[0];
+
+    // Best-effort: create a matching contribution row so profile/story
+    // views can show this proposal under the "undecided" tab.
+    try {
+      let paragraphIndex = null;
+      if (targetType === 'paragraph' && typeof targetPath === 'string') {
+        const parsed = parseInt(targetPath, 10);
+        if (!Number.isNaN(parsed)) paragraphIndex = parsed;
+      }
+
+      const words = countWordsFromText(proposedText);
+      await pool.query(
+        `INSERT INTO contributions
+           (story_title_id, chapter_id, branch_id, paragraph_index, target_type, source, source_id, author_user_id, status, words, new_paragraph, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'undecided', $9, $10, $11, $12)
+         ON CONFLICT (id) DO NOTHING`,
+        [
+          storyTitleId,
+          targetChapterId || null,
+          targetBranchId || null,
+          paragraphIndex,
+          targetType,
+          'proposal',
+          String(proposal.id),
+          authorUserId,
+          words,
+          proposedText,
+          proposal.created_at,
+        ],
+      );
+    } catch (contribErr) {
+      console.error('[POST /stories/:storyTitleId/proposals] failed to record contribution', contribErr);
+    }
+
+    res.status(201).json(proposal);
   } catch (err) {
     console.error('[POST /stories/:storyTitleId/proposals] failed:', err);
     res.status(500).json({ error: 'Failed to create proposal' });
@@ -1794,6 +2185,18 @@ app.post('/proposals/:proposalId/approve', async (req, res) => {
         [now.toISOString(), proposalId],
       );
 
+      // Best-effort: mark related contribution as approved.
+      try {
+        await client.query(
+          `UPDATE contributions
+           SET status = 'approved'
+           WHERE source = 'proposal' AND source_id = $1`,
+          [proposalId],
+        );
+      } catch (contribErr) {
+        console.error('[POST /proposals/:proposalId/approve] failed to update contribution status', contribErr);
+      }
+
       await client.query('COMMIT');
       res.status(204).send();
     } catch (err) {
@@ -1824,6 +2227,19 @@ app.post('/proposals/:proposalId/decline', async (req, res) => {
     if (rowCount === 0) {
       return res.status(404).json({ error: 'Proposal not found' });
     }
+
+    // Best-effort: mark related contribution as rejected.
+    try {
+      await pool.query(
+        `UPDATE contributions
+         SET status = 'rejected'
+         WHERE source = 'proposal' AND source_id = $1`,
+        [proposalId],
+      );
+    } catch (contribErr) {
+      console.error('[POST /proposals/:proposalId/decline] failed to update contribution status', contribErr);
+    }
+
     res.status(204).send();
   } catch (err) {
     console.error('[POST /proposals/:proposalId/decline] failed:', err);
