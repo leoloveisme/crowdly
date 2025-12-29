@@ -88,22 +88,35 @@ def parse_story_from_content(content: str, *, body_format: str | None = None) ->
         current_lines = []
 
     for line in lines:
-        if title is None and line.startswith("# "):
-            t = line[2:].strip()
+        stripped = line.lstrip()
+
+        # Title: accept both "# Title" and "#Title" (common user style).
+        if title is None and stripped.startswith("#") and not stripped.startswith("##"):
+            if stripped.startswith("# "):
+                t = stripped[2:].strip()
+            else:
+                # e.g. "#Title" -> "Title"
+                t = stripped[1:].strip()
             title = t if t else "Untitled"
             continue
 
-        if line.startswith("## "):
+        # Chapters: accept both "## Chapter" and "##Chapter", but only when
+        # there are exactly two leading '#'.
+        if stripped.startswith("##") and not stripped.startswith("###"):
             # Start a new chapter.
             if current_chapter_title is not None:
                 flush_chapter()
-            current_chapter_title = (line[3:] or "").strip() or "Chapter"
+            if stripped.startswith("## "):
+                hdr = stripped[3:]
+            else:
+                hdr = stripped[2:]
+            current_chapter_title = (hdr or "").strip() or "Chapter"
             continue
 
         # Body line
         if current_chapter_title is None:
             # Ignore leading whitespace-only lines before the first chapter.
-            if not line.strip():
+            if not stripped:
                 continue
             # We haven't seen a chapter heading; treat as implicit first chapter.
             current_chapter_title = "Chapter"

@@ -88,7 +88,17 @@ def api_base_url_from_story_url(url: str, *, backend_port: int = 4000) -> str:
 
 
 class CrowdlyClient:
-    """Minimal Crowdly client based on urllib (no external deps)."""
+    """Minimal Crowdly client based on urllib (no external deps).
+
+    ``base_url`` is expected to point at the Crowdly **backend** origin, e.g.::
+
+        https://crowdly.example
+        http://localhost:4000
+
+    For story URLs coming from the web frontend we provide
+    :func:`api_base_url_from_story_url` which maps a full ``/story/{id}`` URL
+    to the appropriate backend origin.
+    """
 
     def __init__(
         self,
@@ -249,6 +259,55 @@ class CrowdlyClient:
         )
 
     # Internal helpers -------------------------------------------------
+
+    def create_desktop_story(
+        self,
+        *,
+        title: str,
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Create a new story owned by the current user via the desktop API.
+
+        This uses the existing ``POST /stories/template`` endpoint, which
+        creates a ``story_title`` row, an initial revision, and a first
+        chapter in a single transaction. For now we send a minimal template
+        (one empty paragraph); subsequent ``sync-desktop`` calls will replace
+        the content with the full text from the desktop editor.
+        """
+
+        if not self.base_url:
+            raise CrowdlyClientError("Crowdly base URL is not configured.", kind="config")
+
+        user_id = self.login()  # raises on auth / network error
+
+        payload = {
+            "userId": user_id,
+            "title": title or "Untitled",
+            "chapterTitle": "Chapter",
+            # Minimal valid paragraphs array; real content will be synced later.
+            "paragraphs": [""],
+        }
+
+        data = self._http_post_json(f"{self.base_url}/stories/template", payload)
+        if not isinstance(data, dict):
+            raise CrowdlyClientError("Unexpected create-story response.", kind="invalid_response")
+
+        story_id = data.get("storyTitleId") or data.get("storyId") or data.get("story_id") or data.get("id")
+        if not isinstance(story_id, str) or not story_id.strip():
+            raise CrowdlyClientError("Create-story response did not include story id.", kind="invalid_response")
+
+        story_url = data.get("storyUrl") or data.get("story_url") or data.get("url")
+        if isinstance(story_url, str) and story_url.strip():
+            story_url_str: str | None = story_url.strip()
+        else:
+            # Best-effort fallback: construct a canonical story URL.
+            story_url_str = f"{self.base_url}/story/{story_id}"
+
+        return {
+            "story_id": story_id,
+            "story_url": story_url_str,
+            "raw": data,
+        }
 
     def sync_desktop_story(
         self,

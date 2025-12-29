@@ -87,6 +87,11 @@ class MainWindow(QMainWindow):
         # Cached Crowdly web credentials for the current app session.
         self._crowdly_web_credentials: tuple[str, str] | None = None
 
+        # Background thread used to initialise a new Crowdly story for a local
+        # file and a simple flag guarding against concurrent inits.
+        self._story_init_thread: QThread | None = None
+        self._story_init_in_progress: bool = False
+
         # Track where the last content change originated from so that we can
         # decide whether re-rendering the preview from Markdown is safe.
         self._last_change_from_preview = False
@@ -1016,6 +1021,84 @@ class MainWindow(QMainWindow):
             text = self.tr("Web sync: off")
 
         label.setText(text)
+
+    # ------------------------------------------------------------------
+    # Web sync helpers
+    # ------------------------------------------------------------------
+
+    def _ensure_story_metadata_for_path(self, path: Path) -> None:
+        """Best-effort: ensure a local document has basic Crowdly story metadata.
+
+        This is only used for *new* local stories that do not yet have a
+        ``story_id``. When web sync is enabled and credentials + Crowdly
+        backend URL are configured, we start a background thread that creates a
+        story on the web platform and writes the resulting ``story_id`` and
+        ``source_url`` into xattrs.
+
+        The method returns immediately; callers should simply return early
+        after invoking it and rely on the next sync attempt to see the
+        metadata once the background initialisation completes.
+        """
+
+        # If metadata already present, nothing to do.
+        if file_metadata.has_story_metadata(path):
+            return
+
+        # Only create remote stories when web sync is actually enabled.
+        if not getattr(self, "_sync_web_platform", False):
+            return
+
+        base_url_setting = getattr(self._settings, "crowdly_base_url", None)
+        if not isinstance(base_url_setting, str) or not base_url_setting.strip():
+            # Configuration problem; surface a gentle hint in the status bar.
+            bar = self.statusBar()
+            if bar is not None:
+                bar.showMessage(self.tr("Web sync: Crowdly base URL is not configured."), 5000)
+            return
+
+        creds = self._ensure_crowdly_web_credentials()
+        if creds is None:
+            return
+
+        # Derive the actual API base from the configured base URL using the
+        # same localhost 8080 -> 4000 logic as open-from-web flows.
+        try:
+            from ..crowdly_client import api_base_url_from_story_url
+
+            api_base = api_base_url_from_story_url(base_url_setting)
+        except Exception:
+            api_base = (base_url_setting or "").rstrip("/")
+
+        if not api_base:
+            return
+
+        # Avoid starting multiple init threads for the same document.
+        if getattr(self, "_story_init_in_progress", False):
+            return
+
+        title = self._guess_document_title() or "Untitled"
+
+        thread = _NewStoryInitThread(
+            api_base=api_base,
+            credentials=creds,
+            local_path=path,
+            title=title,
+            parent=self,
+        )
+
+        thread.initSucceeded.connect(self._on_story_init_succeeded)
+        thread.initFailed.connect(self._on_story_init_failed)
+        thread.finished.connect(self._on_story_init_finished)
+        thread.finished.connect(thread.deleteLater)
+
+        self._story_init_thread = thread
+        self._story_init_in_progress = True
+
+        bar = self.statusBar()
+        if bar is not None:
+            bar.showMessage(self.tr("Linking story with Crowdly web..."), 5000)
+
+        thread.start()
 
     # Slots ---------------------------------------------------------------
 
@@ -2134,6 +2217,17 @@ class MainWindow(QMainWindow):
         if not file_metadata.has_story_metadata(path):
             return
 
+        # Do not pull from the web until we have successfully synced at least
+        # once from this desktop device. This prevents an initially-empty web
+        # template from overwriting a longer local draft.
+        try:
+            md = file_metadata.read_story_metadata(path)
+            if not md.last_sync_date:
+                return
+        except Exception:
+            # If metadata cannot be read, fall back to safe behaviour (no pull).
+            return
+
         story_id = file_metadata.get_attr(path, file_metadata.FIELD_STORY_ID)
         source_url = file_metadata.get_attr(path, file_metadata.FIELD_SOURCE_URL)
         if not story_id or not source_url:
@@ -2167,7 +2261,13 @@ class MainWindow(QMainWindow):
         thread.start()
 
     def _maybe_sync_story_to_web(self) -> None:  # pragma: no cover
-        """Best-effort: sync the current local story back to the Crowdly backend."""
+        """Best-effort: sync the current local story back to the Crowdly backend.
+
+        For stories that do not yet have a ``story_id`` association this
+        method will trigger a one-time background initialisation that creates a
+        remote story and writes the metadata to xattrs. The actual sync will
+        then run on subsequent calls once the metadata is available.
+        """
 
         import traceback
 
@@ -2176,7 +2276,9 @@ class MainWindow(QMainWindow):
             if path is None:
                 return
 
+            # New local stories: attempt to initialise metadata once.
             if not file_metadata.has_story_metadata(path):
+                self._ensure_story_metadata_for_path(path)
                 return
 
             story_id = file_metadata.get_attr(path, file_metadata.FIELD_STORY_ID)
@@ -2273,6 +2375,62 @@ class MainWindow(QMainWindow):
                 bar.showMessage(self.tr("Story synced to the web."), 5000)
         except Exception:
             traceback.print_exc()
+
+    def _on_story_init_succeeded(self, payload: object) -> None:  # pragma: no cover
+        """Handle successful creation of a new Crowdly story for a local file."""
+
+        import traceback
+
+        try:
+            if not isinstance(payload, dict):
+                return
+
+            local_path = payload.get("local_path")
+            story_id = payload.get("story_id")
+            story_url = payload.get("story_url")
+            if not isinstance(local_path, Path) or not isinstance(story_id, str):
+                return
+
+            # Write minimal metadata so future syncs/pulls behave like for
+            # imported stories.
+            now_str = file_metadata.now_human()
+            metadata = file_metadata.StoryMetadata(
+                story_id=story_id,
+                story_title=self._guess_document_title() or "Untitled",
+                creation_date=now_str,
+                change_date=now_str,
+                last_sync_date=None,
+                source_url=str(story_url) if isinstance(story_url, str) else None,
+                body_format="markdown",
+            )
+            file_metadata.write_story_metadata(local_path, metadata, remove_missing=False)
+
+            bar = self.statusBar()
+            if bar is not None:
+                bar.showMessage(self.tr("Story linked to Crowdly web."), 5000)
+        except Exception:
+            traceback.print_exc()
+
+    def _on_story_init_failed(self, error: object) -> None:  # pragma: no cover
+        """Handle failures when creating a new Crowdly story for a local file."""
+
+        import traceback
+
+        try:
+            message = str(error)
+            bar = self.statusBar()
+            if bar is not None:
+                bar.showMessage(self.tr("Could not create story on the web."), 5000)
+            # Log full details to stderr during development.
+            print(f"[web-init] failed: {message}")
+        except Exception:
+            traceback.print_exc()
+
+    def _on_story_init_finished(self) -> None:  # pragma: no cover
+        """Clear init-thread bookkeeping when a new-story init completes."""
+
+        self._story_init_in_progress = False
+        self._story_init_thread = None
 
     def _on_story_sync_failed(self, error: object) -> None:  # pragma: no cover
         import traceback
@@ -2403,6 +2561,55 @@ class MainWindow(QMainWindow):
 
     def _on_story_sync_finished(self) -> None:  # pragma: no cover
         self._story_sync_thread = None
+
+
+class _NewStoryInitThread(QThread):
+    """Background thread that creates a new Crowdly story for a local file."""
+
+    initSucceeded = Signal(object)
+    initFailed = Signal(object)
+
+    def __init__(
+        self,
+        *,
+        api_base: str,
+        credentials: tuple[str, str],
+        local_path: Path,
+        title: str,
+        parent: QObject | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self._api_base = api_base
+        self._credentials = credentials
+        self._local_path = local_path
+        self._title = title
+
+    def run(self) -> None:  # pragma: no cover
+        import traceback
+
+        try:
+            from ..crowdly_client import CrowdlyClient, CrowdlyClientError
+
+            client = CrowdlyClient(self._api_base, credentials=self._credentials)
+            result = client.create_desktop_story(title=self._title)
+
+            payload = {
+                "local_path": self._local_path,
+                "story_id": result.get("story_id"),
+                "story_url": result.get("story_url"),
+            }
+            self.initSucceeded.emit(payload)
+        except Exception as exc:
+            traceback.print_exc()
+            message = str(exc)
+            try:
+                from ..crowdly_client import CrowdlyClientError
+
+                if isinstance(exc, CrowdlyClientError):
+                    message = str(exc)
+            except Exception:
+                pass
+            self.initFailed.emit(message)
 
 
 class _StoryPullThread(QThread):
