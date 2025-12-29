@@ -101,6 +101,14 @@ const RevisionsSection = ({
       </div>
     </div>
 
+    {/* Placeholder block for chapter title revisions (UI only, no data yet) */}
+    <div>
+      <h2 className="text-2xl font-semibold mb-4">Chapter Title Revisions</h2>
+      <div className="bg-white border rounded p-6 shadow-sm space-y-2">
+        <div className="text-gray-400 text-sm">No chapter revisions recorded yet.</div>
+      </div>
+    </div>
+
     <div>
       <h2 className="text-2xl font-semibold mb-4">Chapter Revisions</h2>
       <div className="bg-white border rounded p-6 shadow-sm space-y-2">

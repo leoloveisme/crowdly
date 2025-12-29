@@ -36,6 +36,8 @@ from ..settings import Settings, save_settings
 from .. import file_metadata
 from .. import story_sync
 from ..versioning import local_queue
+from ..importing import controller as importing_controller
+from ..importing.base import DocumentImportError
 from .editor_widget import EditorWidget
 from .preview_widget import PreviewWidget
 from .compare_revisions import CompareRevisionsWindow
@@ -993,17 +995,93 @@ class MainWindow(QMainWindow):
         )
 
     def _import_from_file(self) -> None:  # pragma: no cover - UI wiring
-        """Import content from a file into the current document.
+        """Import content from an external file into the current document.
 
-        The concrete import behaviour (supported file types, merge strategy,
-        etc.) will be defined in a later iteration.
+        The imported content replaces the current tab's document. Existing
+        content is autosaved first (if needed) to avoid data loss.
         """
 
-        QMessageBox.information(
-            self,
-            self.tr("Import"),
-            self.tr("Import from file is not implemented yet."),
+        # Determine which extensions are currently supported by the importing
+        # subsystem. This depends on optional third-party libraries.
+        exts = importing_controller.get_supported_extensions()
+        if not exts:
+            QMessageBox.information(
+                self,
+                self.tr("Import"),
+                self.tr(
+                    "Import from external formats is currently unavailable. "
+                    "Optional import dependencies may not be installed."
+                ),
+            )
+            return
+
+        patterns = " ".join(f"*{ext}" for ext in exts)
+        filter_supported = self.tr("Supported documents ({patterns})").format(
+            patterns=patterns
         )
+        filters = filter_supported + ";;" + self.tr("All files (*)")
+
+        start_dir = str(self._project_space_path) if self._project_space_path else ""
+
+        path_str, _ = QFileDialog.getOpenFileName(
+            self,
+            self.tr("Import document"),
+            start_dir,
+            filters,
+        )
+        if not path_str:
+            return
+
+        source_path = Path(path_str)
+
+        try:
+            markdown, metadata = importing_controller.import_to_markdown(source_path)
+        except DocumentImportError as exc:
+            QMessageBox.warning(
+                self,
+                self.tr("Import failed"),
+                str(exc),
+            )
+            return
+        except Exception:
+            import traceback
+
+            traceback.print_exc()
+            QMessageBox.critical(
+                self,
+                self.tr("Import failed"),
+                self.tr("An unexpected error occurred while importing the document."),
+            )
+            return
+
+        if not markdown.strip():
+            QMessageBox.information(
+                self,
+                self.tr("Import"),
+                self.tr("The selected file did not contain any importable content."),
+            )
+            return
+
+        # Autosave the current document first so we do not lose work.
+        if self._autosave_timer.isActive():
+            self._autosave_timer.stop()
+        self._perform_autosave()
+
+        # Replace the in-memory document for the current tab.
+        self._document = Document(path=None, content=markdown, is_dirty=True)
+        if 0 <= self._current_tab_index < len(self._tab_documents):
+            self._tab_documents[self._current_tab_index] = self._document
+
+        # Populate editor and preview without triggering extra autosave cycles.
+        old_state = self.editor.blockSignals(True)
+        try:
+            self.editor.setPlainText(markdown)
+        finally:
+            self.editor.blockSignals(old_state)
+
+        self.preview.set_markdown(markdown)
+        self._last_change_from_preview = False
+        self._update_document_stats_label()
 
     def _connect_to_dropbox(self) -> None:  # pragma: no cover - UI wiring
         """Connect to Dropbox (placeholder)."""

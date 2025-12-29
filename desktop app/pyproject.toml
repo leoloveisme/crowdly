@@ -12,6 +12,10 @@ dependencies = [
     "markdown",
     "psycopg2-binary",
     "bcrypt",
+    "python-docx",
+    "pdfminer.six",
+    "ebooklib",
+    "markdownify",
 ]
 
 [tool.setuptools]
