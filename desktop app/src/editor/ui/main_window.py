@@ -38,6 +38,9 @@ from .. import story_sync
 from ..versioning import local_queue
 from ..importing import controller as importing_controller
 from ..importing.base import DocumentImportError
+from ..exporting import controller as exporting_controller
+from ..exporting.base import ExportError, ExportFormat, ExportRequest
+from ..exporting.markdown_utils import render_html_from_markdown
 from .editor_widget import EditorWidget
 from .preview_widget import PreviewWidget
 from .compare_revisions import CompareRevisionsWindow
@@ -624,6 +627,131 @@ class MainWindow(QMainWindow):
         if self._sync_web_platform:
             self._schedule_web_sync()
 
+    def _guess_document_title(self) -> str | None:
+        """Return a best-effort title for the current document, if any."""
+
+        text = getattr(self._document, "content", "") or ""
+        for line in text.splitlines():
+            stripped = line.strip()
+            if not stripped:
+                continue
+            # Prefer first Markdown heading when available.
+            if stripped.startswith("#"):
+                candidate = stripped.lstrip("#").strip()
+                if candidate:
+                    return candidate
+            # Fall back to first non-empty line.
+            return stripped
+
+        return None
+
+    def _suggest_export_basename(self, title: str | None) -> str:
+        """Return a filesystem-friendly base filename for exports."""
+
+        base = (title or "untitled").strip() or "untitled"
+
+        # Replace non-alphanumeric characters with spaces, then collapse.
+        cleaned_chars: list[str] = []
+        for ch in base:
+            if ch.isalnum() or ch in ("-", "_"):
+                cleaned_chars.append(ch)
+            else:
+                cleaned_chars.append(" ")
+
+        cleaned = "".join(cleaned_chars)
+        cleaned = " ".join(part for part in cleaned.split() if part)
+        if not cleaned:
+            return "untitled"
+
+        # Spaces become underscores; keep filenames reasonably short.
+        cleaned = cleaned.replace(" ", "_")
+        if len(cleaned) > 80:
+            cleaned = cleaned[:80].rstrip("_-")
+        return cleaned or "untitled"
+
+    def _build_export_request(self) -> ExportRequest:
+        """Construct an :class:`ExportRequest` for the current document."""
+
+        markdown = getattr(self._document, "content", "") or ""
+        title = self._guess_document_title()
+        html = render_html_from_markdown(markdown)
+
+        # Placeholder for richer metadata (author, language, etc.).
+        metadata: dict[str, object] = {}
+
+        return ExportRequest(markdown=markdown, html=html, title=title, metadata=metadata)
+
+    def _export_document(self, fmt: ExportFormat, caption: str, filters: str) -> None:  # pragma: no cover - UI wiring
+        """Common implementation for all export actions."""
+
+        markdown = getattr(self._document, "content", "") or ""
+        if not markdown.strip():
+            QMessageBox.information(
+                self,
+                self.tr("Export"),
+                self.tr("The current document is empty; there is nothing to export."),
+            )
+            return
+
+        request = self._build_export_request()
+
+        # Choose a sensible starting directory and filename.
+        start_dir: Path | None = None
+        if self._project_space_path is not None:
+            start_dir = self._project_space_path
+        else:
+            path = getattr(self._document, "path", None)
+            if isinstance(path, Path):
+                start_dir = path.parent
+
+        basename = self._suggest_export_basename(request.title)
+        filename = f"{basename}{fmt.extension}"
+
+        if start_dir is not None:
+            initial = str(start_dir / filename)
+        else:
+            initial = filename
+
+        path_str, _ = QFileDialog.getSaveFileName(
+            self,
+            caption,
+            initial,
+            filters,
+        )
+        if not path_str:
+            return
+
+        target_path = Path(path_str)
+        if target_path.suffix.lower() != fmt.extension:
+            target_path = target_path.with_suffix(fmt.extension)
+
+        try:
+            exporting_controller.export_to_path(fmt, request, target_path)
+        except ExportError as exc:
+            QMessageBox.warning(
+                self,
+                self.tr("Export failed"),
+                str(exc),
+            )
+            return
+        except Exception:
+            import traceback
+
+            traceback.print_exc()
+            QMessageBox.critical(
+                self,
+                self.tr("Export failed"),
+                self.tr("An unexpected error occurred while exporting the document."),
+            )
+            return
+
+        bar = self.statusBar()
+        if bar is not None:
+            bar.showMessage(
+                self.tr("Exported document to: {path}").format(path=target_path),
+                5000,
+            )
+
     def _change_interface_language(self, code: str) -> None:  # pragma: no cover - UI wiring
         """Update the preferred interface language in settings.
 
@@ -955,43 +1083,39 @@ class MainWindow(QMainWindow):
             )
 
     def _export_as_pdf(self) -> None:  # pragma: no cover - UI wiring
-        """Export the current document as a PDF file.
+        """Export the current document as a PDF file."""
 
-        The concrete export implementation will be wired up in a later
-        iteration.
-        """
-
-        QMessageBox.information(
-            self,
+        self._export_document(
+            ExportFormat.PDF,
             self.tr("Export as PDF"),
-            self.tr("Export to PDF is not implemented yet."),
+            self.tr("PDF files (*.pdf);;All files (*)"),
         )
 
     def _export_as_epub(self) -> None:  # pragma: no cover - UI wiring
         """Export the current document as an EPUB file."""
 
-        QMessageBox.information(
-            self,
+        self._export_document(
+            ExportFormat.EPUB,
             self.tr("Export as EPUB"),
-            self.tr("Export to EPUB is not implemented yet."),
+            self.tr("EPUB files (*.epub);;All files (*)"),
         )
 
     def _export_as_docx(self) -> None:  # pragma: no cover - UI wiring
         """Export the current document as a DOCX file."""
 
-        QMessageBox.information(
-            self,
+        self._export_document(
+            ExportFormat.DOCX,
             self.tr("Export as docx"),
-            self.tr("Export to docx is not implemented yet."),
+            self.tr("Word documents (*.docx);;All files (*)"),
         )
 
     def _export_as_odt(self) -> None:  # pragma: no cover - UI wiring
         """Export the current document as an ODT file."""
 
-        QMessageBox.information(
-            self,
+        self._export_document(
+            ExportFormat.ODT,
             self.tr("Export as odt"),
-            self.tr("Export to odt is not implemented yet."),
+            self.tr("OpenDocument text (*.odt);;All files (*)"),
         )
 
     def _import_from_file(self) -> None:  # pragma: no cover - UI wiring
