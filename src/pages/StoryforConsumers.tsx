@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { 
-  Book, Settings, Eye, HelpCircle, Copy, Plus, 
+  Book, Settings, Eye, EyeOff, HelpCircle, Copy, Plus, 
   Volume, Mic, Users, History, GitBranch, 
   ChevronRight, Image, Share2, ZoomIn,
   Video, AudioLines, ThumbsUp, ThumbsDown, Play,
@@ -339,6 +339,10 @@ const StoryforConsumers = () => {
             <Book className="h-6 w-6 mr-2" />
             <h1 className="text-2xl font-bold">
               <EditableText id="story-title">Story of my life</EditableText>
+ {/* Experience Story Button */}
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <EyeOff className="h-4 w-4" />
+                    </Button>
             </h1>
           </div>
           <div>
