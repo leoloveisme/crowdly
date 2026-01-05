@@ -40,6 +40,33 @@ class CrowdlyStory:
     creator_id: str | None = None
 
 
+@dataclass(frozen=True)
+class ScreenplaySceneRow:
+    """Lightweight row type matching the backend screenplay_scene table."""
+
+    scene_id: str
+    screenplay_id: str
+    scene_index: int
+    slugline: str
+    location: str | None
+    time_of_day: str | None
+    is_interior: bool | None
+    synopsis: str | None
+
+
+@dataclass(frozen=True)
+class ScreenplayBlockRow:
+    """Lightweight row type matching the backend screenplay_block table."""
+
+    block_id: str
+    screenplay_id: str
+    scene_id: str | None
+    block_index: int
+    block_type: str
+    text: str
+    metadata: Any | None
+
+
 class CrowdlyClientError(RuntimeError):
     def __init__(self, message: str, *, kind: str = "unknown", status_code: int | None = None):
         super().__init__(message)
@@ -237,7 +264,7 @@ class CrowdlyClient:
             if not isinstance(ch_title, str) or not ch_title.strip():
                 ch_title = "Chapter"
 
-            md_parts.append(f"\n## {ch_title}\n")
+            md_parts.append("\n## " + ch_title + "\n")
 
             paras = ch.get("paragraphs")
             if isinstance(paras, list):
@@ -292,9 +319,17 @@ class CrowdlyClient:
         if not isinstance(data, dict):
             raise CrowdlyClientError("Unexpected create-story response.", kind="invalid_response")
 
-        story_id = data.get("storyTitleId") or data.get("storyId") or data.get("story_id") or data.get("id")
+        story_id = (
+            data.get("storyTitleId")
+            or data.get("storyId")
+            or data.get("story_id")
+            or data.get("id")
+        )
         if not isinstance(story_id, str) or not story_id.strip():
-            raise CrowdlyClientError("Create-story response did not include story id.", kind="invalid_response")
+            raise CrowdlyClientError(
+                "Create-story response did not include story id.",
+                kind="invalid_response",
+            )
 
         story_url = data.get("storyUrl") or data.get("story_url") or data.get("url")
         if isinstance(story_url, str) and story_url.strip():
@@ -308,6 +343,118 @@ class CrowdlyClient:
             "story_url": story_url_str,
             "raw": data,
         }
+
+    def create_desktop_screenplay(
+        self,
+        *,
+        title: str,
+        format_type: str | None = None,
+    ) -> dict[str, Any]:
+        """Create a new screenplay via the ``/screenplays/template`` endpoint.
+
+        The response mirrors the web app behaviour and returns a screenplay id
+        plus basic metadata. The desktop client can then fetch scenes/blocks
+        to materialise a local Markdown representation.
+        """
+
+        if not self.base_url:
+            raise CrowdlyClientError("Crowdly base URL is not configured.", kind="config")
+
+        user_id = self.login()
+
+        payload = {
+            "userId": user_id,
+            "title": title or "Untitled Screenplay",
+            "formatType": format_type or "feature_film",
+        }
+
+        data = self._http_post_json(f"{self.base_url}/screenplays/template", payload)
+        if not isinstance(data, dict):
+            raise CrowdlyClientError("Unexpected create-screenplay response.", kind="invalid_response")
+
+        screenplay_id = (
+            data.get("screenplayId")
+            or data.get("screenplay_id")
+            or data.get("id")
+        )
+        if not isinstance(screenplay_id, str) or not screenplay_id.strip():
+            raise CrowdlyClientError(
+                "Create-screenplay response did not include screenplayId.",
+                kind="invalid_response",
+            )
+
+        return {
+            "screenplay_id": screenplay_id,
+            "raw": data,
+        }
+
+    def get_screenplay_structure(
+        self,
+        screenplay_id: str,
+        *,
+        include_blocks: bool = True,
+    ) -> tuple[list[ScreenplaySceneRow], list[ScreenplayBlockRow]]:
+        """Fetch scenes (and optionally blocks) for a screenplay.
+
+        This wraps ``GET /screenplays/:screenplayId/scenes`` and returns
+        strongly-typed dataclass instances for convenience.
+        """
+
+        if not self.base_url:
+            raise CrowdlyClientError("Crowdly base URL is not configured.", kind="config")
+
+        q = "?includeBlocks=true" if include_blocks else ""
+        url = f"{self.base_url}/screenplays/{screenplay_id}/scenes{q}"
+        data = self._http_get_json(url)
+        if not isinstance(data, dict):
+            raise CrowdlyClientError("Unexpected screenplay scenes response.", kind="invalid_response")
+
+        raw_scenes = data.get("scenes") or []
+        raw_blocks = data.get("blocks") or []
+
+        scenes: list[ScreenplaySceneRow] = []
+        for row in raw_scenes:
+            if not isinstance(row, dict):
+                continue
+            try:
+                scenes.append(
+                    ScreenplaySceneRow(
+                        scene_id=str(row.get("scene_id")),
+                        screenplay_id=str(row.get("screenplay_id")),
+                        scene_index=int(row.get("scene_index") or 0),
+                        slugline=str(row.get("slugline")) or "",
+                        location=row.get("location"),
+                        time_of_day=row.get("time_of_day"),
+                        is_interior=row.get("is_interior"),
+                        synopsis=row.get("synopsis"),
+                    )
+                )
+            except Exception:
+                continue
+
+        blocks: list[ScreenplayBlockRow] = []
+        for row in raw_blocks:
+            if not isinstance(row, dict):
+                continue
+            try:
+                blocks.append(
+                    ScreenplayBlockRow(
+                        block_id=str(row.get("block_id")),
+                        screenplay_id=str(row.get("screenplay_id")),
+                        scene_id=row.get("scene_id"),
+                        block_index=int(row.get("block_index") or 0),
+                        block_type=str(row.get("block_type")) or "action",
+                        text=str(row.get("text")) or "",
+                        metadata=row.get("metadata"),
+                    )
+                )
+            except Exception:
+                continue
+
+        # Sort deterministically like the web module.
+        scenes.sort(key=lambda s: s.scene_index)
+        blocks.sort(key=lambda b: b.block_index)
+        return scenes, blocks
 
     def sync_desktop_story(
         self,
@@ -420,4 +567,3 @@ class CrowdlyClient:
             )
         except urllib.error.URLError as exc:
             raise CrowdlyClientError(f"Network error: {exc}", kind="network")
-

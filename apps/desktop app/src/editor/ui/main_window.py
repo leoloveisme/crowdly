@@ -28,8 +28,8 @@ from PySide6.QtWidgets import (
     QTabBar,
     QLineEdit,
 )
-from PySide6.QtCore import Qt, QTimer, QEvent, QCoreApplication, QObject, QThread, Signal
-from PySide6.QtGui import QAction, QActionGroup
+from PySide6.QtCore import Qt, QTimer, QEvent, QCoreApplication, QObject, QThread, Signal, QUrl
+from PySide6.QtGui import QAction, QActionGroup, QDesktopServices
 
 from ..document import Document
 from ..settings import Settings, save_settings
@@ -63,6 +63,11 @@ class MainWindow(QMainWindow):
         self._language_actions: dict[str, QAction] = {}
         self._translator = translator
         self._logged_in = False
+
+        # Cached URL/id for the current story or screenplay so the status-bar
+        # link can open it in the system browser.
+        self._current_story_or_screenplay_id: str | None = None
+        self._current_story_or_screenplay_url: str | None = None
 
         # Placeholder username for status bar; will be replaced by real
         # authentication wiring later.
@@ -148,6 +153,10 @@ class MainWindow(QMainWindow):
         )
         self._action_new_directory = new_menu.addAction(
             self.tr("New directory"), self._new_directory
+        )
+        # New Crowdly-backed story creation helper (regular story vs screenplay).
+        self._action_new_story = new_menu.addAction(
+            self.tr("Story"), self._new_story_from_template
         )
         # Workspace creation helpers.
         self._action_new_tab = new_menu.addAction(
@@ -359,6 +368,16 @@ class MainWindow(QMainWindow):
         self._sync_status_label = QLabel(self)
         bar.addPermanentWidget(self._sync_status_label, 0)
 
+        # Story / Screenplay ID link label. When a document is associated with
+        # a Crowdly story or screenplay, this shows e.g. "Story ID: <uuid>" or
+        # "Screenplay ID: <uuid>" as a clickable link.
+        self._story_link_label = QLabel(self)
+        self._story_link_label.setText("")
+        self._story_link_label.setTextFormat(Qt.TextFormat.RichText)
+        self._story_link_label.setOpenExternalLinks(False)
+        self._story_link_label.linkActivated.connect(self._on_story_link_activated)
+        bar.addPermanentWidget(self._story_link_label, 0)
+
         # Right-aligned user label.
         self._user_label = QLabel(self)
         bar.addPermanentWidget(self._user_label, 0)
@@ -366,6 +385,7 @@ class MainWindow(QMainWindow):
         self._update_document_stats_label()
         self._update_sync_status_label()
         self._update_user_status_label()
+        self._update_story_link_label()
 
     # Internal helpers ----------------------------------------------------
 
@@ -536,6 +556,7 @@ class MainWindow(QMainWindow):
 
         self.preview.set_markdown(self._document.content)
         self._update_document_stats_label()
+        self._update_story_link_label()
 
         # Keep the preview visibility in sync with the global toggle.
         if hasattr(self, "_preview_toggle"):
@@ -821,6 +842,8 @@ class MainWindow(QMainWindow):
             self._action_new_document.setText(self.tr("New document"))
         if hasattr(self, "_action_new_directory"):
             self._action_new_directory.setText(self.tr("New directory"))
+        if hasattr(self, "_action_new_story"):
+            self._action_new_story.setText(self.tr("Story"))
         if hasattr(self, "_action_new_tab"):
             self._action_new_tab.setText(self.tr("Tab"))
         if hasattr(self, "_action_new_window"):
@@ -909,6 +932,7 @@ class MainWindow(QMainWindow):
         self._update_document_stats_label()
         self._update_sync_status_label()
         self._update_user_status_label()
+        self._update_story_link_label()
 
         # Language entries within the submenu.
         labels_by_code = {
@@ -1022,6 +1046,84 @@ class MainWindow(QMainWindow):
 
         label.setText(text)
 
+    def _update_story_link_label(self) -> None:
+        """Update the status-bar link for the current story/screenplay, if any."""
+
+        label = getattr(self, "_story_link_label", None)
+        if label is None:
+            return
+
+        # Default: hide label when there is no associated story/screenplay.
+        text = ""
+        url: str | None = None
+        identifier: str | None = None
+        kind: str | None = None
+
+        try:
+            path = self._get_current_document_path()
+        except Exception:
+            path = None
+
+        if path is not None:
+            try:
+                # Prefer story metadata when present.
+                if file_metadata.has_story_metadata(path):
+                    md = file_metadata.read_story_metadata(path)
+                    identifier = md.story_id or None
+                    url = md.source_url or None
+                    kind = "story"
+
+                    if not url and identifier:
+                        base = getattr(self._settings, "crowdly_base_url", None)
+                        if isinstance(base, str) and base.strip():
+                            url = f"{base.rstrip('/')}/story/{identifier}"
+
+                else:
+                    # Best-effort: look for screenplay_id/screenplay_url xattrs.
+                    sp_id = file_metadata.get_attr(path, "screenplay_id")
+                    sp_url = file_metadata.get_attr(path, "screenplay_url")
+                    if sp_id:
+                        identifier = sp_id
+                        url = sp_url or None
+                        kind = "screenplay"
+
+                        if not url and identifier:
+                            base = getattr(self._settings, "crowdly_base_url", None)
+                            if isinstance(base, str) and base.strip():
+                                url = f"{base.rstrip('/')}/screenplay/{identifier}"
+            except Exception:
+                identifier = None
+                url = None
+                kind = None
+
+        self._current_story_or_screenplay_id = identifier
+        self._current_story_or_screenplay_url = url
+
+        if identifier and kind:
+            if kind == "story":
+                label_text = self.tr('Story ID: <a href="id">{id}</a>').format(id=identifier)
+            else:
+                label_text = self.tr('Screenplay ID: <a href="id">{id}</a>').format(id=identifier)
+            text = label_text.replace("id", identifier)
+
+        label.setText(text)
+
+    def _on_story_link_activated(self, _href: str) -> None:  # pragma: no cover - UI wiring
+        """Open the current story/screenplay in the system's default browser."""
+
+        url = getattr(self, "_current_story_or_screenplay_url", None)
+        if not url:
+            return
+
+        try:
+            QDesktopServices.openUrl(QUrl(url))
+        except Exception:
+            QMessageBox.warning(
+                self,
+                self.tr("Open in browser"),
+                self.tr("Could not open the story in the browser."),
+            )
+
     # ------------------------------------------------------------------
     # Web sync helpers
     # ------------------------------------------------------------------
@@ -1129,6 +1231,341 @@ class MainWindow(QMainWindow):
         # Clear preview explicitly.
         if self.preview.isVisible():
             self.preview.set_markdown("")
+
+        # Clear any associated story/screenplay link.
+        self._current_story_or_screenplay_id = None
+        self._current_story_or_screenplay_url = None
+        self._update_story_link_label()
+
+    def _new_story_from_template(self) -> None:  # pragma: no cover - UI wiring
+        """Create a new Crowdly story or screenplay using backend templates.
+
+        When the user chooses "Story" from the New menu we show a small
+        dialog asking whether they want a regular (novel) story or a
+        screenplay, mirroring the Crowdly web platform behaviour.
+        """
+
+        import traceback
+
+        try:
+            try:
+                from .create_story_dialog import CreateStoryDialog
+            except Exception as exc:
+                QMessageBox.warning(
+                    self,
+                    self.tr("Create story"),
+                    self.tr(
+                        "The story creation dialog could not be opened.\n\nDetails: {error}"
+                    ).format(error=str(exc)),
+                )
+                return
+
+            dialog = CreateStoryDialog(self)
+            if dialog.exec() != QDialog.DialogCode.Accepted:
+                return
+
+            choice = dialog.choice()
+            if choice == "story":
+                self._create_regular_story_from_template()
+            elif choice == "screenplay":
+                self._create_screenplay_from_template()
+        except Exception:
+            traceback.print_exc()
+            QMessageBox.critical(
+                self,
+                self.tr("Create story"),
+                self.tr("An unexpected error occurred while starting story creation."),
+            )
+
+    def _create_regular_story_from_template(self) -> None:  # pragma: no cover - UI wiring
+        """Create a new regular (novel) story via the Crowdly backend.
+
+        This uses the same backend template endpoint as the web platform and
+        then reuses the existing import-from-web pipeline to materialise a
+        local Markdown document and metadata.
+        """
+
+        import traceback
+
+        try:
+            # Ensure project space exists so we have somewhere to save the file.
+            if self._project_space_path is None:
+                QMessageBox.information(
+                    self,
+                    self.tr("Project space required"),
+                    self.tr("Please create or choose your project space first."),
+                )
+                self._choose_project_space()
+                if self._project_space_path is None:
+                    return
+
+            base_url_setting = getattr(self._settings, "crowdly_base_url", None)
+            if not isinstance(base_url_setting, str) or not base_url_setting.strip():
+                QMessageBox.information(
+                    self,
+                    self.tr("Create story"),
+                    self.tr(
+                        "Crowdly base URL is not configured. Please configure it in settings and try again."
+                    ),
+                )
+                return
+
+            # Obtain web credentials (email/password) for the Crowdly backend.
+            creds = self._ensure_crowdly_web_credentials()
+            if not creds:
+                return
+
+            try:
+                from ..crowdly_client import (
+                    CrowdlyClient,
+                    CrowdlyClientError,
+                    api_base_url_from_story_url,
+                )
+            except Exception as exc:
+                QMessageBox.critical(
+                    self,
+                    self.tr("Create story"),
+                    self.tr(
+                        "Crowdly client is unavailable.\n\nDetails: {error}"
+                    ).format(error=str(exc)),
+                )
+                return
+
+            # Derive backend API origin from the configured web/base URL.
+            try:
+                api_base = api_base_url_from_story_url(base_url_setting)
+            except Exception:
+                api_base = (base_url_setting or "").rstrip("/")
+
+            if not api_base:
+                QMessageBox.critical(
+                    self,
+                    self.tr("Create story"),
+                    self.tr("Could not derive Crowdly API base URL from settings."),
+                )
+                return
+
+            client = CrowdlyClient(api_base, credentials=creds)
+
+            # Use the current document's guessed title as a starting point if
+            # available, otherwise fall back to a generic title.
+            title = self._guess_document_title() or "Untitled"
+
+            created = client.create_desktop_story(title=title)
+            story_url = created.get("story_url")
+            story_id = created.get("story_id")
+            if not isinstance(story_id, str) or not story_id.strip():
+                raise CrowdlyClientError(
+                    "Create-story response did not include story id.",
+                    kind="invalid_response",
+                )
+
+            if not isinstance(story_url, str) or not story_url.strip():
+                story_url = f"{api_base.rstrip('/')}/story/{story_id}"
+
+            # Fetch the freshly-created story as Markdown and reuse the
+            # existing import pipeline so naming/metadata stays consistent.
+            story = client.fetch_story(story_url)
+            self._on_crowdly_story_fetched(story)
+        except Exception as exc:  # pragma: no cover - defensive
+            traceback.print_exc()
+            try:
+                from ..crowdly_client import CrowdlyClientError
+
+                if isinstance(exc, CrowdlyClientError):
+                    message = str(exc)
+                else:
+                    message = self.tr(
+                        "An unexpected error occurred while creating the story."
+                    )
+            except Exception:
+                message = self.tr(
+                    "An unexpected error occurred while creating the story."
+                )
+
+            QMessageBox.critical(
+                self,
+                self.tr("Create story"),
+                message,
+            )
+
+    def _create_screenplay_from_template(self) -> None:  # pragma: no cover - UI wiring
+        """Create a new screenplay via the Crowdly backend and open it locally."""
+
+        import traceback
+
+        try:
+            # Ensure project space exists.
+            if self._project_space_path is None:
+                QMessageBox.information(
+                    self,
+                    self.tr("Project space required"),
+                    self.tr("Please create or choose your project space first."),
+                )
+                self._choose_project_space()
+                if self._project_space_path is None:
+                    return
+
+            base_url_setting = getattr(self._settings, "crowdly_base_url", None)
+            if not isinstance(base_url_setting, str) or not base_url_setting.strip():
+                QMessageBox.information(
+                    self,
+                    self.tr("Create screenplay"),
+                    self.tr(
+                        "Crowdly base URL is not configured. Please configure it in settings and try again."
+                    ),
+                )
+                return
+
+            creds = self._ensure_crowdly_web_credentials()
+            if not creds:
+                return
+
+            try:
+                from ..crowdly_client import (
+                    CrowdlyClient,
+                    CrowdlyClientError,
+                    api_base_url_from_story_url,
+                )
+            except Exception as exc:
+                QMessageBox.critical(
+                    self,
+                    self.tr("Create screenplay"),
+                    self.tr(
+                        "Crowdly client is unavailable.\n\nDetails: {error}"
+                    ).format(error=str(exc)),
+                )
+                return
+
+            try:
+                api_base = api_base_url_from_story_url(base_url_setting)
+            except Exception:
+                api_base = (base_url_setting or "").rstrip("/")
+
+            if not api_base:
+                QMessageBox.critical(
+                    self,
+                    self.tr("Create screenplay"),
+                    self.tr("Could not derive Crowdly API base URL from settings."),
+                )
+                return
+
+            client = CrowdlyClient(api_base, credentials=creds)
+
+            title = self._guess_document_title() or "Untitled Screenplay"
+
+            created = client.create_desktop_screenplay(title=title)
+            screenplay_id = created.get("screenplay_id")
+            if not isinstance(screenplay_id, str) or not screenplay_id.strip():
+                raise CrowdlyClientError(
+                    "Create-screenplay response did not include screenplayId.",
+                    kind="invalid_response",
+                )
+
+            scenes, blocks = client.get_screenplay_structure(screenplay_id)
+
+            # Simple Markdown representation of the screenplay structure.
+            lines: list[str] = []
+            lines.append(f"# {title or 'Untitled Screenplay'}")
+            lines.append("")
+            for scene in scenes:
+                lines.append(
+                    f"## Scene {scene.scene_index}: {scene.slugline}".rstrip()
+                )
+                lines.append("")
+                scene_blocks = [
+                    b for b in blocks if b.scene_id == scene.scene_id
+                ]
+                for block in scene_blocks:
+                    text = block.text or ""
+                    bt = (block.block_type or "").lower()
+                    if bt == "character":
+                        lines.append(text.upper())
+                    elif bt == "parenthetical":
+                        if not (text.startswith("(") and text.endswith(")")):
+                            lines.append(f"({text})")
+                        else:
+                            lines.append(text)
+                    else:
+                        lines.append(text)
+                    lines.append("")
+
+            body_md = "\n".join(lines).rstrip() + "\n"
+
+            # Persist as a new local document inside the project space.
+            project_space = self._project_space_path
+            assert project_space is not None
+
+            timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+            filename = f"screenplay-{screenplay_id}-{timestamp}.md"
+            local_path = project_space / filename
+
+            doc = Document(path=None, content=body_md, is_dirty=True)
+            doc.save(local_path)
+
+            # Best-effort: record screenplay id + URL in xattrs so the status
+            # bar can expose a clickable link similar to stories.
+            try:
+                file_metadata.set_attr(local_path, "screenplay_id", screenplay_id)
+                base = getattr(self._settings, "crowdly_base_url", None)
+                if isinstance(base, str) and base.strip():
+                    sp_url = f"{base.rstrip('/')}/screenplay/{screenplay_id}"
+                    file_metadata.set_attr(local_path, "screenplay_url", sp_url)
+            except Exception:
+                pass
+
+            try:
+                from ..versioning import local_queue
+
+                local_queue.ensure_crowdly_dir_for_document(local_path)
+            except Exception:
+                pass
+
+            bar = self.statusBar()
+            if bar is not None:
+                bar.showMessage(
+                    self.tr("Created new screenplay at: {path}").format(
+                        path=local_path
+                    ),
+                    5000,
+                )
+
+            # Load into current tab.
+            self._document = doc
+            if 0 <= self._current_tab_index < len(self._tab_documents):
+                self._tab_documents[self._current_tab_index] = self._document
+            self._last_change_from_preview = False
+
+            old_state = self.editor.blockSignals(True)
+            try:
+                self.editor.setPlainText(doc.content)
+            finally:
+                self.editor.blockSignals(old_state)
+
+            self.preview.set_markdown(doc.content)
+            self._update_document_stats_label()
+            self._update_story_link_label()
+        except Exception as exc:  # pragma: no cover - defensive
+            traceback.print_exc()
+            try:
+                from ..crowdly_client import CrowdlyClientError
+
+                if isinstance(exc, CrowdlyClientError):
+                    message = str(exc)
+                else:
+                    message = self.tr(
+                        "An unexpected error occurred while creating the screenplay."
+                    )
+            except Exception:
+                message = self.tr(
+                    "An unexpected error occurred while creating the screenplay."
+                )
+
+            QMessageBox.critical(
+                self,
+                self.tr("Create screenplay"),
+                message,
+            )
 
     def _new_tab(self) -> None:  # pragma: no cover - UI wiring
         """Create a new tab with its own independent document."""
@@ -1666,6 +2103,7 @@ class MainWindow(QMainWindow):
 
         self.preview.set_markdown(doc.content)
         self._update_document_stats_label()
+        self._update_story_link_label()
 
     def _on_crowdly_story_fetch_failed(self, error: object, *, story_url: str) -> None:  # pragma: no cover - UI wiring
         """Show a user-friendly error when a web story cannot be loaded."""

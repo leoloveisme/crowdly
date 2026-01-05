@@ -7,3 +7,8 @@ Requires-Dist: pyside6
 Requires-Dist: markdown
 Requires-Dist: psycopg2-binary
 Requires-Dist: bcrypt
+Requires-Dist: python-docx
+Requires-Dist: odfpy
+Requires-Dist: pdfminer.six
+Requires-Dist: ebooklib
+Requires-Dist: markdownify
