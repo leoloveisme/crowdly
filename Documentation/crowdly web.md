@@ -1,3 +1,5 @@
+THIS NEEDS A RE-WRITE 
+
 I'm not really happy with the current functionality for story creation and collaboration and versioning of it, etc
 
 I'm glad it at least partially works and I can show it to other people, however so really happy am I not.

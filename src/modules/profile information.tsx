@@ -207,11 +207,11 @@ const ProfileInformation: React.FC<ProfileInformationProps> = ({
             )}
           </div>
 
-          {/* Nickname */}
+          {/* Profile name (used as public profile URL / handle) */}
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <Label className="text-sm text-gray-500">
-                <EditableText id="nickname-label">Nickname</EditableText>
+                <EditableText id="profile-name-label">Profile name</EditableText>
               </Label>
               {!previewMode && !editingField && (
                 <Button
@@ -220,7 +220,7 @@ const ProfileInformation: React.FC<ProfileInformationProps> = ({
                   onClick={() => startEditing("nickname", profile?.nickname)}
                   className="h-6 p-0 text-purple-600 hover:text-purple-800 hover:bg-transparent"
                 >
-                  <EditableText id="edit-button">Edit</EditableText>
+                  <EditableText id="edit-profile-name-button">Edit</EditableText>
                 </Button>
               )}
             </div>
@@ -241,7 +241,48 @@ const ProfileInformation: React.FC<ProfileInformationProps> = ({
                   profile.nickname
                 ) : (
                   <span className="text-gray-400 italic">
-                    <EditableText id="no-nickname-text">No nickname set</EditableText>
+                    <EditableText id="no-profile-name-text">No profile name set</EditableText>
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Nickname (optional, real-life nickname) */}
+          <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <Label className="text-sm text-gray-500">
+                <EditableText id="real-nickname-label">Nickname (optional)</EditableText>
+              </Label>
+              {!previewMode && !editingField && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => startEditing("real_nickname", profile?.real_nickname)}
+                  className="h-6 p-0 text-purple-600 hover:text-purple-800 hover:bg-transparent"
+                >
+                  <EditableText id="edit-real-nickname-button">Edit</EditableText>
+                </Button>
+              )}
+            </div>
+            {editingField === "real_nickname" ? (
+              <Input
+                value={tempValue}
+                onChange={(e) => setTempValue(e.target.value)}
+                onBlur={() => handleBlur("real_nickname")}
+                className="mt-1"
+                autoFocus
+              />
+            ) : (
+              <div
+                className="font-medium text-gray-800 cursor-text"
+                onClick={() => !previewMode && startEditing("real_nickname", profile?.real_nickname)}
+              >
+                {profile?.real_nickname ? (
+                  profile.real_nickname
+                ) : (
+                  <span className="text-gray-400 italic">
+                    <EditableText id="no-real-nickname-text">No nickname set</EditableText>
                   </span>
                 )}
               </div>

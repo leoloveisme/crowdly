@@ -1,0 +1,209 @@
+import React, { useEffect, useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import CrowdlyHeader from "@/components/CrowdlyHeader";
+import CrowdlyFooter from "@/components/CrowdlyFooter";
+import EditableText from "@/components/EditableText";
+
+const API_BASE = import.meta.env.PROD
+  ? (import.meta.env.VITE_API_BASE_URL ?? "")
+  : "";
+
+interface PublicProfileData {
+  id: string;
+  username: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  bio?: string | null;
+}
+
+interface PublicStory {
+  story_title_id: string;
+  title: string;
+  created_at: string;
+  visibility?: string;
+  published?: boolean;
+}
+
+interface PublicScreenplay {
+  screenplay_id: string;
+  title: string;
+  created_at: string;
+  visibility?: string;
+  published?: boolean;
+}
+
+const PublicProfile: React.FC = () => {
+  const { username } = useParams<{ username: string }>();
+  const [profile, setProfile] = useState<PublicProfileData | null>(null);
+  const [stories, setStories] = useState<PublicStory[]>([]);
+  const [screenplays, setScreenplays] = useState<PublicScreenplay[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      if (!username) return;
+      setLoading(true);
+      setNotFound(false);
+
+      try {
+        // 1) Load public profile by username
+        const profRes = await fetch(`${API_BASE}/public-profiles/${encodeURIComponent(username)}`);
+        if (!profRes.ok) {
+          setNotFound(true);
+          setLoading(false);
+          return;
+        }
+        const prof = await profRes.json();
+        setProfile(prof);
+
+        const userId = prof.id as string;
+
+        // 2) Load stories the user is involved in
+        const storiesRes = await fetch(`${API_BASE}/users/${userId}/stories`);
+        if (storiesRes.ok) {
+          const data = (await storiesRes.json()) as PublicStory[];
+          const visible = Array.isArray(data)
+            ? data.filter((s) => s.visibility === "public" && s.published === true)
+            : [];
+          setStories(visible);
+        } else {
+          setStories([]);
+        }
+
+        // 3) Load screenplays the user is involved in
+        const spRes = await fetch(`${API_BASE}/users/${userId}/screenplays`);
+        if (spRes.ok) {
+          const data = (await spRes.json()) as PublicScreenplay[];
+          const visible = Array.isArray(data)
+            ? data.filter((sp) => sp.visibility === "public" && sp.published === true)
+            : [];
+          setScreenplays(visible);
+        } else {
+          setScreenplays([]);
+        }
+      } catch (err) {
+        console.error("[PublicProfile] failed to load", err);
+        setNotFound(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, [username]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <CrowdlyHeader />
+        <div className="flex flex-1 items-center justify-center">
+          <p className="text-gray-500">Loading public profile...</p>
+        </div>
+        <CrowdlyFooter />
+      </div>
+    );
+  }
+
+  if (notFound || !profile) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <CrowdlyHeader />
+        <div className="flex flex-1 items-center justify-center flex-col text-center px-4">
+          <h1 className="text-3xl font-bold mb-2">User not found</h1>
+          <p className="text-gray-600 mb-4">
+            We couldn&apos;t find a public profile for this username.
+          </p>
+        </div>
+        <CrowdlyFooter />
+      </div>
+    );
+  }
+
+  const displayName =
+    (profile.first_name || profile.last_name)
+      ? `${profile.first_name ?? ""} ${profile.last_name ?? ""}`.trim()
+      : profile.username;
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <CrowdlyHeader />
+      <main className="flex-1">
+        <div className="container mx-auto px-4 pt-10 pb-16">
+          <header className="mb-8">
+            <h1 className="text-3xl font-bold mb-1">
+              <EditableText id="public-profile-heading">
+                {displayName}
+              </EditableText>
+            </h1>
+            <p className="text-sm text-gray-500 mb-2">@{profile.username}</p>
+            {profile.bio && (
+              <p className="text-gray-700 max-w-2xl whitespace-pre-line">
+                {profile.bio}
+              </p>
+            )}
+          </header>
+
+          {/* Public stories */}
+          <section className="mb-10">
+            <h2 className="text-xl font-bold mb-3 flex items-center gap-2">
+              <span>Stories</span>
+            </h2>
+            {stories.length === 0 ? (
+              <p className="text-sm text-gray-400 italic">
+                No public stories yet.
+              </p>
+            ) : (
+              <ul className="space-y-1 text-sm">
+                {stories.map((s) => (
+                  <li key={s.story_title_id} className="flex items-center gap-2">
+                    <Link
+                      to={`/story/${s.story_title_id}`}
+                      className="text-purple-700 hover:underline"
+                    >
+                      {s.title}
+                    </Link>
+                    <span className="text-[11px] text-gray-500">
+                      ({new Date(s.created_at).toLocaleString()})
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          {/* Public screenplays */}
+          <section className="mb-10">
+            <h2 className="text-xl font-bold mb-3 flex items-center gap-2">
+              <span>Screenplays</span>
+            </h2>
+            {screenplays.length === 0 ? (
+              <p className="text-sm text-gray-400 italic">
+                No public screenplays yet.
+              </p>
+            ) : (
+              <ul className="space-y-1 text-sm">
+                {screenplays.map((sp) => (
+                  <li key={sp.screenplay_id} className="flex items-center gap-2">
+                    <Link
+                      to={`/screenplay/${sp.screenplay_id}`}
+                      className="text-purple-700 hover:underline"
+                    >
+                      {sp.title}
+                    </Link>
+                    <span className="text-[11px] text-gray-500">
+                      ({new Date(sp.created_at).toLocaleString()})
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
+      </main>
+      <CrowdlyFooter />
+    </div>
+  );
+};
+
+export default PublicProfile;

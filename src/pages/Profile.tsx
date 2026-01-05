@@ -112,6 +112,15 @@ const Profile = () => {
   }[]>([]);
   const [storiesLoading, setStoriesLoading] = useState(false);
 
+  // Screenplays the user is creating or collaborating on
+  const [userScreenplays, setUserScreenplays] = useState<{
+    screenplay_id: string;
+    title: string;
+    created_at: string;
+    roles: string[];
+  }[]>([]);
+  const [screenplaysLoading, setScreenplaysLoading] = useState(false);
+
   // Creative spaces: for now, this is just a placeholder list. In a
   // later step we will fetch real creative spaces from the backend and
   // keep them in sync with the desktop app's project spaces.
@@ -240,6 +249,38 @@ const Profile = () => {
     };
     loadContributions();
   }, [userId, userEmail]);
+
+  // Load screenplays the user is creating or collaborating on
+  useEffect(() => {
+    const loadScreenplays = async () => {
+      if (!authUser?.id) {
+        setUserScreenplays([]);
+        return;
+      }
+      try {
+        setScreenplaysLoading(true);
+        const res = await fetch(`${API_BASE}/users/${authUser.id}/screenplays`);
+        if (!res.ok) {
+          console.error('[Profile] Failed to load user screenplays', res.status);
+          setUserScreenplays([]);
+          return;
+        }
+        const data = await res.json().catch(() => []);
+        if (!Array.isArray(data)) {
+          setUserScreenplays([]);
+          return;
+        }
+        setUserScreenplays(data);
+      } catch (err) {
+        console.error('[Profile] Error loading user screenplays', err);
+        setUserScreenplays([]);
+      } finally {
+        setScreenplaysLoading(false);
+      }
+    };
+
+    loadScreenplays();
+  }, [authUser]);
 
   // Toggle preview mode function
   const togglePreviewMode = () => {
@@ -425,6 +466,9 @@ const Profile = () => {
 
     fetchUserStories();
   }, [authUser]);
+
+  // Legacy effect previously used /screenplays?userId=; kept for reference but no-op now
+  // Screenplays are loaded via /users/:userId/screenplays above.
 
   // Save profile field (generic handler). When using local auth, this writes
   // to the backend /profiles/:userId endpoint. For legacy Supabase-only
@@ -817,6 +861,43 @@ const Profile = () => {
                   </Link>
                   <span className="text-[11px] text-gray-500">
                     ({s.roles.includes('creator') ? 'creator' : 'contributor'})
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {/* Screenplays the user is creating / co-creating */}
+        <div className="mb-8">
+          <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
+            <FileText className="h-5 w-5 text-purple-600" />
+            Screenplays I'm creating / co-creating
+          </h2>
+          {screenplaysLoading ? (
+            <div className="text-gray-500 text-sm">Loading your screenplays...</div>
+          ) : userScreenplays.length === 0 ? (
+            <div className="text-gray-400 text-sm italic">You are not yet creating any screenplays.</div>
+          ) : (
+            <ul className="space-y-1 text-sm">
+              {userScreenplays.map((sp) => (
+                <li key={sp.screenplay_id} className="flex items-center gap-2">
+                  <Link
+                    to={`/screenplay/${sp.screenplay_id}`}
+                    className="text-purple-700 hover:underline"
+                  >
+                    {sp.title}
+                  </Link>
+                  <span className="text-[11px] text-gray-500 flex items-center gap-1">
+                    <span>
+                      ({new Date(sp.created_at).toLocaleString()})
+                    </span>
+                    {Array.isArray(sp.roles) && sp.roles.length > 0 && (
+                      <span>
+                        
+                        {sp.roles.includes('creator') ? 'creator' : sp.roles.join(', ')}
+                      </span>
+                    )}
                   </span>
                 </li>
               ))}

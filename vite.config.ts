@@ -34,6 +34,18 @@ export default defineConfig(({ mode }) => ({
         target: "http://localhost:4000",
         changeOrigin: true,
       },
+      "/screenplays": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/screenplay-scenes": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/screenplay-blocks": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
       "/reactions": {
         target: "http://localhost:4000",
         changeOrigin: true,
@@ -55,6 +67,10 @@ export default defineConfig(({ mode }) => ({
         changeOrigin: true,
       },
       "/profiles": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/public-profiles": {
         target: "http://localhost:4000",
         changeOrigin: true,
       },

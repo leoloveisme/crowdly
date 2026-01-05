@@ -21,6 +21,8 @@ import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
 import EditingModeToggle from "./components/EditingModeToggle";
 import Story from "./pages/Story";
+import Screenplay from "./pages/Screenplay";
+import PublicProfile from "./pages/PublicProfile";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +52,9 @@ const App = () => {
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="/story/:story_id" element={<Story />} />
                 <Route path="/story/:story_id/chapter/:chapter_id" element={<Story />} />
+                <Route path="/screenplay/:screenplay_id" element={<Screenplay />} />
+                {/* Public user page, e.g. /leolove */}
+                <Route path="/:username" element={<PublicProfile />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <EditingModeToggle />

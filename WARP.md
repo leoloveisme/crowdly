@@ -7,6 +7,11 @@ This file provides guidance to WARP (warp.dev) when working with code in this re
 ### Environment and setup (web app)
 - Requires Node.js and npm (README recommends installing Node via nvm).
 - All frontend commands below are run from the repository root.
+- The backend for the web app is a **local Node/Express + PostgreSQL** service
+  under `backend/`.
+- We do **not** use Supabase as our primary database in this repo; some
+  Supabase types are still referenced in the TypeScript layer (e.g. for
+  auth/roles), but data is persisted to a local PostgreSQL instance.
 
 #### Install dependencies
 ```sh
@@ -42,6 +47,18 @@ Project-wide ESLint run:
 ```sh
 npm run lint
 ```
+
+### Backend (local PostgreSQL)
+- The backend lives in `backend/` and talks to a local PostgreSQL database,
+  not to Supabase.
+- Typical dev workflow:
+  ```sh
+  cd backend
+  npm install        # first time only
+  node src/server.js # or your preferred dev runner
+  ```
+- The frontend assumes this backend is reachable at `http://localhost:4000`
+  (or whatever `PORT` is configured via environment variables).
 
 > Note: There is currently no configured test runner or `npm test` script in the frontend; add one explicitly in `package.json` if you introduce automated tests.
 
@@ -104,6 +121,9 @@ When creating a new screen, add a component under `src/pages/` and register a co
 #### Contexts and Supabase integration
 - `src/contexts/AuthContext.tsx`:
   - Integrates with Supabase via `@/integrations/supabase/client` to manage authentication and sessions.
+  - Supabase is used **only** for auth/session management in this repo; all
+    application data (stories, screenplays, etc.) is stored in the local
+    PostgreSQL database behind the Node/Express backend.
   - Tracks `user`, `session`, `loading`, and `roles` (typed `UserRole` union including roles like `platform_admin`, `consumer`, `author`, etc.).
   - Exposes `hasRole(role)`, `signIn(email, password)`, and `signOut()` helpers.
   - Subscribes to Supabase auth state changes and separately fetches user roles from a `user_roles` table, attaching them to the `user` object.

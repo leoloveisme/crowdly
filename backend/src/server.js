@@ -118,6 +118,18 @@ async function ensureParagraphBranchesTable() {
   }
 }
 
+// Additional profile metadata columns
+async function ensureProfilesRealNicknameColumn() {
+  try {
+    await pool.query(
+      "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS real_nickname text",
+    );
+    console.log('[init] ensured profiles.real_nickname column exists');
+  } catch (err) {
+    console.error('[init] failed to ensure profiles.real_nickname column:', err);
+  }
+}
+
 // Some of our tables (story revisions, CRDT docs, creative spaces, etc.)
 // rely on gen_random_uuid(). Ensure the pgcrypto extension is available
 // so that function exists.
@@ -236,19 +248,25 @@ async function ensureProposalsTable() {
     await pool.query(
       "ALTER TABLE crdt_proposals ADD COLUMN IF NOT EXISTS doc_id uuid NULL",
     );
-    // Best-effort foreign key; if it already exists, log and continue
-    try {
-      await pool.query(
-        'ALTER TABLE crdt_proposals ADD CONSTRAINT crdt_proposals_doc_fk FOREIGN KEY (doc_id) REFERENCES crdt_documents(id) ON DELETE CASCADE',
-      );
-    } catch (err) {
-      if (err && err.code === '42710') {
-        // duplicate_object: constraint already exists
-        console.log('[init] crdt_proposals_doc_fk already exists, skipping');
-      } else {
-        console.error('[init] failed to ensure crdt_proposals_doc_fk:', err);
-      }
-    }
+
+    // Add the foreign key only if it does not already exist to avoid noisy
+    // "constraint already exists" errors in the Postgres logs.
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1
+          FROM information_schema.table_constraints
+          WHERE constraint_name = 'crdt_proposals_doc_fk'
+            AND table_name = 'crdt_proposals'
+        ) THEN
+          ALTER TABLE crdt_proposals
+            ADD CONSTRAINT crdt_proposals_doc_fk
+            FOREIGN KEY (doc_id) REFERENCES crdt_documents(id) ON DELETE CASCADE;
+        END IF;
+      END
+      $$;
+    `);
 
     await pool.query(
       'CREATE INDEX IF NOT EXISTS crdt_proposals_story_idx ON crdt_proposals(story_title_id)',
@@ -360,6 +378,150 @@ async function ensureContributionsTable() {
   }
 }
 
+// Screenplay tables: title, scenes, blocks, and linking table between stories
+// and screenplays. These mirror the story tables but are kept separate to
+// avoid breaking existing story functionality.
+async function ensureScreenplayTables() {
+  try {
+    // Main screenplay title/metadata table.
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS screenplay_title (
+        screenplay_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        title         text NOT NULL,
+        -- For now, keep creator_id as a loose UUID like story_title.creator_id
+        -- so it can store Supabase user IDs or local user IDs without a
+        -- strict foreign key. This mirrors story_title and avoids FK
+        -- violations when creating screenplays from the web app.
+        creator_id    uuid NULL,
+        visibility    text NOT NULL DEFAULT 'public',
+        published     boolean NOT NULL DEFAULT true,
+        genre         text NULL,
+        tags          text[] NULL,
+        format_type   text NULL,
+        created_at    timestamptz NOT NULL DEFAULT now(),
+        updated_at    timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+
+    // If an earlier version created a FK to local_users, drop it so that
+    // creator_id matches the semantics of story_title.creator_id.
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF EXISTS (
+          SELECT 1 FROM information_schema.table_constraints
+          WHERE constraint_name = 'screenplay_title_creator_id_fkey'
+            AND table_name = 'screenplay_title'
+        ) THEN
+          ALTER TABLE screenplay_title DROP CONSTRAINT screenplay_title_creator_id_fkey;
+        END IF;
+      END
+      $$;
+    `);
+
+    // Scenes within a screenplay.
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS screenplay_scene (
+        scene_id      uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        screenplay_id uuid NOT NULL REFERENCES screenplay_title(screenplay_id) ON DELETE CASCADE,
+        scene_index   integer NOT NULL,
+        slugline      text NOT NULL,
+        location      text NULL,
+        time_of_day   text NULL,
+        is_interior   boolean NULL,
+        synopsis      text NULL,
+        created_at    timestamptz NOT NULL DEFAULT now(),
+        updated_at    timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+
+    await pool.query(
+      'CREATE INDEX IF NOT EXISTS screenplay_scene_screenplay_idx ON screenplay_scene(screenplay_id, scene_index)',
+    );
+
+    // Atomic blocks (elements) inside scenes.
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS screenplay_block (
+        block_id      uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        screenplay_id uuid NOT NULL REFERENCES screenplay_title(screenplay_id) ON DELETE CASCADE,
+        scene_id      uuid NULL REFERENCES screenplay_scene(scene_id) ON DELETE CASCADE,
+        block_index   integer NOT NULL,
+        block_type    text NOT NULL,
+        text          text NOT NULL,
+        metadata      jsonb NULL,
+        created_at    timestamptz NOT NULL DEFAULT now(),
+        updated_at    timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+
+    await pool.query(
+      'CREATE INDEX IF NOT EXISTS screenplay_block_screenplay_idx ON screenplay_block(screenplay_id, block_index)',
+    );
+
+    // Linking table between stories and screenplays so a story can reference a
+    // related screenplay (e.g. adaptation) and vice versa.
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS story_screenplay_links (
+        id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        story_title_id uuid NOT NULL REFERENCES story_title(story_title_id) ON DELETE CASCADE,
+        screenplay_id  uuid NOT NULL REFERENCES screenplay_title(screenplay_id) ON DELETE CASCADE,
+        relation_type  text NOT NULL DEFAULT 'adaptation',
+        created_at     timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+
+    await pool.query(
+      'CREATE UNIQUE INDEX IF NOT EXISTS story_screenplay_unique ON story_screenplay_links(story_title_id, screenplay_id, relation_type)',
+    );
+
+    // Access control for screenplays (owner / contributor / editor, etc.).
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS screenplay_access (
+        screenplay_id uuid NOT NULL REFERENCES screenplay_title(screenplay_id) ON DELETE CASCADE,
+        user_id       uuid NOT NULL,
+        role          text NOT NULL DEFAULT 'owner',
+        created_at    timestamptz NOT NULL DEFAULT now(),
+        PRIMARY KEY (screenplay_id, user_id)
+      )
+    `);
+
+    await pool.query(
+      'CREATE INDEX IF NOT EXISTS screenplay_access_user_idx ON screenplay_access(user_id)',
+    );
+
+    console.log('[init] ensured screenplay tables exist');
+  } catch (err) {
+    console.error('[init] failed to ensure screenplay tables:', err);
+  }
+}
+
+// Best-effort helper: ensure a screenplay_access row exists for a given
+// screenplay and user. Used when someone edits a screenplay so they
+// appear as a collaborator in /users/:userId/screenplays.
+async function ensureScreenplayAccessRow(screenplayId, userId, role = 'contributor') {
+  if (!screenplayId || !userId) return;
+
+  try {
+    await pool.query(
+      `INSERT INTO screenplay_access (screenplay_id, user_id, role)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (screenplay_id, user_id)
+       DO UPDATE SET role = CASE
+         WHEN screenplay_access.role = 'owner' THEN screenplay_access.role
+         ELSE EXCLUDED.role
+       END`,
+      [screenplayId, userId, role],
+    );
+  } catch (err) {
+    console.error('[ensureScreenplayAccessRow] failed:', {
+      screenplayId,
+      userId,
+      role,
+      error: err,
+    });
+  }
+}
+
 // Fire and forget; if this fails we log but do not crash the server
 ensurePgcryptoExtension().catch((err) => {
   console.error('[init] ensurePgcryptoExtension unhandled error:', err);
@@ -385,6 +547,9 @@ ensureStoryInitiatorsTable().catch((err) => {
 ensureParagraphBranchesTable().catch((err) => {
   console.error('[init] ensureParagraphBranchesTable unhandled error:', err);
 });
+ensureProfilesRealNicknameColumn().catch((err) => {
+  console.error('[init] ensureProfilesRealNicknameColumn unhandled error:', err);
+});
 ensureCrdtDocumentsTables().catch((err) => {
   console.error('[init] ensureCrdtDocumentsTables unhandled error:', err);
 });
@@ -396,6 +561,9 @@ ensureCreativeSpacesTable().catch((err) => {
 });
 ensureContributionsTable().catch((err) => {
   console.error('[init] ensureContributionsTable unhandled error:', err);
+});
+ensureScreenplayTables().catch((err) => {
+  console.error('[init] ensureScreenplayTables unhandled error:', err);
 });
 
 app.get('/health', async (_req, res) => {
@@ -444,6 +612,38 @@ app.post('/auth/register', async (req, res) => {
 // ---------------------------------------------------------------------------
 // Profile endpoints (local Postgres-backed user profiles)
 // ---------------------------------------------------------------------------
+
+// Public profile lookup by username for public user pages (e.g. /leolove)
+app.get('/public-profiles/:username', async (req, res) => {
+  const { username } = req.params;
+
+  if (!username) {
+    return res.status(400).json({ error: 'username is required' });
+  }
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT *
+       FROM profiles
+       WHERE LOWER(username) = LOWER($1)
+          OR LOWER(COALESCE(nickname, '')) = LOWER($1)
+       ORDER BY updated_at DESC
+       LIMIT 1`,
+      [username],
+    );
+    if (rows.length === 0) {
+      console.warn('[GET /public-profiles/:username] no profile match found', { username });
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+    // In future we can enforce per-field visibility based on profile settings
+    // (e.g. a dedicated "public handle" field). For now we accept either
+    // username or nickname (case-insensitive) as the slug.
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('[GET /public-profiles/:username] failed:', err);
+    res.status(500).json({ error: 'Failed to load public profile' });
+  }
+});
 
 // Fetch or lazily create a profile row for the given user id. This is used
 // by the web Profile page when authenticating against the local backend.
@@ -535,7 +735,7 @@ app.get('/profiles/:userId', async (req, res) => {
 // Patch a profile row. Accepts any subset of profile fields and updates
 // updated_at automatically. The caller is responsible for enforcing that the
 // user is editing their own profile (frontend passes authUser.id).
-app.patch('/profiles/:userId', async (req, res) => {
+async function handleProfileUpdate(req, res) {
   const { userId } = req.params;
   const body = req.body ?? {};
 
@@ -560,8 +760,9 @@ app.patch('/profiles/:userId', async (req, res) => {
     'notify_phone',
     'notify_app',
     'notify_email',
-    'interests',
+'interests',
     'username',
+    'real_nickname',
   ];
 
   const fields = [];
@@ -594,11 +795,526 @@ app.patch('/profiles/:userId', async (req, res) => {
     console.error('[PATCH /profiles/:userId] failed:', err);
     return res.status(500).json({ error: 'Failed to update profile' });
   }
-});
+}
+
+// Support both POST (legacy) and PATCH (current frontend) for updating profiles.
+app.post('/profiles/:userId', handleProfileUpdate);
+app.patch('/profiles/:userId', handleProfileUpdate);
 
 // ---------------------------------------------------------------------------
 // Story and chapter endpoints (for NewStoryTemplate and story editor UIs)
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// Screenplay endpoints
+// ---------------------------------------------------------------------------
+
+// Create screenplay title + initial scene and blocks in a single transaction.
+// This is analogous to /stories/template but for screenplays.
+app.post('/screenplays/template', async (req, res) => {
+  const { title, formatType, userId } = req.body ?? {};
+
+  const screenplayTitle = typeof title === 'string' && title.trim()
+    ? title.trim()
+    : 'Untitled Screenplay';
+
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const insertTitle = await client.query(
+      'INSERT INTO screenplay_title (title, creator_id, format_type) VALUES ($1, $2, $3) RETURNING *',
+      [screenplayTitle, userId, formatType || null],
+    );
+    const screenplayRow = insertTitle.rows[0];
+
+    // Initial scene and a few demo blocks to show formatting.
+    const insertScene = await client.query(
+      'INSERT INTO screenplay_scene (screenplay_id, scene_index, slugline, location, time_of_day, is_interior) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [
+        screenplayRow.screenplay_id,
+        1,
+        'INT. LOCATION - DAY',
+        'LOCATION',
+        'DAY',
+        true,
+      ],
+    );
+    const sceneRow = insertScene.rows[0];
+
+    const initialBlocks = [
+      {
+        block_index: 1,
+        block_type: 'action',
+        text: 'This is where action description goes. Describe what the audience sees.',
+      },
+      {
+        block_index: 2,
+        block_type: 'character',
+        text: 'CHARACTER NAME',
+      },
+      {
+        block_index: 3,
+        block_type: 'dialogue',
+        text: "This is a sample line of dialogue.",
+      },
+      {
+        block_index: 4,
+        block_type: 'parenthetical',
+        text: '(whispering)',
+      },
+      {
+        block_index: 5,
+        block_type: 'dialogue',
+        text: 'Another line, with a parenthetical above it.',
+      },
+      {
+        block_index: 6,
+        block_type: 'transition',
+        text: 'CUT TO:',
+      },
+    ];
+
+    for (const b of initialBlocks) {
+      await client.query(
+        'INSERT INTO screenplay_block (screenplay_id, scene_id, block_index, block_type, text) VALUES ($1, $2, $3, $4, $5)',
+        [
+          screenplayRow.screenplay_id,
+          sceneRow.scene_id,
+          b.block_index,
+          b.block_type,
+          b.text,
+        ],
+      );
+    }
+
+    await client.query('COMMIT');
+
+    // Best-effort: ensure the creator has an access row for this screenplay
+    try {
+      await ensureScreenplayAccessRow(screenplayRow.screenplay_id, userId, 'owner');
+    } catch (accessErr) {
+      console.error('[POST /screenplays/template] failed to insert screenplay_access row:', accessErr);
+    }
+
+    res.status(201).json({
+      screenplayId: screenplayRow.screenplay_id,
+      title: screenplayRow.title,
+      formatType: screenplayRow.format_type,
+    });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('[POST /screenplays/template] failed:', err);
+    res.status(500).json({ error: 'Failed to create screenplay template' });
+  } finally {
+    client.release();
+  }
+});
+
+// List screenplay titles created by a user
+app.get('/screenplays', async (req, res) => {
+  const userId = req.query.userId;
+  if (!userId) {
+    return res.status(400).json({ error: 'userId query parameter is required' });
+  }
+
+  try {
+    const { rows } = await pool.query(
+      'SELECT * FROM screenplay_title WHERE creator_id = $1 ORDER BY created_at ASC',
+      [userId],
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('[GET /screenplays] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch user screenplays' });
+  }
+});
+
+// Get a single screenplay by ID (no visibility rules yet; keep simple for v1)
+app.get('/screenplays/:screenplayId', async (req, res) => {
+  const { screenplayId } = req.params;
+  try {
+    const { rows } = await pool.query(
+      'SELECT * FROM screenplay_title WHERE screenplay_id = $1',
+      [screenplayId],
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Screenplay not found' });
+    }
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('[GET /screenplays/:screenplayId] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch screenplay' });
+  }
+});
+
+// Update screenplay metadata
+app.patch('/screenplays/:screenplayId', async (req, res) => {
+  const { screenplayId } = req.params;
+  const { title, visibility, published, genre, tags, formatType } = req.body ?? {};
+
+  const fields = [];
+  const values = [];
+  let idx = 1;
+
+  if (title !== undefined) {
+    fields.push(`title = $${idx++}`);
+    values.push(title);
+  }
+  if (visibility !== undefined) {
+    fields.push(`visibility = $${idx++}`);
+    values.push(visibility);
+  }
+  if (published !== undefined) {
+    fields.push(`published = $${idx++}`);
+    values.push(Boolean(published));
+  }
+  if (genre !== undefined) {
+    fields.push(`genre = $${idx++}`);
+    values.push(genre || null);
+  }
+  if (tags !== undefined) {
+    fields.push(`tags = $${idx++}`);
+    values.push(Array.isArray(tags) ? tags : null);
+  }
+  if (formatType !== undefined) {
+    fields.push(`format_type = $${idx++}`);
+    values.push(formatType || null);
+  }
+
+  if (fields.length === 0) {
+    return res.status(400).json({ error: 'No fields to update' });
+  }
+
+  fields.push('updated_at = now()');
+  values.push(screenplayId);
+
+  const sql = `UPDATE screenplay_title SET ${fields.join(', ')} WHERE screenplay_id = $${idx} RETURNING *`;
+
+  try {
+    const { rows } = await pool.query(sql, values);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Screenplay not found' });
+    }
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('[PATCH /screenplays/:screenplayId] failed:', err);
+    res.status(500).json({ error: 'Failed to update screenplay' });
+  }
+});
+
+// Delete a screenplay and cascade to scenes/blocks
+app.delete('/screenplays/:screenplayId', async (req, res) => {
+  const { screenplayId } = req.params;
+
+  try {
+    const { rowCount } = await pool.query(
+      'DELETE FROM screenplay_title WHERE screenplay_id = $1',
+      [screenplayId],
+    );
+    if (rowCount === 0) {
+      return res.status(404).json({ error: 'Screenplay not found' });
+    }
+    res.status(204).send();
+  } catch (err) {
+    console.error('[DELETE /screenplays/:screenplayId] failed:', err);
+    res.status(500).json({ error: 'Failed to delete screenplay' });
+  }
+});
+
+// Get scenes + (optionally) blocks for a screenplay
+app.get('/screenplays/:screenplayId/scenes', async (req, res) => {
+  const { screenplayId } = req.params;
+  const includeBlocks = req.query.includeBlocks === 'true';
+
+  try {
+    const { rows: scenes } = await pool.query(
+      'SELECT * FROM screenplay_scene WHERE screenplay_id = $1 ORDER BY scene_index ASC',
+      [screenplayId],
+    );
+
+    if (!includeBlocks) {
+      return res.json({ scenes });
+    }
+
+    const { rows: blocks } = await pool.query(
+      'SELECT * FROM screenplay_block WHERE screenplay_id = $1 ORDER BY block_index ASC',
+      [screenplayId],
+    );
+
+    res.json({ scenes, blocks });
+  } catch (err) {
+    console.error('[GET /screenplays/:screenplayId/scenes] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch screenplay scenes' });
+  }
+});
+
+// Create a new scene
+app.post('/screenplays/:screenplayId/scenes', async (req, res) => {
+  const { screenplayId } = req.params;
+  const { sceneIndex, slugline, location, timeOfDay, isInterior, synopsis, userId } = req.body ?? {};
+
+  if (!slugline) {
+    return res.status(400).json({ error: 'slugline is required' });
+  }
+
+  const index = Number.isInteger(sceneIndex) ? sceneIndex : 1;
+
+  try {
+    const { rows } = await pool.query(
+      'INSERT INTO screenplay_scene (screenplay_id, scene_index, slugline, location, time_of_day, is_interior, synopsis) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+      [screenplayId, index, slugline, location || null, timeOfDay || null, isInterior ?? null, synopsis || null],
+    );
+
+    // Best-effort: mark this user as a contributor on the screenplay
+    if (userId) {
+      await ensureScreenplayAccessRow(screenplayId, userId, 'contributor');
+    }
+
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error('[POST /screenplays/:screenplayId/scenes] failed:', err);
+    res.status(500).json({ error: 'Failed to create scene' });
+  }
+});
+
+// Update a scene
+app.patch('/screenplay-scenes/:sceneId', async (req, res) => {
+  const { sceneId } = req.params;
+  const { sceneIndex, slugline, location, timeOfDay, isInterior, synopsis, userId } = req.body ?? {};
+
+  const fields = [];
+  const values = [];
+  let idx = 1;
+
+  if (sceneIndex !== undefined) {
+    fields.push(`scene_index = $${idx++}`);
+    values.push(sceneIndex);
+  }
+  if (slugline !== undefined) {
+    fields.push(`slugline = $${idx++}`);
+    values.push(slugline);
+  }
+  if (location !== undefined) {
+    fields.push(`location = $${idx++}`);
+    values.push(location || null);
+  }
+  if (timeOfDay !== undefined) {
+    fields.push(`time_of_day = $${idx++}`);
+    values.push(timeOfDay || null);
+  }
+  if (isInterior !== undefined) {
+    fields.push(`is_interior = $${idx++}`);
+    values.push(isInterior);
+  }
+  if (synopsis !== undefined) {
+    fields.push(`synopsis = $${idx++}`);
+    values.push(synopsis || null);
+  }
+
+  if (fields.length === 0) {
+    return res.status(400).json({ error: 'No fields to update' });
+  }
+
+  fields.push('updated_at = now()');
+  values.push(sceneId);
+
+  const sql = `UPDATE screenplay_scene SET ${fields.join(', ')} WHERE scene_id = $${idx} RETURNING *`;
+
+  try {
+    const { rows } = await pool.query(sql, values);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Scene not found' });
+    }
+
+    // Best-effort: mark this user as a contributor on the screenplay
+    if (userId) {
+      const screenplayId = rows[0].screenplay_id;
+      if (screenplayId) {
+        await ensureScreenplayAccessRow(screenplayId, userId, 'contributor');
+      }
+    }
+
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('[PATCH /screenplay-scenes/:sceneId] failed:', err);
+    res.status(500).json({ error: 'Failed to update scene' });
+  }
+});
+
+// Delete a scene
+app.delete('/screenplay-scenes/:sceneId', async (req, res) => {
+  const { sceneId } = req.params;
+
+  try {
+    const { rowCount } = await pool.query(
+      'DELETE FROM screenplay_scene WHERE scene_id = $1',
+      [sceneId],
+    );
+    if (rowCount === 0) {
+      return res.status(404).json({ error: 'Scene not found' });
+    }
+    res.status(204).send();
+  } catch (err) {
+    console.error('[DELETE /screenplay-scenes/:sceneId] failed:', err);
+    res.status(500).json({ error: 'Failed to delete scene' });
+  }
+});
+
+// Create a new screenplay block
+app.post('/screenplays/:screenplayId/blocks', async (req, res) => {
+  const { screenplayId } = req.params;
+  const { sceneId, blockIndex, blockType, text, metadata, userId } = req.body ?? {};
+
+  if (!blockType || !text) {
+    return res.status(400).json({ error: 'blockType and text are required' });
+  }
+
+  const index = Number.isInteger(blockIndex) ? blockIndex : 1;
+
+  try {
+    const { rows } = await pool.query(
+      'INSERT INTO screenplay_block (screenplay_id, scene_id, block_index, block_type, text, metadata) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [screenplayId, sceneId || null, index, blockType, text, metadata || null],
+    );
+
+    // Best-effort: mark this user as a contributor on the screenplay
+    if (userId) {
+      await ensureScreenplayAccessRow(screenplayId, userId, 'contributor');
+    }
+
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error('[POST /screenplays/:screenplayId/blocks] failed:', err);
+    res.status(500).json({ error: 'Failed to create block' });
+  }
+});
+
+// Update a screenplay block
+app.patch('/screenplay-blocks/:blockId', async (req, res) => {
+  const { blockId } = req.params;
+  const { sceneId, blockIndex, blockType, text, metadata, userId } = req.body ?? {};
+
+  const fields = [];
+  const values = [];
+  let idx = 1;
+
+  if (sceneId !== undefined) {
+    fields.push(`scene_id = $${idx++}`);
+    values.push(sceneId || null);
+  }
+  if (blockIndex !== undefined) {
+    fields.push(`block_index = $${idx++}`);
+    values.push(blockIndex);
+  }
+  if (blockType !== undefined) {
+    fields.push(`block_type = $${idx++}`);
+    values.push(blockType);
+  }
+  if (text !== undefined) {
+    fields.push(`text = $${idx++}`);
+    values.push(text);
+  }
+  if (metadata !== undefined) {
+    fields.push(`metadata = $${idx++}`);
+    values.push(metadata || null);
+  }
+
+  if (fields.length === 0) {
+    return res.status(400).json({ error: 'No fields to update' });
+  }
+
+  fields.push('updated_at = now()');
+  values.push(blockId);
+
+  const sql = `UPDATE screenplay_block SET ${fields.join(', ')} WHERE block_id = $${idx} RETURNING *`;
+
+  try {
+    const { rows } = await pool.query(sql, values);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Block not found' });
+    }
+
+    // Best-effort: mark this user as a contributor on the screenplay
+    if (userId) {
+      const screenplayId = rows[0].screenplay_id;
+      if (screenplayId) {
+        await ensureScreenplayAccessRow(screenplayId, userId, 'contributor');
+      }
+    }
+
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('[PATCH /screenplay-blocks/:blockId] failed:', err);
+    res.status(500).json({ error: 'Failed to update block' });
+  }
+});
+
+// Delete a screenplay block
+app.delete('/screenplay-blocks/:blockId', async (req, res) => {
+  const { blockId } = req.params;
+
+  try {
+    const { rowCount } = await pool.query(
+      'DELETE FROM screenplay_block WHERE block_id = $1',
+      [blockId],
+    );
+    if (rowCount === 0) {
+      return res.status(404).json({ error: 'Block not found' });
+    }
+    res.status(204).send();
+  } catch (err) {
+    console.error('[DELETE /screenplay-blocks/:blockId] failed:', err);
+    res.status(500).json({ error: 'Failed to delete block' });
+  }
+});
+
+// Import/export endpoints (FDX, Fountain, ODT, PDF, DOCX) are stubbed for now
+// to avoid breaking the API surface. They currently return 501 and can be
+// filled in once shared parser/serializer logic is in place.
+app.post('/screenplays/import/fdx', async (_req, res) => {
+  res.status(501).json({ error: 'FDX import not implemented yet' });
+});
+
+app.post('/screenplays/import/fountain', async (_req, res) => {
+  res.status(501).json({ error: 'Fountain import not implemented yet' });
+});
+
+app.post('/screenplays/import/odt', async (_req, res) => {
+  res.status(501).json({ error: 'ODT import not implemented yet' });
+});
+
+app.post('/screenplays/import/docx', async (_req, res) => {
+  res.status(501).json({ error: 'DOCX import not implemented yet' });
+});
+
+app.post('/screenplays/import/pdf', async (_req, res) => {
+  res.status(501).json({ error: 'PDF import not implemented yet' });
+});
+
+app.get('/screenplays/:screenplayId/export.fdx', async (_req, res) => {
+  res.status(501).json({ error: 'FDX export not implemented yet' });
+});
+
+app.get('/screenplays/:screenplayId/export.fountain', async (_req, res) => {
+  res.status(501).json({ error: 'Fountain export not implemented yet' });
+});
+
+app.get('/screenplays/:screenplayId/export.odt', async (_req, res) => {
+  res.status(501).json({ error: 'ODT export not implemented yet' });
+});
+
+app.get('/screenplays/:screenplayId/export.docx', async (_req, res) => {
+  res.status(501).json({ error: 'DOCX export not implemented yet' });
+});
+
+app.get('/screenplays/:screenplayId/export.pdf', async (_req, res) => {
+  res.status(501).json({ error: 'PDF export not implemented yet' });
+});
 
 // List story titles created by a user
 app.get('/story-titles', async (req, res) => {
@@ -1003,7 +1719,7 @@ app.get('/users/:userId/stories', async (req, res) => {
   try {
     // Stories created by the user
     const created = await pool.query(
-      'SELECT story_title_id, title, created_at FROM story_title WHERE creator_id = $1',
+      'SELECT story_title_id, title, created_at, visibility, published FROM story_title WHERE creator_id = $1',
       [userId],
     );
 
@@ -1012,7 +1728,9 @@ app.get('/users/:userId/stories', async (req, res) => {
     const contributed = await pool.query(
       `SELECT DISTINCT st.story_title_id,
               st.title,
-              st.created_at
+              st.created_at,
+              st.visibility,
+              st.published
        FROM story_title st
        JOIN stories s ON st.story_title_id = s.story_title_id
        LEFT JOIN chapter_revisions cr ON cr.chapter_id = s.chapter_id
@@ -1027,6 +1745,8 @@ app.get('/users/:userId/stories', async (req, res) => {
         story_title_id: row.story_title_id,
         title: row.title,
         created_at: row.created_at,
+        visibility: row.visibility,
+        published: row.published,
         roles: ['creator'],
       });
     }
@@ -1041,6 +1761,8 @@ app.get('/users/:userId/stories', async (req, res) => {
           story_title_id: row.story_title_id,
           title: row.title,
           created_at: row.created_at,
+          visibility: row.visibility,
+          published: row.published,
           roles: ['contributor'],
         });
       }
@@ -1054,6 +1776,72 @@ app.get('/users/:userId/stories', async (req, res) => {
   } catch (err) {
     console.error('[GET /users/:userId/stories] failed:', err);
     res.status(500).json({ error: 'Failed to fetch user stories' });
+  }
+});
+
+// List screenplays a user is creating or collaborating on
+app.get('/users/:userId/screenplays', async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    // Screenplays created by the user
+    const created = await pool.query(
+      'SELECT screenplay_id, title, created_at, visibility, published FROM screenplay_title WHERE creator_id = $1',
+      [userId],
+    );
+
+    // Screenplays where the user has an access row (owner/editor/contributor)
+    const access = await pool.query(
+      `SELECT st.screenplay_id,
+              st.title,
+              st.created_at,
+              st.visibility,
+              st.published,
+              sa.role
+       FROM screenplay_access sa
+       JOIN screenplay_title st ON st.screenplay_id = sa.screenplay_id
+       WHERE sa.user_id = $1`,
+      [userId],
+    );
+
+    const map = new Map();
+    for (const row of created.rows) {
+      map.set(row.screenplay_id, {
+        screenplay_id: row.screenplay_id,
+        title: row.title,
+        created_at: row.created_at,
+        visibility: row.visibility,
+        published: row.published,
+        roles: ['creator'],
+      });
+    }
+
+    for (const row of access.rows) {
+      const existing = map.get(row.screenplay_id);
+      if (existing) {
+        if (!existing.roles.includes(row.role)) {
+          existing.roles.push(row.role);
+        }
+      } else {
+        map.set(row.screenplay_id, {
+          screenplay_id: row.screenplay_id,
+          title: row.title,
+          created_at: row.created_at,
+          visibility: row.visibility,
+          published: row.published,
+          roles: [row.role],
+        });
+      }
+    }
+
+    const combined = Array.from(map.values()).sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    );
+
+    res.json(combined);
+  } catch (err) {
+    console.error('[GET /users/:userId/screenplays] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch user screenplays' });
   }
 });
 

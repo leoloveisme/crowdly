@@ -23,7 +23,11 @@ export default tseslint.config(
         "warn",
         { allowConstantExport: true },
       ],
+      // Disable some TypeScript-specific rules that are noisy or incompatible
+      // with our current ESLint setup. The base `no-unused-expressions` rule
+      // from ESLint is still active via `js.configs.recommended`.
       "@typescript-eslint/no-unused-vars": "off",
+      "@typescript-eslint/no-unused-expressions": "off",
     },
   }
 );

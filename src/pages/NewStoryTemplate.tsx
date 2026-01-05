@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, useRef } from "react";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
@@ -98,6 +98,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import StorySelector from "@/components/StorySelector";
 import NewStoryDialog from "@/components/NewStoryDialog";
 import ParagraphBranchPopover from "@/components/ParagraphBranchPopover";
+import ScreenplayTemplate from "@/modules/screenplay template";
 
 // Use same-origin API base in development; dev server proxies to backend.
 // In production, VITE_API_BASE_URL can point at the deployed API.
@@ -109,6 +110,10 @@ const DEFAULT_CHAPTER_TITLE = "Chapter 1 - The day I was conceived";
 const showAdvanced = false; // hide advanced controls/cards for now
 
 const NewStoryTemplate = () => {
+  const [searchParams] = useSearchParams();
+  const templateType =
+    searchParams.get('type') === 'screenplay' ? 'screenplay' : 'story';
+
   const [storyTitleId, setStoryTitleId] = useState<string | null>(null);
   const [chapterId, setChapterId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -883,6 +888,29 @@ const NewStoryTemplate = () => {
   if (!user) {
     return (
       <div className="flex justify-center items-center h-32">You must be logged in to use this template.</div>
+    );
+  }
+
+  // Screenplay mode: reuse header/footer but render screenplay template module
+  if (templateType === 'screenplay') {
+    return (
+      <>
+        <div className="flex flex-col min-h-screen">
+          <header>
+            <CrowdlyHeader />
+          </header>
+
+          <main className="flex-1 p-4">
+            <div className="container mx-auto space-y-6">
+              <ScreenplayTemplate />
+            </div>
+          </main>
+
+          <footer>
+            <CrowdlyFooter />
+          </footer>
+        </div>
+      </>
     );
   }
 
