@@ -27,9 +27,19 @@ from PySide6.QtWidgets import (
     QTabWidget,
     QTabBar,
     QLineEdit,
+    QCheckBox,
+    QPushButton,
 )
 from PySide6.QtCore import Qt, QTimer, QEvent, QCoreApplication, QObject, QThread, Signal, QUrl
-from PySide6.QtGui import QAction, QActionGroup, QDesktopServices
+from PySide6.QtGui import (
+    QAction,
+    QActionGroup,
+    QDesktopServices,
+    QTextCursor,
+    QTextDocument,
+    QKeySequence,
+    QShortcut,
+)
 
 from ..document import Document
 from ..settings import Settings, save_settings
@@ -115,6 +125,10 @@ class MainWindow(QMainWindow):
         self._autosave_timer = QTimer(self)
         self._autosave_timer.setSingleShot(True)
         self._autosave_timer.timeout.connect(self._perform_autosave)
+
+        # Inline search/replace state.
+        self._search_text: str = ""
+        self._replace_text: str = ""
 
         self._setup_central_widgets()
         self._retranslate_ui()
@@ -279,6 +293,15 @@ class MainWindow(QMainWindow):
         view_menu = menu.addMenu(self.tr("View"))
         self._view_menu = view_menu
 
+        search_menu = menu.addMenu(self.tr("Search"))
+        self._search_menu = search_menu
+        self._action_search_find = search_menu.addAction(
+            self.tr("Find"), self._show_find_dialog
+        )
+        self._action_search_replace = search_menu.addAction(
+            self.tr("Replace"), self._show_replace_dialog
+        )
+
         story_settings_menu = menu.addMenu(self.tr("Story settings"))
         self._story_settings_menu = story_settings_menu
         self._action_view_story_metadata = story_settings_menu.addAction(
@@ -327,6 +350,53 @@ class MainWindow(QMainWindow):
         self._preview_toggle.toggled.connect(self._set_preview_visible)
         top_layout.addWidget(self._preview_toggle)
 
+        # Inline search / replace bar (initially hidden).
+        self._search_bar = QWidget(container)
+        search_layout = QHBoxLayout(self._search_bar)
+        search_layout.setContentsMargins(4, 0, 4, 0)
+        search_layout.setSpacing(4)
+
+        self._search_label = QLabel(self.tr("Find:"), self._search_bar)
+        self._search_entry = QLineEdit(self._search_bar)
+        search_layout.addWidget(self._search_label)
+        search_layout.addWidget(self._search_entry)
+
+        self._replace_label = QLabel(self.tr("Replace:"), self._search_bar)
+        self._replace_entry = QLineEdit(self._search_bar)
+        search_layout.addWidget(self._replace_label)
+        search_layout.addWidget(self._replace_entry)
+
+        self._chk_match_case = QCheckBox(self.tr("Match case"), self._search_bar)
+        self._chk_whole_word = QCheckBox(self.tr("Match whole word"), self._search_bar)
+        self._chk_wrap_around = QCheckBox(self.tr("Wrap around"), self._search_bar)
+        self._chk_wrap_around.setChecked(True)
+        search_layout.addWidget(self._chk_match_case)
+        search_layout.addWidget(self._chk_whole_word)
+        search_layout.addWidget(self._chk_wrap_around)
+
+        self._btn_prev = QPushButton(self.tr("Previous"), self._search_bar)
+        self._btn_next = QPushButton(self.tr("Next"), self._search_bar)
+        self._btn_replace = QPushButton(self.tr("Replace"), self._search_bar)
+        self._btn_replace_all = QPushButton(self.tr("Replace All"), self._search_bar)
+        self._btn_close_search = QPushButton(self.tr("Close"), self._search_bar)
+
+        search_layout.addWidget(self._btn_prev)
+        search_layout.addWidget(self._btn_next)
+        search_layout.addWidget(self._btn_replace)
+        search_layout.addWidget(self._btn_replace_all)
+        search_layout.addWidget(self._btn_close_search)
+
+        # Wire search bar signals.
+        self._btn_next.clicked.connect(self._search_find_next)
+        self._btn_prev.clicked.connect(self._search_find_previous)
+        self._btn_replace.clicked.connect(self._search_replace_one)
+        self._btn_replace_all.clicked.connect(self._search_replace_all)
+        self._btn_close_search.clicked.connect(self._hide_search_bar)
+        self._search_entry.returnPressed.connect(self._search_find_next)
+        self._replace_entry.returnPressed.connect(self._search_replace_one)
+
+        self._search_bar.setVisible(False)
+
         # Main content: a QTabWidget, each tab containing an editor + preview
         # splitter so multiple documents can be open at once.
         self._tab_widget = QTabWidget(container)
@@ -342,11 +412,25 @@ class MainWindow(QMainWindow):
         # Create the initial tab backed by the initial in-memory document.
         self._create_tab_for_document(self._document)
 
-        # Assemble layout: top bar above the tab widget.
+        # Assemble layout: top bar above the search bar and tab widget.
         root_layout.addWidget(top_bar)
+        root_layout.addWidget(self._search_bar)
         root_layout.addWidget(self._tab_widget, 1)
 
         self.setCentralWidget(container)
+
+        # Keyboard shortcuts for search / replace (similar to typical text editors).
+        self._shortcut_find = QShortcut(QKeySequence("Ctrl+F"), self)
+        self._shortcut_find.activated.connect(self._show_find_dialog)
+
+        self._shortcut_find_next = QShortcut(QKeySequence("F3"), self)
+        self._shortcut_find_next.activated.connect(self._search_find_next)
+
+        self._shortcut_find_previous = QShortcut(QKeySequence("Shift+F3"), self)
+        self._shortcut_find_previous.activated.connect(self._search_find_previous)
+
+        self._shortcut_replace = QShortcut(QKeySequence("Ctrl+H"), self)
+        self._shortcut_replace.activated.connect(self._show_replace_dialog)
 
         # After the first tab is created, keep the per-tab document mapping in
         # sync with the active document.
@@ -863,8 +947,36 @@ class MainWindow(QMainWindow):
             self._settings_menu.setTitle(self.tr("Settings"))
         if hasattr(self, "_view_menu"):
             self._view_menu.setTitle(self.tr("View"))
+        if hasattr(self, "_search_menu"):
+            self._search_menu.setTitle(self.tr("Search"))
+        if hasattr(self, "_action_search_find"):
+            self._action_search_find.setText(self.tr("Find"))
+        if hasattr(self, "_action_search_replace"):
+            self._action_search_replace.setText(self.tr("Replace"))
         if hasattr(self, "_story_settings_menu"):
             self._story_settings_menu.setTitle(self.tr("Story settings"))
+
+        # Search bar labels and controls.
+        if hasattr(self, "_search_label"):
+            self._search_label.setText(self.tr("Find:"))
+        if hasattr(self, "_replace_label"):
+            self._replace_label.setText(self.tr("Replace:"))
+        if hasattr(self, "_chk_match_case"):
+            self._chk_match_case.setText(self.tr("Match case"))
+        if hasattr(self, "_chk_whole_word"):
+            self._chk_whole_word.setText(self.tr("Match whole word"))
+        if hasattr(self, "_chk_wrap_around"):
+            self._chk_wrap_around.setText(self.tr("Wrap around"))
+        if hasattr(self, "_btn_prev"):
+            self._btn_prev.setText(self.tr("Previous"))
+        if hasattr(self, "_btn_next"):
+            self._btn_next.setText(self.tr("Next"))
+        if hasattr(self, "_btn_replace"):
+            self._btn_replace.setText(self.tr("Replace"))
+        if hasattr(self, "_btn_replace_all"):
+            self._btn_replace_all.setText(self.tr("Replace All"))
+        if hasattr(self, "_btn_close_search"):
+            self._btn_close_search.setText(self.tr("Close"))
         if hasattr(self, "_action_view_story_metadata"):
             self._action_view_story_metadata.setText(self.tr("View story metadata"))
         if hasattr(self, "_action_set_story_genre"):
@@ -967,7 +1079,8 @@ class MainWindow(QMainWindow):
 
         - Words: whitespace-separated tokens in the source text.
         - Paragraphs: groups of non-empty lines separated by blank lines.
-        - Chapters: lines starting with a Markdown level-1 heading ("# ").
+        - Chapters: Markdown headings, preferring level-2 ("## ") sections
+          when present, otherwise falling back to level-1 ("# ") headings.
         """
 
         # Base stats on the WYSIWYG content so that what you see is what is
@@ -977,7 +1090,8 @@ class MainWindow(QMainWindow):
 
         paragraphs = 0
         current_para_lines = 0
-        for line in text.splitlines():
+        lines = text.splitlines() if text else []
+        for line in lines:
             if line.strip():
                 current_para_lines += 1
             else:
@@ -987,8 +1101,17 @@ class MainWindow(QMainWindow):
         if current_para_lines:
             paragraphs += 1
 
-        chapters = sum(1 for line in text.splitlines()
-                       if line.lstrip().startswith("# "))
+        # Prefer counting level-2 headings (## ...) as chapters when they
+        # exist, since many documents use a single top-level title (# ...) and
+        # then number their actual chapters as "## 1.", "## 2.", etc. For
+        # simpler documents without subsections we fall back to counting
+        # level-1 headings.
+        stripped = [line.lstrip() for line in lines]
+        h2_chapters = sum(1 for line in stripped if line.startswith("## "))
+        if h2_chapters:
+            chapters = h2_chapters
+        else:
+            chapters = sum(1 for line in stripped if line.startswith("# "))
 
         return words, paragraphs, chapters
 
@@ -1913,6 +2036,274 @@ class MainWindow(QMainWindow):
             self._action_view_wysiwyg.blockSignals(True)
             self._action_view_wysiwyg.setChecked(checked)
             self._action_view_wysiwyg.blockSignals(False)
+
+    def _show_find_dialog(self) -> None:  # pragma: no cover - UI wiring
+        """Show the inline search bar configured for Find-only operations."""
+
+        if not hasattr(self, "editor"):
+            return
+
+        self._show_search_bar(replace_mode=False)
+
+    def _show_replace_dialog(self) -> None:  # pragma: no cover - UI wiring
+        """Show the inline search bar configured for Find+Replace operations."""
+
+        if not hasattr(self, "editor"):
+            return
+
+        self._show_search_bar(replace_mode=True)
+
+    def _show_search_bar(self, *, replace_mode: bool) -> None:  # pragma: no cover - UI wiring
+        """Display the search bar and configure it for Find or Replace mode."""
+
+        if not hasattr(self, "_search_bar") or self._search_bar is None:
+            return
+
+        # Pre-populate search text from current selection when available.
+        try:
+            cursor = self.editor.textCursor()
+            selected = cursor.selectedText()
+        except Exception:
+            selected = ""
+
+        if selected:
+            self._search_entry.setText(selected)
+        elif self._search_entry.text() == "" and getattr(self, "_search_text", ""):
+            # Restore the last-used search text.
+            self._search_entry.setText(self._search_text)
+
+        # Configure visibility of replace-related controls.
+        self._replace_label.setVisible(replace_mode)
+        self._replace_entry.setVisible(replace_mode)
+        self._btn_replace.setVisible(replace_mode)
+        self._btn_replace_all.setVisible(replace_mode)
+
+        self._search_bar.setVisible(True)
+
+        # Focus behaviour mirrors typical editors: Find focuses the search
+        # entry, Replace focuses the replacement entry so you can type the
+        # replacement immediately.
+        if replace_mode:
+            self._replace_entry.setFocus()
+            self._replace_entry.selectAll()
+        else:
+            self._search_entry.setFocus()
+            self._search_entry.selectAll()
+
+    def _hide_search_bar(self) -> None:  # pragma: no cover - UI wiring
+        """Hide the inline search bar without changing editor content."""
+
+        if hasattr(self, "_search_bar") and self._search_bar is not None:
+            self._search_bar.setVisible(False)
+
+    def _search_get_find_flags(self, *, backwards: bool = False) -> QTextDocument.FindFlags:
+        """Return QTextDocument.FindFlags based on current search options."""
+
+        flags = QTextDocument.FindFlags()
+        try:
+            if getattr(self, "_chk_match_case", None) is not None and self._chk_match_case.isChecked():
+                flags |= QTextDocument.FindFlag.FindCaseSensitively
+            if getattr(self, "_chk_whole_word", None) is not None and self._chk_whole_word.isChecked():
+                flags |= QTextDocument.FindFlag.FindWholeWords
+            if backwards:
+                flags |= QTextDocument.FindFlag.FindBackward
+        except Exception:
+            # In case any of the widgets are not initialised yet, fall back to
+            # default behaviour without options.
+            if backwards:
+                flags |= QTextDocument.FindFlag.FindBackward
+        return flags
+
+    def _get_search_target(self):
+        """Return the active text widget for search operations.
+
+        Preference order:
+        - Widget with keyboard focus (Markdown editor vs WYSIWYG preview).
+        - Visible Markdown editor.
+        - Visible WYSIWYG preview.
+        Returns ``None`` if neither is available.
+        """
+
+        editor = getattr(self, "editor", None)
+        preview = getattr(self, "preview", None)
+
+        try:
+            if editor is not None and editor.isVisible() and editor.hasFocus():
+                return editor
+        except Exception:
+            pass
+
+        try:
+            if preview is not None and preview.isVisible() and preview.hasFocus():
+                return preview
+        except Exception:
+            pass
+
+        try:
+            if editor is not None and editor.isVisible():
+                return editor
+        except Exception:
+            pass
+
+        try:
+            if preview is not None and preview.isVisible():
+                return preview
+        except Exception:
+            pass
+
+        return None
+
+    def _search_find(self, *, backwards: bool, show_not_found: bool) -> bool:  # pragma: no cover - UI wiring
+        """Core implementation for Find Next / Previous actions.
+
+        Returns ``True`` when a match is found and ``False`` otherwise.
+        """
+
+        target = self._get_search_target()
+        if target is None:
+            return False
+
+        pattern = self._search_entry.text()
+        if not pattern:
+            return False
+
+        # Remember last-used search text.
+        self._search_text = pattern
+
+        flags = self._search_get_find_flags(backwards=backwards)
+
+        # First attempt: start from the current cursor position.
+        found = target.find(pattern, flags)
+
+        # Optional wrap-around behaviour.
+        try:
+            wrap = getattr(self, "_chk_wrap_around", None)
+            wrap_enabled = bool(wrap is None or wrap.isChecked())
+        except Exception:
+            wrap_enabled = True
+
+        if not found and wrap_enabled:
+            cursor = target.textCursor()
+            if backwards:
+                cursor.movePosition(QTextCursor.MoveOperation.End)
+            else:
+                cursor.movePosition(QTextCursor.MoveOperation.Start)
+            target.setTextCursor(cursor)
+            found = target.find(pattern, flags)
+
+        if not found:
+            if show_not_found:
+                QMessageBox.information(
+                    self,
+                    self.tr("Find"),
+                    self.tr("The specified text was not found."),
+                )
+            return False
+
+        target.setFocus()
+        return True
+
+    def _search_find_next(self) -> None:  # pragma: no cover - UI wiring
+        """Find the next occurrence of the current search text."""
+
+        self._search_find(backwards=False, show_not_found=True)
+
+    def _search_find_previous(self) -> None:  # pragma: no cover - UI wiring
+        """Find the previous occurrence of the current search text."""
+
+        self._search_find(backwards=True, show_not_found=True)
+
+    def _search_replace_one(self) -> None:  # pragma: no cover - UI wiring
+        """Replace the current match and move to the next one.
+
+        If there is no current match, the method first searches for the next
+        occurrence before performing the replacement.
+        """
+
+        target = self._get_search_target()
+        if target is None:
+            return
+
+        search_text = self._search_entry.text()
+        if not search_text:
+            return
+
+        replace_text = self._replace_entry.text()
+        self._search_text = search_text
+        self._replace_text = replace_text
+
+        cursor = target.textCursor()
+        selected = cursor.selectedText()
+
+        def _matches_selection() -> bool:
+            if not selected:
+                return False
+            try:
+                match_case = getattr(self, "_chk_match_case", None)
+                if match_case is not None and match_case.isChecked():
+                    return selected == search_text
+                return selected.casefold() == search_text.casefold()
+            except Exception:
+                return selected == search_text
+
+        if not _matches_selection():
+            # Move to the next occurrence first.
+            if not self._search_find(backwards=False, show_not_found=True):
+                return
+            cursor = target.textCursor()
+
+        # Replace the current selection.
+        cursor.insertText(replace_text)
+        target.setTextCursor(cursor)
+
+        # Move to the next match, if any, without re-displaying the not-found
+        # message when we simply reach the end.
+        self._search_find(backwards=False, show_not_found=False)
+
+    def _search_replace_all(self) -> None:  # pragma: no cover - UI wiring
+        """Replace all occurrences of the search text in the current document."""
+
+        target = self._get_search_target()
+        if target is None:
+            return
+
+        search_text = self._search_entry.text()
+        if not search_text:
+            return
+
+        replace_text = self._replace_entry.text()
+        self._search_text = search_text
+        self._replace_text = replace_text
+
+        cursor = target.textCursor()
+        cursor.movePosition(QTextCursor.MoveOperation.Start)
+        target.setTextCursor(cursor)
+
+        flags = self._search_get_find_flags(backwards=False)
+        count = 0
+
+        while True:
+            found = target.find(search_text, flags)
+            if not found:
+                break
+            cursor = target.textCursor()
+            cursor.insertText(replace_text)
+            target.setTextCursor(cursor)
+            count += 1
+
+        if count == 0:
+            QMessageBox.information(
+                self,
+                self.tr("Replace"),
+                self.tr("The specified text was not found."),
+            )
+        else:
+            bar = self.statusBar()
+            if bar is not None:
+                bar.showMessage(
+                    self.tr("Replaced {count} occurrence(s).").format(count=count),
+                    5000,
+                )
 
     def _new_directory(self) -> None:  # pragma: no cover - UI wiring
         """Create a new directory on disk.

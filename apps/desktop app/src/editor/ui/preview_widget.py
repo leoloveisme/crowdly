@@ -144,6 +144,10 @@ class PreviewWidget(QWidget):
         self._editor.textChanged.connect(self._on_text_changed)
         layout.addWidget(self._editor, 1)
 
+        # Forward focus from the wrapper widget to the internal editor so
+        # callers can treat the preview as a focusable text widget.
+        self.setFocusProxy(self._editor)
+
         # Track zoom level for Ctrl+wheel zooming.
         self._zoom_level = 0
 
@@ -192,6 +196,27 @@ class PreviewWidget(QWidget):
         """
 
         return self._editor.toHtml()
+
+    # Text-widget compatibility layer -------------------------------------
+
+    def textCursor(self) -> QTextCursor:
+        """Expose the underlying editor cursor for search/replace helpers."""
+
+        return self._editor.textCursor()
+
+    def setTextCursor(self, cursor: QTextCursor) -> None:
+        """Set the underlying editor cursor for search/replace helpers."""
+
+        self._editor.setTextCursor(cursor)
+
+    def find(self, pattern: str, flags) -> bool:
+        """Proxy ``find`` to the internal QTextEdit.
+
+        The signature matches :meth:`QTextEdit.find` so that callers can treat
+        :class:`PreviewWidget` like a standard Qt text widget for search.
+        """
+
+        return self._editor.find(pattern, flags)
 
     # Internal helpers -----------------------------------------------------
 
