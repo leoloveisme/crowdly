@@ -306,8 +306,8 @@ class MainWindow(QMainWindow):
 
         self._update_language_actions()
 
-        view_menu = menu.addMenu(self.tr("View"))
-        self._view_menu = view_menu
+        # "View" menu removed; pane visibility is now controlled via
+        # checkboxes in the top bar.
 
         search_menu = menu.addMenu(self.tr("Search"))
         self._search_menu = search_menu
@@ -337,15 +337,6 @@ class MainWindow(QMainWindow):
             self._open_compare_revisions,
         )
 
-        # Both the Markdown/HTML editor and the WYSIWYG preview are available;
-        # the View menu lets the user decide which panes are visible.
-        self._action_view_md_editor = view_menu.addAction(
-            self.tr("Markdown (MD) / HTML editor"),
-        )
-        self._action_view_md_editor.setCheckable(True)
-        self._action_view_md_editor.setChecked(True)
-        self._action_view_md_editor.toggled.connect(self._on_view_md_toggled)
-
         menu.addSeparator()
         self._action_login_logout = menu.addAction(
             self.tr("Login"), self._toggle_login_logout
@@ -357,14 +348,16 @@ class MainWindow(QMainWindow):
         top_layout.addWidget(burger_button)
         top_layout.addStretch(1)
 
-        # Toggle button in the top-right to show/hide the preview pane.
-        self._preview_toggle = QToolButton(top_bar)
-        self._preview_toggle.setText(self.tr("Preview"))
-        self._preview_toggle.setCheckable(True)
-        self._preview_toggle.setChecked(True)
-        self._preview_toggle.setToolTip(self.tr("Show or hide the preview pane"))
-        self._preview_toggle.toggled.connect(self._set_preview_visible)
-        top_layout.addWidget(self._preview_toggle)
+        # Checkboxes in the top-right to control which panes are visible.
+        self._chk_md_editor = QCheckBox(self.tr("Markdown (MD) / HTML"), top_bar)
+        self._chk_md_editor.setChecked(True)
+        self._chk_md_editor.toggled.connect(self._on_md_checkbox_toggled)
+        top_layout.addWidget(self._chk_md_editor)
+
+        self._chk_wysiwyg = QCheckBox(self.tr("WYSIWYG"), top_bar)
+        self._chk_wysiwyg.setChecked(True)
+        self._chk_wysiwyg.toggled.connect(self._on_wysiwyg_checkbox_toggled)
+        top_layout.addWidget(self._chk_wysiwyg)
 
         # Inline search / replace bar (initially hidden).
         self._search_bar = QWidget(container)
@@ -816,9 +809,17 @@ class MainWindow(QMainWindow):
             self.preview = preview
             self._current_tab_index = 0
 
-            # Ensure preview visibility matches the toggle state.
-            if hasattr(self, "_preview_toggle"):
-                self._set_preview_visible(self._preview_toggle.isChecked())
+            # Ensure pane visibility matches the global checkboxes.
+            if hasattr(self, "_chk_md_editor"):
+                try:
+                    self.editor.setVisible(self._chk_md_editor.isChecked())
+                except Exception:
+                    self.editor.setVisible(True)
+            if hasattr(self, "_chk_wysiwyg"):
+                try:
+                    self._set_preview_visible(self._chk_wysiwyg.isChecked())
+                except Exception:
+                    self._set_preview_visible(True)
 
         return index
 
@@ -884,19 +885,38 @@ class MainWindow(QMainWindow):
         self._update_document_stats_label()
         self._update_story_link_label()
 
-        # Keep the preview visibility in sync with the global toggle.
-        if hasattr(self, "_preview_toggle"):
-            self._set_preview_visible(self._preview_toggle.isChecked())
+        # Keep the pane visibility in sync with the global checkboxes.
+        if hasattr(self, "_chk_md_editor"):
+            try:
+                self.editor.setVisible(self._chk_md_editor.isChecked())
+            except Exception:
+                self.editor.setVisible(True)
+        if hasattr(self, "_chk_wysiwyg"):
+            try:
+                self._set_preview_visible(self._chk_wysiwyg.isChecked())
+            except Exception:
+                self._set_preview_visible(True)
 
     def _set_preview_visible(self, visible: bool) -> None:  # pragma: no cover - UI wiring
         """Show or hide the preview pane without affecting the editor.
 
-        The toggle button in the top bar controls this. When hidden, the
+        This is driven by the top-bar "WYSIWYG" checkbox. When hidden, the
         editor takes all horizontal space; when shown, the splitter layout is
         restored automatically by Qt.
         """
 
         self.preview.setVisible(visible)
+
+        # Keep the WYSIWYG checkbox in sync without triggering recursive
+        # signal emission.
+        if hasattr(self, "_chk_wysiwyg"):
+            try:
+                self._chk_wysiwyg.blockSignals(True)
+                self._chk_wysiwyg.setChecked(visible)
+                self._chk_wysiwyg.blockSignals(False)
+            except Exception:
+                pass
+
         # When re-showing the preview, ensure it has up-to-date content if
         # the last change came from the plain-text editor. If the last
         # change came from the WYSIWYG pane itself, preserve its rich
@@ -2240,46 +2260,56 @@ class MainWindow(QMainWindow):
         self._update_user_status_label()
         self._update_sync_status_label()
 
-    def _on_view_md_toggled(self, checked: bool) -> None:  # pragma: no cover
-        """Show or hide the Markdown/HTML editor pane via the View menu.
+    def _on_md_checkbox_toggled(self, checked: bool) -> None:  # pragma: no cover - UI wiring
+        """Show or hide the Markdown/HTML editor pane via the top-bar checkbox.
 
-        If the user attempts to hide both panes, this method restores the
-        editor to a visible state. When only the editor is visible it
-        automatically occupies the full width of the splitter.
+        If the user attempts to hide both panes, the editor checkbox is forced
+        back on so that at least one pane remains visible.
         """
 
         # Prevent both panes from being hidden.
-        if not checked and hasattr(self, "_action_view_wysiwyg"):
-            if not self._action_view_wysiwyg.isChecked():
-                self._action_view_md_editor.blockSignals(True)
-                self._action_view_md_editor.setChecked(True)
-                self._action_view_md_editor.blockSignals(False)
-                return
+        other_visible = True
+        if hasattr(self, "_chk_wysiwyg"):
+            try:
+                other_visible = self._chk_wysiwyg.isChecked()
+            except Exception:
+                other_visible = True
+        if not checked and not other_visible:
+            try:
+                self._chk_md_editor.blockSignals(True)
+                self._chk_md_editor.setChecked(True)
+                self._chk_md_editor.blockSignals(False)
+            except Exception:
+                pass
+            return
 
         self.editor.setVisible(checked)
 
-    def _on_view_wysiwyg_toggled(self, checked: bool) -> None:  # pragma: no cover
-        """Show or hide the WYSIWYG preview pane via the View menu.
+    def _on_wysiwyg_checkbox_toggled(self, checked: bool) -> None:  # pragma: no cover - UI wiring
+        """Show or hide the WYSIWYG preview pane via the top-bar checkbox.
 
-        Hiding the preview makes the Markdown editor occupy the full width.
-        If the user attempts to hide both panes, the preview checkbox is
-        forced back on.
+        Hiding the preview makes the Markdown editor occupy the full width. If
+        the user attempts to hide both panes, the WYSIWYG checkbox is forced
+        back on.
         """
 
         # Prevent both panes from being hidden.
-        if not checked and hasattr(self, "_action_view_md_editor"):
-            if not self._action_view_md_editor.isChecked():
-                self._action_view_wysiwyg.blockSignals(True)
-                self._action_view_wysiwyg.setChecked(True)
-                self._action_view_wysiwyg.blockSignals(False)
-                return
+        other_visible = True
+        if hasattr(self, "_chk_md_editor"):
+            try:
+                other_visible = self._chk_md_editor.isChecked()
+            except Exception:
+                other_visible = True
+        if not checked and not other_visible:
+            try:
+                self._chk_wysiwyg.blockSignals(True)
+                self._chk_wysiwyg.setChecked(True)
+                self._chk_wysiwyg.blockSignals(False)
+            except Exception:
+                pass
+            return
 
-        # Drive the existing preview toggle so all behaviour is centralised.
-        self._preview_toggle.setChecked(checked)
-        if hasattr(self, "_action_view_wysiwyg"):
-            self._action_view_wysiwyg.blockSignals(True)
-            self._action_view_wysiwyg.setChecked(checked)
-            self._action_view_wysiwyg.blockSignals(False)
+        self._set_preview_visible(checked)
 
     def _show_find_dialog(self) -> None:  # pragma: no cover - UI wiring
         """Show the inline search bar configured for Find-only operations."""
