@@ -48,7 +48,7 @@ const AboutUs = () => {
           </h1>          
           <p className="text-xl text-gray-600 mb-8">
             <EditableText id="main-subtitle">
-              The entertainment platform where your voice matters
+              The entertainment platform where YOUR voice matters
             </EditableText>
           </p>
           
@@ -60,7 +60,7 @@ const AboutUs = () => {
             </p>      
             <p className="mb-2">
               <EditableText id="feedback-message">
-                Feel free to contribute to this open sourced project on Github under https://github.com/leoloveisme/crowdly_lovable
+                Feel free to contribute to this open sourced project on Github under https://github.com/leoloveisme/crowdly 
               </EditableText>
             </p>           
      

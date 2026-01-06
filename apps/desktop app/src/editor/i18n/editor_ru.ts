@@ -16,12 +16,20 @@
         <translation>Новый</translation>
     </message>
     <message>
+        <source>Master document</source>
+        <translation>Мастер документ</translation>
+    </message>
+    <message>
         <source>New document</source>
-        <translation>Новый документ</translation>
+        <translation>Документ</translation>
     </message>
     <message>
         <source>New directory</source>
         <translation>Создать новую папку</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>Создать новую историю</translation>
     </message>
     <message>
         <source>Tab</source>

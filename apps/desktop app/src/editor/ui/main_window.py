@@ -158,6 +158,9 @@ class MainWindow(QMainWindow):
         self._action_new_story = new_menu.addAction(
             self.tr("Story"), self._new_story_from_template
         )
+        # Placeholder submenu for future master-document features.
+        master_document_menu = new_menu.addMenu(self.tr("Master document"))
+        self._master_document_menu = master_document_menu
         # Workspace creation helpers.
         self._action_new_tab = new_menu.addAction(
             self.tr("Tab"), self._new_tab
@@ -844,6 +847,8 @@ class MainWindow(QMainWindow):
             self._action_new_directory.setText(self.tr("New directory"))
         if hasattr(self, "_action_new_story"):
             self._action_new_story.setText(self.tr("Story"))
+        if hasattr(self, "_master_document_menu"):
+            self._master_document_menu.setTitle(self.tr("Master document"))
         if hasattr(self, "_action_new_tab"):
             self._action_new_tab.setText(self.tr("Tab"))
         if hasattr(self, "_action_new_window"):

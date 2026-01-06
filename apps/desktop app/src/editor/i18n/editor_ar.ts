@@ -16,6 +16,10 @@
       <translation>New</translation>
     </message>
     <message>
+      <source>Master document</source>
+      <translation>Master document</translation>
+    </message>
+    <message>
       <source>New document</source>
       <translation>New document</translation>
     </message>

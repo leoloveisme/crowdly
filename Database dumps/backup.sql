@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 85zfy7HkZxYsoZgwaXbVzWFxBxcD1HI8xJc5xQSjUm659gToc4qfMDLKDTXy3kW
+\restrict ocbqORStfxnxrs7ELMumbj8BLXP0rZBsPnsIlgC7Xghjl1l4c21z8Vuoo5e0tx1
 
 -- Dumped from database version 16.11 (Ubuntu 16.11-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.11 (Ubuntu 16.11-0ubuntu0.24.04.1)
@@ -467,6 +467,7 @@ CREATE TABLE public.profiles (
     notify_phone boolean DEFAULT false,
     notify_app boolean DEFAULT true,
     notify_email boolean DEFAULT true,
+    real_nickname text,
     CONSTRAINT username_length CHECK ((char_length(username) >= 3))
 );
 
@@ -489,6 +490,79 @@ CREATE TABLE public.reactions (
 
 
 ALTER TABLE public.reactions OWNER TO lad;
+
+--
+-- Name: screenplay_access; Type: TABLE; Schema: public; Owner: lad
+--
+
+CREATE TABLE public.screenplay_access (
+    screenplay_id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    role text DEFAULT 'owner'::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.screenplay_access OWNER TO lad;
+
+--
+-- Name: screenplay_block; Type: TABLE; Schema: public; Owner: lad
+--
+
+CREATE TABLE public.screenplay_block (
+    block_id uuid DEFAULT gen_random_uuid() NOT NULL,
+    screenplay_id uuid NOT NULL,
+    scene_id uuid,
+    block_index integer NOT NULL,
+    block_type text NOT NULL,
+    text text NOT NULL,
+    metadata jsonb,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.screenplay_block OWNER TO lad;
+
+--
+-- Name: screenplay_scene; Type: TABLE; Schema: public; Owner: lad
+--
+
+CREATE TABLE public.screenplay_scene (
+    scene_id uuid DEFAULT gen_random_uuid() NOT NULL,
+    screenplay_id uuid NOT NULL,
+    scene_index integer NOT NULL,
+    slugline text NOT NULL,
+    location text,
+    time_of_day text,
+    is_interior boolean,
+    synopsis text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.screenplay_scene OWNER TO lad;
+
+--
+-- Name: screenplay_title; Type: TABLE; Schema: public; Owner: lad
+--
+
+CREATE TABLE public.screenplay_title (
+    screenplay_id uuid DEFAULT gen_random_uuid() NOT NULL,
+    title text NOT NULL,
+    creator_id uuid,
+    visibility text DEFAULT 'public'::text NOT NULL,
+    published boolean DEFAULT true NOT NULL,
+    genre text,
+    tags text[],
+    format_type text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.screenplay_title OWNER TO lad;
 
 --
 -- Name: stories; Type: TABLE; Schema: public; Owner: lad
@@ -560,6 +634,21 @@ CREATE TABLE public.story_initiators (
 
 
 ALTER TABLE public.story_initiators OWNER TO lad;
+
+--
+-- Name: story_screenplay_links; Type: TABLE; Schema: public; Owner: lad
+--
+
+CREATE TABLE public.story_screenplay_links (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    story_title_id uuid NOT NULL,
+    screenplay_id uuid NOT NULL,
+    relation_type text DEFAULT 'adaptation'::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.story_screenplay_links OWNER TO lad;
 
 --
 -- Name: story_title; Type: TABLE; Schema: public; Owner: lad
@@ -640,8 +729,9 @@ ALTER TABLE ONLY public.crdt_changes ALTER COLUMN id SET DEFAULT nextval('public
 --
 
 COPY public.authors (creator_id, author_id, created_at, updated_at) FROM stdin;
-aef37573-600e-4442-9ae1-63a05799d9a0	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-19 10:32:07.197304+01	2025-12-23 11:39:51.722611+01
 6f542cd0-551b-4ec9-b2b0-61113dd7af2b	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2025-12-23 12:12:53.237302+01	2025-12-23 12:12:53.237302+01
+cad23ca1-121d-448f-8947-ddd5048ecb15	cad23ca1-121d-448f-8947-ddd5048ecb15	2025-12-29 15:11:44.427964+01	2025-12-29 15:16:54.42495+01
+aef37573-600e-4442-9ae1-63a05799d9a0	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-19 10:32:07.197304+01	2025-12-29 15:48:06.022141+01
 \.
 
 
@@ -736,6 +826,25 @@ dc115143-2179-431a-a624-5c6a42f502d3	eb752fad-3eae-458a-97c5-6fa67e389bed	It tak
 f8e8fed5-b79d-4b01-9a63-639a23cb7295	1028d940-b3ca-4253-b6c3-afd634ff0923	It takes a village to raise a child, again	It takes a village to raise a child, again	{"indeed so","now it is us who need to find that village"}	{"indeed so","now it is us who need to find that village","Now I'm adding another paragraph in the desktop app as the user test to see the\nbehaviour of both desktop app and Crowdly web"}	cad23ca1-121d-448f-8947-ddd5048ecb15	2025-12-23 11:39:51.722611+01	Desktop sync	en	2
 0aa8f7b7-f93c-48f3-9bf6-ce6e8a7f402e	ac1f9d6b-85ca-4aed-b833-0d39e7f72111	Test	Test	{test}	{test,"I'm making changes to the story with the story ID\nhttp://localhost:8080/story/263cffb0-1899-44b9-8e2d-581114963274 in the desktop\napp to see the behaviour"}	cad23ca1-121d-448f-8947-ddd5048ecb15	2025-12-23 12:12:53.237302+01	Desktop sync	en	1
 df7ed402-e765-4db0-9e52-008eac4ec332	2fa7b19d-207c-4223-8f3c-19b3908f676f	The day I was conceived	The day I was conceived	{"Some proper text"}	{"Some proper text","and now I'm making changes on the Crowdly web platform to see if the changes will be sync-ed into the desktop app for the user test"}	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2025-12-23 12:14:16.36608+01	Chapter updated	en	3
+14fff4c8-d571-4b7b-b717-bbb9c7c5fc7a	bde622be-157c-49ff-a131-96d02a7e0284	Chapter	Chapter	{""}	{}	cad23ca1-121d-448f-8947-ddd5048ecb15	2025-12-29 15:11:44.427964+01	Desktop sync	en	1
+c433bab1-4c19-437b-9018-2d0a9f106330	bde622be-157c-49ff-a131-96d02a7e0284	Chapter	Intro	{}	{"It is a series of short stories."}	cad23ca1-121d-448f-8947-ddd5048ecb15	2025-12-29 15:15:52.628119+01	Desktop sync	en	2
+e47c0c93-fcc2-4680-ba14-04e00538b986	c35dbd92-0686-4036-9b5c-74db0e8cf177	\N	Chapter 1 - What goes around, comes around	\N	{"Adding couple of words here"}	cad23ca1-121d-448f-8947-ddd5048ecb15	2025-12-29 15:15:52.628119+01	Desktop sync (created)	en	1
+1b31a6ef-348f-4e43-a4f6-86ea60d5f50a	1988ba43-a32f-4f5b-8698-9fcbc1b10ad7	\N	Chapter 2 - Bla Bla Blu - is not my song	\N	{"There is a popular female Thai  singer who sings this song"}	cad23ca1-121d-448f-8947-ddd5048ecb15	2025-12-29 15:16:54.42495+01	Desktop sync (created)	en	1
+a7d56bd7-73b6-4860-a043-a5190b24ad71	f4985aa1-0b7d-4c64-9234-99288c0846b5	Chapter	Chapter	{""}	{"#New story by Leo Love"}	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-29 15:23:11.836369+01	Desktop sync	en	1
+e37241df-55b7-4fd7-87c6-d1f2a4f1e50a	0e4ec8f8-acb9-4c5e-be77-cda6021976fa	\N	Intro	\N	{"some intro text"}	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-29 15:23:11.836369+01	Desktop sync (created)	en	1
+9fd5be7c-fc03-44c1-8132-0929ba5aab97	988e930d-258c-40e1-aa52-7fa141eb1fb5	\N	Chapter 1	\N	{"Text of chapter 1"}	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-29 15:23:11.836369+01	Desktop sync (created)	en	1
+dd0c715c-83a1-44d2-b353-4ed85ea7b08f	e94a297c-d4e3-417f-b04b-2146b521a668	\N	Chapter 2	\N	{"Text of chapter 2"}	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-29 15:23:11.836369+01	Desktop sync (created)	en	1
+190394da-f63f-497d-aa2a-62f5a3cc5a4a	f4985aa1-0b7d-4c64-9234-99288c0846b5	Chapter	Intro	{"#New story by Leo Love"}	{"some intro text"}	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-29 15:40:50.235847+01	Desktop sync	en	2
+638f80d4-f825-4fb2-b313-af183fee3e20	0e4ec8f8-acb9-4c5e-be77-cda6021976fa	Intro	Chapter 1	{"some intro text"}	{"Text of chapter 1"}	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-29 15:40:50.235847+01	Desktop sync	en	2
+319d034e-0a5c-4f85-890e-aea1ddbc04f9	988e930d-258c-40e1-aa52-7fa141eb1fb5	Chapter 1	Chapter 2	{"Text of chapter 1"}	{"Text of chapter 2"}	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-29 15:40:50.235847+01	Desktop sync	en	2
+a08c9bf9-c372-4a4a-948b-0aa669b58a72	e94a297c-d4e3-417f-b04b-2146b521a668	Chapter 2	Chapter 3	{"Text of chapter 2"}	{"text for chapter 3"}	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-29 15:40:50.235847+01	Desktop sync	en	2
+7fc4ed2e-04c4-48ad-8885-3ede583bd732	f23e7e91-9f17-4814-b422-f83188ed8897	Chapter	Intro	{""}	{"some intro text"}	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-29 15:43:02.589403+01	Desktop sync	en	1
+2e586596-5726-42d7-a7e5-d3423bffe184	8fb7c09e-5e82-471e-ad6d-c566494dcfbf	\N	Chapter 1	\N	{"Text of chapter 1"}	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-29 15:43:02.589403+01	Desktop sync (created)	en	1
+ce1c574f-3b28-48cb-8a86-4dc96ebbb415	e975c6d7-f327-431c-a256-f01e3d77afe3	\N	Chapter 2	\N	{"Text of chapter 2"}	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-29 15:43:02.589403+01	Desktop sync (created)	en	1
+ee8676e0-301e-4356-a6bd-4e2b90573f10	0ff85c0d-b0de-4705-96e3-b569b67b0d6a	\N	Chapter 3	\N	{"text for chapter 3"}	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-29 15:43:02.589403+01	Desktop sync (created)	en	1
+5920cbc7-fda8-478a-831f-9a50055e789d	20c98a0f-5396-47af-982c-c418de96934b	The day I was conceived	The day I was conceived	{test}	{"Was a dark and cold one. It was rainy and windy outside."}	cad23ca1-121d-448f-8947-ddd5048ecb15	2025-12-29 15:47:21.993556+01	Desktop sync	en	1
+e8a6a2e2-4850-4a6c-bcdb-76e0befe7d6e	520ff5b7-fc08-4c04-bdbb-8de2ad202972	And life goes on	And life goes on	{"as always"}	{"as always, as it should, it would be rather unusual if it wouldn't, however such a story is also not entirely impossible. :)"}	cad23ca1-121d-448f-8947-ddd5048ecb15	2025-12-29 15:47:21.993556+01	Desktop sync	en	3
+57eafae2-62db-4f56-851f-67df8c62cd6b	20c98a0f-5396-47af-982c-c418de96934b	The day I was conceived	The day I was conceived	{"Was a dark and cold one. It was rainy and windy outside."}	{"Was a dark and cold one. It was rainy and windy outside - this however is not a problem for two people who are passionately in love."}	cad23ca1-121d-448f-8947-ddd5048ecb15	2025-12-29 15:48:06.022141+01	Desktop sync	en	2
 \.
 
 
@@ -789,6 +898,17 @@ ba8efeb0-b1c9-4697-9f14-30bd1de70b6a	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	b9f1de
 c213c3b3-59a3-40e9-8935-a2d0b75bed13	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	eb752fad-3eae-458a-97c5-6fa67e389bed	\N	0	paragraph	proposal-backfill	c213c3b3-59a3-40e9-8935-a2d0b75bed13	cad23ca1-121d-448f-8947-ddd5048ecb15	undecided	6	New text here. One gets excited. 	2025-12-27 19:42:25.906+01
 615ce439-5890-4d93-968c-eb8fa8ec267f	7b4cb567-de6c-4728-92d7-56a529c9970f	7fdb3b9a-9cac-4f8f-b73e-75d3d0d489b3	\N	0	paragraph	legacy-backfill	615ce439-5890-4d93-968c-eb8fa8ec267f	aef37573-600e-4442-9ae1-63a05799d9a0	approved	10	test\nand this is just a message from Leo Love \n\n\n\n\n\n\n	2025-12-11 15:43:23.249+01
 5d320e88-1080-4f96-a20d-90143f3432c2	7b4cb567-de6c-4728-92d7-56a529c9970f	7fdb3b9a-9cac-4f8f-b73e-75d3d0d489b3	\N	0	paragraph	legacy-backfill	5d320e88-1080-4f96-a20d-90143f3432c2	aef37573-600e-4442-9ae1-63a05799d9a0	approved	10	test\nand this is just a message from Leo Love 	2025-12-11 15:42:05.107+01
+1b31a6ef-348f-4e43-a4f6-86ea60d5f50a	1e6bb2d6-0430-439d-99cf-4616617dfbf8	1988ba43-a32f-4f5b-8698-9fcbc1b10ad7	\N	0	paragraph	legacy-backfill	1b31a6ef-348f-4e43-a4f6-86ea60d5f50a	cad23ca1-121d-448f-8947-ddd5048ecb15	approved	11	There is a popular female Thai  singer who sings this song	2025-12-29 15:16:54.424+01
+c433bab1-4c19-437b-9018-2d0a9f106330	1e6bb2d6-0430-439d-99cf-4616617dfbf8	bde622be-157c-49ff-a131-96d02a7e0284	\N	0	paragraph	legacy-backfill	c433bab1-4c19-437b-9018-2d0a9f106330	cad23ca1-121d-448f-8947-ddd5048ecb15	approved	7	It is a series of short stories.	2025-12-29 15:15:52.628+01
+e47c0c93-fcc2-4680-ba14-04e00538b986	1e6bb2d6-0430-439d-99cf-4616617dfbf8	c35dbd92-0686-4036-9b5c-74db0e8cf177	\N	0	paragraph	legacy-backfill	e47c0c93-fcc2-4680-ba14-04e00538b986	cad23ca1-121d-448f-8947-ddd5048ecb15	approved	5	Adding couple of words here	2025-12-29 15:15:52.628+01
+a7d56bd7-73b6-4860-a043-a5190b24ad71	10e2ca77-0b5c-4f72-aeee-965cbe4db67a	f4985aa1-0b7d-4c64-9234-99288c0846b5	\N	0	paragraph	legacy-backfill	a7d56bd7-73b6-4860-a043-a5190b24ad71	aef37573-600e-4442-9ae1-63a05799d9a0	approved	5	#New story by Leo Love	2025-12-29 15:23:11.836+01
+e37241df-55b7-4fd7-87c6-d1f2a4f1e50a	10e2ca77-0b5c-4f72-aeee-965cbe4db67a	0e4ec8f8-acb9-4c5e-be77-cda6021976fa	\N	0	paragraph	legacy-backfill	e37241df-55b7-4fd7-87c6-d1f2a4f1e50a	aef37573-600e-4442-9ae1-63a05799d9a0	approved	3	some intro text	2025-12-29 15:23:11.836+01
+9fd5be7c-fc03-44c1-8132-0929ba5aab97	10e2ca77-0b5c-4f72-aeee-965cbe4db67a	988e930d-258c-40e1-aa52-7fa141eb1fb5	\N	0	paragraph	legacy-backfill	9fd5be7c-fc03-44c1-8132-0929ba5aab97	aef37573-600e-4442-9ae1-63a05799d9a0	approved	4	Text of chapter 1	2025-12-29 15:23:11.836+01
+dd0c715c-83a1-44d2-b353-4ed85ea7b08f	10e2ca77-0b5c-4f72-aeee-965cbe4db67a	e94a297c-d4e3-417f-b04b-2146b521a668	\N	0	paragraph	legacy-backfill	dd0c715c-83a1-44d2-b353-4ed85ea7b08f	aef37573-600e-4442-9ae1-63a05799d9a0	approved	4	Text of chapter 2	2025-12-29 15:23:11.836+01
+7fc4ed2e-04c4-48ad-8885-3ede583bd732	6174fd71-525f-40c7-a6e1-3c40f3ea57d5	f23e7e91-9f17-4814-b422-f83188ed8897	\N	0	paragraph	legacy-backfill	7fc4ed2e-04c4-48ad-8885-3ede583bd732	aef37573-600e-4442-9ae1-63a05799d9a0	approved	3	some intro text	2025-12-29 15:43:02.589+01
+2e586596-5726-42d7-a7e5-d3423bffe184	6174fd71-525f-40c7-a6e1-3c40f3ea57d5	8fb7c09e-5e82-471e-ad6d-c566494dcfbf	\N	0	paragraph	legacy-backfill	2e586596-5726-42d7-a7e5-d3423bffe184	aef37573-600e-4442-9ae1-63a05799d9a0	approved	4	Text of chapter 1	2025-12-29 15:43:02.589+01
+ce1c574f-3b28-48cb-8a86-4dc96ebbb415	6174fd71-525f-40c7-a6e1-3c40f3ea57d5	e975c6d7-f327-431c-a256-f01e3d77afe3	\N	0	paragraph	legacy-backfill	ce1c574f-3b28-48cb-8a86-4dc96ebbb415	aef37573-600e-4442-9ae1-63a05799d9a0	approved	4	Text of chapter 2	2025-12-29 15:43:02.589+01
+ee8676e0-301e-4356-a6bd-4e2b90573f10	6174fd71-525f-40c7-a6e1-3c40f3ea57d5	0ff85c0d-b0de-4705-96e3-b569b67b0d6a	\N	0	paragraph	legacy-backfill	ee8676e0-301e-4356-a6bd-4e2b90573f10	aef37573-600e-4442-9ae1-63a05799d9a0	approved	4	text for chapter 3	2025-12-29 15:43:02.589+01
 \.
 
 
@@ -932,6 +1052,16 @@ a7a425fd-3720-4ea5-8d9d-11a3ab5e1392	eb752fad-3eae-458a-97c5-6fa67e389bed	0	inde
 294b1db7-75b0-4e48-b223-e0219479f2a5	1028d940-b3ca-4253-b6c3-afd634ff0923	2	\N	Now I'm adding another paragraph in the desktop app as the user test to see the\nbehaviour of both desktop app and Crowdly web	cad23ca1-121d-448f-8947-ddd5048ecb15	2025-12-23 11:39:51.722611+01	Desktop sync	en	1
 a9507774-16eb-4e17-8e48-7a88d1d31768	ac1f9d6b-85ca-4aed-b833-0d39e7f72111	1	\N	I'm making changes to the story with the story ID\nhttp://localhost:8080/story/263cffb0-1899-44b9-8e2d-581114963274 in the desktop\napp to see the behaviour	cad23ca1-121d-448f-8947-ddd5048ecb15	2025-12-23 12:12:53.237302+01	Desktop sync	en	1
 911ae84c-2d40-4d1e-8711-7950e537d43d	2fa7b19d-207c-4223-8f3c-19b3908f676f	1	\N	and now I'm making changes on the Crowdly web platform to see if the changes will be sync-ed into the desktop app for the user test	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2025-12-23 12:14:16.369526+01	Paragraph updated	en	1
+f7cc02dd-e2e8-44db-a804-da7040f29c19	bde622be-157c-49ff-a131-96d02a7e0284	0	\N	It is a series of short stories.	cad23ca1-121d-448f-8947-ddd5048ecb15	2025-12-29 15:15:52.628119+01	Desktop sync	en	1
+ba907ee2-2c3e-4610-8627-8a55ed755e71	f4985aa1-0b7d-4c64-9234-99288c0846b5	0		#New story by Leo Love	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-29 15:23:11.836369+01	Desktop sync	en	1
+a037ec38-880a-4b8e-8039-2afad69184bd	f4985aa1-0b7d-4c64-9234-99288c0846b5	0	#New story by Leo Love	some intro text	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-29 15:40:50.235847+01	Desktop sync	en	2
+b60f8342-6a5f-4d0c-b4bb-70e3c2dd08cc	0e4ec8f8-acb9-4c5e-be77-cda6021976fa	0	some intro text	Text of chapter 1	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-29 15:40:50.235847+01	Desktop sync	en	1
+08c80311-f485-40b3-9642-f72d2155af86	988e930d-258c-40e1-aa52-7fa141eb1fb5	0	Text of chapter 1	Text of chapter 2	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-29 15:40:50.235847+01	Desktop sync	en	1
+3377c6b9-cf12-4e8d-a072-5cfb487184b5	e94a297c-d4e3-417f-b04b-2146b521a668	0	Text of chapter 2	text for chapter 3	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-29 15:40:50.235847+01	Desktop sync	en	1
+32467d22-41dc-4c19-a9ce-737922f67fe6	f23e7e91-9f17-4814-b422-f83188ed8897	0		some intro text	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-29 15:43:02.589403+01	Desktop sync	en	1
+ee0fe899-2e1c-4bf9-98b4-bcd062e783eb	20c98a0f-5396-47af-982c-c418de96934b	0	test	Was a dark and cold one. It was rainy and windy outside.	cad23ca1-121d-448f-8947-ddd5048ecb15	2025-12-29 15:47:21.993556+01	Desktop sync	en	1
+a7dbdc89-019e-4a89-993c-ae9bea7a431c	520ff5b7-fc08-4c04-bdbb-8de2ad202972	0	as always	as always, as it should, it would be rather unusual if it wouldn't, however such a story is also not entirely impossible. :)	cad23ca1-121d-448f-8947-ddd5048ecb15	2025-12-29 15:47:21.993556+01	Desktop sync	en	1
+e717a256-3542-4645-a866-d44b3b60dfda	20c98a0f-5396-47af-982c-c418de96934b	0	Was a dark and cold one. It was rainy and windy outside.	Was a dark and cold one. It was rainy and windy outside - this however is not a problem for two people who are passionately in love.	cad23ca1-121d-448f-8947-ddd5048ecb15	2025-12-29 15:48:06.022141+01	Desktop sync	en	2
 \.
 
 
@@ -939,14 +1069,14 @@ a9507774-16eb-4e17-8e48-7a88d1d31768	ac1f9d6b-85ca-4aed-b833-0d39e7f72111	1	\N	I
 -- Data for Name: profiles; Type: TABLE DATA; Schema: public; Owner: lad
 --
 
-COPY public.profiles (id, username, created_at, updated_at, first_name, last_name, nickname, about, bio, interests, profile_image_url, birthday, languages, social_facebook, social_snapchat, social_instagram, social_other, telephone, notify_phone, notify_app, notify_email) FROM stdin;
-61f38d4e-60a7-4836-9f43-1dfe7ddd00e7	leoforce@example.com	2025-05-05 17:37:32.335628+02	2025-05-05 17:37:32.335628+02	\N	\N	\N	\N	\N	{}	\N	\N	{}	\N	\N	\N	\N	\N	f	t	t
-e95ec2a3-c9de-4d3c-b516-1998deb243f2	leolove@example.com	2025-05-05 18:21:13.488887+02	2025-05-05 18:21:13.488887+02	\N	\N	\N	\N	\N	{}	\N	\N	{}	\N	\N	\N	\N	\N	f	t	t
-4b1454d7-f26c-4485-9e3f-614c92dcd0ae	leoforce@crowdly.org	2025-06-15 15:51:07.942667+02	2025-06-15 15:51:07.942667+02	\N	\N	\N	\N	\N	{}	\N	\N	{}	\N	\N	\N	\N	\N	f	t	t
-e28cf50b-29ce-4486-b1e6-085882b6dbe9	leoforce@growdly.online	2025-05-05 18:37:05.47367+02	2025-05-05 18:37:05.47367+02	Leo	Force	\N	\N	\N	{}	\N	\N	{}	\N	\N	\N	\N	\N	f	f	f
-aef37573-600e-4442-9ae1-63a05799d9a0	leolove@example.com-aef37573	2025-12-17 16:58:44.976518+01	2025-12-17 17:00:43.162754+01	Leo	Love	\N	\N	My name is Love, Leo Love :)	{}	\N	1980-08-09	{}	\N	\N	\N	\N	\N	f	t	t
-cad23ca1-121d-448f-8947-ddd5048ecb15	test@example.com	2025-12-17 17:14:34.761162+01	2025-12-17 17:14:34.761162+01	\N	\N	\N	\N	\N	{}	\N	\N	{}	\N	\N	\N	\N	\N	f	t	t
-6f542cd0-551b-4ec9-b2b0-61113dd7af2b	admin@example.com	2025-12-18 14:14:36.218696+01	2025-12-18 14:14:36.218696+01	\N	\N	\N	\N	\N	{}	\N	\N	{}	\N	\N	\N	\N	\N	f	t	t
+COPY public.profiles (id, username, created_at, updated_at, first_name, last_name, nickname, about, bio, interests, profile_image_url, birthday, languages, social_facebook, social_snapchat, social_instagram, social_other, telephone, notify_phone, notify_app, notify_email, real_nickname) FROM stdin;
+61f38d4e-60a7-4836-9f43-1dfe7ddd00e7	leoforce@example.com	2025-05-05 17:37:32.335628+02	2025-05-05 17:37:32.335628+02	\N	\N	\N	\N	\N	{}	\N	\N	{}	\N	\N	\N	\N	\N	f	t	t	\N
+e95ec2a3-c9de-4d3c-b516-1998deb243f2	leolove@example.com	2025-05-05 18:21:13.488887+02	2025-05-05 18:21:13.488887+02	\N	\N	\N	\N	\N	{}	\N	\N	{}	\N	\N	\N	\N	\N	f	t	t	\N
+4b1454d7-f26c-4485-9e3f-614c92dcd0ae	leoforce@crowdly.org	2025-06-15 15:51:07.942667+02	2025-06-15 15:51:07.942667+02	\N	\N	\N	\N	\N	{}	\N	\N	{}	\N	\N	\N	\N	\N	f	t	t	\N
+e28cf50b-29ce-4486-b1e6-085882b6dbe9	leoforce@growdly.online	2025-05-05 18:37:05.47367+02	2025-05-05 18:37:05.47367+02	Leo	Force	\N	\N	\N	{}	\N	\N	{}	\N	\N	\N	\N	\N	f	f	f	\N
+6f542cd0-551b-4ec9-b2b0-61113dd7af2b	admin@example.com	2025-12-18 14:14:36.218696+01	2026-01-05 14:58:05.20482+01	\N	\N		\N	\N	{}	\N	\N	{}	\N	\N	\N	\N	\N	f	t	t	\N
+aef37573-600e-4442-9ae1-63a05799d9a0	leolove@example.com-aef37573	2025-12-17 16:58:44.976518+01	2026-01-05 15:15:08.359161+01	Leo	Love	leolove	\N	My name is Love, Leo Love :)	{}	\N	1980-08-09	{}	\N	\N	\N	\N	\N	f	t	t	Leo wise and happy, kind and gentle Love
+cad23ca1-121d-448f-8947-ddd5048ecb15	test@example.com	2025-12-17 17:14:34.761162+01	2026-01-05 15:26:06.560331+01	Тест	Тестов	test	\N	\N	{}	\N	\N	{}	\N	\N	\N	\N	\N	f	t	t	試試
 \.
 
 
@@ -955,6 +1085,106 @@ cad23ca1-121d-448f-8947-ddd5048ecb15	test@example.com	2025-12-17 17:14:34.761162
 --
 
 COPY public.reactions (id, user_id, story_title_id, chapter_id, paragraph_index, reaction_type, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: screenplay_access; Type: TABLE DATA; Schema: public; Owner: lad
+--
+
+COPY public.screenplay_access (screenplay_id, user_id, role, created_at) FROM stdin;
+aa04df6b-d6a8-4500-8b34-62dcd707649f	aef37573-600e-4442-9ae1-63a05799d9a0	owner	2026-01-05 16:12:04.21068+01
+65b04657-e10d-4418-9a91-40dd267e79dc	aef37573-600e-4442-9ae1-63a05799d9a0	owner	2026-01-05 16:12:34.088721+01
+c325ec65-87cc-45e5-bbd6-2e3b20f5f697	aef37573-600e-4442-9ae1-63a05799d9a0	owner	2026-01-05 16:28:56.927546+01
+9c50b337-deb8-4501-9e9a-a3ff0323f6bd	aef37573-600e-4442-9ae1-63a05799d9a0	contributor	2026-01-06 10:41:26.666422+01
+\.
+
+
+--
+-- Data for Name: screenplay_block; Type: TABLE DATA; Schema: public; Owner: lad
+--
+
+COPY public.screenplay_block (block_id, screenplay_id, scene_id, block_index, block_type, text, metadata, created_at, updated_at) FROM stdin;
+5ed25d77-276e-4265-9487-549945170973	689612ea-30fc-418b-882e-51dc2eb9775e	689a4f75-a1d4-4d1d-bf59-164311e9377c	1	action	This is where action description goes. Describe what the audience sees.	\N	2026-01-05 13:39:39.78589+01	2026-01-05 13:39:39.78589+01
+406336c9-d7b6-40d4-bcd2-1a741615cc94	689612ea-30fc-418b-882e-51dc2eb9775e	689a4f75-a1d4-4d1d-bf59-164311e9377c	2	character	CHARACTER NAME	\N	2026-01-05 13:39:39.78589+01	2026-01-05 13:39:39.78589+01
+cdca5adc-3af9-407e-8cf1-b888da8f02e8	689612ea-30fc-418b-882e-51dc2eb9775e	689a4f75-a1d4-4d1d-bf59-164311e9377c	3	dialogue	This is a sample line of dialogue.	\N	2026-01-05 13:39:39.78589+01	2026-01-05 13:39:39.78589+01
+a609dbd5-35f3-4483-b560-922852dfc77a	689612ea-30fc-418b-882e-51dc2eb9775e	689a4f75-a1d4-4d1d-bf59-164311e9377c	4	parenthetical	(whispering)	\N	2026-01-05 13:39:39.78589+01	2026-01-05 13:39:39.78589+01
+5fe561dd-7041-40ac-acbc-62dc1d30e4ca	689612ea-30fc-418b-882e-51dc2eb9775e	689a4f75-a1d4-4d1d-bf59-164311e9377c	5	dialogue	Another line, with a parenthetical above it.	\N	2026-01-05 13:39:39.78589+01	2026-01-05 13:39:39.78589+01
+7597ea65-6d0c-4208-b5cc-e07c1d9a9b20	689612ea-30fc-418b-882e-51dc2eb9775e	689a4f75-a1d4-4d1d-bf59-164311e9377c	6	transition	CUT TO:	\N	2026-01-05 13:39:39.78589+01	2026-01-05 13:39:39.78589+01
+4965c659-b1e4-4949-8487-c74387447c64	98b90e1e-eae7-418d-984a-af5a91ec2084	657ab72a-c290-4fa1-8d0f-a96c4b0d17d2	1	action	This is where action description goes. Describe what the audience sees.	\N	2026-01-05 13:41:28.570958+01	2026-01-05 13:41:28.570958+01
+489c6920-a2aa-4a6a-996a-7a95df22cb9d	98b90e1e-eae7-418d-984a-af5a91ec2084	657ab72a-c290-4fa1-8d0f-a96c4b0d17d2	2	character	CHARACTER NAME	\N	2026-01-05 13:41:28.570958+01	2026-01-05 13:41:28.570958+01
+14a92ef6-1244-41f4-8f92-81150a5bebf0	98b90e1e-eae7-418d-984a-af5a91ec2084	657ab72a-c290-4fa1-8d0f-a96c4b0d17d2	3	dialogue	This is a sample line of dialogue.	\N	2026-01-05 13:41:28.570958+01	2026-01-05 13:41:28.570958+01
+ca0f7a7c-ae0b-46e4-ade0-61ee9f5107bd	98b90e1e-eae7-418d-984a-af5a91ec2084	657ab72a-c290-4fa1-8d0f-a96c4b0d17d2	4	parenthetical	(whispering)	\N	2026-01-05 13:41:28.570958+01	2026-01-05 13:41:28.570958+01
+3a136e7b-0e06-4eaf-9087-db20ca73d7e5	98b90e1e-eae7-418d-984a-af5a91ec2084	657ab72a-c290-4fa1-8d0f-a96c4b0d17d2	5	dialogue	Another line, with a parenthetical above it.	\N	2026-01-05 13:41:28.570958+01	2026-01-05 13:41:28.570958+01
+213a420b-67a9-419b-9cb9-e717de0093e2	98b90e1e-eae7-418d-984a-af5a91ec2084	657ab72a-c290-4fa1-8d0f-a96c4b0d17d2	6	transition	CUT TO:	\N	2026-01-05 13:41:28.570958+01	2026-01-05 13:41:28.570958+01
+352e65bc-4239-404f-94b2-c3fdab511b7a	90368af4-fe7f-4fdb-a85b-62e24abce64f	26dadae4-8bad-41ae-b5e1-d7a38c9166fc	1	action	This is where action description goes. Describe what the audience sees.	\N	2026-01-05 13:47:09.229914+01	2026-01-05 13:47:09.229914+01
+d1e51641-92f3-4b61-a99a-650f1078e09a	90368af4-fe7f-4fdb-a85b-62e24abce64f	26dadae4-8bad-41ae-b5e1-d7a38c9166fc	2	character	CHARACTER NAME	\N	2026-01-05 13:47:09.229914+01	2026-01-05 13:47:09.229914+01
+158a140a-5ef0-4462-8c7c-1d596cad219a	90368af4-fe7f-4fdb-a85b-62e24abce64f	26dadae4-8bad-41ae-b5e1-d7a38c9166fc	3	dialogue	This is a sample line of dialogue.	\N	2026-01-05 13:47:09.229914+01	2026-01-05 13:47:09.229914+01
+61f6e573-4efe-4730-9d45-fafd5320db80	90368af4-fe7f-4fdb-a85b-62e24abce64f	26dadae4-8bad-41ae-b5e1-d7a38c9166fc	4	parenthetical	(whispering)	\N	2026-01-05 13:47:09.229914+01	2026-01-05 13:47:09.229914+01
+ff0ec242-aa1d-42bd-95c9-4e70c2343b17	90368af4-fe7f-4fdb-a85b-62e24abce64f	26dadae4-8bad-41ae-b5e1-d7a38c9166fc	5	dialogue	Another line, with a parenthetical above it.	\N	2026-01-05 13:47:09.229914+01	2026-01-05 13:47:09.229914+01
+84b647f3-cd8e-4917-b44b-58e822c8550c	90368af4-fe7f-4fdb-a85b-62e24abce64f	26dadae4-8bad-41ae-b5e1-d7a38c9166fc	6	transition	CUT TO:	\N	2026-01-05 13:47:09.229914+01	2026-01-05 13:47:09.229914+01
+549d2c30-9f7d-4d9f-9a84-3a849aac9311	d88355ec-a569-44cf-bf2b-7582b236fe40	001bdf48-cf20-412f-9a41-c98ad6236e8a	1	action	This is where action description goes. Describe what the audience sees.	\N	2026-01-05 13:48:17.441076+01	2026-01-05 13:48:17.441076+01
+7c95e1b8-d108-4b37-9790-b117b8fc6af6	d88355ec-a569-44cf-bf2b-7582b236fe40	001bdf48-cf20-412f-9a41-c98ad6236e8a	2	character	CHARACTER NAME	\N	2026-01-05 13:48:17.441076+01	2026-01-05 13:48:17.441076+01
+526d0b56-0d54-4aa0-8a19-cb684898cadd	d88355ec-a569-44cf-bf2b-7582b236fe40	001bdf48-cf20-412f-9a41-c98ad6236e8a	3	dialogue	This is a sample line of dialogue.	\N	2026-01-05 13:48:17.441076+01	2026-01-05 13:48:17.441076+01
+63e5cd2c-b258-48a7-8f10-64ece8fd7d57	d88355ec-a569-44cf-bf2b-7582b236fe40	001bdf48-cf20-412f-9a41-c98ad6236e8a	4	parenthetical	(whispering)	\N	2026-01-05 13:48:17.441076+01	2026-01-05 13:48:17.441076+01
+84e1a45a-9aab-40b5-91d1-25012d50bd1c	d88355ec-a569-44cf-bf2b-7582b236fe40	001bdf48-cf20-412f-9a41-c98ad6236e8a	5	dialogue	Another line, with a parenthetical above it.	\N	2026-01-05 13:48:17.441076+01	2026-01-05 13:48:17.441076+01
+ca1d985f-a447-4c61-8130-5c68bcdcea7c	d88355ec-a569-44cf-bf2b-7582b236fe40	001bdf48-cf20-412f-9a41-c98ad6236e8a	6	transition	CUT TO:	\N	2026-01-05 13:48:17.441076+01	2026-01-05 13:48:17.441076+01
+f8411934-b864-4e5f-937b-7310d33c63a9	9c50b337-deb8-4501-9e9a-a3ff0323f6bd	32e420a2-7649-49d7-ac2b-8b4deaac9df5	1	action	This is where action description goes. Describe what the audience sees.	\N	2026-01-05 13:49:32.500044+01	2026-01-05 13:49:32.500044+01
+f32caf82-8c17-4da6-af0a-95a11a38e12b	9c50b337-deb8-4501-9e9a-a3ff0323f6bd	32e420a2-7649-49d7-ac2b-8b4deaac9df5	2	character	CHARACTER NAME	\N	2026-01-05 13:49:32.500044+01	2026-01-05 13:49:32.500044+01
+3cf82ded-460a-44a9-9bb7-5a7e91e5f20f	9c50b337-deb8-4501-9e9a-a3ff0323f6bd	32e420a2-7649-49d7-ac2b-8b4deaac9df5	3	dialogue	This is a sample line of dialogue.	\N	2026-01-05 13:49:32.500044+01	2026-01-05 13:49:32.500044+01
+bf3966de-2bfc-4164-8d92-37d5031c7097	9c50b337-deb8-4501-9e9a-a3ff0323f6bd	32e420a2-7649-49d7-ac2b-8b4deaac9df5	4	parenthetical	(whispering)	\N	2026-01-05 13:49:32.500044+01	2026-01-05 13:49:32.500044+01
+8863c199-7c33-4155-81e3-f3d30d367743	9c50b337-deb8-4501-9e9a-a3ff0323f6bd	32e420a2-7649-49d7-ac2b-8b4deaac9df5	5	dialogue	Another line, with a parenthetical above it.	\N	2026-01-05 13:49:32.500044+01	2026-01-05 13:49:32.500044+01
+12f45328-fbca-4384-9491-c569321b50f6	aa04df6b-d6a8-4500-8b34-62dcd707649f	73b7163d-aea5-4f17-8f04-29a402b72997	1	action	This is where action description goes. Describe what the audience sees.	\N	2026-01-05 16:12:04.18007+01	2026-01-05 16:12:04.18007+01
+5fd244c4-0422-48ff-91ee-904a047db424	aa04df6b-d6a8-4500-8b34-62dcd707649f	73b7163d-aea5-4f17-8f04-29a402b72997	2	character	CHARACTER NAME	\N	2026-01-05 16:12:04.18007+01	2026-01-05 16:12:04.18007+01
+6e143c33-cf85-4dfc-855d-fb9a9f44a372	aa04df6b-d6a8-4500-8b34-62dcd707649f	73b7163d-aea5-4f17-8f04-29a402b72997	3	dialogue	This is a sample line of dialogue.	\N	2026-01-05 16:12:04.18007+01	2026-01-05 16:12:04.18007+01
+ecc19f15-e0eb-4727-b61d-9b7f4ec31efa	aa04df6b-d6a8-4500-8b34-62dcd707649f	73b7163d-aea5-4f17-8f04-29a402b72997	4	parenthetical	(whispering)	\N	2026-01-05 16:12:04.18007+01	2026-01-05 16:12:04.18007+01
+bc89ab92-2bbf-4a18-a3f6-e302437fb39d	aa04df6b-d6a8-4500-8b34-62dcd707649f	73b7163d-aea5-4f17-8f04-29a402b72997	5	dialogue	Another line, with a parenthetical above it.	\N	2026-01-05 16:12:04.18007+01	2026-01-05 16:12:04.18007+01
+772cc8b8-94de-49a7-a27a-bc1447806cee	aa04df6b-d6a8-4500-8b34-62dcd707649f	73b7163d-aea5-4f17-8f04-29a402b72997	6	transition	CUT TO:	\N	2026-01-05 16:12:04.18007+01	2026-01-05 16:12:04.18007+01
+682a3e5c-57b7-41f5-8f8d-650c20f4cd2d	65b04657-e10d-4418-9a91-40dd267e79dc	bc08bf70-e567-4c8c-a43c-8b3fbe2895c8	1	action	This is where action description goes. Describe what the audience sees.	\N	2026-01-05 16:12:34.064023+01	2026-01-05 16:12:34.064023+01
+eedb5adb-55f1-47fc-a62b-35118a5dd88a	65b04657-e10d-4418-9a91-40dd267e79dc	bc08bf70-e567-4c8c-a43c-8b3fbe2895c8	2	character	CHARACTER NAME	\N	2026-01-05 16:12:34.064023+01	2026-01-05 16:12:34.064023+01
+c55bc9ba-e13d-4d08-92ea-77d3b8349d14	65b04657-e10d-4418-9a91-40dd267e79dc	bc08bf70-e567-4c8c-a43c-8b3fbe2895c8	3	dialogue	This is a sample line of dialogue.	\N	2026-01-05 16:12:34.064023+01	2026-01-05 16:12:34.064023+01
+281bff97-f6eb-479f-9e69-827227a7cef8	65b04657-e10d-4418-9a91-40dd267e79dc	bc08bf70-e567-4c8c-a43c-8b3fbe2895c8	4	parenthetical	(whispering)	\N	2026-01-05 16:12:34.064023+01	2026-01-05 16:12:34.064023+01
+be21542c-b1d4-4621-b243-35686ec25238	65b04657-e10d-4418-9a91-40dd267e79dc	bc08bf70-e567-4c8c-a43c-8b3fbe2895c8	5	dialogue	Another line, with a parenthetical above it.	\N	2026-01-05 16:12:34.064023+01	2026-01-05 16:12:34.064023+01
+78326d60-e0eb-45df-adf0-f900f36c49d5	65b04657-e10d-4418-9a91-40dd267e79dc	bc08bf70-e567-4c8c-a43c-8b3fbe2895c8	6	transition	CUT TO:	\N	2026-01-05 16:12:34.064023+01	2026-01-05 16:12:34.064023+01
+079e9c9d-6eea-4216-9093-00666bed068b	c325ec65-87cc-45e5-bbd6-2e3b20f5f697	3cd55d4d-bb87-4293-9be0-6f7708eec3fc	1	action	This is where action description goes. Describe what the audience sees.	\N	2026-01-05 16:28:56.906466+01	2026-01-05 16:28:56.906466+01
+abb186f4-1524-4e1e-864a-e4bb2d74bc97	c325ec65-87cc-45e5-bbd6-2e3b20f5f697	3cd55d4d-bb87-4293-9be0-6f7708eec3fc	2	character	CHARACTER NAME	\N	2026-01-05 16:28:56.906466+01	2026-01-05 16:28:56.906466+01
+ad72c301-00c3-4946-8dab-a4766bf16f69	c325ec65-87cc-45e5-bbd6-2e3b20f5f697	3cd55d4d-bb87-4293-9be0-6f7708eec3fc	3	dialogue	This is a sample line of dialogue.	\N	2026-01-05 16:28:56.906466+01	2026-01-05 16:28:56.906466+01
+1ae34cef-841d-4751-b83f-2a61ece81e7f	c325ec65-87cc-45e5-bbd6-2e3b20f5f697	3cd55d4d-bb87-4293-9be0-6f7708eec3fc	4	parenthetical	(whispering)	\N	2026-01-05 16:28:56.906466+01	2026-01-05 16:28:56.906466+01
+93244965-ade8-414c-a165-cf310df94b64	c325ec65-87cc-45e5-bbd6-2e3b20f5f697	3cd55d4d-bb87-4293-9be0-6f7708eec3fc	5	dialogue	Another line, with a parenthetical above it.	\N	2026-01-05 16:28:56.906466+01	2026-01-05 16:28:56.906466+01
+b16e2491-ced0-410c-aeb4-9b0d05253ff8	c325ec65-87cc-45e5-bbd6-2e3b20f5f697	3cd55d4d-bb87-4293-9be0-6f7708eec3fc	6	transition	CUT TO:	\N	2026-01-05 16:28:56.906466+01	2026-01-05 16:28:56.906466+01
+05bae0ea-12e5-4de3-8d98-19ef05255f9e	9c50b337-deb8-4501-9e9a-a3ff0323f6bd	32e420a2-7649-49d7-ac2b-8b4deaac9df5	6	transition	CUT TO:	\N	2026-01-05 13:49:32.500044+01	2026-01-06 10:41:26.658092+01
+\.
+
+
+--
+-- Data for Name: screenplay_scene; Type: TABLE DATA; Schema: public; Owner: lad
+--
+
+COPY public.screenplay_scene (scene_id, screenplay_id, scene_index, slugline, location, time_of_day, is_interior, synopsis, created_at, updated_at) FROM stdin;
+689a4f75-a1d4-4d1d-bf59-164311e9377c	689612ea-30fc-418b-882e-51dc2eb9775e	1	INT. LOCATION - DAY	LOCATION	DAY	t	\N	2026-01-05 13:39:39.78589+01	2026-01-05 13:39:39.78589+01
+657ab72a-c290-4fa1-8d0f-a96c4b0d17d2	98b90e1e-eae7-418d-984a-af5a91ec2084	1	INT. LOCATION - DAY	LOCATION	DAY	t	\N	2026-01-05 13:41:28.570958+01	2026-01-05 13:41:28.570958+01
+26dadae4-8bad-41ae-b5e1-d7a38c9166fc	90368af4-fe7f-4fdb-a85b-62e24abce64f	1	INT. LOCATION - DAY	LOCATION	DAY	t	\N	2026-01-05 13:47:09.229914+01	2026-01-05 13:47:09.229914+01
+001bdf48-cf20-412f-9a41-c98ad6236e8a	d88355ec-a569-44cf-bf2b-7582b236fe40	1	INT. LOCATION - DAY	LOCATION	DAY	t	\N	2026-01-05 13:48:17.441076+01	2026-01-05 13:48:17.441076+01
+32e420a2-7649-49d7-ac2b-8b4deaac9df5	9c50b337-deb8-4501-9e9a-a3ff0323f6bd	1	INT. LOCATION - DAY	LOCATION	DAY	t	\N	2026-01-05 13:49:32.500044+01	2026-01-05 13:49:32.500044+01
+73b7163d-aea5-4f17-8f04-29a402b72997	aa04df6b-d6a8-4500-8b34-62dcd707649f	1	INT. LOCATION - DAY	LOCATION	DAY	t	\N	2026-01-05 16:12:04.18007+01	2026-01-05 16:12:04.18007+01
+bc08bf70-e567-4c8c-a43c-8b3fbe2895c8	65b04657-e10d-4418-9a91-40dd267e79dc	1	INT. LOCATION - DAY	LOCATION	DAY	t	\N	2026-01-05 16:12:34.064023+01	2026-01-05 16:12:34.064023+01
+3cd55d4d-bb87-4293-9be0-6f7708eec3fc	c325ec65-87cc-45e5-bbd6-2e3b20f5f697	1	INT. LOCATION - DAY	LOCATION	DAY	t	\N	2026-01-05 16:28:56.906466+01	2026-01-05 16:28:56.906466+01
+\.
+
+
+--
+-- Data for Name: screenplay_title; Type: TABLE DATA; Schema: public; Owner: lad
+--
+
+COPY public.screenplay_title (screenplay_id, title, creator_id, visibility, published, genre, tags, format_type, created_at, updated_at) FROM stdin;
+689612ea-30fc-418b-882e-51dc2eb9775e	Test Screenplay	00000000-0000-0000-0000-000000000001	public	t	\N	\N	feature_film	2026-01-05 13:39:39.78589+01	2026-01-05 13:39:39.78589+01
+98b90e1e-eae7-418d-984a-af5a91ec2084	UI Test Screenplay	00000000-0000-0000-0000-000000000002	public	t	\N	\N	feature_film	2026-01-05 13:41:28.570958+01	2026-01-05 13:41:28.570958+01
+90368af4-fe7f-4fdb-a85b-62e24abce64f	Untitled Screenplay	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	feature_film	2026-01-05 13:47:09.229914+01	2026-01-05 13:47:09.229914+01
+d88355ec-a569-44cf-bf2b-7582b236fe40	Untitled Screenplay	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	feature_film	2026-01-05 13:48:17.441076+01	2026-01-05 13:48:17.441076+01
+9c50b337-deb8-4501-9e9a-a3ff0323f6bd	Screenplay of an amazing story	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	feature_film	2026-01-05 13:49:32.500044+01	2026-01-05 14:44:29.201844+01
+aa04df6b-d6a8-4500-8b34-62dcd707649f	Untitled Screenplay	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	feature_film	2026-01-05 16:12:04.18007+01	2026-01-05 16:12:04.18007+01
+65b04657-e10d-4418-9a91-40dd267e79dc	Untitled Screenplay	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	feature_film	2026-01-05 16:12:34.064023+01	2026-01-05 16:12:34.064023+01
+c325ec65-87cc-45e5-bbd6-2e3b20f5f697	Untitled Screenplay	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	feature_film	2026-01-05 16:28:56.906466+01	2026-01-05 16:28:56.906466+01
 \.
 
 
@@ -974,13 +1204,14 @@ ac6c9545-fcfc-48b5-9d5c-f353a4e49eb5	ab1c8307-21cd-49c3-b236-c05db1eeaa45	Chapte
 8c5e8979-f38f-481d-b6f1-453bff339ef0	e0f7de55-1d13-42c1-aecc-e0338ea81152	Chapter 2 - I was born	{"and this is the thing"}	2025-12-10 12:35:14.767358+01	2025-12-10 12:35:14.767358+01	undecided	\N	\N	\N	1
 914efa1d-c60d-4e02-8b3c-5d13b2cf4de4	751c6c7b-d272-4853-b982-db29b911facc	The day I was born	{"It was a nice clear day. No clouds on the sky were to be seen. It was such a nice day."}	2025-12-14 15:01:13.256649+01	2025-12-14 15:01:13.256649+01	undecided	\N	\N	\N	1
 c584e977-a1df-4f83-be1b-9d31230b90aa	acab0a30-9f2c-423a-ad82-e86ab2818a01	Intro	{"Hello dear friends"}	2025-12-10 13:34:38.554488+01	2025-12-10 13:34:38.554488+01	undecided	\N	\N	\N	1
+520ff5b7-fc08-4c04-bdbb-8de2ad202972	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	And life goes on	{"as always, as it should, it would be rather unusual if it wouldn't, however such a story is also not entirely impossible. :)"}	2025-12-16 18:42:57.147972+01	2025-12-16 18:42:57.147972+01	undecided	\N	\N	\N	4
 27c3e162-d103-463d-8a62-862fdf9ae0fb	fb654feb-8547-4c58-8ba6-e11be576b846	Chapter 1 - The day I was conceived/new-story-template	{}	2025-12-14 13:50:53.989809+01	2025-12-14 13:50:53.989809+01	undecided	\N	\N	\N	1
 d827937a-cd68-43d1-bf0f-9baf306c08e8	84452f69-b0eb-478e-aa31-938a35ec6912	The day I was conceived	{}	2025-12-14 13:59:32.373146+01	2025-12-14 13:59:32.373146+01	undecided	\N	\N	\N	1
 a8197968-c852-40d2-b471-a00fee60c892	7a201a20-c9d7-41ad-8a04-09a4a3bd82bd	The day I was conceived	{Text}	2025-12-14 14:02:52.173353+01	2025-12-14 14:02:52.173353+01	undecided	\N	\N	\N	1
 0e0c69e3-157f-4142-b5e8-a8e2d0e26f2e	a6c76f24-d604-4ed2-8b83-74b5640df229	The day I was conceived	{text}	2025-12-14 14:04:07.489924+01	2025-12-14 14:04:07.489924+01	undecided	\N	\N	\N	1
 400d2619-93a3-44bc-b5a0-dff34d10040e	751c6c7b-d272-4853-b982-db29b911facc	The day I was conceived	{text}	2025-12-14 14:05:10.181065+01	2025-12-14 14:05:10.181065+01	undecided	\N	\N	\N	1
+20c98a0f-5396-47af-982c-c418de96934b	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	The day I was conceived	{"Was a dark and cold one. It was rainy and windy outside - this however is not a problem for two people who are passionately in love."}	2025-12-14 14:05:33.645236+01	2025-12-14 14:05:33.645236+01	undecided	\N	\N	\N	1
 8e828011-3bdb-422c-88c6-defa14dedd5e	0bef9edd-18fd-4e1c-aa57-5ef9f8788ba9	The day I was conceived	{dskfskejgksödhagjkdhgjkag}	2025-12-14 14:13:34.526026+01	2025-12-14 14:13:34.526026+01	undecided	\N	\N	\N	1
-20c98a0f-5396-47af-982c-c418de96934b	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	The day I was conceived	{test}	2025-12-14 14:05:33.645236+01	2025-12-14 14:05:33.645236+01	undecided	\N	\N	\N	1
 89b7ed37-0855-4b09-94de-5536f1e3a37c	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	The day I was born	{"was an amazing one."}	2025-12-16 18:41:58.008491+01	2025-12-16 18:41:58.008491+01	undecided	\N	\N	\N	2
 4dcdcd7c-b983-422f-8463-3edd7883497a	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	Test chapter	{"test text"}	2025-12-17 14:32:45.938035+01	2025-12-17 14:32:45.938035+01	undecided	\N	\N	\N	3
 5b9bd5d9-6d05-4b42-837b-95f1b08e9295	e1ab0869-1759-441e-892d-de376789149b	The day I was conceived	{"PLa PLa Pla",Test,sfkdklsjfk,safksjkhfjshfjkhdsjkgh,"Another test"}	2025-12-14 14:35:07.685379+01	2025-12-14 14:35:07.685379+01	undecided	\N	\N	\N	1
@@ -994,7 +1225,6 @@ ac1f9d6b-85ca-4aed-b833-0d39e7f72111	263cffb0-1899-44b9-8e2d-581114963274	Test	{
 193ace2d-2766-46b7-852d-762e30cc590f	ab1c8307-21cd-49c3-b236-c05db1eeaa45	Chapter 1 - The day I was conceived	{"Story of my life and other happy occurrences",sasshfjkhskjfhkjsdahf}	2025-12-19 10:54:50.291524+01	2025-12-19 10:54:50.291524+01	undecided	\N	\N	\N	3
 4b9abf5d-447c-47e5-8ad9-461675c08a71	ab1c8307-21cd-49c3-b236-c05db1eeaa45	Chapter 2	{Text}	2025-12-19 10:54:50.291524+01	2025-12-19 10:54:50.291524+01	undecided	\N	\N	\N	4
 533a3846-2682-44c0-bd11-2f3942a0140e	ab1c8307-21cd-49c3-b236-c05db1eeaa45	New chapter	{"And a new chapter's text. Let's extend this text and see if it will be synced into the desktop app"}	2025-12-19 10:54:50.291524+01	2025-12-19 10:54:50.291524+01	undecided	\N	\N	\N	7
-520ff5b7-fc08-4c04-bdbb-8de2ad202972	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	And life goes on	{"as always"}	2025-12-16 18:42:57.147972+01	2025-12-16 18:42:57.147972+01	undecided	\N	\N	\N	4
 e2bac731-67c3-4955-8d9d-83a8a98574ef	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	Kindergarten	{"I do NOT like it. Here are TOO MANY children... and they are noisy.","Let's add something here before sync in the desktop app","Let's add something here on the crowdly web and see if it'll be syn-ed into the\ndesktop app","and now vice versa, if I add something here in the desktop app","and yes, it has worked out.","It is working. Hurray!"}	2025-12-16 19:02:17.755015+01	2025-12-16 19:02:17.755015+01	undecided	\N	\N	\N	6
 126491a2-b0e9-4ade-80bb-7ced696abeb2	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	School	{"Good and bad","Friends and enemies","School was somewhat ok, till I became teenager"}	2025-12-16 19:26:24.041234+01	2025-12-16 19:26:24.041234+01	undecided	\N	\N	\N	7
 f3fd75b4-7102-4e30-a757-2eb609398ea6	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	College	{"First real life experiences","Let's build that village"}	2025-12-16 19:37:52.220708+01	2025-12-16 19:37:52.220708+01	undecided	\N	\N	\N	8
@@ -1003,6 +1233,19 @@ b9f1de59-0c10-472f-8174-093d351f0e0c	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	Test f
 ba894805-d466-4ed5-b6e6-b276f9bbc232	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	Adult life	{"YEAH, YEah, Yeah... yeah... WTH...."}	2025-12-17 14:25:58.743404+01	2025-12-17 14:25:58.743404+01	undecided	\N	\N	\N	11
 eb752fad-3eae-458a-97c5-6fa67e389bed	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	When one meest her	{"New text here"}	2025-12-19 11:07:03.489811+01	2025-12-19 11:07:03.489811+01	undecided	\N	\N	\N	12
 1028d940-b3ca-4253-b6c3-afd634ff0923	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	It takes a village to raise a child, again	{"indeed so","now it is us who need to find that village","Now I'm adding another paragraph in the desktop app as the user test to see the\nbehaviour of both desktop app and Crowdly web"}	2025-12-23 11:14:13.629506+01	2025-12-23 11:14:13.629506+01	undecided	\N	\N	\N	13
+bde622be-157c-49ff-a131-96d02a7e0284	1e6bb2d6-0430-439d-99cf-4616617dfbf8	Intro	{"It is a series of short stories."}	2025-12-29 15:07:39.093126+01	2025-12-29 15:07:39.093126+01	undecided	\N	\N	\N	1
+c35dbd92-0686-4036-9b5c-74db0e8cf177	1e6bb2d6-0430-439d-99cf-4616617dfbf8	Chapter 1 - What goes around, comes around	{"Adding couple of words here"}	2025-12-29 15:15:52.628119+01	2025-12-29 15:15:52.628119+01	undecided	\N	\N	\N	2
+1988ba43-a32f-4f5b-8698-9fcbc1b10ad7	1e6bb2d6-0430-439d-99cf-4616617dfbf8	Chapter 2 - Bla Bla Blu - is not my song	{"There is a popular female Thai  singer who sings this song"}	2025-12-29 15:16:54.42495+01	2025-12-29 15:16:54.42495+01	undecided	\N	\N	\N	3
+f4985aa1-0b7d-4c64-9234-99288c0846b5	10e2ca77-0b5c-4f72-aeee-965cbe4db67a	Intro	{"some intro text"}	2025-12-29 15:22:19.667271+01	2025-12-29 15:22:19.667271+01	undecided	\N	\N	\N	1
+0e4ec8f8-acb9-4c5e-be77-cda6021976fa	10e2ca77-0b5c-4f72-aeee-965cbe4db67a	Chapter 1	{"Text of chapter 1"}	2025-12-29 15:23:11.836369+01	2025-12-29 15:23:11.836369+01	undecided	\N	\N	\N	2
+988e930d-258c-40e1-aa52-7fa141eb1fb5	10e2ca77-0b5c-4f72-aeee-965cbe4db67a	Chapter 2	{"Text of chapter 2"}	2025-12-29 15:23:11.836369+01	2025-12-29 15:23:11.836369+01	undecided	\N	\N	\N	3
+e94a297c-d4e3-417f-b04b-2146b521a668	10e2ca77-0b5c-4f72-aeee-965cbe4db67a	Chapter 3	{"text for chapter 3"}	2025-12-29 15:23:11.836369+01	2025-12-29 15:23:11.836369+01	undecided	\N	\N	\N	4
+f23e7e91-9f17-4814-b422-f83188ed8897	6174fd71-525f-40c7-a6e1-3c40f3ea57d5	Intro	{"some intro text"}	2025-12-29 15:42:57.61306+01	2025-12-29 15:42:57.61306+01	undecided	\N	\N	\N	1
+8fb7c09e-5e82-471e-ad6d-c566494dcfbf	6174fd71-525f-40c7-a6e1-3c40f3ea57d5	Chapter 1	{"Text of chapter 1"}	2025-12-29 15:43:02.589403+01	2025-12-29 15:43:02.589403+01	undecided	\N	\N	\N	2
+e975c6d7-f327-431c-a256-f01e3d77afe3	6174fd71-525f-40c7-a6e1-3c40f3ea57d5	Chapter 2	{"Text of chapter 2"}	2025-12-29 15:43:02.589403+01	2025-12-29 15:43:02.589403+01	undecided	\N	\N	\N	3
+0ff85c0d-b0de-4705-96e3-b569b67b0d6a	6174fd71-525f-40c7-a6e1-3c40f3ea57d5	Chapter 3	{"text for chapter 3"}	2025-12-29 15:43:02.589403+01	2025-12-29 15:43:02.589403+01	undecided	\N	\N	\N	4
+e4f1826c-eb02-4b2e-917e-0b48f6014840	3adc67d9-ae49-4daa-8a48-67c279e2cdce	Chapter	{""}	2026-01-05 16:12:57.510378+01	2026-01-05 16:12:57.510378+01	undecided	\N	\N	\N	1
+9177abd1-cf56-4081-becd-bf1c62705f62	0050799c-61c3-4d49-b255-52da44c9b156	Chapter	{""}	2026-01-05 16:34:01.465666+01	2026-01-05 16:34:01.465666+01	undecided	\N	\N	\N	1
 \.
 
 
@@ -1022,6 +1265,11 @@ afc0ca9b-5a67-46a0-b01c-9da9d27ae642	aef37573-600e-4442-9ae1-63a05799d9a0	owner	
 e1ab0869-1759-441e-892d-de376789149b	aef37573-600e-4442-9ae1-63a05799d9a0	owner	2025-12-14 14:35:07.685379+01
 afc0ca9b-5a67-46a0-b01c-9da9d27ae642	cad23ca1-121d-448f-8947-ddd5048ecb15	contributor	2025-12-16 19:49:54.27235+01
 ab1c8307-21cd-49c3-b236-c05db1eeaa45	aef37573-600e-4442-9ae1-63a05799d9a0	contributor	2025-12-19 10:54:50.291524+01
+1e6bb2d6-0430-439d-99cf-4616617dfbf8	cad23ca1-121d-448f-8947-ddd5048ecb15	owner	2025-12-29 15:07:39.106397+01
+10e2ca77-0b5c-4f72-aeee-965cbe4db67a	aef37573-600e-4442-9ae1-63a05799d9a0	owner	2025-12-29 15:22:19.683308+01
+6174fd71-525f-40c7-a6e1-3c40f3ea57d5	aef37573-600e-4442-9ae1-63a05799d9a0	owner	2025-12-29 15:42:57.617218+01
+3adc67d9-ae49-4daa-8a48-67c279e2cdce	aef37573-600e-4442-9ae1-63a05799d9a0	owner	2026-01-05 16:12:57.522464+01
+0050799c-61c3-4d49-b255-52da44c9b156	aef37573-600e-4442-9ae1-63a05799d9a0	owner	2026-01-05 16:34:01.479064+01
 \.
 
 
@@ -1038,8 +1286,17 @@ COPY public.story_attributes (id, story_id, story_creator, story_contributors, n
 --
 
 COPY public.story_initiators (creator_id, initiator_id, created_at, updated_at) FROM stdin;
-aef37573-600e-4442-9ae1-63a05799d9a0	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-19 10:32:07.197304+01	2025-12-23 11:39:51.722611+01
 6f542cd0-551b-4ec9-b2b0-61113dd7af2b	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2025-12-23 12:12:53.237302+01	2025-12-23 12:12:53.237302+01
+cad23ca1-121d-448f-8947-ddd5048ecb15	cad23ca1-121d-448f-8947-ddd5048ecb15	2025-12-29 15:11:44.427964+01	2025-12-29 15:16:54.42495+01
+aef37573-600e-4442-9ae1-63a05799d9a0	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-19 10:32:07.197304+01	2025-12-29 15:48:06.022141+01
+\.
+
+
+--
+-- Data for Name: story_screenplay_links; Type: TABLE DATA; Schema: public; Owner: lad
+--
+
+COPY public.story_screenplay_links (id, story_title_id, screenplay_id, relation_type, created_at) FROM stdin;
 \.
 
 
@@ -1059,12 +1316,17 @@ fb654feb-8547-4c58-8ba6-e11be576b846	Story of my life	2025-12-14 13:50:53.989809
 7a201a20-c9d7-41ad-8a04-09a4a3bd82bd	Story of my life	2025-12-14 14:02:52.173353+01	2025-12-14 14:02:52.173353+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N
 a6c76f24-d604-4ed2-8b83-74b5640df229	Story of my life	2025-12-14 14:04:07.489924+01	2025-12-14 14:04:07.489924+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N
 751c6c7b-d272-4853-b982-db29b911facc	Story of my life	2025-12-14 14:05:10.181065+01	2025-12-14 14:05:10.181065+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N
+1e6bb2d6-0430-439d-99cf-4616617dfbf8	New day New story	2025-12-29 15:07:39.093126+01	2025-12-29 15:16:54.42495+01	cad23ca1-121d-448f-8947-ddd5048ecb15	public	t	\N	\N
 0bef9edd-18fd-4e1c-aa57-5ef9f8788ba9	Story of my life	2025-12-14 14:13:34.526026+01	2025-12-14 14:13:34.526026+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N
 19065447-aaf0-4e4f-8847-0869de1be7dd	Story of my life	2025-12-14 14:14:40.364576+01	2025-12-14 14:14:40.364576+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N
 e1ab0869-1759-441e-892d-de376789149b	Story of my life	2025-12-14 14:35:07.685379+01	2025-12-14 14:35:07.685379+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N
 ab1c8307-21cd-49c3-b236-c05db1eeaa45	Untitled	2025-12-10 14:32:23.583943+01	2025-12-10 14:32:23.583943+01	aef37573-600e-4442-9ae1-63a05799d9a0	private	t	\N	\N
+10e2ca77-0b5c-4f72-aeee-965cbe4db67a	New story by Leo Love	2025-12-29 15:22:19.667271+01	2025-12-29 15:41:04.032155+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N
+6174fd71-525f-40c7-a6e1-3c40f3ea57d5	New story 2 by Leo Love	2025-12-29 15:42:57.61306+01	2025-12-29 15:43:02.589403+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N
+afc0ca9b-5a67-46a0-b01c-9da9d27ae642	Currently, the most active story	2025-12-14 14:05:33.645236+01	2025-12-29 15:48:06.022141+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N
+3adc67d9-ae49-4daa-8a48-67c279e2cdce	Untitled	2026-01-05 16:12:57.510378+01	2026-01-05 16:12:57.510378+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N
+0050799c-61c3-4d49-b255-52da44c9b156	Untitled	2026-01-05 16:34:01.465666+01	2026-01-05 16:34:01.465666+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N
 263cffb0-1899-44b9-8e2d-581114963274	Story of my amazing life	2025-12-10 13:54:58.980704+01	2025-12-23 12:14:16.371036+01	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	public	t	\N	\N
-afc0ca9b-5a67-46a0-b01c-9da9d27ae642	Currently, the most active story	2025-12-14 14:05:33.645236+01	2025-12-23 11:39:51.722611+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N
 \.
 
 
@@ -1101,6 +1363,16 @@ e764cd7d-9c09-48df-a7c7-ccc7487af2d9	0bef9edd-18fd-4e1c-aa57-5ef9f8788ba9	Story 
 e6c997ae-6413-4ada-989d-fc0fd86218fa	e1ab0869-1759-441e-892d-de376789149b	\N	Story of my life	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-14 14:35:07.685379+01	Cloned from story 19065447-aaf0-4e4f-8847-0869de1be7dd	en	1
 0544949a-f686-4bbe-abf5-313e34ccd301	ab1c8307-21cd-49c3-b236-c05db1eeaa45	Story of my wonderful life	Untitled	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-19 10:32:07.197304+01	Desktop sync	en	3
 09ba5277-17dc-4a11-af76-09a3110844e9	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	Story of my life	Currently, the most active story	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-28 14:44:57.46638+01	Manual update	en	3
+40e5ae68-f2fa-4c70-8319-a158be8cb4a2	1e6bb2d6-0430-439d-99cf-4616617dfbf8	\N	New day New story	cad23ca1-121d-448f-8947-ddd5048ecb15	2025-12-29 15:07:39.093126+01	Initial creation	en	1
+a6a7afcf-a3a7-4197-9b12-3907480e2bad	1e6bb2d6-0430-439d-99cf-4616617dfbf8	New day New story	Untitled	cad23ca1-121d-448f-8947-ddd5048ecb15	2025-12-29 15:11:44.427964+01	Desktop sync	en	2
+48b6dbb5-e4b5-4e08-ae16-6a8158f9d981	1e6bb2d6-0430-439d-99cf-4616617dfbf8	Untitled	New day New story	cad23ca1-121d-448f-8947-ddd5048ecb15	2025-12-29 15:15:52.628119+01	Desktop sync	en	3
+59f7f5ac-2ab6-4701-9385-2c8a608f9a3c	10e2ca77-0b5c-4f72-aeee-965cbe4db67a	\N	New story by Leo Love	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-29 15:22:19.667271+01	Initial creation	en	1
+cd238772-d9ef-4702-a2fd-3c7062a74a9b	10e2ca77-0b5c-4f72-aeee-965cbe4db67a	New story by Leo Love	Untitled	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-29 15:23:11.836369+01	Desktop sync	en	2
+5144144f-a95d-443c-a7ff-042641713956	10e2ca77-0b5c-4f72-aeee-965cbe4db67a	Untitled	New story by Leo Love	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-29 15:40:50.235847+01	Desktop sync	en	3
+75018316-722b-4bba-b2a5-f65ee74264c6	6174fd71-525f-40c7-a6e1-3c40f3ea57d5	\N	New story by Leo Love	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-29 15:42:57.61306+01	Initial creation	en	1
+a11e31b0-6ce0-49c3-a112-b8bc5ca159e9	6174fd71-525f-40c7-a6e1-3c40f3ea57d5	New story by Leo Love	New story 2 by Leo Love	aef37573-600e-4442-9ae1-63a05799d9a0	2025-12-29 15:43:02.589403+01	Desktop sync	en	2
+9a69e06a-1c0a-4560-8a61-05f6486fb65f	3adc67d9-ae49-4daa-8a48-67c279e2cdce	\N	Untitled	aef37573-600e-4442-9ae1-63a05799d9a0	2026-01-05 16:12:57.510378+01	Initial creation	en	1
+9c2f8996-af4b-46bc-9bce-326ec0ecb10e	0050799c-61c3-4d49-b255-52da44c9b156	\N	Untitled	aef37573-600e-4442-9ae1-63a05799d9a0	2026-01-05 16:34:01.465666+01	Initial creation	en	1
 \.
 
 
@@ -1317,6 +1589,38 @@ ALTER TABLE ONLY public.reactions
 
 
 --
+-- Name: screenplay_access screenplay_access_pkey; Type: CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.screenplay_access
+    ADD CONSTRAINT screenplay_access_pkey PRIMARY KEY (screenplay_id, user_id);
+
+
+--
+-- Name: screenplay_block screenplay_block_pkey; Type: CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.screenplay_block
+    ADD CONSTRAINT screenplay_block_pkey PRIMARY KEY (block_id);
+
+
+--
+-- Name: screenplay_scene screenplay_scene_pkey; Type: CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.screenplay_scene
+    ADD CONSTRAINT screenplay_scene_pkey PRIMARY KEY (scene_id);
+
+
+--
+-- Name: screenplay_title screenplay_title_pkey; Type: CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.screenplay_title
+    ADD CONSTRAINT screenplay_title_pkey PRIMARY KEY (screenplay_id);
+
+
+--
 -- Name: stories stories_pkey; Type: CONSTRAINT; Schema: public; Owner: lad
 --
 
@@ -1346,6 +1650,14 @@ ALTER TABLE ONLY public.story_attributes
 
 ALTER TABLE ONLY public.story_initiators
     ADD CONSTRAINT story_initiators_pkey PRIMARY KEY (creator_id);
+
+
+--
+-- Name: story_screenplay_links story_screenplay_links_pkey; Type: CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.story_screenplay_links
+    ADD CONSTRAINT story_screenplay_links_pkey PRIMARY KEY (id);
 
 
 --
@@ -1464,6 +1776,34 @@ CREATE INDEX creative_spaces_user_idx ON public.creative_spaces USING btree (use
 --
 
 CREATE INDEX idx_stories_story_title_id ON public.stories USING btree (story_title_id);
+
+
+--
+-- Name: screenplay_access_user_idx; Type: INDEX; Schema: public; Owner: lad
+--
+
+CREATE INDEX screenplay_access_user_idx ON public.screenplay_access USING btree (user_id);
+
+
+--
+-- Name: screenplay_block_screenplay_idx; Type: INDEX; Schema: public; Owner: lad
+--
+
+CREATE INDEX screenplay_block_screenplay_idx ON public.screenplay_block USING btree (screenplay_id, block_index);
+
+
+--
+-- Name: screenplay_scene_screenplay_idx; Type: INDEX; Schema: public; Owner: lad
+--
+
+CREATE INDEX screenplay_scene_screenplay_idx ON public.screenplay_scene USING btree (screenplay_id, scene_index);
+
+
+--
+-- Name: story_screenplay_unique; Type: INDEX; Schema: public; Owner: lad
+--
+
+CREATE UNIQUE INDEX story_screenplay_unique ON public.story_screenplay_links USING btree (story_title_id, screenplay_id, relation_type);
 
 
 --
@@ -1699,6 +2039,38 @@ ALTER TABLE ONLY public.reactions
 
 
 --
+-- Name: screenplay_access screenplay_access_screenplay_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.screenplay_access
+    ADD CONSTRAINT screenplay_access_screenplay_id_fkey FOREIGN KEY (screenplay_id) REFERENCES public.screenplay_title(screenplay_id) ON DELETE CASCADE;
+
+
+--
+-- Name: screenplay_block screenplay_block_scene_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.screenplay_block
+    ADD CONSTRAINT screenplay_block_scene_id_fkey FOREIGN KEY (scene_id) REFERENCES public.screenplay_scene(scene_id) ON DELETE CASCADE;
+
+
+--
+-- Name: screenplay_block screenplay_block_screenplay_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.screenplay_block
+    ADD CONSTRAINT screenplay_block_screenplay_id_fkey FOREIGN KEY (screenplay_id) REFERENCES public.screenplay_title(screenplay_id) ON DELETE CASCADE;
+
+
+--
+-- Name: screenplay_scene screenplay_scene_screenplay_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.screenplay_scene
+    ADD CONSTRAINT screenplay_scene_screenplay_id_fkey FOREIGN KEY (screenplay_id) REFERENCES public.screenplay_title(screenplay_id) ON DELETE CASCADE;
+
+
+--
 -- Name: stories stories_contributor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lad
 --
 
@@ -1747,6 +2119,22 @@ ALTER TABLE ONLY public.story_initiators
 
 
 --
+-- Name: story_screenplay_links story_screenplay_links_screenplay_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.story_screenplay_links
+    ADD CONSTRAINT story_screenplay_links_screenplay_id_fkey FOREIGN KEY (screenplay_id) REFERENCES public.screenplay_title(screenplay_id) ON DELETE CASCADE;
+
+
+--
+-- Name: story_screenplay_links story_screenplay_links_story_title_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.story_screenplay_links
+    ADD CONSTRAINT story_screenplay_links_story_title_id_fkey FOREIGN KEY (story_title_id) REFERENCES public.story_title(story_title_id) ON DELETE CASCADE;
+
+
+--
 -- Name: story_title_revisions story_title_revisions_story_title_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lad
 --
 
@@ -1758,5 +2146,5 @@ ALTER TABLE ONLY public.story_title_revisions
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 85zfy7HkZxYsoZgwaXbVzWFxBxcD1HI8xJc5xQSjUm659gToc4qfMDLKDTXy3kW
+\unrestrict ocbqORStfxnxrs7ELMumbj8BLXP0rZBsPnsIlgC7Xghjl1l4c21z8Vuoo5e0tx1
 
