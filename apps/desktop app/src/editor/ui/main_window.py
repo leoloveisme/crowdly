@@ -70,6 +70,17 @@ class MainWindow(QMainWindow):
 
         self._settings = settings
         self._project_space_path: Path | None = settings.project_space
+
+        # Known creative spaces (project-space roots) that the user can switch between.
+        raw_spaces = getattr(settings, "spaces", []) or []
+        self._spaces: list[Path] = []
+        for value in raw_spaces:
+            try:
+                path = value if isinstance(value, Path) else Path(value)
+            except TypeError:
+                continue
+            self._spaces.append(path)
+
         self._language_actions: dict[str, QAction] = {}
         self._translator = translator
         self._logged_in = False
@@ -194,6 +205,11 @@ class MainWindow(QMainWindow):
             self.tr("File"),
             self._open_document,
         )
+
+        # Spaces menu: lets the user manage and switch between multiple creative spaces.
+        spaces_menu = menu.addMenu(self.tr("Spaces"))
+        self._spaces_menu = spaces_menu
+        self._rebuild_spaces_menu()
 
         menu.addSeparator()
 
@@ -496,6 +512,229 @@ class MainWindow(QMainWindow):
             bar = self.statusBar()
             if bar is not None:
                 bar.showMessage(text)
+
+    # ------------------------------------------------------------------
+    # Spaces (creative project-space roots)
+    # ------------------------------------------------------------------
+
+    def _ensure_space_registered(self, path: Path) -> None:
+        """Add *path* to the known spaces list and settings if it is missing."""
+
+        try:
+            resolved_new = path.resolve()
+        except Exception:
+            resolved_new = path
+
+        # Normalise in-memory list.
+        if not isinstance(getattr(self, "_spaces", None), list):
+            self._spaces = []
+
+        for existing in self._spaces:
+            try:
+                existing_resolved = existing.resolve()
+            except Exception:
+                existing_resolved = existing
+            if existing_resolved == resolved_new:
+                break
+        else:
+            self._spaces.append(path)
+
+        # Mirror into settings.spaces while preserving types.
+        try:
+            spaces_setting = getattr(self._settings, "spaces", None)
+            if not isinstance(spaces_setting, list):
+                spaces_setting = []
+                setattr(self._settings, "spaces", spaces_setting)
+
+            for existing in spaces_setting:
+                try:
+                    existing_path = existing if isinstance(existing, Path) else Path(existing)
+                except TypeError:
+                    continue
+                try:
+                    existing_resolved = existing_path.resolve()
+                except Exception:
+                    existing_resolved = existing_path
+                if existing_resolved == resolved_new:
+                    break
+            else:
+                spaces_setting.append(path)
+        except Exception:
+            # Best-effort bookkeeping; never interfere with core behaviour.
+            pass
+
+    def _rebuild_spaces_menu(self) -> None:
+        """Recreate the Spaces menu based on the current list of spaces."""
+
+        menu = getattr(self, "_spaces_menu", None)
+        if not isinstance(menu, QMenu):  # pragma: no cover - defensive
+            return
+
+        menu.clear()
+
+        # "Add" entry is always present.
+        self._action_spaces_add = menu.addAction(self.tr("Add"), self._spaces_add)
+
+        spaces = getattr(self, "_spaces", None) or []
+        if not spaces:
+            return
+
+        menu.addSeparator()
+
+        # Track current project space for checked state.
+        try:
+            current = self._project_space_path.resolve() if self._project_space_path else None
+        except Exception:
+            current = self._project_space_path
+
+        self._spaces_group = QActionGroup(self)
+        self._spaces_group.setExclusive(True)
+
+        for space in spaces:
+            label = space.name or str(space)
+
+            # Select action.
+            select_action = menu.addAction(label)
+            select_action.setData(str(space))
+            select_action.setCheckable(True)
+            self._spaces_group.addAction(select_action)
+
+            try:
+                space_resolved = space.resolve()
+            except Exception:
+                space_resolved = space
+            if current is not None and space_resolved == current:
+                select_action.setChecked(True)
+
+            select_action.triggered.connect(self._on_space_selected)
+
+            # Remove action with a small "x" marker.
+            remove_label = self.tr("✕ Remove {name}").format(name=label)
+            remove_action = menu.addAction(remove_label)
+            remove_action.setData(str(space))
+            remove_action.triggered.connect(self._on_space_removed)
+
+    def _spaces_add(self) -> None:  # pragma: no cover - UI wiring
+        """Add a new creative space and make it the active project space."""
+
+        base_dir = str(self._project_space_path) if self._project_space_path else ""
+        path_str = QFileDialog.getExistingDirectory(
+            self,
+            self.tr("Add creative space"),
+            base_dir,
+        )
+        if not path_str:
+            return
+
+        new_space = Path(path_str)
+        if not new_space.exists() or not new_space.is_dir():
+            QMessageBox.warning(
+                self,
+                self.tr("Invalid directory"),
+                self.tr("The selected path is not a directory."),
+            )
+            return
+
+        self._ensure_space_registered(new_space)
+        self._project_space_path = new_space
+        self._settings.project_space = new_space
+        save_settings(self._settings)
+
+        self._update_project_space_status()
+        self._rebuild_spaces_menu()
+
+    def _on_space_selected(self) -> None:  # pragma: no cover - UI wiring
+        """Switch the current project space to the chosen creative space."""
+
+        action = self.sender()
+        if not isinstance(action, QAction):
+            return
+
+        path_str = action.data()
+        if not path_str:
+            return
+
+        try:
+            space = Path(path_str)
+        except TypeError:
+            return
+
+        self._ensure_space_registered(space)
+        self._project_space_path = space
+        self._settings.project_space = space
+        save_settings(self._settings)
+
+        self._update_project_space_status()
+        self._rebuild_spaces_menu()
+
+    def _on_space_removed(self) -> None:  # pragma: no cover - UI wiring
+        """Remove a creative space from the menu and settings."""
+
+        action = self.sender()
+        if not isinstance(action, QAction):
+            return
+
+        path_str = action.data()
+        if not path_str:
+            return
+
+        try:
+            space = Path(path_str)
+        except TypeError:
+            return
+
+        # Update in-memory list.
+        new_spaces: list[Path] = []
+        for existing in getattr(self, "_spaces", []):
+            try:
+                if existing.resolve() == space.resolve():
+                    continue
+            except Exception:
+                if existing == space:
+                    continue
+            new_spaces.append(existing)
+        self._spaces = new_spaces
+
+        # Update settings.spaces.
+        try:
+            spaces_setting = getattr(self._settings, "spaces", None)
+            if isinstance(spaces_setting, list):
+                cleaned: list[Path] = []
+                for existing in spaces_setting:
+                    try:
+                        existing_path = existing if isinstance(existing, Path) else Path(existing)
+                    except TypeError:
+                        continue
+                    try:
+                        if existing_path.resolve() == space.resolve():
+                            continue
+                    except Exception:
+                        if existing_path == space:
+                            continue
+                    cleaned.append(existing_path)
+                self._settings.spaces = cleaned
+        except Exception:
+            pass
+
+        # If we just removed the active project space, clear it.
+        try:
+            if self._project_space_path is not None:
+                try:
+                    active_resolved = self._project_space_path.resolve()
+                    removed_resolved = space.resolve()
+                    matches = active_resolved == removed_resolved
+                except Exception:
+                    matches = self._project_space_path == space
+                if matches:
+                    self._project_space_path = None
+                    self._settings.project_space = None
+        except Exception:
+            self._project_space_path = None
+            self._settings.project_space = None
+
+        save_settings(self._settings)
+        self._update_project_space_status()
+        self._rebuild_spaces_menu()
 
     def _on_editor_text_changed(self, text: str) -> None:  # pragma: no cover - UI wiring
         """Handle text changes from the editor.
@@ -945,6 +1184,8 @@ class MainWindow(QMainWindow):
             self._action_open_file.setText(self.tr("File"))
         if hasattr(self, "_settings_menu"):
             self._settings_menu.setTitle(self.tr("Settings"))
+        if hasattr(self, "_spaces_menu"):
+            self._spaces_menu.setTitle(self.tr("Spaces"))
         if hasattr(self, "_view_menu"):
             self._view_menu.setTitle(self.tr("View"))
         if hasattr(self, "_search_menu"):
@@ -1037,6 +1278,8 @@ class MainWindow(QMainWindow):
             )
         if hasattr(self, "_language_menu"):
             self._language_menu.setTitle(self.tr("Change interface language"))
+        if hasattr(self, "_action_spaces_add"):
+            self._action_spaces_add.setText(self.tr("Add"))
         if hasattr(self, "_action_login_logout"):
             if self._logged_in:
                 self._action_login_logout.setText(self.tr("Logout"))
@@ -1068,6 +1311,7 @@ class MainWindow(QMainWindow):
         # Update texts that are not automatically refreshed, such as the
         # project space label and preview toggle.
         self._update_project_space_status()
+        self._rebuild_spaces_menu()
         if hasattr(self, "_preview_toggle"):
             self._preview_toggle.setText(self.tr("Preview"))
             self._preview_toggle.setToolTip(
@@ -2690,10 +2934,13 @@ class MainWindow(QMainWindow):
 
         # Store the selected directory and persist via settings as the
         # project space / library root.
-        self._project_space_path = Path(path)
-        self._settings.project_space = self._project_space_path
+        new_space = Path(path)
+        self._project_space_path = new_space
+        self._ensure_space_registered(new_space)
+        self._settings.project_space = new_space
         save_settings(self._settings)
         self._update_project_space_status()
+        self._rebuild_spaces_menu()
 
     def _clear_project_space(self) -> None:  # pragma: no cover - UI wiring
         """Clear the stored project space path without touching any files."""

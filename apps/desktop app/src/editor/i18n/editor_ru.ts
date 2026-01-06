@@ -44,6 +44,18 @@
         <translation>Открыть</translation>
     </message>
     <message>
+        <source>Spaces</source>
+        <translation>Креативное пространство</translation>
+    </message>
+    <message>
+        <source>Add</source>
+        <translation>Добавить</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>Удалить</translation>
+    </message>
+    <message>
         <source>Story on the web</source>
         <translation>Историю из интернета</translation>
     </message>

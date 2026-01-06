@@ -6,7 +6,7 @@ user configuration such as the project space (library root) directory.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from pathlib import Path
 import json
 import uuid
@@ -23,6 +23,9 @@ class Settings:
     # Directory where the user's documents/library live. When ``None``, a
     # project space has not yet been selected.
     project_space: Path | None = None
+
+    # Known project spaces that the user can quickly switch between.
+    spaces: list[Path] = field(default_factory=list)
 
     # Preferred interface language for the application, stored as a language
     # code (for example: "en", "ru", "ar", "zh-Hans", "zh-Hant", "ja").
@@ -76,12 +79,24 @@ def load_settings() -> Settings:
     project_space_value = raw.get("project_space")
     project_space = Path(project_space_value) if project_space_value else None
 
+    spaces_raw = raw.get("spaces") or []
+    spaces: list[Path] = []
+    if isinstance(spaces_raw, list):
+        for value in spaces_raw:
+            if not value:
+                continue
+            try:
+                spaces.append(Path(value))
+            except TypeError:
+                continue
+
     interface_language = raw.get("interface_language", "en")
     crowdly_base_url = raw.get("crowdly_base_url")
     device_id = raw.get("device_id") or str(uuid.uuid4())
 
     settings = Settings(
         project_space=project_space,
+        spaces=spaces,
         interface_language=interface_language,
         crowdly_base_url=crowdly_base_url,
         device_id=device_id,
@@ -106,6 +121,10 @@ def save_settings(settings: Settings) -> None:
     # Serialise Path objects to strings for JSON.
     if isinstance(data.get("project_space"), Path):
         data["project_space"] = str(data["project_space"])
+
+    spaces_value = data.get("spaces")
+    if isinstance(spaces_value, list):
+        data["spaces"] = [str(p) for p in spaces_value]
 
     # Normalise empty strings.
     if not data.get("crowdly_base_url"):
