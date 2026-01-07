@@ -218,6 +218,22 @@ class CrowdlyClient:
             raise CrowdlyClientError("Unexpected story title response.", kind="invalid_response")
         return row
 
+    def get_screenplay_title_row(self, screenplay_id: str) -> dict[str, Any]:
+        """Fetch the raw screenplay_title row.
+
+        Screenplays currently have no visibility rules, so we don't send userId;
+        this is kept symmetric with get_story_title_row for future extension.
+        """
+
+        if not self.base_url:
+            raise CrowdlyClientError("Crowdly base URL is not configured.", kind="config")
+
+        url = f"{self.base_url}/screenplays/{screenplay_id}"
+        row = self._http_get_json(url)
+        if not isinstance(row, dict):
+            raise CrowdlyClientError("Unexpected screenplay title response.", kind="invalid_response")
+        return row
+
     def fetch_story(self, story_url: str) -> CrowdlyStory:
         """Fetch a story from Crowdly backend and assemble a Markdown document."""
 
@@ -472,8 +488,50 @@ class CrowdlyClient:
             "title": title,
             "metadata": metadata or {},
             "chapters": chapters,
+            # Explicitly mark this as a "story" payload so the backend (and
+            # any future CRDT or routing logic) can distinguish it from
+            # screenplay syncs using the same revision machinery.
+            "bodyType": "story",
         }
         return self._http_post_json(f"{self.base_url}/story-titles/{story_id}/sync-desktop", payload)
+
+    def sync_desktop_screenplay(
+        self,
+        screenplay_id: str,
+        *,
+        title: str,
+        scenes: list[dict[str, Any]],
+        metadata: dict[str, Any] | None = None,
+        remote_updated_at: str | None = None,
+    ) -> Any:
+        """Sync screenplay structure to the backend (desktop endpoint).
+
+        This mirrors :meth:`sync_desktop_story` but targets the screenplay
+        tables. The payload is a snapshot of scenes and their paragraphs,
+        which the backend maps to `screenplay_scene` and `screenplay_block`
+        rows.
+        """
+
+        if not self.base_url:
+            raise CrowdlyClientError("Crowdly base URL is not configured.", kind="config")
+
+        screenplay_id_raw = (screenplay_id or "").strip()
+        if not screenplay_id_raw:
+            raise CrowdlyClientError("screenplay_id is required.", kind="invalid_input")
+
+        user_id = self.login()
+        payload = {
+            "userId": user_id,
+            "title": title,
+            "metadata": metadata or {},
+            "scenes": scenes,
+        }
+        if remote_updated_at:
+            payload["remoteUpdatedAt"] = remote_updated_at
+        return self._http_post_json(
+            f"{self.base_url}/screenplays/{screenplay_id_raw}/sync-desktop",
+            payload,
+        )
 
     def _http_post_json(self, url: str, payload: dict[str, Any]) -> Any:
         raw = json.dumps(payload).encode("utf-8")

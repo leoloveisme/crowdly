@@ -1296,6 +1296,156 @@ app.post('/screenplays/import/pdf', async (_req, res) => {
   res.status(501).json({ error: 'PDF import not implemented yet' });
 });
 
+// Desktop sync endpoint for screenplays. This replaces the full set of
+// scenes and blocks for a screenplay based on a structured snapshot coming
+// from the desktop editor. The operation is transactional: on success the
+// database state matches the payload; on failure the previous state is
+// preserved.
+app.post('/screenplays/:screenplayId/sync-desktop', async (req, res) => {
+  const { screenplayId } = req.params;
+  const { userId, title, formatType, scenes, remoteUpdatedAt } = req.body ?? {};
+
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+  if (!screenplayId) {
+    return res.status(400).json({ error: 'screenplayId is required' });
+  }
+  if (typeof title !== 'string' || !title.trim()) {
+    return res.status(400).json({ error: 'title is required' });
+  }
+  if (!Array.isArray(scenes) || scenes.length === 0) {
+    return res.status(400).json({ error: 'scenes[] is required' });
+  }
+
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const titleRes = await client.query(
+      'SELECT screenplay_id, title, format_type, creator_id, updated_at FROM screenplay_title WHERE screenplay_id = $1 FOR UPDATE',
+      [screenplayId],
+    );
+    if (titleRes.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Screenplay not found' });
+    }
+
+    const row = titleRes.rows[0];
+
+    // Conflict detection: if the client sent the last-seen updated_at and it
+    // does not match the current DB value, refuse to overwrite and signal a
+    // conflict back to the desktop app.
+    try {
+      if (remoteUpdatedAt && row.updated_at) {
+        const clientTs = new Date(String(remoteUpdatedAt));
+        const serverTs = new Date(String(row.updated_at));
+        if (!Number.isNaN(clientTs.getTime()) && !Number.isNaN(serverTs.getTime())) {
+          if (clientTs.getTime() < serverTs.getTime()) {
+            await client.query('ROLLBACK');
+            return res.status(409).json({
+              error: 'conflict',
+              message: 'Screenplay has changed on the server since last desktop sync.',
+              remoteUpdatedAt: row.updated_at,
+            });
+          }
+        }
+      }
+    } catch (cmpErr) {
+      console.error('[POST /screenplays/:screenplayId/sync-desktop] conflict check failed:', cmpErr);
+      // On comparison failure, fall back to best-effort last-writer-wins.
+    }
+
+    const newTitle = title.trim();
+    const newFormatType = formatType !== undefined ? formatType : row.format_type;
+
+    await client.query(
+      'UPDATE screenplay_title SET title = $1, format_type = $2, updated_at = now() WHERE screenplay_id = $3',
+      [newTitle, newFormatType, screenplayId],
+    );
+
+    // Replace scenes and blocks in a simple, deterministic way.
+    await client.query('DELETE FROM screenplay_block WHERE screenplay_id = $1', [screenplayId]);
+    await client.query('DELETE FROM screenplay_scene WHERE screenplay_id = $1', [screenplayId]);
+
+    let nextBlockIndex = 1;
+
+    for (let i = 0; i < scenes.length; i += 1) {
+      const scene = scenes[i] || {};
+      const rawIndex = scene.sceneIndex;
+      const sceneIndex = Number.isInteger(rawIndex) ? rawIndex : i + 1;
+      const slugline =
+        typeof scene.slugline === 'string' && scene.slugline.trim()
+          ? scene.slugline.trim()
+          : `Scene ${sceneIndex}`;
+
+      const sceneRes = await client.query(
+        'INSERT INTO screenplay_scene (screenplay_id, scene_index, slugline, location, time_of_day, is_interior, synopsis) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING scene_id',
+        [screenplayId, sceneIndex, slugline, null, null, null, null],
+      );
+      const sceneId = sceneRes.rows[0].scene_id;
+
+      const paragraphs = Array.isArray(scene.paragraphs) ? scene.paragraphs : [];
+      for (const para of paragraphs) {
+        const text = typeof para === 'string' ? para : '';
+        if (!text.trim()) continue;
+
+        const blockIndex = nextBlockIndex;
+        nextBlockIndex += 1;
+
+        // Best-effort block type inference based on common screenplay
+        // conventions so that the web UI can render richer element types.
+        let blockType = 'action';
+        const trimmed = text.trim();
+        if (trimmed) {
+          const isAllCaps = trimmed === trimmed.toUpperCase() && /[A-Z]/.test(trimmed);
+          if (isAllCaps && !trimmed.endsWith(':')) {
+            // CHARACTER NAME or similar.
+            blockType = 'character';
+          } else if (trimmed.startsWith('(') && trimmed.endsWith(')')) {
+            blockType = 'parenthetical';
+          } else if (isAllCaps && trimmed.endsWith(':')) {
+            blockType = 'transition';
+          }
+        }
+
+        await client.query(
+          'INSERT INTO screenplay_block (screenplay_id, scene_id, block_index, block_type, text, metadata) VALUES ($1, $2, $3, $4, $5, $6)',
+          [screenplayId, sceneId, blockIndex, blockType, text, null],
+        );
+      }
+    }
+
+    // Best-effort: ensure the syncing user shows up as a collaborator.
+    try {
+      await ensureScreenplayAccessRow(screenplayId, userId, 'contributor');
+    } catch (errAccess) {
+      console.error(
+        '[POST /screenplays/:screenplayId/sync-desktop] failed to insert screenplay_access row:',
+        errAccess,
+      );
+    }
+
+    await client.query('COMMIT');
+
+    return res.json({
+      ok: true,
+      screenplayId,
+      syncedScenes: scenes.length,
+    });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('[POST /screenplays/:screenplayId/sync-desktop] failed:', err);
+    return res.status(500).json({
+      error: 'Failed to sync screenplay from desktop',
+      details: err?.message || String(err),
+    });
+  } finally {
+    client.release();
+  }
+});
+
 app.get('/screenplays/:screenplayId/export.fdx', async (_req, res) => {
   res.status(501).json({ error: 'FDX export not implemented yet' });
 });
@@ -3414,7 +3564,7 @@ app.patch('/story-titles/:storyTitleId/settings', async (req, res) => {
 // }
 app.post('/story-titles/:storyTitleId/sync-desktop', async (req, res) => {
   const { storyTitleId } = req.params;
-  const { userId, title, metadata, chapters } = req.body ?? {};
+  const { userId, title, metadata, chapters, bodyType } = req.body ?? {};
 
   if (!userId) {
     return res.status(400).json({ error: 'userId is required' });

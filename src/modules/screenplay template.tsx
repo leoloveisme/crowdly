@@ -243,6 +243,208 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
     }
   };
 
+  const getMaxSceneIndex = () =>
+    scenes.reduce((max, scene) => Math.max(max, scene.scene_index ?? 0), 0);
+
+  const getMaxBlockIndex = () =>
+    blocks.reduce((max, block) => Math.max(max, block.block_index ?? 0), 0);
+
+  const handleAddScene = async () => {
+    if (!screenplayId || !user) return;
+
+    const nextIndex = (getMaxSceneIndex() || 0) + 1;
+
+    try {
+      const res = await fetch(`${API_BASE}/screenplays/${screenplayId}/scenes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sceneIndex: nextIndex,
+          slugline: `INT. NEW SCENE ${nextIndex} - DAY`,
+          userId: user.id,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast({
+          title: "Error",
+          description: body.error || "Failed to add scene",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const newScene: ScreenplayScene = body;
+      setScenes((prev) => [...prev, newScene]);
+
+      // Best-effort: create an initial empty action block so the user can type
+      // directly into the new scene. The backend requires non-empty text, so
+      // we start with a single space which will be replaced by user input.
+      const initialBlockIndex = (getMaxBlockIndex() || 0) + 1;
+      try {
+        const blockRes = await fetch(
+          `${API_BASE}/screenplays/${screenplayId}/blocks`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              sceneId: newScene.scene_id,
+              blockIndex: initialBlockIndex,
+              blockType: "action",
+              text: " ",
+              userId: user.id,
+            }),
+          },
+        );
+        const blockBody = await blockRes.json().catch(() => ({}));
+        if (!blockRes.ok) {
+          console.error("Failed to create initial block for new scene", blockBody);
+          return;
+        }
+        setBlocks((prev) => [...prev, blockBody as ScreenplayBlock]);
+      } catch (err) {
+        console.error("Failed to create initial block for new scene", err);
+      }
+    } catch (err) {
+      console.error("Failed to add scene", err);
+      toast({
+        title: "Error",
+        description: "Failed to add scene",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteScene = async (scene: ScreenplayScene) => {
+    if (!scene.scene_id) return;
+
+    if (typeof window !== "undefined") {
+      const confirmed = window.confirm(
+        "Delete this scene and all of its blocks? This cannot be undone.",
+      );
+      if (!confirmed) return;
+    }
+
+    try {
+      const res = await fetch(
+        `${API_BASE}/screenplay-scenes/${scene.scene_id}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      if (!res.ok && res.status !== 204) {
+        const body = await res.json().catch(() => ({}));
+        toast({
+          title: "Error",
+          description: body.error || "Failed to delete scene",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setScenes((prev) => prev.filter((s) => s.scene_id !== scene.scene_id));
+      setBlocks((prev) => prev.filter((b) => b.scene_id !== scene.scene_id));
+    } catch (err) {
+      console.error("Failed to delete scene", err);
+      toast({
+        title: "Error",
+        description: "Failed to delete scene",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCloneScene = async (scene: ScreenplayScene) => {
+    if (!screenplayId || !user || !scene.scene_id) return;
+
+    const nextIndex = (getMaxSceneIndex() || 0) + 1;
+
+    try {
+      const res = await fetch(`${API_BASE}/screenplays/${screenplayId}/scenes`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sceneIndex: nextIndex,
+          slugline: `${scene.slugline} (copy)`.trim(),
+          userId: user.id,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast({
+          title: "Error",
+          description: body.error || "Failed to clone scene",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const newScene: ScreenplayScene = body;
+      setScenes((prev) => [...prev, newScene]);
+
+      const sourceBlocks = blocks.filter((b) => b.scene_id === scene.scene_id);
+      if (sourceBlocks.length === 0) return;
+
+      let currentIndex = getMaxBlockIndex() || 0;
+      const createdBlocks: ScreenplayBlock[] = [];
+
+      for (const block of sourceBlocks) {
+        currentIndex += 1;
+        try {
+          const blockRes = await fetch(
+            `${API_BASE}/screenplays/${screenplayId}/blocks`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                sceneId: newScene.scene_id,
+                blockIndex: currentIndex,
+                blockType: block.block_type,
+                text: block.text,
+                metadata: block.metadata ?? null,
+                userId: user.id,
+              }),
+            },
+          );
+          const blockBody = await blockRes.json().catch(() => ({}));
+          if (!blockRes.ok) {
+            console.error("Failed to clone block", blockBody);
+            toast({
+              title: "Error",
+              description:
+                (blockBody as { error?: string }).error ||
+                "Failed to clone all blocks for the scene. Some blocks may be missing.",
+              variant: "destructive",
+            });
+            break;
+          }
+          createdBlocks.push(blockBody as ScreenplayBlock);
+        } catch (err) {
+          console.error("Failed to clone block", err);
+          toast({
+            title: "Error",
+            description:
+              "Failed to clone all blocks for the scene. Some blocks may be missing.",
+            variant: "destructive",
+          });
+          break;
+        }
+      }
+
+      if (createdBlocks.length > 0) {
+        setBlocks((prev) => [...prev, ...createdBlocks]);
+      }
+    } catch (err) {
+      console.error("Failed to clone scene", err);
+      toast({
+        title: "Error",
+        description: "Failed to clone scene",
+        variant: "destructive",
+      });
+    }
+  };
+
   const sortedScenes = [...scenes].sort(
     (a, b) => (a.scene_index ?? 0) - (b.scene_index ?? 0),
   );
@@ -271,7 +473,7 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
   return (
     <div className="space-y-6">
       <div className="border rounded-lg bg-white p-4 shadow-sm">
-          <div className="flex items-center justify-between gap-3 mb-2">
+        <div className="flex items-center justify-between gap-3 mb-2">
           <div className="flex-1">
             <input
               type="text"
@@ -295,10 +497,6 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
             </div>
           )}
         </div>
-        <p className="text-xs text-gray-500">
-          This template uses standard screenplay elements (scene headings, action,
-          character, dialogue, parentheticals, transitions, shots).
-        </p>
       </div>
 
       {!screenplayId && (
@@ -320,12 +518,23 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
 
       {screenplayId && (
         <div className="border rounded-lg bg-white p-4 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-gray-700">Scenes</h2>
+            <button
+              type="button"
+              onClick={handleAddScene}
+              disabled={!canEdit || loading}
+              className="px-3 py-1 text-xs rounded-full border border-dashed border-blue-300 text-blue-700 hover:bg-blue-50 disabled:opacity-60"
+            >
+              Add scene
+            </button>
+          </div>
           {loading ? (
             <div className="text-sm text-gray-500">Loading screenplay...</div>
           ) : sortedScenes.length === 0 ? (
             <div className="text-sm text-gray-500">
-              No scenes yet. Future versions of this editor will let you add and
-              reorder scenes.
+              No scenes yet. Use the "Add scene" button above to create your first
+              scene.
             </div>
           ) : (
             <div className="space-y-8 font-mono text-[13px]">
@@ -334,11 +543,29 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
                 const sceneBlocks = blocksByScene.get(key) ?? [];
                 return (
                   <section key={scene.scene_id} className="space-y-3">
-                    <div className="uppercase tracking-wide text-xs text-gray-500">
-                      Scene {scene.scene_index}
-                    </div>
-                    <div className="font-bold">
-                      {scene.slugline}
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <div className="uppercase tracking-wide text-xs text-gray-500">
+                          Scene {scene.scene_index}
+                        </div>
+                        <div className="font-bold">{scene.slugline}</div>
+                      </div>
+                      <div className="flex gap-2 text-[11px]">
+                        <button
+                          type="button"
+                          onClick={() => handleCloneScene(scene)}
+                          className="px-2 py-0.5 border border-dashed border-gray-300 rounded-full hover:bg-gray-50"
+                        >
+                          Clone
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteScene(scene)}
+                          className="px-2 py-0.5 border border-dashed border-red-300 text-red-600 rounded-full hover:bg-red-50"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
                     <div className="space-y-2 mt-2">
                       {sceneBlocks.map((block) => {

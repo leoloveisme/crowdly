@@ -1458,31 +1458,31 @@ class MainWindow(QMainWindow):
 
         if path is not None:
             try:
-                # Prefer story metadata when present.
-                if file_metadata.has_story_metadata(path):
-                    md = file_metadata.read_story_metadata(path)
-                    identifier = md.story_id or None
-                    url = md.source_url or None
-                    kind = "story"
+                md = file_metadata.read_story_metadata(path)
 
-                    if not url and identifier:
-                        base = getattr(self._settings, "crowdly_base_url", None)
+                # Prefer explicit story association when present.
+                story_id = md.story_id or file_metadata.get_attr(path, "story_id")
+                screenplay_id = file_metadata.get_attr(path, "screenplay_id")
+                source_url = md.source_url or file_metadata.get_attr(path, "screenplay_url")
+
+                if story_id:
+                    identifier = story_id
+                    kind = "story"
+                    url = md.source_url or None
+                    if not url:
+                        base = getattr(self, "_settings", None)
+                        base = getattr(base, "crowdly_base_url", None)
                         if isinstance(base, str) and base.strip():
                             url = f"{base.rstrip('/')}/story/{identifier}"
-
-                else:
-                    # Best-effort: look for screenplay_id/screenplay_url xattrs.
-                    sp_id = file_metadata.get_attr(path, "screenplay_id")
-                    sp_url = file_metadata.get_attr(path, "screenplay_url")
-                    if sp_id:
-                        identifier = sp_id
-                        url = sp_url or None
-                        kind = "screenplay"
-
-                        if not url and identifier:
-                            base = getattr(self._settings, "crowdly_base_url", None)
-                            if isinstance(base, str) and base.strip():
-                                url = f"{base.rstrip('/')}/screenplay/{identifier}"
+                elif screenplay_id:
+                    identifier = screenplay_id
+                    kind = "screenplay"
+                    url = source_url or None
+                    if not url:
+                        base = getattr(self, "_settings", None)
+                        base = getattr(base, "crowdly_base_url", None)
+                        if isinstance(base, str) and base.strip():
+                            url = f"{base.rstrip('/')}/screenplay/{identifier}"
             except Exception:
                 identifier = None
                 url = None
@@ -1534,8 +1534,8 @@ class MainWindow(QMainWindow):
         metadata once the background initialisation completes.
         """
 
-        # If metadata already present, nothing to do.
-        if file_metadata.has_story_metadata(path):
+        # If metadata already present (either story or screenplay), nothing to do.
+        if file_metadata.has_story_metadata(path) or file_metadata.get_attr(path, "screenplay_id"):
             return
 
         # Only create remote stories when web sync is actually enabled.
@@ -1861,9 +1861,10 @@ class MainWindow(QMainWindow):
             lines.append(f"# {title or 'Untitled Screenplay'}")
             lines.append("")
             for scene in scenes:
-                lines.append(
-                    f"## Scene {scene.scene_index}: {scene.slugline}".rstrip()
-                )
+                # Use the slugline as the full scene heading text. Scene
+                # numbering is tracked separately in the database; users are
+                # free to name scenes however they like.
+                lines.append(f"## {scene.slugline}".rstrip())
                 lines.append("")
                 scene_blocks = [
                     b for b in blocks if b.scene_id == scene.scene_id
@@ -1900,9 +1901,45 @@ class MainWindow(QMainWindow):
             try:
                 file_metadata.set_attr(local_path, "screenplay_id", screenplay_id)
                 base = getattr(self._settings, "crowdly_base_url", None)
+                sp_url = None
                 if isinstance(base, str) and base.strip():
                     sp_url = f"{base.rstrip('/')}/screenplay/{screenplay_id}"
                     file_metadata.set_attr(local_path, "screenplay_url", sp_url)
+
+                # Also initialise generic story metadata so that the file is
+                # treated as a first-class Crowdly item (author/initiator,
+                # creation/change dates, etc.). For screenplays we reuse the
+                # same StoryMetadata carrier; story_id remains empty and
+                # screenplay_id is stored as a separate xattr.
+                try:
+                    from .. import file_metadata as fm
+
+                    now_human = fm.now_human()
+                    # CrowdlyClient caches the logged-in user id; reuse it as
+                    # both author_id and initiator_id for now.
+                    user_id = getattr(client, "_user_id", None)
+                    fm.write_story_metadata(
+                        local_path,
+                        fm.StoryMetadata(
+                            author_id=user_id if isinstance(user_id, str) else None,
+                            initiator_id=user_id if isinstance(user_id, str) else None,
+                            story_id=None,
+                            story_title=title,
+                            genre=None,
+                            tags=None,
+                            creation_date=now_human,
+                            change_date=now_human,
+                            last_sync_date=None,
+                            source_url=sp_url,
+                            body_format="markdown",
+                            remote_updated_at=None,
+                        ),
+                        remove_missing=False,
+                    )
+                except Exception:
+                    # Metadata initialisation is best-effort; never break
+                    # screenplay creation if xattrs are unavailable.
+                    pass
             except Exception:
                 pass
 
@@ -2951,6 +2988,7 @@ class MainWindow(QMainWindow):
 
         self.preview.set_markdown(doc.content)
         self._update_document_stats_label()
+        self._update_story_link_label()
 
     def _choose_project_space(self) -> None:  # pragma: no cover - UI wiring
         """Open a dialog to create or choose the project space directory."""
@@ -3024,7 +3062,7 @@ class MainWindow(QMainWindow):
             )
 
     def _view_story_metadata(self) -> None:  # pragma: no cover - UI wiring
-        """Display Crowdly story metadata for the current file."""
+        """Display Crowdly story or screenplay metadata for the current file."""
 
         import traceback
 
@@ -3038,7 +3076,12 @@ class MainWindow(QMainWindow):
                 )
                 return
 
-            if not file_metadata.has_story_metadata(path):
+            # Treat both regular stories (story_id) and screenplays (screenplay_id)
+            # as Crowdly-linked documents for the purposes of metadata display.
+            has_story = file_metadata.has_story_metadata(path)
+            screenplay_id = file_metadata.get_attr(path, "screenplay_id")
+
+            if not has_story and not screenplay_id:
                 QMessageBox.information(
                     self,
                     self.tr("Story metadata"),
@@ -3046,19 +3089,31 @@ class MainWindow(QMainWindow):
                 )
                 return
 
+            # Best-effort: if this is a screenplay with minimal metadata, try to
+            # hydrate author/initiator/title from the backend before showing.
+            if screenplay_id:
+                self._ensure_screenplay_metadata_for_path(path, screenplay_id)
+
             md = file_metadata.read_story_metadata(path)
 
-            # Render in a simple, readable block.
+            # Render in a simple, readable block. For screenplays we also show the
+            # raw screenplay_id and screenplay_url xattrs when present.
+            sp_id = screenplay_id or ""
+            sp_url = file_metadata.get_attr(path, "screenplay_url") or ""
+            source_url = md.source_url or sp_url
+
             lines = [
                 f"author_id: {md.author_id or ''}",
                 f"initiator_id: {md.initiator_id or ''}",
                 f"story_id: {md.story_id or ''}",
+                f"screenplay_id: {sp_id}",
                 f"story_title: {md.story_title or ''}",
                 f"genre: {md.genre or ''}",
                 f"tags: {md.tags or ''}",
                 f"creation_date: {md.creation_date or ''}",
                 f"change_date: {md.change_date or ''}",
                 f"last_sync_date: {md.last_sync_date or ''}",
+                f"source_url: {source_url or ''}",
             ]
 
             QMessageBox.information(
@@ -3089,7 +3144,9 @@ class MainWindow(QMainWindow):
                 )
                 return
 
-            if not file_metadata.has_story_metadata(path):
+            has_story = file_metadata.has_story_metadata(path)
+            screenplay_id = file_metadata.get_attr(path, "screenplay_id")
+            if not has_story and not screenplay_id:
                 QMessageBox.information(
                     self,
                     self.tr("Genre"),
@@ -3178,15 +3235,30 @@ class MainWindow(QMainWindow):
     def _refresh_story_from_web(self) -> None:  # pragma: no cover - UI wiring
         """Manual refresh: pull the latest content from the web.
 
-        If the story requires authentication, prompt once for credentials and
-        only start the pull if login succeeds.
+        If the story or screenplay requires authentication, prompt once for
+        credentials and only start the pull if login succeeds.
         """
 
         try:
             creds = self._ensure_crowdly_web_credentials()
             if not creds:
                 return
-            self._start_pull_from_web(force=True, credentials=creds)
+
+            path = self._get_current_document_path()
+            if path is not None:
+                try:
+                    screenplay_id = file_metadata.get_attr(path, "screenplay_id")
+                except Exception:
+                    screenplay_id = None
+            else:
+                screenplay_id = None
+
+            if screenplay_id:
+                # Screenplay: use the dedicated pull helper so scenes/blocks map correctly.
+                self._start_screenplay_pull_from_web(force=True, credentials=creds)
+            else:
+                # Regular story: existing behaviour.
+                self._start_pull_from_web(force=True, credentials=creds)
         except Exception:
             pass
 
@@ -3318,13 +3390,27 @@ class MainWindow(QMainWindow):
             return
 
     def _start_pull_from_web(self, *, force: bool, credentials: tuple[str, str] | None = None) -> None:  # pragma: no cover
-        """Start a background pull if the remote story has changed."""
+        """Start a background pull if the remote story/screenplay has changed."""
 
         import traceback
 
         path = self._get_current_document_path()
         if path is None:
             return
+
+        # If this is a screenplay-linked document, delegate to the screenplay
+        # pull helper so we use the correct API and mapping.
+        try:
+            screenplay_id = file_metadata.get_attr(path, "screenplay_id")
+        except Exception:
+            screenplay_id = None
+        if screenplay_id:
+            try:
+                self._start_screenplay_pull_from_web(force=force, credentials=credentials)
+            except Exception:
+                pass
+            return
+
         if not file_metadata.has_story_metadata(path):
             return
 
@@ -3372,12 +3458,13 @@ class MainWindow(QMainWindow):
         thread.start()
 
     def _maybe_sync_story_to_web(self) -> None:  # pragma: no cover
-        """Best-effort: sync the current local story back to the Crowdly backend.
+        """Best-effort: sync the current local story or screenplay to Crowdly.
 
-        For stories that do not yet have a ``story_id`` association this
-        method will trigger a one-time background initialisation that creates a
-        remote story and writes the metadata to xattrs. The actual sync will
-        then run on subsequent calls once the metadata is available.
+        For regular stories that do not yet have a ``story_id`` association
+        this method will trigger a one-time background initialisation that
+        creates a remote story and writes the metadata to xattrs. For
+        screenplays created from the Crowdly template, we reuse the same
+        markdown chapter parser but sync into the dedicated screenplay tables.
         """
 
         import traceback
@@ -3385,6 +3472,19 @@ class MainWindow(QMainWindow):
         try:
             path = self._get_current_document_path()
             if path is None:
+                return
+
+            # Screenplays created from the Crowdly template store their
+            # association via generic xattrs (screenplay_id/screenplay_url).
+            # When such metadata is present we sync the screenplay structure
+            # instead of treating the document as a regular story.
+            try:
+                screenplay_id = file_metadata.get_attr(path, "screenplay_id")
+            except Exception:
+                screenplay_id = None
+
+            if screenplay_id:
+                self._maybe_sync_screenplay_to_web(path, screenplay_id)
                 return
 
             # New local stories: attempt to initialise metadata once.
@@ -3476,6 +3576,295 @@ class MainWindow(QMainWindow):
             thread.start()
         except Exception:
             traceback.print_exc()
+
+    def _ensure_screenplay_metadata_for_path(self, path: Path, screenplay_id: str) -> None:
+        """Hydrate screenplay metadata from the backend when possible.
+
+        When a file has a ``screenplay_id`` but minimal StoryMetadata, we fetch
+        the corresponding ``screenplay_title`` row and use it to populate
+        author/initiator/title and dates. This is best-effort and never raises.
+        """
+
+        import sys
+
+        try:
+            # If we already have a title or creation date, assume metadata was set.
+            md = file_metadata.read_story_metadata(path)
+            if md.story_title or md.creation_date:
+                return
+
+            # Derive API base from screenplay_url or configured base URL.
+            from ..crowdly_client import CrowdlyClient, api_base_url_from_story_url
+
+            try:
+                sp_url = file_metadata.get_attr(path, "screenplay_url")
+            except Exception:
+                sp_url = None
+
+            api_base = None
+            try:
+                if sp_url:
+                    api_base = api_base_url_from_story_url(sp_url)
+                else:
+                    base_url_setting = getattr(self._settings, "crowdly_base_url", None)
+                    if isinstance(base_url_setting, str) and base_url_setting.strip():
+                        api_base = api_base_url_from_story_url(base_url_setting)
+            except Exception as exc:
+                print(f"[metadata][screenplay] api_base_url_from_story_url failed: {exc}", file=sys.stderr)
+                base_url_setting = getattr(self._settings, "crowdly_base_url", None)
+                if isinstance(base_url_setting, str) and base_url_setting.strip():
+                    api_base = (base_url_setting or "").rstrip("/")
+
+            if not api_base:
+                return
+
+            creds = self._ensure_crowdly_web_credentials()
+            if creds is None:
+                return
+
+            client = CrowdlyClient(api_base, credentials=creds)
+            row = client.get_screenplay_title_row(screenplay_id)
+
+            title = row.get("title") or "Untitled Screenplay"
+            creator_id = row.get("creator_id") or row.get("creatorId")
+            updated_raw = row.get("updated_at") or row.get("updatedAt")
+            remote_updated_at = str(updated_raw) if isinstance(updated_raw, str) else md.remote_updated_at
+            now_str = file_metadata.now_human()
+
+            updated_meta = file_metadata.StoryMetadata(
+                author_id=str(creator_id) if creator_id else md.author_id,
+                initiator_id=str(creator_id) if creator_id else md.initiator_id,
+                story_id=md.story_id,
+                story_title=str(title),
+                genre=md.genre,
+                tags=md.tags,
+                creation_date=md.creation_date or now_str,
+                change_date=now_str,
+                last_sync_date=md.last_sync_date,
+                source_url=md.source_url or sp_url,
+                body_format=md.body_format or "markdown",
+                remote_updated_at=remote_updated_at,
+            )
+
+            file_metadata.write_story_metadata(path, updated_meta, remove_missing=False)
+        except Exception as exc:
+            # Never break the UI when metadata hydration fails.
+            print(f"[metadata][screenplay] hydration failed for {path}: {exc}", file=sys.stderr)
+
+    def _start_screenplay_pull_from_web(self, *, force: bool, credentials: tuple[str, str] | None = None) -> None:  # pragma: no cover
+        """Start a background pull for a screenplay if the remote version diverged.
+
+        Behaviour mirrors `_start_pull_from_web` for stories but uses the
+        screenplay endpoints and Markdown mapping.
+        """
+
+        import traceback
+
+        path = self._get_current_document_path()
+        if path is None:
+            return
+
+        try:
+            screenplay_id = file_metadata.get_attr(path, "screenplay_id")
+            screenplay_url = file_metadata.get_attr(path, "screenplay_url") or None
+        except Exception:
+            screenplay_id = None
+            screenplay_url = None
+
+        if not screenplay_id or not screenplay_url:
+            return
+
+        # Do not pull from the web until we have successfully synced at least
+        # once from this desktop device (to avoid wiping long local drafts
+        # with an empty remote template).
+        try:
+            md = file_metadata.read_story_metadata(path)
+            if not md.last_sync_date and not force:
+                return
+        except Exception:
+            if not force:
+                return
+
+        # Avoid parallel pulls for the same document.
+        thread = getattr(self, "_screenplay_pull_thread", None)
+        if isinstance(thread, _ScreenplayPullThread) and thread.isRunning():
+            return
+
+        thread = _ScreenplayPullThread(
+            screenplay_id=screenplay_id,
+            source_url=screenplay_url,
+            credentials=credentials,
+            local_path=path,
+            force=force,
+            parent=self,
+        )
+        thread.pullAvailable.connect(self._on_screenplay_pull_available)
+        thread.pullFailed.connect(self._on_screenplay_pull_failed)
+        thread.finished.connect(self._on_screenplay_pull_finished)
+        thread.finished.connect(thread.deleteLater)
+        self._screenplay_pull_thread = thread
+
+        bar = self.statusBar()
+        if bar is not None:
+            bar.showMessage(self.tr("Checking for screenplay updates..."), 2000)
+
+        try:
+            thread.start()
+        except Exception:
+            traceback.print_exc()
+
+    def _maybe_sync_screenplay_to_web(self, path: Path, screenplay_id: str) -> None:  # pragma: no cover
+        """Best-effort: sync the current local screenplay back to the backend.
+
+        This mirrors the story sync pipeline but targets the screenplay
+        endpoints. All early returns are logged to stderr so issues can be
+        debugged more easily.
+        """
+
+        import traceback
+        import sys
+
+        try:
+            print(f"[web-sync][screenplay] attempting sync for {path} (id={screenplay_id})", file=sys.stderr)
+            try:
+                from ..crowdly_client import (
+                    CrowdlyClient,
+                    CrowdlyClientError,
+                    api_base_url_from_story_url,
+                )
+            except Exception as exc:
+                print(f"[web-sync][screenplay] CrowdlyClient import failed: {exc}", file=sys.stderr)
+                return
+
+            creds = self._ensure_crowdly_web_credentials()
+            if creds is None:
+                print("[web-sync][screenplay] no web credentials; aborting sync", file=sys.stderr)
+                return
+
+            # Derive API base from stored screenplay_url when available, falling
+            # back to the configured Crowdly base URL.
+            try:
+                screenplay_url = file_metadata.get_attr(path, "screenplay_url")
+            except Exception as exc:
+                print(f"[web-sync][screenplay] failed to read screenplay_url xattr: {exc}", file=sys.stderr)
+                screenplay_url = None
+
+            api_base = None
+            try:
+                if screenplay_url:
+                    api_base = api_base_url_from_story_url(screenplay_url)
+                else:
+                    base_url_setting = getattr(self._settings, "crowdly_base_url", None)
+                    if isinstance(base_url_setting, str) and base_url_setting.strip():
+                        api_base = api_base_url_from_story_url(base_url_setting)
+            except Exception as exc:
+                print(f"[web-sync][screenplay] api_base_url_from_story_url failed: {exc}", file=sys.stderr)
+                base_url_setting = getattr(self._settings, "crowdly_base_url", None)
+                if isinstance(base_url_setting, str) and base_url_setting.strip():
+                    api_base = (base_url_setting or "").rstrip("/")
+
+            if not api_base:
+                print("[web-sync][screenplay] could not derive API base URL; aborting sync", file=sys.stderr)
+                return
+
+            # Parse the current markdown into logical scenes using a
+            # screenplay-aware parser that keeps each non-empty line as its own
+            # atomic block inside a scene.
+            screenplay_story = story_sync.parse_screenplay_from_content(
+                self._document.content,
+            )
+
+            if not screenplay_story.chapters:
+                print("[web-sync][screenplay] no chapters/scenes parsed from content; nothing to sync", file=sys.stderr)
+                return
+
+            # Best-effort: keep local metadata in sync for screenplays so the
+            # Story metadata dialog reflects title, dates, and source URL.
+            try:
+                md = file_metadata.read_story_metadata(path)
+                now_str = file_metadata.now_human()
+                source_url = md.source_url or screenplay_url
+                updated_meta = file_metadata.StoryMetadata(
+                    author_id=md.author_id,
+                    initiator_id=md.initiator_id,
+                    story_id=md.story_id,
+                    story_title=screenplay_story.title or md.story_title,
+                    genre=md.genre,
+                    tags=md.tags,
+                    creation_date=md.creation_date or now_str,
+                    change_date=now_str,
+                    last_sync_date=md.last_sync_date,
+                    source_url=source_url,
+                    body_format=md.body_format or "markdown",
+                    remote_updated_at=md.remote_updated_at,
+                )
+                file_metadata.write_story_metadata(path, updated_meta, remove_missing=False)
+            except Exception as exc:
+                print(f"[web-sync][screenplay] metadata update failed: {exc}", file=sys.stderr)
+
+            scenes_payload = []
+            for idx, ch in enumerate(screenplay_story.chapters, start=1):
+                scenes_payload.append(
+                    {
+                        "sceneIndex": idx,
+                        "slugline": ch.chapterTitle,
+                        "paragraphs": ch.paragraphs,
+                    }
+                )
+
+            client = CrowdlyClient(api_base, credentials=creds)
+            print(
+                f"[web-sync][screenplay] POSTing {len(scenes_payload)} scenes to {api_base} for {screenplay_id}",
+                file=sys.stderr,
+            )
+
+            # Use remote_updated_at (if any) for conflict detection on the
+            # server so we do not overwrite newer web changes silently.
+            try:
+                md = file_metadata.read_story_metadata(path)
+                remote_updated_at = md.remote_updated_at
+            except Exception:
+                remote_updated_at = None
+
+            try:
+                client.sync_desktop_screenplay(
+                    screenplay_id=screenplay_id,
+                    title=screenplay_story.title,
+                    scenes=scenes_payload,
+                    metadata=None,
+                    remote_updated_at=remote_updated_at,
+                )
+            except CrowdlyClientError as exc:
+                if getattr(exc, "status_code", None) == 409:
+                    # Conflict: screenplay changed on the server since last sync.
+                    bar = self.statusBar()
+                    if bar is not None:
+                        bar.showMessage(
+                            self.tr("Screenplay has changed on the web; please refresh from web before syncing."),
+                            7000,
+                        )
+                    print(f"[web-sync][screenplay] conflict from server: {exc}", file=sys.stderr)
+                    return
+                raise
+
+            # On success, mark last_sync_date for this screenplay file.
+            try:
+                file_metadata.touch_last_sync_date(path)
+            except Exception as exc:
+                print(f"[web-sync][screenplay] touch_last_sync_date failed: {exc}", file=sys.stderr)
+
+            bar = self.statusBar()
+            if bar is not None:
+                bar.showMessage(self.tr("Screenplay synced to the web."), 5000)
+            print("[web-sync][screenplay] sync completed successfully", file=sys.stderr)
+        except Exception as exc:
+            traceback.print_exc()
+            try:
+                bar = self.statusBar()
+                if bar is not None:
+                    bar.showMessage(self.tr("Screenplay sync failed."), 5000)
+            except Exception:
+                pass
 
     def _on_story_sync_succeeded(self, result: object) -> None:  # pragma: no cover
         import traceback
@@ -3670,6 +4059,95 @@ class MainWindow(QMainWindow):
         # Clear stale thread reference so future pulls aren't blocked.
         self._story_pull_thread = None
 
+    def _on_screenplay_pull_available(self, payload: object) -> None:  # pragma: no cover
+        """Apply pulled screenplay content if it's newer and safe."""
+
+        import traceback
+
+        try:
+            if not isinstance(payload, dict):
+                return
+
+            path = self._get_current_document_path()
+            if path is None:
+                return
+
+            new_content = payload.get("content")
+            remote_updated_at = payload.get("remote_updated_at")
+            force = bool(payload.get("force"))
+
+            if not isinstance(new_content, str) or not new_content:
+                return
+
+            md = file_metadata.read_story_metadata(path)
+
+            # If local has unsynced changes, prefer local and schedule a sync
+            # instead of overwriting with the remote version, unless this pull
+            # was explicitly forced (e.g. via "Refresh from web").
+            try:
+                changed_at = file_metadata.parse_human(md.change_date)
+                synced_at = file_metadata.parse_human(md.last_sync_date)
+                local_unsynced = changed_at is not None and synced_at is not None and changed_at > synced_at
+            except Exception:
+                local_unsynced = False
+
+            if local_unsynced and not force:
+                try:
+                    self._schedule_web_sync()
+                except Exception:
+                    pass
+                return
+
+            # Apply content
+            self._document.set_content(new_content)
+            self._last_change_from_preview = False
+
+            old_state = self.editor.blockSignals(True)
+            try:
+                self.editor.setPlainText(new_content)
+            finally:
+                self.editor.blockSignals(old_state)
+
+            self.preview.set_markdown(new_content)
+            self._update_document_stats_label()
+
+            # Save immediately and update xattrs.
+            try:
+                self._document.save(path)
+            except Exception:
+                pass
+
+            try:
+                file_metadata.touch_last_sync_date(path)
+                if isinstance(remote_updated_at, str) and remote_updated_at:
+                    file_metadata.set_attr(path, file_metadata.FIELD_REMOTE_UPDATED_AT, remote_updated_at)
+            except Exception:
+                pass
+
+            bar = self.statusBar()
+            if bar is not None:
+                bar.showMessage(self.tr("Pulled latest screenplay from the web."), 5000)
+        except Exception:
+            traceback.print_exc()
+
+    def _on_screenplay_pull_failed(self, error: object) -> None:  # pragma: no cover
+        """Handle failures when checking for or pulling screenplay updates."""
+
+        import traceback
+
+        try:
+            message = str(error)
+            bar = self.statusBar()
+            if bar is not None:
+                bar.showMessage(self.tr("Screenplay update check failed."), 3000)
+            print(f"[web-pull][screenplay] failed: {message}")
+        except Exception:
+            traceback.print_exc()
+
+    def _on_screenplay_pull_finished(self) -> None:  # pragma: no cover
+        # Clear stale thread reference so future pulls aren't blocked.
+        self._screenplay_pull_thread = None
+
     def _on_story_sync_finished(self) -> None:  # pragma: no cover
         self._story_sync_thread = None
 
@@ -3838,6 +4316,91 @@ class _StorySyncThread(QThread):
         except Exception as exc:
             traceback.print_exc()
             self.syncFailed.emit(str(exc))
+
+
+class _ScreenplayPullThread(QThread):
+    """Background thread that checks and pulls a screenplay from the backend."""
+
+    pullAvailable = Signal(object)
+    pullFailed = Signal(object)
+
+    def __init__(
+        self,
+        *,
+        screenplay_id: str,
+        source_url: str,
+        credentials: tuple[str, str] | None,
+        local_path: Path,
+        force: bool,
+        parent: QObject | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self._screenplay_id = screenplay_id
+        self._source_url = source_url
+        self._credentials = credentials
+        self._local_path = local_path
+        self._force = force
+
+    def run(self) -> None:  # pragma: no cover
+        import traceback
+
+        try:
+            from ..crowdly_client import (
+                CrowdlyClient,
+                api_base_url_from_story_url,
+            )
+
+            api_base = api_base_url_from_story_url(self._source_url)
+            client = CrowdlyClient(api_base, credentials=self._credentials)
+
+            # Check screenplay_title.updated_at first.
+            title_row = client.get_screenplay_title_row(self._screenplay_id)
+            updated_raw = title_row.get("updated_at") or title_row.get("updatedAt")
+            remote_updated_at = updated_raw if isinstance(updated_raw, str) else None
+
+            local_remote = file_metadata.get_attr(self._local_path, file_metadata.FIELD_REMOTE_UPDATED_AT)
+            if not self._force and remote_updated_at and local_remote and remote_updated_at == local_remote:
+                return
+
+            # Fetch full screenplay structure and map to Markdown.
+            scenes, blocks = client.get_screenplay_structure(self._screenplay_id, include_blocks=True)
+
+            title = title_row.get("title") or "Untitled Screenplay"
+            lines: list[str] = []
+            lines.append(f"# {title}")
+            lines.append("")
+            for scene in scenes:
+                # Use the slugline as-is for the Markdown heading so users can
+                # control scene names freely.
+                lines.append(f"## {scene.slugline}".rstrip())
+                lines.append("")
+                scene_blocks = [b for b in blocks if b.scene_id == scene.scene_id]
+                for block in scene_blocks:
+                    text = block.text or ""
+                    bt = (block.block_type or "").lower()
+                    if bt == "character":
+                        lines.append(text.upper())
+                    elif bt == "parenthetical":
+                        if not (text.startswith("(") and text.endswith(")")):
+                            lines.append(f"({text})")
+                        else:
+                            lines.append(text)
+                    else:
+                        lines.append(text)
+                    lines.append("")
+
+            body_md = "\n".join(lines).rstrip() + "\n"
+
+            self.pullAvailable.emit(
+                {
+                    "content": body_md,
+                    "remote_updated_at": remote_updated_at,
+                    "force": self._force,
+                }
+            )
+        except Exception as exc:
+            traceback.print_exc()
+            self.pullFailed.emit(str(exc))
 
 
 class _RenamableTabBar(QTabBar):

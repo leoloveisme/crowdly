@@ -27,10 +27,14 @@ XATTR_PREFIX = "user.crowdly."
 _ERRNO_ENOATTR = getattr(errno, "ENOATTR", None)
 
 # Public, user-facing metadata fields (per product spec)
+# These apply to both regular stories and screenplays; a "screenplay" is a
+# specialised kind of story, and we reuse the same revision/metadata
+# infrastructure for both. The distinction between story and screenplay lives
+# on the backend (story_title vs screenplay_title).
 FIELD_AUTHOR_ID = "author_id"
 FIELD_INITIATOR_ID = "initiator_id"
-FIELD_STORY_ID = "story_id"
-FIELD_STORY_TITLE = "story_title"
+FIELD_STORY_ID = "story_id"  # used for regular stories; screenplays use screenplay_id
+FIELD_STORY_TITLE = "story_title"  # used as the primary title for both kinds
 FIELD_GENRE = "genre"
 FIELD_TAGS = "tags"
 FIELD_CREATION_DATE = "creation_date"
@@ -38,9 +42,10 @@ FIELD_CHANGE_DATE = "change_date"
 FIELD_LAST_SYNC_DATE = "last_sync_date"
 
 # Additional internal fields we need for sync/backends.
-FIELD_SOURCE_URL = "source_url"
+FIELD_SOURCE_URL = "source_url"  # may be /story/{id} or /screenplay{id}
+FIELD_BODY_TYPE = "body_type"  # "story" | "screenplay" (optional hint)
 FIELD_BODY_FORMAT = "body_format"
-# ISO timestamp of last known story_title.updated_at from the backend.
+# ISO timestamp of last known title.updated_at from the backend.
 FIELD_REMOTE_UPDATED_AT = "remote_updated_at"
 
 PUBLIC_FIELDS: tuple[str, ...] = (
@@ -101,6 +106,19 @@ def has_story_metadata(path: Path) -> bool:
     """Return True if *path* appears to be associated with a Crowdly story."""
 
     return bool(get_attr(path, FIELD_STORY_ID))
+
+
+def is_crowdly_document(path: Path) -> bool:
+    """Return True if *path* looks like a Crowdly-linked document.
+
+    This includes both regular stories (story_id) and screenplays (screenplay_id).
+    """
+
+    if has_story_metadata(path):
+        return True
+    # Screenplays created from the Crowdly template store their association via
+    # a dedicated ``screenplay_id`` xattr.
+    return bool(get_attr(path, "screenplay_id"))
 
 
 def xattr_key(field: str) -> str:
@@ -207,28 +225,35 @@ def write_story_metadata(path: Path, metadata: StoryMetadata, *, remove_missing:
 
 
 def touch_change_date(path: Path, *, when: str | None = None) -> None:
-    """Update change_date to now (or *when*) if the file is a Crowdly story."""
+    """Update change_date to now (or *when*) if the file is a Crowdly doc.
 
-    if not has_story_metadata(path):
+    Applies to both regular stories and screenplays linked to Crowdly.
+    """
+
+    if not is_crowdly_document(path):
         return
     set_attr(path, FIELD_CHANGE_DATE, when or now_human())
 
 
 def touch_last_sync_date(path: Path, *, when: str | None = None) -> None:
-    """Update last_sync_date to now (or *when*) if the file is a Crowdly story."""
+    """Update last_sync_date to now (or *when*) if the file is a Crowdly doc."""
 
-    if not has_story_metadata(path):
+    if not is_crowdly_document(path):
         return
     set_attr(path, FIELD_LAST_SYNC_DATE, when or now_human())
 
 
 def set_genre(path: Path, genre: str) -> None:
-    if not has_story_metadata(path):
+    """Set the genre for a Crowdly-linked document (story or screenplay)."""
+
+    if not is_crowdly_document(path):
         return
     set_attr(path, FIELD_GENRE, genre)
 
 
 def clear_genre(path: Path) -> None:
-    if not has_story_metadata(path):
+    """Clear the genre for a Crowdly-linked document (story or screenplay)."""
+
+    if not is_crowdly_document(path):
         return
     remove_attr(path, FIELD_GENRE)

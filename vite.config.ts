@@ -11,8 +11,12 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     watch: {
       // Avoid watching large legacy build artifacts to stay under OS file-watch limits
+      // and noisy virtual environments (Python, etc.). This helps prevent
+      // ENOSPC errors when the OS inotify watcher limit is low.
       ignored: [
         "**/web editor/dist/**",
+        "**/.venv/**",
+        "**/venv/**",
       ],
     },
     // Proxy API requests to the backend dev server on port 4000 so the
