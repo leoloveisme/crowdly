@@ -3158,10 +3158,12 @@ class MainWindow(QMainWindow):
 
             options = [
                 "YA",
+                "fiction",
                 "sci-fi",
                 "fantasy",
                 "horror",
                 "thriller",
+                "drama",
                 "comedy",
                 "dramedy",
                 "other…",

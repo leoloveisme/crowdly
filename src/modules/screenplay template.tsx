@@ -207,6 +207,42 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
     }
   };
 
+  const handleUpdateScene = async (
+    sceneId: string,
+    partial: Partial<Pick<ScreenplayScene, "slugline" | "scene_index" | "location" | "time_of_day" | "is_interior" | "synopsis">>,
+  ) => {
+    if (!user) return;
+    try {
+      const res = await fetch(`${API_BASE}/screenplay-scenes/${sceneId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...partial,
+          userId: user.id,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast({
+          title: "Error",
+          description: body.error || "Failed to update scene",
+          variant: "destructive",
+        });
+        return;
+      }
+      setScenes((prev) =>
+        prev.map((s) => (s.scene_id === sceneId ? { ...s, ...body } : s)),
+      );
+    } catch (err) {
+      console.error("Failed to update scene", err);
+      toast({
+        title: "Error",
+        description: "Failed to update scene",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleUpdateBlock = async (
     blockId: string,
     partial: Partial<Pick<ScreenplayBlock, "block_type" | "text">>,
@@ -445,6 +481,72 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
     }
   };
 
+  const handleAddBlockToScene = async (scene: ScreenplayScene) => {
+    if (!screenplayId || !user || !scene.scene_id) return;
+
+    const sceneBlocks = blocks.filter((b) => b.scene_id === scene.scene_id);
+    const nextIndex =
+      sceneBlocks.reduce((max, b) => Math.max(max, b.block_index ?? 0), 0) + 1;
+
+    try {
+      const res = await fetch(`${API_BASE}/screenplays/${screenplayId}/blocks`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sceneId: scene.scene_id,
+          blockIndex: nextIndex,
+          blockType: "action",
+          text: " ",
+          userId: user.id,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast({
+          title: "Error",
+          description: body.error || "Failed to add element",
+          variant: "destructive",
+        });
+        return;
+      }
+      setBlocks((prev) => [...prev, body as ScreenplayBlock]);
+    } catch (err) {
+      console.error("Failed to add block", err);
+      toast({
+        title: "Error",
+        description: "Failed to add element",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteBlock = async (block: ScreenplayBlock) => {
+    if (!block.block_id) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/screenplay-blocks/${block.block_id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok && res.status !== 204) {
+        const body = await res.json().catch(() => ({}));
+        toast({
+          title: "Error",
+          description: body.error || "Failed to delete element",
+          variant: "destructive",
+        });
+        return;
+      }
+      setBlocks((prev) => prev.filter((b) => b.block_id !== block.block_id));
+    } catch (err) {
+      console.error("Failed to delete block", err);
+      toast({
+        title: "Error",
+        description: "Failed to delete element",
+        variant: "destructive",
+      });
+    }
+  };
+
   const sortedScenes = [...scenes].sort(
     (a, b) => (a.scene_index ?? 0) - (b.scene_index ?? 0),
   );
@@ -548,7 +650,28 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
                         <div className="uppercase tracking-wide text-xs text-gray-500">
                           Scene {scene.scene_index}
                         </div>
-                        <div className="font-bold">{scene.slugline}</div>
+                        <input
+                          type="text"
+                          className="font-bold bg-transparent border-b border-dashed border-gray-300 px-0.5 py-0.5 focus:outline-none text-sm"
+                          value={scene.slugline}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setScenes((prev) =>
+                              prev.map((s) =>
+                                s.scene_id === scene.scene_id
+                                  ? { ...s, slugline: value }
+                                  : s,
+                              ),
+                            );
+                          }}
+                          onBlur={(e) => {
+                            const value = e.target.value;
+                            if (value === scene.slugline) return;
+                            handleUpdateScene(scene.scene_id, { slugline: value });
+                          }}
+                          disabled={!canEdit}
+                          placeholder="INT. LOCATION - TIME"
+                        />
                       </div>
                       <div className="flex gap-2 text-[11px]">
                         <button
@@ -605,6 +728,14 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
                                   </option>
                                 ))}
                               </select>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteBlock(block)}
+                                disabled={!canEdit}
+                                className="ml-auto px-2 py-0.5 border border-dashed border-red-200 text-red-600 rounded-full hover:bg-red-50 disabled:opacity-50"
+                              >
+                                Delete
+                              </button>
                             </div>
                             <textarea
                               className="w-full resize-none border-none bg-transparent focus:outline-none leading-relaxed"
@@ -628,6 +759,14 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
                           </div>
                         );
                       })}
+                      <button
+                        type="button"
+                        onClick={() => handleAddBlockToScene(scene)}
+                        disabled={!canEdit}
+                        className="mt-2 inline-flex items-center px-3 py-1 text-[11px] rounded-full border border-dashed border-blue-300 text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+                      >
+                        Add element
+                      </button>
                     </div>
                   </section>
                 );
