@@ -88,6 +88,14 @@
         <translation>Русский</translation>
     </message>
     <message>
+        <source>Korean</source>
+        <translation>Корейский</translation>
+    </message>
+    <message>
+        <source>Portuguese</source>
+        <translation>Португальский</translation>
+    </message>
+    <message>
         <source>Arabic</source>
         <translation>Арабский</translation>
     </message>
@@ -101,7 +109,7 @@
     </message>
     <message>
         <source>Japanese</source>
-        <translation>японский</translation>
+        <translation>Японский</translation>
     </message>
     <message>
         <source>Quit</source>

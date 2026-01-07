@@ -285,6 +285,8 @@ class MainWindow(QMainWindow):
         languages = [
             (self.tr("English"), "en"),
             (self.tr("Russian"), "ru"),
+            (self.tr("Portuguese"), "pt"),
+            (self.tr("Korean"), "kr"),
             (self.tr("Arabic"), "ar"),
             (self.tr("Chinese (Simplified)"), "zh-Hans"),
             (self.tr("Chinese (Traditional)"), "zh-Hant"),
