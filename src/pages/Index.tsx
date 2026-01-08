@@ -337,7 +337,7 @@ const Index = () => {
               <CardHeader className="bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/30 rounded-t-xl px-4 py-2">
                 <CardTitle className="flex items-center gap-1 text-lg font-semibold">
                   <Clock className="text-cyan-600" size={18} />
-                  <EditableText id="newestStories">Newest</EditableText>
+                  <EditableText id="newestStories">Newest Stories</EditableText>
                 </CardTitle>
                 <CardDescription className="text-xs mt-0.5">Recently added stories</CardDescription>
               </CardHeader>
@@ -365,14 +365,14 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            {/* Most Popular Stories */}
+            {/* Newest Screnplays */}
             <Card className="mb-5 overflow-hidden hover-scale shadow animate-fade-in">
               <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/18 rounded-t-xl px-4 py-2">
                 <CardTitle className="flex items-center gap-1 text-lg font-semibold">
                   <Flame className="text-amber-600" size={18} />
-                  <EditableText id="mostPopularStories">Most popular</EditableText>
+                  <EditableText id="mostPopularStories">Newest Screnplays</EditableText>
                 </CardTitle>
-                <CardDescription className="text-xs mt-0.5">Trending stories loved by our community</CardDescription>
+                <CardDescription className="text-xs mt-0.5">Newest Screnplays to be discovered and loved by the community</CardDescription>
               </CardHeader>
               <CardContent className="p-4 bg-white dark:bg-gray-800 rounded-b-xl">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -384,12 +384,72 @@ const Index = () => {
               </CardContent>
             </Card>
 
+            {/* Most Popular Stories */}
+            <Card className="mb-5 overflow-hidden hover-scale shadow animate-fade-in">
+              <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/18 rounded-t-xl px-4 py-2">
+                <CardTitle className="flex items-center gap-1 text-lg font-semibold">
+                  <Flame className="text-amber-600" size={18} />
+                  <EditableText id="mostPopularStories">Most Popular Stories</EditableText>
+                </CardTitle>
+                <CardDescription className="text-xs mt-0.5">Trending stories loved by the community</CardDescription>
+              </CardHeader>
+              <CardContent className="p-4 bg-white dark:bg-gray-800 rounded-b-xl">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* Placeholder for popular stories */}
+                  <div className="h-28 rounded bg-yellow-100 dark:bg-orange-900/20 flex items-center justify-center text-yellow-700 dark:text-yellow-300 text-base font-medium">Story preview</div>
+                  <div className="h-28 rounded bg-yellow-100 dark:bg-orange-900/20 flex items-center justify-center text-yellow-700 dark:text-yellow-300 text-base font-medium">Story preview</div>
+                  <div className="h-28 rounded bg-yellow-100 dark:bg-orange-900/20 flex items-center justify-center text-yellow-700 dark:text-yellow-300 text-base font-medium">Story preview</div>
+                </div>
+              </CardContent>
+            </Card>
+
+
+            {/* Most Popular Screenplays */}
+            <Card className="mb-5 overflow-hidden hover-scale shadow animate-fade-in">
+              <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/18 rounded-t-xl px-4 py-2">
+                <CardTitle className="flex items-center gap-1 text-lg font-semibold">
+                  <Flame className="text-amber-600" size={18} />
+                  <EditableText id="mostPopularStories">Most Popular Screenplays</EditableText>
+                </CardTitle>
+                <CardDescription className="text-xs mt-0.5">Trending screenplays loved by the community</CardDescription>
+              </CardHeader>
+              <CardContent className="p-4 bg-white dark:bg-gray-800 rounded-b-xl">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* Placeholder for popular stories */}
+                  <div className="h-28 rounded bg-yellow-100 dark:bg-orange-900/20 flex items-center justify-center text-yellow-700 dark:text-yellow-300 text-base font-medium">Story preview</div>
+                  <div className="h-28 rounded bg-yellow-100 dark:bg-orange-900/20 flex items-center justify-center text-yellow-700 dark:text-yellow-300 text-base font-medium">Story preview</div>
+                  <div className="h-28 rounded bg-yellow-100 dark:bg-orange-900/20 flex items-center justify-center text-yellow-700 dark:text-yellow-300 text-base font-medium">Story preview</div>
+                </div>
+              </CardContent>
+            </Card>
+
+
+            {/* Most Active Screenplays */}
+            <Card className="mb-5 overflow-hidden hover-scale shadow animate-fade-in">
+              <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/18 rounded-t-xl px-4 py-2">
+                <CardTitle className="flex items-center gap-1 text-lg font-semibold">
+                  <Flame className="text-amber-600" size={18} />
+                  <EditableText id="mostPopularStories">Most Active Screenplays</EditableText>
+                </CardTitle>
+                <CardDescription className="text-xs mt-0.5">Most active screenplays loved by the community</CardDescription>
+              </CardHeader>
+              <CardContent className="p-4 bg-white dark:bg-gray-800 rounded-b-xl">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* Placeholder for popular stories */}
+                  <div className="h-28 rounded bg-yellow-100 dark:bg-orange-900/20 flex items-center justify-center text-yellow-700 dark:text-yellow-300 text-base font-medium">Story preview</div>
+                  <div className="h-28 rounded bg-yellow-100 dark:bg-orange-900/20 flex items-center justify-center text-yellow-700 dark:text-yellow-300 text-base font-medium">Story preview</div>
+                  <div className="h-28 rounded bg-yellow-100 dark:bg-orange-900/20 flex items-center justify-center text-yellow-700 dark:text-yellow-300 text-base font-medium">Story preview</div>
+                </div>
+              </CardContent>
+            </Card>
+
+
             {/* Most Active Stories */}
             <Card className="mb-8 overflow-hidden hover-scale shadow animate-fade-in">
               <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-t-xl px-4 py-2">
                 <CardTitle className="flex items-center gap-1 text-lg font-semibold">
                   <Zap className="text-green-600" size={18} />
-                  <EditableText id="mostActiveStories">Most active</EditableText>
+                  <EditableText id="mostActiveStories">Most Active Stories</EditableText>
                 </CardTitle>
                 <CardDescription className="text-xs mt-0.5">Stories with ongoing activity and updates</CardDescription>
               </CardHeader>
