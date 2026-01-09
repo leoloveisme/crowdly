@@ -220,6 +220,34 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
     loadFavorite();
   }, [user?.id, screenplayId]);
 
+  // Automatically mark this screenplay as "living" when opened by a logged-in user.
+  useEffect(() => {
+    const markLiving = async () => {
+      if (!user?.id || !screenplayId) return;
+      try {
+        const res = await fetch(`${API_BASE}/users/${user.id}/story-status`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contentType: "screenplay",
+            screenplayId,
+            isLiving: true,
+          }),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          console.error('[ScreenplayTemplate] Failed to auto-mark screenplay as living', {
+            status: res.status,
+            body,
+          });
+        }
+      } catch (err) {
+        console.error('[ScreenplayTemplate] Failed to auto-mark screenplay as living', err);
+      }
+    };
+    markLiving();
+  }, [user?.id, screenplayId]);
+
   // (Reactions for screenplay title are handled by InteractionsWidget)
 
   const toggleFavorite = async () => {
@@ -264,6 +292,53 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
       });
     } finally {
       setFavoriteLoading(false);
+    }
+  };
+
+  const markAsLived = async () => {
+    if (!user || !screenplayId) {
+      toast({
+        title: "Login required",
+        description: "You must be logged in to mark this screenplay as finished.",
+        variant: "destructive",
+      });
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/users/${user.id}/story-status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contentType: "screenplay",
+          screenplayId,
+          isLiving: false,
+          isLived: true,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error('[ScreenplayTemplate] Failed to mark screenplay as lived', {
+          status: res.status,
+          body,
+        });
+        toast({
+          title: "Error",
+          description: body.error || "Failed to mark screenplay as lived.",
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({
+        title: "Marked as finished",
+        description: "This screenplay will now appear in your 'Lived / Experienced' list.",
+      });
+    } catch (err) {
+      console.error('[ScreenplayTemplate] Failed to mark screenplay as lived', err);
+      toast({
+        title: "Error",
+        description: "Failed to mark screenplay as lived.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -749,6 +824,15 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
                   }
                 />
               </button>
+              {user && (
+                <button
+                  type="button"
+                  onClick={markAsLived}
+                  className="inline-flex items-center px-2 py-1 rounded-full border border-dashed border-teal-300 text-[11px] text-teal-700 hover:bg-teal-50 ml-2"
+                >
+                  Mark as finished
+                </button>
+              )}
             </div>
           )}
         </div>

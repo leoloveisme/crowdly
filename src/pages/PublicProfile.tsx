@@ -3,6 +3,9 @@ import { useParams, Link } from "react-router-dom";
 import CrowdlyHeader from "@/components/CrowdlyHeader";
 import CrowdlyFooter from "@/components/CrowdlyFooter";
 import EditableText from "@/components/EditableText";
+import FavoriteStories from "@/modules/favorite stories";
+import LivingExperiencingStories from "@/modules/living-experiencing stories";
+import LivedExperiencedStories from "@/modules/lived-experienced stories";
 
 const API_BASE = import.meta.env.PROD
   ? (import.meta.env.VITE_API_BASE_URL ?? "")
@@ -14,6 +17,11 @@ interface PublicProfileData {
   first_name?: string | null;
   last_name?: string | null;
   bio?: string | null;
+  show_public_stories?: boolean;
+  show_public_screenplays?: boolean;
+  show_public_favorites?: boolean;
+  show_public_living?: boolean;
+  show_public_lived?: boolean;
 }
 
 interface PublicStory {
@@ -201,6 +209,36 @@ const PublicProfile: React.FC = () => {
                   ))}
                 </ul>
               )}
+            </section>
+          )}
+
+          {/* Favorites (experience model) */}
+          {profile.show_public_favorites !== false && (
+            <section className="mb-10">
+              <h2 className="text-xl font-bold mb-3 flex items-center gap-2">
+                <span>Favorites</span>
+              </h2>
+              <FavoriteStories userId={profile.id} />
+            </section>
+          )}
+
+          {/* Living / experiencing list */}
+          {profile.show_public_living !== false && (
+            <section className="mb-10">
+              <h2 className="text-xl font-bold mb-3 flex items-center gap-2">
+                <span>Living / Experiencing the story(-ies)</span>
+              </h2>
+              <LivingExperiencingStories userId={profile.id} />
+            </section>
+          )}
+
+          {/* Lived / experienced list */}
+          {profile.show_public_lived !== false && (
+            <section className="mb-10">
+              <h2 className="text-xl font-bold mb-3 flex items-center gap-2">
+                <span>Lived / Experienced those story(-ies)</span>
+              </h2>
+              <LivedExperiencedStories userId={profile.id} />
             </section>
           )}
         </div>

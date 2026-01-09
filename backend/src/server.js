@@ -138,9 +138,71 @@ async function ensureProfilesVisibilityColumns() {
     await pool.query(
       'ALTER TABLE profiles ADD COLUMN IF NOT EXISTS show_public_screenplays boolean DEFAULT true',
     );
+    await pool.query(
+      'ALTER TABLE profiles ADD COLUMN IF NOT EXISTS show_public_favorites boolean DEFAULT true',
+    );
+    await pool.query(
+      'ALTER TABLE profiles ADD COLUMN IF NOT EXISTS show_public_living boolean DEFAULT true',
+    );
+    await pool.query(
+      'ALTER TABLE profiles ADD COLUMN IF NOT EXISTS show_public_lived boolean DEFAULT true',
+    );
     console.log('[init] ensured profiles visibility columns exist');
   } catch (err) {
     console.error('[init] failed to ensure profiles visibility columns:', err);
+  }
+}
+
+// Dedicated locales table to keep a single authoritative list of supported
+// interface languages across the web platform and the desktop editor.
+async function ensureLocalesTable() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS locales (
+        code         text PRIMARY KEY,
+        english_name text NOT NULL,
+        native_name  text,
+        direction    text NOT NULL DEFAULT 'ltr',
+        enabled      boolean NOT NULL DEFAULT true,
+        created_at   timestamptz NOT NULL DEFAULT now(),
+        updated_at   timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+
+    const seedLocales = [
+      // Core languages used by both platform and desktop app
+      ['en', 'English', 'English', 'ltr'],
+      ['ru', 'Russian', 'Русский', 'ltr'],
+      ['pt', 'Portuguese', 'Português', 'ltr'],
+      ['kr', 'Korean', '한국어', 'ltr'],
+      ['ar', 'Arabic', 'العربية', 'rtl'],
+      ['zh-Hans', 'Chinese (Simplified)', '简体中文', 'ltr'],
+      ['zh-Hant', 'Chinese (Traditional)', '繁體中文', 'ltr'],
+      ['ja', 'Japanese', '日本語', 'ltr'],
+      // Additional languages referenced in branching / UI components
+      ['fr', 'French', 'Français', 'ltr'],
+      ['es', 'Spanish', 'Español', 'ltr'],
+      ['de', 'German', 'Deutsch', 'ltr'],
+      ['zh', 'Chinese (unspecified script)', '中文', 'ltr'],
+      ['hi', 'Hindi', 'हिन्दी', 'ltr'],
+    ];
+
+    for (const [code, englishName, nativeName, direction] of seedLocales) {
+      await pool.query(
+        `INSERT INTO locales (code, english_name, native_name, direction)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (code) DO UPDATE
+         SET english_name = EXCLUDED.english_name,
+             native_name  = EXCLUDED.native_name,
+             direction    = EXCLUDED.direction,
+             updated_at   = now()`,
+        [code, englishName, nativeName, direction],
+      );
+    }
+
+    console.log('[init] ensured locales table and seed data exist');
+  } catch (err) {
+    console.error('[init] failed to ensure locales table:', err);
   }
 }
 
@@ -411,15 +473,24 @@ async function ensureUserStoryStatusTable() {
       )
     `);
 
-    // Constrain content_type to the two supported kinds.
-    await pool.query(
-      "ALTER TABLE user_story_status ADD CONSTRAINT user_story_status_type_check CHECK (content_type IN ('story','screenplay'))",
-    ).catch((err) => {
-      if (err && err.code !== '23505' && err.code !== '42710') {
-        // 23505 = duplicate_object in some PG versions, 42710 = duplicate_object
-        console.error('[init] failed to add user_story_status_type_check:', err);
-      }
-    });
+    // Constrain content_type to the two supported kinds. Use a DO block to
+    // avoid noisy "constraint already exists" errors in Postgres logs.
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1
+          FROM information_schema.table_constraints
+          WHERE constraint_name = 'user_story_status_type_check'
+            AND table_name = 'user_story_status'
+        ) THEN
+          ALTER TABLE user_story_status
+            ADD CONSTRAINT user_story_status_type_check
+            CHECK (content_type IN ('story','screenplay'));
+        END IF;
+      END
+      $$;
+    `);
 
     // Ensure we don't create duplicate rows per user/content.
     await pool.query(
@@ -686,6 +757,9 @@ ensureProfilesRealNicknameColumn().catch((err) => {
 ensureProfilesVisibilityColumns().catch((err) => {
   console.error('[init] ensureProfilesVisibilityColumns unhandled error:', err);
 });
+ensureLocalesTable().catch((err) => {
+  console.error('[init] ensureLocalesTable unhandled error:', err);
+});
 ensureCrdtDocumentsTables().catch((err) => {
   console.error('[init] ensureCrdtDocumentsTables unhandled error:', err);
 });
@@ -751,6 +825,22 @@ app.post('/auth/register', async (req, res) => {
   } catch (err) {
     console.error('[auth/register] failed:', err);
     res.status(400).json({ error: err.message || 'Failed to register account' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Locales / localisation endpoints
+// ---------------------------------------------------------------------------
+
+app.get('/locales', async (_req, res) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT code, english_name, native_name, direction, enabled FROM locales WHERE enabled = true ORDER BY english_name ASC',
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('[GET /locales] failed:', err);
+    res.status(500).json({ error: 'Failed to load locales' });
   }
 });
 
@@ -905,9 +995,14 @@ async function handleProfileUpdate(req, res) {
     'notify_phone',
     'notify_app',
     'notify_email',
-'interests',
+    'interests',
     'username',
     'real_nickname',
+    'show_public_stories',
+    'show_public_screenplays',
+    'show_public_favorites',
+    'show_public_living',
+    'show_public_lived',
   ];
 
   const fields = [];
@@ -2361,10 +2456,11 @@ async function fetchUserExperienceItems(userId, flagColumn) {
     screenplayRowsPromise,
   ]);
 
-  const items = [];
+  // Build a flat list of items from stories + screenplays first.
+  const rawItems = [];
 
   for (const row of storyRowsResult.rows) {
-    items.push({
+    rawItems.push({
       id: row.id,
       content_type: 'story',
       content_id: row.story_title_id,
@@ -2378,7 +2474,7 @@ async function fetchUserExperienceItems(userId, flagColumn) {
   }
 
   for (const row of screenplayRowsResult.rows) {
-    items.push({
+    rawItems.push({
       id: row.id,
       content_type: 'screenplay',
       content_id: row.screenplay_id,
@@ -2391,6 +2487,18 @@ async function fetchUserExperienceItems(userId, flagColumn) {
       kind: 'screenplay',
     });
   }
+
+  // Deduplicate by (content_type, content_id) so each story/screenplay
+  // appears at most once per user and flag (favorites / living / lived).
+  const uniqueMap = new Map();
+  for (const item of rawItems) {
+    const key = `${item.content_type}:${item.content_id}`;
+    if (!uniqueMap.has(key)) {
+      uniqueMap.set(key, item);
+    }
+  }
+
+  const items = Array.from(uniqueMap.values());
 
   // Sort newest first by created_at
   items.sort(
