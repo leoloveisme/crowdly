@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import CrowdlyHeader from "@/components/CrowdlyHeader";
 import CrowdlyFooter from "@/components/CrowdlyFooter";
@@ -15,8 +15,17 @@ import {
 } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Eye, EyeOff, Info, X } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+
+const API_BASE = import.meta.env.PROD
+  ? (import.meta.env.VITE_API_BASE_URL ?? "")
+  : "";
 
 const AccountAdministration = () => {
+  const { user: authUser, signOut } = useAuth();
+  const { toast } = useToast();
+
   // State for showing password fields
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -30,15 +39,200 @@ const AccountAdministration = () => {
   
   // State for final delete confirmation with password
   const [isFinalDeleteOpen, setIsFinalDeleteOpen] = useState(false);
-  
-  // Mock user data
-  const userData = {
-    name: "John",
-    phoneNumber: "+xxx xxxx xxxx",
-    email: "x@x.x",
-    username: "xxx",
-    accountNumber: "xxx"
+
+  // Account/profile data
+  const [profile, setProfile] = useState<any | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Password form state
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [deletePassword, setDeletePassword] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (!authUser?.id) {
+        setIsLoading(false);
+        return;
+      }
+      try {
+        setIsLoading(true);
+        const res = await fetch(`${API_BASE}/profiles/${authUser.id}`);
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          console.error('[AccountAdministration] Failed to load profile', { status: res.status, body });
+          toast({
+            title: "Failed to load account data",
+            description: body.error || "Could not load your account information.",
+            variant: "destructive",
+          });
+          return;
+        }
+        setProfile(body);
+      } catch (err) {
+        console.error('[AccountAdministration] Error loading profile', err);
+        toast({
+          title: "Failed to load account data",
+          description: "Network error while loading account information.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, [authUser, toast]);
+
+  const handleChangePassword = async () => {
+    if (!authUser) {
+      toast({
+        title: "Not signed in",
+        description: "Please sign in again to change your password.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!currentPassword || !newPassword) {
+      toast({
+        title: "Missing fields",
+        description: "Please fill in both current and new password.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsChangingPassword(true);
+      const res = await fetch(`${API_BASE}/auth/change-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: authUser.id,
+          currentPassword,
+          newPassword,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast({
+          title: "Failed to change password",
+          description: body.error || "Could not update your password.",
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({
+        title: "Password changed",
+        description: "Your password has been updated.",
+      });
+      setIsPasswordDialogOpen(false);
+      setCurrentPassword("");
+      setNewPassword("");
+    } catch (err) {
+      console.error('[AccountAdministration] change password failed', err);
+      toast({
+        title: "Failed to change password",
+        description: "Network error while updating your password.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
+
+  const handleDeleteAccount = async () => {
+    if (!authUser) {
+      toast({
+        title: "Not signed in",
+        description: "Please sign in again before deleting your account.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!deletePassword) {
+      toast({
+        title: "Missing password",
+        description: "Please enter your current password to confirm deletion.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsDeletingAccount(true);
+      const res = await fetch(`${API_BASE}/auth/delete-account`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: authUser.id, password: deletePassword }),
+      });
+      const body = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        const title = res.status === 401 ? "Incorrect password" : "Failed to delete account";
+        toast({
+          title,
+          description: body.error || "Could not delete your account.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Account deleted",
+        description: "Your account has been permanently deleted.",
+      });
+      setIsFinalDeleteOpen(false);
+      setDeletePassword("");
+      await signOut();
+    } catch (err) {
+      console.error('[AccountAdministration] delete account failed', err);
+      toast({
+        title: "Failed to delete account",
+        description: "Network error while deleting your account.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeletingAccount(false);
+    }
+  };
+
+  const phoneNumber = profile?.telephone || "Not set";
+  const email = authUser?.email || "Not set";
+  const username = profile?.username || "Not set";
+  const accountNumber = authUser ? authUser.id.slice(0, 8) : "—";
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <CrowdlyHeader />
+        <main className="flex-grow flex items-center justify-center">
+          <p className="text-gray-500">Loading account information...</p>
+        </main>
+        <CrowdlyFooter />
+      </div>
+    );
+  }
+
+  if (!authUser) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <CrowdlyHeader />
+        <main className="flex-grow container mx-auto px-4 py-8">
+          <h1 className="text-3xl font-bold text-center mb-4">Account administration</h1>
+          <p className="text-center text-gray-600">
+            You need to be signed in to manage your account. {" "}
+            <Link to="/login" className="text-blue-500 underline">Log in</Link>
+          </p>
+        </main>
+        <CrowdlyFooter />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -129,7 +323,7 @@ const AccountAdministration = () => {
               <div className="w-8 text-gray-400">▲</div>
               <div className="w-1/3">telephone number</div>
               <div className="w-1/3 flex items-center">
-                <span>{userData.phoneNumber}</span>
+                <span>{phoneNumber}</span>
                 <Info className="ml-2 h-4 w-4 text-gray-400" />
               </div>
               <div className="flex space-x-2">
@@ -152,7 +346,7 @@ const AccountAdministration = () => {
               <div className="w-8 text-gray-400">▲</div>
               <div className="w-1/3">e-mail</div>
               <div className="w-1/3 flex items-center">
-                <span>{userData.email}</span>
+                <span>{email}</span>
                 <Info className="ml-2 h-4 w-4 text-gray-400" />
               </div>
               <div className="flex space-x-2">
@@ -175,7 +369,7 @@ const AccountAdministration = () => {
               <div className="w-8 text-gray-400">▲</div>
               <div className="w-1/3">user name</div>
               <div className="w-1/3 flex items-center">
-                <span>{userData.username}</span>
+                <span>{username}</span>
                 <Info className="ml-2 h-4 w-4 text-gray-400" />
               </div>
               <div>
@@ -197,10 +391,10 @@ const AccountAdministration = () => {
             </div>
             
             <div id="account" className="flex items-center">
-              <div className="w-8 text-gray-400"></div>
+              <div className="w8 text-gray-400"></div>
               <div className="w-1/3">account nr</div>
               <div className="w-1/3 flex items-center">
-                <span>{userData.accountNumber}</span>
+                <span>{accountNumber}</span>
                 <Info className="ml-2 h-4 w-4 text-gray-400" />
               </div>
             </div>
@@ -229,6 +423,8 @@ const AccountAdministration = () => {
                         id="current-password" 
                         type={showCurrentPassword ? "text" : "password"} 
                         className="pr-10" 
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
                       />
                       <button 
                         type="button" 
@@ -251,6 +447,8 @@ const AccountAdministration = () => {
                         id="new-password" 
                         type={showNewPassword ? "text" : "password"} 
                         className="pr-10" 
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
                       />
                       <button 
                         type="button" 
@@ -266,7 +464,13 @@ const AccountAdministration = () => {
                     </div>
                   </div>
                   
-                  <Button className="bg-indigo-600 hover:bg-indigo-700 text-white">Change</Button>
+                  <Button 
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                    onClick={handleChangePassword}
+                    disabled={isChangingPassword}
+                  >
+                    {isChangingPassword ? "Changing..." : "Change"}
+                  </Button>
                 </div>
               </DialogContent>
             </Dialog>
@@ -328,6 +532,8 @@ const AccountAdministration = () => {
                         id="delete-password" 
                         type={showDeletePassword ? "text" : "password"} 
                         className="pr-10" 
+                        value={deletePassword}
+                        onChange={(e) => setDeletePassword(e.target.value)}
                       />
                       <button 
                         type="button" 
@@ -343,7 +549,13 @@ const AccountAdministration = () => {
                     </div>
                   </div>
                   
-                  <Button className="bg-indigo-600 hover:bg-indigo-700 text-white">Delete forever</Button>
+                  <Button 
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                    onClick={handleDeleteAccount}
+                    disabled={isDeletingAccount}
+                  >
+                    {isDeletingAccount ? "Deleting..." : "Delete forever"}
+                  </Button>
                 </div>
               </DialogContent>
             </Dialog>

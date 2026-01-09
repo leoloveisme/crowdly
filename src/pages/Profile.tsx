@@ -996,6 +996,52 @@ const Profile = () => {
             className="mb-8"
           />
         </div>
+
+        {/* Interests/Hobbies Section */}
+        <div className="mb-8">
+          <div className="flex items-center mb-2">
+            <h2 className="text-xl font-bold mr-2">
+              <EditableText id="interests-heading">Interests/Hobbies</EditableText>
+            </h2>
+            <Info className="h-5 w-5 text-gray-400" />            
+          </div>
+          
+          {!previewMode && (
+            <div className="mb-3">
+              <div className="flex gap-2">
+                <Input 
+                  id="interests-input"
+                  value={newInterest} 
+                  onChange={(e) => setNewInterest(e.target.value)} 
+                  placeholder="Add interests..." 
+                  className="flex-grow" 
+                />
+                <Button onClick={handleAddInterest} size="sm">
+                  <EditableText id="add-interest">Add</EditableText>
+                </Button>
+              </div>
+            </div>
+          )}
+          
+          <div className="flex flex-wrap gap-2 mb-4">
+            {profile.interests.map((interest, index) => (
+              <div key={index} className="bg-gray-100 rounded-full px-3 py-1 flex items-center gap-1">
+                <span>{interest}</span>
+                {!previewMode && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-4 w-4 p-0"
+                    onClick={() => handleRemoveInterest(interest)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* Creative space(s) */}
         <div className="mb-8">
           <h2 className="text-xl font-bold mb-2">
@@ -1401,50 +1447,6 @@ const Profile = () => {
           </section>
         </div>
 
-        {/* Interests/Hobbies Section */}
-        <div className="mb-8">
-          <div className="flex items-center mb-2">
-            <h2 className="text-xl font-bold mr-2">
-              <EditableText id="interests-heading">Interests/Hobbies</EditableText>
-            </h2>
-            <Info className="h-5 w-5 text-gray-400" />            
-          </div>
-          
-          {!previewMode && (
-            <div className="mb-3">
-              <div className="flex gap-2">
-                <Input 
-                  id="interests-input"
-                  value={newInterest} 
-                  onChange={(e) => setNewInterest(e.target.value)} 
-                  placeholder="Add interests..." 
-                  className="flex-grow" 
-                />
-                <Button onClick={handleAddInterest} size="sm">
-                  <EditableText id="add-interest">Add</EditableText>
-                </Button>
-              </div>
-            </div>
-          )}
-          
-          <div className="flex flex-wrap gap-2 mb-4">
-            {profile.interests.map((interest, index) => (
-              <div key={index} className="bg-gray-100 rounded-full px-3 py-1 flex items-center gap-1">
-                <span>{interest}</span>
-                {!previewMode && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-4 w-4 p-0"
-                    onClick={() => handleRemoveInterest(interest)}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
  
         {/* Stats & Activity Section - Only shown when not in preview mode */}
         {!previewMode && (

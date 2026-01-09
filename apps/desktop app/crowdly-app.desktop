@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Crowdly desktop app
+Comment=Distraction-free WYSIWYG Markdown/HTML app for Crowdly entertainment platform
+Exec=/opt/crowdly/crowdly-app %F
+Terminal=false
+Type=Application
+Categories=Office;TextEditor;
+MimeType=text/markdown;text/x-markdown;
+StartupNotify=true

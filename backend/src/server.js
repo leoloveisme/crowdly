@@ -3,7 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { randomUUID } from 'crypto';
 import { pool } from './db.js';
-import { loginWithEmailPassword, registerWithEmailPassword } from './auth.js';
+import { loginWithEmailPassword, registerWithEmailPassword, changePassword, deleteAccountWithPassword } from './auth.js';
 
 dotenv.config();
 
@@ -840,6 +840,53 @@ app.post('/auth/login', async (req, res) => {
   }
 });
 
+// Change password for a logged-in user (local auth)
+app.post('/auth/change-password', async (req, res) => {
+  const { userId, currentPassword, newPassword } = req.body ?? {};
+
+  if (!userId || !currentPassword || !newPassword) {
+    return res
+      .status(400)
+      .json({ error: 'userId, current password, and new password are required' });
+  }
+
+  try {
+    await changePassword(userId, currentPassword, newPassword);
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error('[auth/change-password] failed:', err);
+    const message = err?.message || 'Failed to change password';
+    const status =
+      message === 'Current password is incorrect' || message === 'Invalid password'
+        ? 401
+        : 400;
+    return res.status(status).json({ error: message });
+  }
+});
+
+// Delete a local user account after confirming password
+app.post('/auth/delete-account', async (req, res) => {
+  const { userId, password } = req.body ?? {};
+
+  if (!userId || !password) {
+    return res.status(400).json({ error: 'userId and password are required' });
+  }
+
+  try {
+    await deleteAccountWithPassword(userId, password);
+    return res.status(204).send();
+  } catch (err) {
+    console.error('[auth/delete-account] failed:', err);
+    const code = err?.code;
+    if (code === 'INVALID_PASSWORD') {
+      return res.status(401).json({ error: 'Invalid password' });
+    }
+    const message = err?.message || 'Failed to delete account';
+    const status = message === 'User not found' ? 404 : 500;
+    return res.status(status).json({ error: message });
+  }
+});
+
 // Register a new local user account
 app.post('/auth/register', async (req, res) => {
   const { email, password } = req.body ?? {};
@@ -1373,6 +1420,82 @@ app.get('/screenplays/most-active', async (req, res) => {
   } catch (err) {
     console.error('[GET /screenplays/most-active] failed:', err);
     res.status(500).json({ error: 'Failed to fetch most active screenplays' });
+  }
+});
+
+// List most popular screenplays across the platform, ranked by likes and
+// how many times they were saved to favorites.
+app.get('/screenplays/most-popular', async (req, res) => {
+  const rawLimit = req.query.limit;
+  const parsed = rawLimit ? parseInt(String(rawLimit), 10) : 10;
+  const limit = Number.isFinite(parsed) && parsed > 0 && parsed <= 50 ? parsed : 10;
+
+  try {
+    const { rows } = await pool.query(
+      `WITH reaction_counts AS (
+         SELECT
+           COALESCE(r.screenplay_id, ss.screenplay_id) AS screenplay_id,
+           COUNT(*) FILTER (WHERE r.reaction_type = 'like') AS like_count
+         FROM reactions r
+         LEFT JOIN screenplay_scene ss ON ss.scene_id = r.screenplay_scene_id
+         GROUP BY COALESCE(r.screenplay_id, ss.screenplay_id)
+       ),
+       favorite_counts AS (
+         SELECT
+           us.screenplay_id,
+           COUNT(*) AS favorite_count
+         FROM user_story_status us
+         WHERE us.content_type = 'screenplay'
+           AND us.is_favorite = true
+         GROUP BY us.screenplay_id
+       ),
+       scores AS (
+         SELECT
+           st.screenplay_id,
+           st.title,
+           st.created_at,
+           COALESCE(rc.like_count, 0) AS like_count,
+           COALESCE(fc.favorite_count, 0) AS favorite_count,
+           (COALESCE(rc.like_count, 0) * 2 + COALESCE(fc.favorite_count, 0)) AS popularity_score
+         FROM screenplay_title st
+         LEFT JOIN reaction_counts rc ON rc.screenplay_id = st.screenplay_id
+         LEFT JOIN favorite_counts fc ON fc.screenplay_id = st.screenplay_id
+         WHERE st.visibility = 'public' AND st.published = true
+       ),
+       first_scene AS (
+         SELECT
+           ss.screenplay_id,
+           ss.slugline,
+           ss.created_at,
+           ROW_NUMBER() OVER (
+             PARTITION BY ss.screenplay_id
+             ORDER BY ss.scene_index ASC, ss.created_at ASC
+           ) AS rn
+         FROM screenplay_scene ss
+       )
+       SELECT
+         sc.screenplay_id,
+         sc.title,
+         sc.created_at,
+         sc.like_count,
+         sc.favorite_count,
+         sc.popularity_score,
+         fs.slugline
+       FROM scores sc
+       LEFT JOIN first_scene fs ON fs.screenplay_id = sc.screenplay_id AND fs.rn = 1
+       WHERE sc.popularity_score > 0
+       ORDER BY sc.popularity_score DESC,
+                sc.like_count DESC,
+                sc.favorite_count DESC,
+                sc.title ASC
+       LIMIT $1`,
+      [limit],
+    );
+
+    res.json(rows);
+  } catch (err) {
+    console.error('[GET /screenplays/most-popular] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch most popular screenplays' });
   }
 });
 
@@ -2244,6 +2367,83 @@ app.get('/stories/most-active', async (req, res) => {
   } catch (err) {
     console.error('[GET /stories/most-active] failed:', err);
     res.status(500).json({ error: 'Failed to fetch most active stories' });
+  }
+});
+
+// List most popular stories across the platform, ranked by likes and how
+// many times they were saved to favorites.
+app.get('/stories/most-popular', async (req, res) => {
+  const rawLimit = req.query.limit;
+  const parsed = rawLimit ? parseInt(String(rawLimit), 10) : 10;
+  const limit = Number.isFinite(parsed) && parsed > 0 && parsed <= 50 ? parsed : 10;
+
+  try {
+    const { rows } = await pool.query(
+      `WITH reaction_counts AS (
+         SELECT
+           COALESCE(r.story_title_id, s.story_title_id) AS story_title_id,
+           COUNT(*) FILTER (WHERE r.reaction_type = 'like') AS like_count
+         FROM reactions r
+         LEFT JOIN stories s ON s.chapter_id = r.chapter_id
+         GROUP BY COALESCE(r.story_title_id, s.story_title_id)
+       ),
+       favorite_counts AS (
+         SELECT
+           us.story_title_id,
+           COUNT(*) AS favorite_count
+         FROM user_story_status us
+         WHERE us.content_type = 'story'
+           AND us.is_favorite = true
+         GROUP BY us.story_title_id
+       ),
+       scores AS (
+         SELECT
+           st.story_title_id,
+           st.title,
+           COALESCE(rc.like_count, 0) AS like_count,
+           COALESCE(fc.favorite_count, 0) AS favorite_count,
+           (COALESCE(rc.like_count, 0) * 2 + COALESCE(fc.favorite_count, 0)) AS popularity_score
+         FROM story_title st
+         LEFT JOIN reaction_counts rc ON rc.story_title_id = st.story_title_id
+         LEFT JOIN favorite_counts fc ON fc.story_title_id = st.story_title_id
+         WHERE st.visibility = 'public' AND st.published = true
+       ),
+       latest_chapter AS (
+         SELECT
+           s.story_title_id,
+           s.chapter_id,
+           s.chapter_title,
+           s.created_at,
+           ROW_NUMBER() OVER (
+             PARTITION BY s.story_title_id
+             ORDER BY s.created_at DESC, s.chapter_index DESC
+           ) AS rn
+         FROM stories s
+       )
+       SELECT
+         sc.story_title_id,
+         sc.title AS story_title,
+         lc.chapter_id,
+         lc.chapter_title,
+         lc.created_at,
+         sc.like_count,
+         sc.favorite_count,
+         sc.popularity_score
+       FROM scores sc
+       JOIN latest_chapter lc ON lc.story_title_id = sc.story_title_id AND lc.rn = 1
+       WHERE sc.popularity_score > 0
+       ORDER BY sc.popularity_score DESC,
+                sc.like_count DESC,
+                sc.favorite_count DESC,
+                sc.title ASC
+       LIMIT $1`,
+      [limit],
+    );
+
+    res.json(rows);
+  } catch (err) {
+    console.error('[GET /stories/most-popular] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch most popular stories' });
   }
 });
 

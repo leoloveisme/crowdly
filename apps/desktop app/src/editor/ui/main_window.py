@@ -3149,6 +3149,17 @@ class MainWindow(QMainWindow):
             return
 
         external_path = Path(path)
+        self._load_document_from_path(external_path)
+
+    def _load_document_from_path(self, external_path: Path) -> None:
+        """Load a document from *external_path* into the current tab.
+
+        This centralises the logic for opening documents so that it is shared
+        between the file-open dialog, command-line file arguments and any
+        future entrypoints. All existing behaviour (including project-space
+        mapping, story metadata hydration and status-bar updates) is preserved.
+        """
+
         doc = Document.load(external_path)
 
         # If a project space is configured and the chosen file is *outside*
@@ -3221,6 +3232,55 @@ class MainWindow(QMainWindow):
         self.preview.set_markdown(doc.content)
         self._update_document_stats_label()
         self._update_story_link_label()
+
+    def _open_paths_from_cli(self, paths: list[str]) -> None:
+        """Open one or more filesystem *paths* passed on the command line.
+
+        The first valid path is loaded into the existing initial tab. Any
+        additional valid paths are opened in new tabs so that multiple
+        documents can be viewed side by side. All existing project-space
+        behaviour applies because this delegates to :meth:`_load_document_from_path`.
+        """
+
+        if not paths:
+            return
+
+        valid_paths: list[Path] = []
+        for raw in paths:
+            try:
+                candidate = Path(raw).expanduser()
+            except Exception:
+                continue
+            if not candidate.exists() or not candidate.is_file():
+                continue
+            valid_paths.append(candidate)
+
+        if not valid_paths:
+            return
+
+        # Open the first file in the current tab.
+        self._load_document_from_path(valid_paths[0])
+
+        # Any remaining files are opened in their own tabs.
+        for extra in valid_paths[1:]:
+            try:
+                # Create a new blank tab and make it active.
+                self._new_tab()
+                # Ensure we are operating on the newly-selected tab.
+                self._load_document_from_path(extra)
+
+                # Optionally, rename the tab to match the filename for better
+                # discoverability. This does not affect existing flows because
+                # regular "Open" still uses the current tab.
+                index = self._current_tab_index
+                try:
+                    name = extra.name
+                    self._tab_widget.setTabText(index, name)
+                except Exception:
+                    pass
+            except Exception:
+                # Never let a CLI argument crash the whole application.
+                continue
 
     def _choose_project_space(self) -> None:  # pragma: no cover - UI wiring
         """Open a dialog to create or choose the project space directory."""

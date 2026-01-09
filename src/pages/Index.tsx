@@ -56,6 +56,27 @@ interface MostActiveScreenplay {
   slugline?: string | null;
 }
 
+interface MostPopularStory {
+  chapter_id: string;
+  chapter_title: string;
+  created_at: string;
+  story_title: string;
+  story_title_id: string;
+  like_count: number;
+  favorite_count: number;
+  popularity_score: number;
+}
+
+interface MostPopularScreenplay {
+  screenplay_id: string;
+  title: string;
+  created_at: string;
+  slugline?: string | null;
+  like_count: number;
+  favorite_count: number;
+  popularity_score: number;
+}
+
 const BranchList = React.lazy(() => import("@/components/BranchList"));
 
 const Index = () => {
@@ -91,6 +112,14 @@ const Index = () => {
   // State for most active screenplays
   const [mostActiveScreenplays, setMostActiveScreenplays] = useState<MostActiveScreenplay[]>([]);
   const [loadingMostActiveScreenplays, setLoadingMostActiveScreenplays] = useState(true);
+
+  // State for most popular stories
+  const [mostPopularStories, setMostPopularStories] = useState<MostPopularStory[]>([]);
+  const [loadingMostPopularStories, setLoadingMostPopularStories] = useState(true);
+
+  // State for most popular screenplays
+  const [mostPopularScreenplays, setMostPopularScreenplays] = useState<MostPopularScreenplay[]>([]);
+  const [loadingMostPopularScreenplays, setLoadingMostPopularScreenplays] = useState(true);
 
   useEffect(() => {
     const fetchNewestStories = async () => {
@@ -222,6 +251,77 @@ const Index = () => {
     };
 
     fetchMostActiveScreenplays();
+  }, []);
+
+  useEffect(() => {
+    const fetchMostPopularStories = async () => {
+      setLoadingMostPopularStories(true);
+      try {
+        const params = new URLSearchParams({ limit: "9" });
+        const res = await fetch(`${API_BASE}/stories/most-popular?${params.toString()}`);
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          console.error("Error fetching most popular stories", { status: res.status, body });
+          setMostPopularStories([]);
+        } else {
+          const data = await res.json();
+          setMostPopularStories(
+            (data as any[]).map((item) => ({
+              chapter_id: item.chapter_id,
+              chapter_title: item.chapter_title,
+              created_at: item.created_at,
+              story_title_id: item.story_title_id,
+              story_title: item.story_title || "Untitled Story",
+              like_count: Number(item.like_count ?? 0),
+              favorite_count: Number(item.favorite_count ?? 0),
+              popularity_score: Number(item.popularity_score ?? 0),
+            })),
+          );
+        }
+      } catch (err) {
+        console.error("Error fetching most popular stories", err);
+        setMostPopularStories([]);
+      } finally {
+        setLoadingMostPopularStories(false);
+      }
+    };
+
+    fetchMostPopularStories();
+  }, []);
+
+  useEffect(() => {
+    const fetchMostPopularScreenplays = async () => {
+      setLoadingMostPopularScreenplays(true);
+      try {
+        const params = new URLSearchParams({ limit: "9" });
+        const res = await fetch(`${API_BASE}/screenplays/most-popular?${params.toString()}`);
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          console.error("Error fetching most popular screenplays", { status: res.status, body });
+          setMostPopularScreenplays([]);
+        } else {
+          const data = await res.json();
+          setMostPopularScreenplays(
+            (data as any[]).map((item) => ({
+              screenplay_id: item.screenplay_id,
+              title: item.title || "Untitled Screenplay",
+              created_at: item.created_at,
+              slugline: item.slugline ?? null,
+              like_count: Number(item.like_count ?? 0),
+              favorite_count: Number(item.favorite_count ?? 0),
+              popularity_score: Number(item.popularity_score ?? 0),
+            })),
+          );
+        }
+      } catch (err) {
+        console.error("Error fetching most popular screenplays", err);
+        setMostPopularScreenplays([]);
+      } finally {
+        setLoadingMostPopularScreenplays(false);
+      }
+    };
+
+    fetchMostPopularScreenplays();
   }, []);
 
   return (
@@ -506,12 +606,40 @@ const Index = () => {
                 <CardDescription className="text-xs mt-0.5">Trending stories loved by the community</CardDescription>
               </CardHeader>
               <CardContent className="p-4 bg-white dark:bg-gray-800 rounded-b-xl">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* Placeholder for popular stories */}
-                  <div className="h-28 rounded bg-yellow-100 dark:bg-orange-900/20 flex items-center justify-center text-yellow-700 dark:text-yellow-300 text-base font-medium">Story preview</div>
-                  <div className="h-28 rounded bg-yellow-100 dark:bg-orange-900/20 flex items-center justify-center text-yellow-700 dark:text-yellow-300 text-base font-medium">Story preview</div>
-                  <div className="h-28 rounded bg-yellow-100 dark:bg-orange-900/20 flex items-center justify-center text-yellow-700 dark:text-yellow-300 text-base font-medium">Story preview</div>
-                </div>
+                {loadingMostPopularStories ? (
+                  <div className="text-center text-gray-400 py-6 text-sm">Loading...</div>
+                ) : mostPopularStories.length === 0 ? (
+                  <div className="text-center text-gray-400 py-6 text-sm">No popular stories yet</div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {mostPopularStories.map((story) => (
+                      <Link
+                        key={story.chapter_id}
+                        to={`/story/${story.story_title_id}`}
+                        className="block rounded-md bg-white dark:bg-slate-800/80 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition p-4 shadow ring-1 ring-amber-100 dark:ring-amber-900/30 hover-scale group"
+                        title={story.story_title}
+                      >
+                        <div className="font-medium text-base mb-0.5 truncate text-amber-700 dark:text-amber-100 group-hover:underline">
+                          {story.story_title}
+                        </div>
+                        <div className="text-xs text-gray-700 dark:text-gray-300">{story.chapter_title}</div>
+                        <div className="mt-2 flex items-center justify-between text-[11px] text-gray-400">
+                          <span>{new Date(story.created_at).toLocaleString()}</span>
+                          <span className="flex items-center gap-2">
+                            <span className="inline-flex items-center gap-1">
+                              <Heart className="h-3 w-3 text-pink-500" />
+                              <span>{story.like_count}</span>
+                            </span>
+                            <span className="inline-flex items-center gap-1">
+                              <Bookmark className="h-3 w-3 text-amber-500" />
+                              <span>{story.favorite_count}</span>
+                            </span>
+                          </span>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -526,12 +654,42 @@ const Index = () => {
                 <CardDescription className="text-xs mt-0.5">Trending screenplays loved by the community</CardDescription>
               </CardHeader>
               <CardContent className="p-4 bg-white dark:bg-gray-800 rounded-b-xl">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* Placeholder for popular stories */}
-                  <div className="h-28 rounded bg-yellow-100 dark:bg-orange-900/20 flex items-center justify-center text-yellow-700 dark:text-yellow-300 text-base font-medium">Story preview</div>
-                  <div className="h-28 rounded bg-yellow-100 dark:bg-orange-900/20 flex items-center justify-center text-yellow-700 dark:text-yellow-300 text-base font-medium">Story preview</div>
-                  <div className="h-28 rounded bg-yellow-100 dark:bg-orange-900/20 flex items-center justify-center text-yellow-700 dark:text-yellow-300 text-base font-medium">Story preview</div>
-                </div>
+                {loadingMostPopularScreenplays ? (
+                  <div className="text-center text-gray-400 py-6 text-sm">Loading...</div>
+                ) : mostPopularScreenplays.length === 0 ? (
+                  <div className="text-center text-gray-400 py-6 text-sm">No popular screenplays yet</div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {mostPopularScreenplays.map((screenplay) => (
+                      <Link
+                        key={screenplay.screenplay_id}
+                        to={`/screenplay/${screenplay.screenplay_id}`}
+                        className="block rounded-md bg-white dark:bg-slate-800/80 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition p-4 shadow ring-1 ring-amber-100 dark:ring-amber-900/30 hover-scale group"
+                        title={screenplay.title}
+                      >
+                        <div className="font-medium text-base mb-0.5 truncate text-amber-700 dark:text-amber-100 group-hover:underline">
+                          {screenplay.title}
+                        </div>
+                        {screenplay.slugline && (
+                          <div className="text-xs text-gray-700 dark:text-gray-300">{screenplay.slugline}</div>
+                        )}
+                        <div className="mt-2 flex items-center justify-between text-[11px] text-gray-400">
+                          <span>{new Date(screenplay.created_at).toLocaleString()}</span>
+                          <span className="flex items-center gap-2">
+                            <span className="inline-flex items-center gap-1">
+                              <Heart className="h-3 w-3 text-pink-500" />
+                              <span>{screenplay.like_count}</span>
+                            </span>
+                            <span className="inline-flex items-center gap-1">
+                              <Bookmark className="h-3 w-3 text-amber-500" />
+                              <span>{screenplay.favorite_count}</span>
+                            </span>
+                          </span>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 

@@ -16,13 +16,25 @@ from . import settings
 from .ui.main_window import MainWindow
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     """Run the editor application.
 
-    Creates a QApplication instance and shows the main window. This will be
-    extended over time to load user settings, translations, and other
-    application services before showing the UI.
+    Creates a QApplication instance and shows the main window.
+
+    Parameters
+    ----------
+    argv:
+        Optional list of command-line arguments *excluding* the program name.
+        When provided, these are treated as filesystem paths to open on
+        startup (for example when the editor is launched as the handler for
+        ``.md`` files). If omitted, :data:`sys.argv` is used.
     """
+
+    if argv is None:
+        # Skip the program name; only treat the remaining entries as
+        # user-supplied arguments (typically file paths on Linux desktop
+        # environments when opening .md files via a file manager).
+        argv = sys.argv[1:]
 
     app = QApplication(sys.argv)
 
@@ -48,6 +60,16 @@ def main() -> None:
         app.installTranslator(translator)
 
     window = MainWindow(app_settings, translator=translator)
+
+    # If file paths were provided on the command line (e.g. when the editor is
+    # invoked as the handler for .md files), open them now so that the initial
+    # window reflects the requested documents.
+    try:
+        window._open_paths_from_cli(argv)  # type: ignore[attr-defined]
+    except Exception:
+        # Never allow argument handling to prevent the UI from starting.
+        pass
+
     window.show()
 
     # Enter the Qt main event loop. The return code is intentionally ignored
