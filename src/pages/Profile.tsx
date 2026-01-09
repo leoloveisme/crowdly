@@ -39,6 +39,7 @@ import {
   Users,
   FileText,
   BookOpen,
+  Bookmark,
   Award,
   Eye,
   EyeOff,
@@ -68,6 +69,9 @@ import StatsDisplay from "@/components/StatsDisplay";
 import CreativeSpacesModule, { CreativeSpace } from "@/modules/creative spaces";
 import ProfileInformation from "@/modules/profile information";
 import ContributionsModule, { ContributionRow as ProfileContributionRow } from "@/modules/contributions";
+import FavoriteStories from "@/modules/favorite stories";
+import LivingExperiencingStories from "@/modules/living-experiencing stories";
+import LivedExperiencedStories from "@/modules/lived-experienced stories";
 
 // Use same-origin API base in development; dev server proxies to backend.
 // In production, VITE_API_BASE_URL can point at the deployed API.
@@ -96,6 +100,9 @@ const INITIAL_PROFILE = {
   username: "",    // <-- Add this line
   show_public_stories: true,
   show_public_screenplays: true,
+  show_public_favorites: true,
+  show_public_living: true,
+  show_public_lived: true,
 };
 
 const Profile = () => {
@@ -827,6 +834,51 @@ const Profile = () => {
                         Show my screenplays
                       </Label>
                     </div>
+                    <div className="flex items-center space-x-2 text-xs text-gray-600">
+                      <Checkbox
+                        id="show-public-favorites"
+                        checked={(profile as any).show_public_favorites !== false}
+                        onCheckedChange={(checked) =>
+                          saveProfileField(
+                            "show_public_favorites" as any,
+                            Boolean(checked),
+                          )
+                        }
+                      />
+                      <Label htmlFor="show-public-favorites" className="cursor-pointer">
+                        Show my favorites list
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2 text-xs text-gray-600">
+                      <Checkbox
+                        id="show-public-living"
+                        checked={(profile as any).show_public_living !== false}
+                        onCheckedChange={(checked) =>
+                          saveProfileField(
+                            "show_public_living" as any,
+                            Boolean(checked),
+                          )
+                        }
+                      />
+                      <Label htmlFor="show-public-living" className="cursor-pointer">
+                        Show my living / experiencing list
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2 text-xs text-gray-600">
+                      <Checkbox
+                        id="show-public-lived"
+                        checked={(profile as any).show_public_lived !== false}
+                        onCheckedChange={(checked) =>
+                          saveProfileField(
+                            "show_public_lived" as any,
+                            Boolean(checked),
+                          )
+                        }
+                      />
+                      <Label htmlFor="show-public-lived" className="cursor-pointer">
+                        Show my lived / experienced list
+                      </Label>
+                    </div>
                   </div>
                 </PopoverContent>
               </Popover>
@@ -943,6 +995,31 @@ const Profile = () => {
               ))}
             </ul>
           )}
+        </div>
+
+        {/* Experience containers: Favorites / Living / Lived */}
+        <div className="mb-10 space-y-8">
+          <section>
+            <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
+              <Heart className="h-5 w-5 text-pink-600" />
+              Favorites
+            </h2>
+            <FavoriteStories userId={authUser?.id ?? null} />
+          </section>
+          <section>
+            <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
+              <Bookmark className="h-5 w-5 text-purple-600" />
+              Living / Experiencing the story(-ies)
+            </h2>
+            <LivingExperiencingStories userId={authUser?.id ?? null} />
+          </section>
+          <section>
+            <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-teal-600" />
+              Lived / Experienced those story(-ies)
+            </h2>
+            <LivedExperiencedStories userId={authUser?.id ?? null} />
+          </section>
         </div>
 
         {/* Interests/Hobbies Section */}

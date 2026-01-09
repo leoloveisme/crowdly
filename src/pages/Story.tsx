@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Loader2, Users, Clock, GitBranch, BookText, Heart } from "lucide-react";
+import { Loader2, Users, Clock, GitBranch, BookOpen, Heart } from "lucide-react";
 import CrowdlyHeader from "@/components/CrowdlyHeader";
 import CrowdlyFooter from "@/components/CrowdlyFooter";
 import EditableText from "@/components/EditableText";
@@ -1214,6 +1214,34 @@ const Story = () => {
     loadFavorite();
   }, [story_id, user?.id]);
 
+  // Automatically mark this story as "living" for the current user when it is opened.
+  useEffect(() => {
+    const markLiving = async () => {
+      if (!user?.id || !story?.story_title_id) return;
+      try {
+        const res = await fetch(`${API_BASE}/users/${user.id}/story-status`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contentType: "story",
+            storyTitleId: story.story_title_id,
+            isLiving: true,
+          }),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          console.error('[Story] Failed to auto-mark story as living', {
+            status: res.status,
+            body,
+          });
+        }
+      } catch (err) {
+        console.error('[Story] Failed to auto-mark story as living', err);
+      }
+    };
+    markLiving();
+  }, [user?.id, story?.story_title_id]);
+
   if (loading) {
     return (
       <div className="flex flex-col min-h-screen">
@@ -1449,6 +1477,51 @@ const Story = () => {
     }
   };
 
+  const markAsLived = async () => {
+    if (!user) {
+      toast({
+        title: "Login required",
+        description: "You must be logged in to mark this story as finished.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!story) return;
+    try {
+      const res = await fetch(`${API_BASE}/users/${user.id}/story-status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contentType: "story",
+          storyTitleId: story.story_title_id,
+          isLiving: false,
+          isLived: true,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error('[Story] Failed to mark story as lived', { status: res.status, body });
+        toast({
+          title: "Error",
+          description: body.error || "Failed to mark story as lived.",
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({
+        title: "Marked as finished",
+        description: "This story will now appear in your 'Lived / Experienced' list.",
+      });
+    } catch (err) {
+      console.error('[Story] Failed to mark story as lived', err);
+      toast({
+        title: "Error",
+        description: "Failed to mark story as lived.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleApproveProposal = async (proposalId: string) => {
     try {
       const res = await fetch(`${API_BASE}/proposals/${proposalId}/approve`, {
@@ -1571,7 +1644,7 @@ const Story = () => {
                   : "text-gray-600 hover:bg-gray-100"
               }`}
             >
-              <BookText size={18} /> Story
+              <BookOpen size={18} /> Story
             </button>
             <button
               aria-label="Contributions"
@@ -1582,7 +1655,7 @@ const Story = () => {
                   : "text-gray-600 hover:bg-gray-100"
               }`}
             >
-              <BookText size={18} /> Contributions
+              <BookOpen size={18} /> Contributions
             </button>
             <button
               aria-label="Contributors"
@@ -1660,6 +1733,15 @@ const Story = () => {
                   <span className="px-2 py-1 rounded-full text-xs bg-gray-200 text-gray-700">
                     Unpublished
                   </span>
+                )}
+                {user && (
+                  <button
+                    type="button"
+                    onClick={markAsLived}
+                    className="ml-2 inline-flex items-center px-2 py-1 rounded-full border border-dashed border-teal-300 text-[11px] text-teal-700 hover:bg-teal-50"
+                  >
+                    Mark as finished
+                  </button>
                 )}
               </div>
 
