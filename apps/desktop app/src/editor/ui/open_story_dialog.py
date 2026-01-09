@@ -19,7 +19,7 @@ class OpenStoryDialog(QDialog):
     def __init__(self, parent: object | None = None, *, default_value: str = "") -> None:
         super().__init__(parent)
 
-        self.setWindowTitle(self.tr("Open story on the web"))
+        self.setWindowTitle(self.tr("Open story or screenplay on the web"))
         self.setModal(True)
 
         layout = QVBoxLayout(self)
@@ -27,8 +27,12 @@ class OpenStoryDialog(QDialog):
         form = QFormLayout()
         self._input = QLineEdit(self)
         self._input.setText(default_value)
-        self._input.setPlaceholderText(self.tr("Paste the full story URL (e.g. https://…/story/<id>)"))
-        form.addRow(QLabel(self.tr("Story URL"), self), self._input)
+        self._input.setPlaceholderText(
+            self.tr(
+                "Paste the full story or screenplay URL (e.g. https://…/story/<id> or https://…/screenplay/<id>) or just the ID."
+            )
+        )
+        form.addRow(QLabel(self.tr("URL or ID"), self), self._input)
         layout.addLayout(form)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)

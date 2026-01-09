@@ -2665,7 +2665,7 @@ class MainWindow(QMainWindow):
             )
 
     def _open_story_on_web(self) -> None:  # pragma: no cover - UI wiring
-        """Open a story from the web and import it into the project space."""
+        """Open a story or screenplay from the web and import it into the project space."""
 
         import traceback
 
@@ -2697,11 +2697,23 @@ class MainWindow(QMainWindow):
             if dialog.exec() != QDialog.DialogCode.Accepted:
                 return
 
-            story_url = dialog.value()
-            if not story_url:
+            user_input = dialog.value()
+            if not user_input:
                 return
 
-            self._start_crowdly_fetch(story_url)
+            raw = user_input.strip()
+            lower = raw.lower()
+
+            # Screenplays are identified either by explicit /screenplay/ URLs or by
+            # a bare screenplay_id. Regular stories continue to use full URLs.
+            if lower.startswith("http://") or lower.startswith("https://"):
+                if "/screenplay/" in lower:
+                    self._start_screenplay_fetch(raw)
+                else:
+                    self._start_crowdly_fetch(raw)
+            else:
+                # Bare identifier -> treat as screenplay_id.
+                self._start_screenplay_fetch(raw)
         except Exception:
             # Never allow an exception in a Qt slot to terminate the app.
             traceback.print_exc()
@@ -2747,6 +2759,66 @@ class MainWindow(QMainWindow):
                 self,
                 self.tr("Error"),
                 self.tr("An unexpected error occurred while starting the web fetch."),
+            )
+
+    def _start_screenplay_fetch(
+        self,
+        screenplay_input: str,
+        *,
+        credentials: tuple[str, str] | None = None,
+    ) -> None:  # pragma: no cover - UI wiring
+        """Start fetching a screenplay from Crowdly on a background thread."""
+
+        import traceback
+
+        try:
+            raw = (screenplay_input or "").strip()
+            if not raw:
+                return
+
+            # Normalise plain IDs to full URLs using the configured base URL.
+            if not (raw.lower().startswith("http://") or raw.lower().startswith("https://")):
+                base_url_setting = getattr(self._settings, "crowdly_base_url", None)
+                if not isinstance(base_url_setting, str) or not base_url_setting.strip():
+                    QMessageBox.information(
+                        self,
+                        self.tr("Open screenplay failed"),
+                        self.tr(
+                            "Crowdly base URL is not configured. Please configure it in settings and try again."
+                        ),
+                    )
+                    return
+                raw = f"{base_url_setting.rstrip('/')}/screenplay/{raw}"
+
+            thread = _ScreenplayFetchThread(
+                screenplay_input=raw,
+                credentials=credentials,
+                parent=self,
+            )
+
+            # UI handlers (queued back to the UI thread by Qt).
+            thread.screenplayFetched.connect(self._on_crowdly_screenplay_fetched)
+            thread.fetchFailed.connect(
+                lambda err: self._on_crowdly_screenplay_fetch_failed(err, screenplay_input=raw)
+            )
+
+            # Ensure thread resources are reclaimed.
+            thread.finished.connect(thread.deleteLater)
+
+            # Keep reference so it is not GC'ed mid-flight.
+            self._screenplay_fetch_thread = thread
+
+            bar = self.statusBar()
+            if bar is not None:
+                bar.showMessage(self.tr("Fetching screenplay from the web..."))
+
+            thread.start()
+        except Exception:
+            traceback.print_exc()
+            QMessageBox.critical(
+                self,
+                self.tr("Error"),
+                self.tr("An unexpected error occurred while starting the screenplay fetch."),
             )
 
     def _on_crowdly_story_fetched(self, story) -> None:  # pragma: no cover - UI wiring
@@ -2813,6 +2885,132 @@ class MainWindow(QMainWindow):
         self.preview.set_markdown(doc.content)
         self._update_document_stats_label()
         self._update_story_link_label()
+
+    def _on_crowdly_screenplay_fetched(self, payload: object) -> None:  # pragma: no cover - UI wiring
+        """Handle a successful screenplay fetch by persisting locally and loading."""
+
+        import traceback
+
+        # Clear any temporary status message.
+        bar = self.statusBar()
+        if bar is not None:
+            bar.clearMessage()
+
+        if self._project_space_path is None:
+            QMessageBox.warning(
+                self,
+                self.tr("Error"),
+                self.tr("Project space is not set."),
+            )
+            return
+
+        try:
+            if not isinstance(payload, dict):
+                return
+
+            screenplay_id = payload.get("screenplay_id")
+            body = payload.get("body")
+            title = payload.get("title") or "Untitled Screenplay"
+            source_url = payload.get("source_url")
+            creator_id = payload.get("creator_id")
+            remote_updated_at = payload.get("remote_updated_at")
+
+            if not isinstance(screenplay_id, str) or not screenplay_id.strip():
+                return
+            if not isinstance(body, str):
+                return
+
+            project_space = self._project_space_path
+            timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+            filename = f"screenplay-{screenplay_id}-{timestamp}.md"
+            local_path = project_space / filename
+
+            doc = Document(path=None, content=body, is_dirty=True)
+            doc.save(local_path)
+
+            # Record screenplay association so status bar + sync logic can use it.
+            try:
+                file_metadata.set_attr(local_path, "screenplay_id", screenplay_id)
+
+                sp_url = None
+                if isinstance(source_url, str) and source_url.strip():
+                    sp_url = source_url.strip()
+                else:
+                    base = getattr(self._settings, "crowdly_base_url", None)
+                    if isinstance(base, str) and base.strip():
+                        sp_url = f"{base.rstrip('/')}/screenplay/{screenplay_id}"
+
+                if sp_url:
+                    file_metadata.set_attr(local_path, "screenplay_url", sp_url)
+                    source_url = sp_url
+            except Exception:
+                pass
+
+            # Initial StoryMetadata for the imported screenplay.
+            try:
+                now_human = file_metadata.now_human()
+                author_id = creator_id if isinstance(creator_id, str) and creator_id else None
+
+                file_metadata.write_story_metadata(
+                    local_path,
+                    file_metadata.StoryMetadata(
+                        author_id=author_id,
+                        initiator_id=author_id,
+                        story_id=None,
+                        story_title=title,
+                        genre=None,
+                        tags=None,
+                        creation_date=now_human,
+                        change_date=now_human,
+                        last_sync_date=None,
+                        source_url=source_url if isinstance(source_url, str) else None,
+                        body_format="markdown",
+                        remote_updated_at=remote_updated_at
+                        if isinstance(remote_updated_at, str)
+                        else None,
+                    ),
+                    remove_missing=False,
+                )
+            except Exception:
+                # Metadata initialisation is best-effort.
+                traceback.print_exc()
+
+            # Ensure the per-directory `.crowdly` folder exists so versioning
+            # can start queuing payloads immediately.
+            try:
+                local_queue.ensure_crowdly_dir_for_document(local_path)
+            except Exception:
+                pass
+
+            bar = self.statusBar()
+            if bar is not None:
+                bar.showMessage(
+                    self.tr("Imported screenplay to: {path}").format(path=local_path),
+                    5000,
+                )
+
+            # Load into current tab.
+            self._document = doc
+            if 0 <= self._current_tab_index < len(self._tab_documents):
+                self._tab_documents[self._current_tab_index] = self._document
+            self._last_change_from_preview = False
+
+            old_state = self.editor.blockSignals(True)
+            try:
+                self.editor.setPlainText(doc.content)
+            finally:
+                self.editor.blockSignals(old_state)
+
+            self.preview.set_markdown(doc.content)
+            self._update_document_stats_label()
+            self._update_story_link_label()
+        except Exception:
+            traceback.print_exc()
+            QMessageBox.warning(
+                self,
+                self.tr("Error"),
+                self.tr("Failed to save the imported screenplay locally."),
+            )
 
     def _on_crowdly_story_fetch_failed(self, error: object, *, story_url: str) -> None:  # pragma: no cover - UI wiring
         """Show a user-friendly error when a web story cannot be loaded."""
@@ -2903,6 +3101,38 @@ class MainWindow(QMainWindow):
                 self,
                 self.tr("Error"),
                 self.tr("An unexpected error occurred while handling the web-story error."),
+            )
+
+    def _on_crowdly_screenplay_fetch_failed(self, error: object, *, screenplay_input: str) -> None:  # pragma: no cover - UI wiring
+        """Show a user-friendly error when a web screenplay cannot be loaded."""
+
+        import traceback
+
+        try:
+            bar = self.statusBar()
+            if bar is not None:
+                bar.clearMessage()
+
+            kind = None
+            message = None
+            if isinstance(error, dict):
+                kind = error.get("kind")
+                message = error.get("message")
+
+            if not message:
+                message = str(error)
+
+            QMessageBox.warning(
+                self,
+                self.tr("Open screenplay failed"),
+                message,
+            )
+        except Exception:
+            traceback.print_exc()
+            QMessageBox.critical(
+                self,
+                self.tr("Error"),
+                self.tr("An unexpected error occurred while handling the web-screenplay error."),
             )
 
     def _open_document(self) -> None:  # pragma: no cover - UI wiring
@@ -4525,6 +4755,114 @@ class _CrowdlyFetchThread(QThread):
             client = CrowdlyClient(api_base, credentials=self._credentials)
             story = client.fetch_story(self._story_input)
             self.storyFetched.emit(story)
+        except Exception as exc:
+            traceback.print_exc()
+            try:
+                from ..crowdly_client import CrowdlyClientError
+
+                if isinstance(exc, CrowdlyClientError):
+                    self.fetchFailed.emit({"kind": exc.kind, "message": str(exc)})
+                    return
+            except Exception:
+                pass
+
+            self.fetchFailed.emit(
+                {"kind": "unknown", "message": f"Unexpected error: {exc}"}
+            )
+
+
+class _ScreenplayFetchThread(QThread):
+    """QThread that fetches a screenplay and emits results back to the UI thread."""
+
+    screenplayFetched = Signal(object)
+    fetchFailed = Signal(object)
+
+    def __init__(
+        self,
+        *,
+        screenplay_input: str,
+        credentials: tuple[str, str] | None = None,
+        parent: QObject | None = None,
+    ) -> None:
+        super().__init__(parent)
+        self._screenplay_input = screenplay_input
+        self._credentials = credentials
+
+    def run(self) -> None:  # pragma: no cover - background worker
+        import traceback
+
+        try:
+            from urllib.parse import urlparse
+            import re
+
+            from ..crowdly_client import (
+                CrowdlyClient,
+                CrowdlyClientError,
+                api_base_url_from_story_url,
+            )
+
+            raw = (self._screenplay_input or "").strip()
+            if not raw:
+                raise CrowdlyClientError("Screenplay ID / URL is required.", kind="invalid_input")
+
+            api_base = api_base_url_from_story_url(raw)
+            client = CrowdlyClient(api_base, credentials=self._credentials)
+
+            # Derive screenplay_id from the input (URL or raw id).
+            screenplay_id = raw
+            if raw.lower().startswith("http://") or raw.lower().startswith("https://"):
+                parsed = urlparse(raw)
+                path = parsed.path or ""
+                match = re.search(r"/screenplay/([^/?#]+)", path)
+                if not match:
+                    raise CrowdlyClientError(
+                        "Could not find '/screenplay/{screenplay_id}' in the provided URL.",
+                        kind="invalid_input",
+                    )
+                screenplay_id = match.group(1)
+
+            title_row = client.get_screenplay_title_row(screenplay_id)
+            scenes, blocks = client.get_screenplay_structure(screenplay_id, include_blocks=True)
+
+            title = title_row.get("title") or "Untitled Screenplay"
+            updated_raw = title_row.get("updated_at") or title_row.get("updatedAt")
+            remote_updated_at = updated_raw if isinstance(updated_raw, str) else None
+            creator_id = title_row.get("creator_id") or title_row.get("creatorId")
+
+            # Build Markdown body from scenes/blocks (mirrors _ScreenplayPullThread).
+            lines: list[str] = []
+            lines.append(f"# {title}")
+            lines.append("")
+            for scene in scenes:
+                lines.append(f"## {scene.slugline}".rstrip())
+                lines.append("")
+                scene_blocks = [b for b in blocks if b.scene_id == scene.scene_id]
+                for block in scene_blocks:
+                    text = block.text or ""
+                    bt = (block.block_type or "").lower()
+                    if bt == "character":
+                        lines.append(text.upper())
+                    elif bt == "parenthetical":
+                        if not (text.startswith("(") and text.endswith(")")):
+                            lines.append(f"({text})")
+                        else:
+                            lines.append(text)
+                    else:
+                        lines.append(text)
+                    lines.append("")
+
+            body_md = "\n".join(lines).rstrip() + "\n"
+
+            self.screenplayFetched.emit(
+                {
+                    "screenplay_id": screenplay_id,
+                    "title": title,
+                    "body": body_md,
+                    "source_url": raw,
+                    "creator_id": creator_id,
+                    "remote_updated_at": remote_updated_at,
+                }
+            )
         except Exception as exc:
             traceback.print_exc()
             try:
