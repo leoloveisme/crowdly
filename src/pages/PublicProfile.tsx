@@ -6,6 +6,7 @@ import EditableText from "@/components/EditableText";
 import FavoriteStories from "@/modules/favorite stories";
 import LivingExperiencingStories from "@/modules/living-experiencing stories";
 import LivedExperiencedStories from "@/modules/lived-experienced stories";
+import { useAuth } from "@/contexts/AuthContext";
 
 const API_BASE = import.meta.env.PROD
   ? (import.meta.env.VITE_API_BASE_URL ?? "")
@@ -22,6 +23,13 @@ interface PublicProfileData {
   show_public_favorites?: boolean;
   show_public_living?: boolean;
   show_public_lived?: boolean;
+  // Fine-grained per-container visibility
+  favorites_visibility?: "public" | "private" | "friends" | "selected";
+  living_visibility?: "public" | "private" | "friends" | "selected";
+  lived_visibility?: "public" | "private" | "friends" | "selected";
+  favorites_selected_user_ids?: string[] | null;
+  living_selected_user_ids?: string[] | null;
+  lived_selected_user_ids?: string[] | null;
 }
 
 interface PublicStory {
@@ -42,6 +50,7 @@ interface PublicScreenplay {
 
 const PublicProfile: React.FC = () => {
   const { username } = useParams<{ username: string }>();
+  const { user: viewer } = useAuth();
   const [profile, setProfile] = useState<PublicProfileData | null>(null);
   const [stories, setStories] = useState<PublicStory[]>([]);
   const [screenplays, setScreenplays] = useState<PublicScreenplay[]>([]);
@@ -100,6 +109,63 @@ const PublicProfile: React.FC = () => {
 
     load();
   }, [username]);
+
+  const viewerId = viewer?.id ?? null;
+
+  const resolveVisibility = (
+    container: "favorites" | "living" | "lived",
+  ): "public" | "private" | "friends" | "selected" => {
+    if (!profile) return "public";
+    const field =
+      container === "favorites"
+        ? "favorites_visibility"
+        : container === "living"
+        ? "living_visibility"
+        : "lived_visibility";
+    const raw = (profile as any)[field];
+    if (raw === "public" || raw === "private" || raw === "friends" || raw === "selected") {
+      return raw;
+    }
+    // Fallback to legacy booleans if newer fields are not present.
+    const legacyFlag =
+      container === "favorites"
+        ? profile.show_public_favorites
+        : container === "living"
+        ? profile.show_public_living
+        : profile.show_public_lived;
+    return legacyFlag === false ? "private" : "public";
+  };
+
+  const isOwner = profile && viewerId && viewerId === profile.id;
+
+  const canSeeContainer = (
+    container: "favorites" | "living" | "lived",
+  ): boolean => {
+    if (!profile) return false;
+    if (isOwner) return true;
+
+    const mode = resolveVisibility(container);
+    if (mode === "public") return true;
+    if (mode === "private") return false;
+
+    if (mode === "selected") {
+      if (!viewerId) return false;
+      const list =
+        container === "favorites"
+          ? profile.favorites_selected_user_ids
+          : container === "living"
+          ? profile.living_selected_user_ids
+          : profile.lived_selected_user_ids;
+      return Array.isArray(list) && list.includes(viewerId as string);
+    }
+
+    // TODO: once a friends/relationship graph exists, enforce real
+    // friends-only semantics here. For now, treat friends-only as private
+    // for non-owners.
+    if (mode === "friends") return false;
+
+    return false;
+  };
 
   if (loading) {
     return (
@@ -213,7 +279,7 @@ const PublicProfile: React.FC = () => {
           )}
 
           {/* Favorites (experience model) */}
-          {profile.show_public_favorites !== false && (
+          {canSeeContainer("favorites") && (
             <section className="mb-10">
               <h2 className="text-xl font-bold mb-3 flex items-center gap-2">
                 <span>Favorites</span>
@@ -223,7 +289,7 @@ const PublicProfile: React.FC = () => {
           )}
 
           {/* Living / experiencing list */}
-          {profile.show_public_living !== false && (
+          {canSeeContainer("living") && (
             <section className="mb-10">
               <h2 className="text-xl font-bold mb-3 flex items-center gap-2">
                 <span>Living / Experiencing the story(-ies)</span>
@@ -233,7 +299,7 @@ const PublicProfile: React.FC = () => {
           )}
 
           {/* Lived / experienced list */}
-          {profile.show_public_lived !== false && (
+          {canSeeContainer("lived") && (
             <section className="mb-10">
               <h2 className="text-xl font-bold mb-3 flex items-center gap-2">
                 <span>Lived / Experienced those story(-ies)</span>

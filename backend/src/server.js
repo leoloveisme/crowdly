@@ -132,6 +132,9 @@ async function ensureProfilesRealNicknameColumn() {
 
 async function ensureProfilesVisibilityColumns() {
   try {
+    // Legacy boolean flags used by older frontends; keep them for backward
+    // compatibility but prefer the newer per-container visibility fields
+    // below when available.
     await pool.query(
       'ALTER TABLE profiles ADD COLUMN IF NOT EXISTS show_public_stories boolean DEFAULT true',
     );
@@ -147,6 +150,32 @@ async function ensureProfilesVisibilityColumns() {
     await pool.query(
       'ALTER TABLE profiles ADD COLUMN IF NOT EXISTS show_public_lived boolean DEFAULT true',
     );
+
+    // New fine-grained per-container visibility controls. These allow a
+    // profile owner to mark each experience container as public, private,
+    // friends-only, or selected-users-only.
+    await pool.query(
+      "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS favorites_visibility text DEFAULT 'public'",
+    );
+    await pool.query(
+      "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS living_visibility text DEFAULT 'public'",
+    );
+    await pool.query(
+      "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS lived_visibility text DEFAULT 'public'",
+    );
+
+    // Selected-users-only audiences for each container. Stored as arrays of
+    // local user ids; gating is enforced in the web layer for now.
+    await pool.query(
+      "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS favorites_selected_user_ids uuid[] DEFAULT '{}'::uuid[]",
+    );
+    await pool.query(
+      "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS living_selected_user_ids uuid[] DEFAULT '{}'::uuid[]",
+    );
+    await pool.query(
+      "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS lived_selected_user_ids uuid[] DEFAULT '{}'::uuid[]",
+    );
+
     console.log('[init] ensured profiles visibility columns exist');
   } catch (err) {
     console.error('[init] failed to ensure profiles visibility columns:', err);
@@ -848,6 +877,66 @@ app.get('/locales', async (_req, res) => {
 // Profile endpoints (local Postgres-backed user profiles)
 // ---------------------------------------------------------------------------
 
+// Lightweight user search for interaction widgets (e.g. selecting users for
+// per-container visibility lists). This searches local_users joined with
+// profiles and supports simple pagination.
+app.get('/users/search', async (req, res) => {
+  const rawQuery = typeof req.query.q === 'string' ? req.query.q : '';
+  const search = rawQuery.trim();
+
+  const rawPage = req.query.page ? parseInt(String(req.query.page), 10) : 1;
+  const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
+
+  const rawPageSize = req.query.pageSize ? parseInt(String(req.query.pageSize), 10) : 10;
+  const pageSize = Number.isFinite(rawPageSize)
+    ? Math.min(Math.max(rawPageSize, 5), 50)
+    : 10;
+
+  const offset = (page - 1) * pageSize;
+  const limit = pageSize + 1; // fetch one extra row to determine hasMore
+
+  try {
+    const params = [];
+    let whereClause = '';
+
+    if (search) {
+      params.push(`%${search}%`);
+      whereClause = `WHERE (
+        COALESCE(p.username, '') ILIKE $1 OR
+        u.email ILIKE $1 OR
+        COALESCE(p.first_name, '') ILIKE $1 OR
+        COALESCE(p.last_name, '') ILIKE $1
+      )`;
+    }
+
+    params.push(limit);
+    params.push(offset);
+
+    const { rows } = await pool.query(
+      `SELECT
+         u.id,
+         u.email,
+         p.username,
+         p.first_name,
+         p.last_name
+       FROM local_users u
+       LEFT JOIN profiles p ON p.id = u.id
+       ${whereClause}
+       ORDER BY COALESCE(p.username, u.email) ASC
+       LIMIT $${params.length - 1} OFFSET $${params.length}`,
+      params,
+    );
+
+    const hasMore = rows.length > pageSize;
+    const users = hasMore ? rows.slice(0, pageSize) : rows;
+
+    res.json({ users, hasMore, page, pageSize });
+  } catch (err) {
+    console.error('[GET /users/search] failed:', err);
+    res.status(500).json({ error: 'Failed to search users' });
+  }
+});
+
 // Public profile lookup by username for public user pages (e.g. /leolove)
 app.get('/public-profiles/:username', async (req, res) => {
   const { username } = req.params;
@@ -1000,9 +1089,15 @@ async function handleProfileUpdate(req, res) {
     'real_nickname',
     'show_public_stories',
     'show_public_screenplays',
-    'show_public_favorites',
+'show_public_favorites',
     'show_public_living',
     'show_public_lived',
+    'favorites_visibility',
+    'living_visibility',
+    'lived_visibility',
+    'favorites_selected_user_ids',
+    'living_selected_user_ids',
+    'lived_selected_user_ids',
   ];
 
   const fields = [];
