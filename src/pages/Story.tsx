@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Loader2, Users, Clock, GitBranch, BookText } from "lucide-react";
+import { Loader2, Users, Clock, GitBranch, BookText, Heart } from "lucide-react";
 import CrowdlyHeader from "@/components/CrowdlyHeader";
 import CrowdlyFooter from "@/components/CrowdlyFooter";
 import EditableText from "@/components/EditableText";
@@ -12,6 +12,7 @@ import ParagraphBranchPopover from "@/components/ParagraphBranchPopover";
 import StoryContentTypeSelector from "@/components/StoryContentTypeSelector";
 import StoryBranchList from "@/components/StoryBranchList";
 import ContributionsModule, { ContributionRow } from "@/modules/contributions";
+import InteractionsWidget from "@/modules/InteractionsWidget";
 
 // Use same-origin API base in development; dev server proxies to backend.
 // In production, VITE_API_BASE_URL can point at the deployed API.
@@ -220,6 +221,10 @@ const Story = () => {
     text: string;
   }[]>([]);
   const [editingBranchId, setEditingBranchId] = useState<number | null>(null);
+
+  // Story-level favorite state (for Index favorites container)
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
 
   // Minimal inline "add chapter" UI in contribute mode
   const [addChapterMode, setAddChapterMode] = useState(false);
@@ -1179,6 +1184,36 @@ const Story = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [story_id]);
 
+  // Load favorite status for this story for the current user
+  useEffect(() => {
+    const loadFavorite = async () => {
+      if (!story_id || !user?.id) {
+        setIsFavorite(false);
+        return;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/users/${user.id}/favorites`);
+        if (!res.ok) {
+          setIsFavorite(false);
+          return;
+        }
+        const data = await res.json().catch(() => []);
+        if (!Array.isArray(data)) {
+          setIsFavorite(false);
+          return;
+        }
+        const found = data.some(
+          (item: any) => item.content_type === 'story' && item.content_id === story_id,
+        );
+        setIsFavorite(found);
+      } catch (err) {
+        console.error('[Story] Failed to load favorite state', err);
+        setIsFavorite(false);
+      }
+    };
+    loadFavorite();
+  }, [story_id, user?.id]);
+
   if (loading) {
     return (
       <div className="flex flex-col min-h-screen">
@@ -1249,6 +1284,53 @@ const Story = () => {
     } catch (err) {
       console.error('Failed to send reaction', err);
       toast({ title: "Error", description: "Failed to react", variant: "destructive" });
+    }
+  };
+
+  const toggleFavorite = async () => {
+    if (!user) {
+      toast({
+        title: "Login required",
+        description: "You must be logged in to favorite this story.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!story) return;
+    if (favoriteLoading) return;
+
+    setFavoriteLoading(true);
+    const next = !isFavorite;
+    try {
+      const res = await fetch(`${API_BASE}/users/${user.id}/story-status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contentType: "story",
+          storyTitleId: story.story_title_id,
+          isFavorite: next,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error('[Story] Failed to toggle favorite', { status: res.status, body });
+        toast({
+          title: "Error",
+          description: body.error || "Failed to update favorite state.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setIsFavorite(next);
+    } catch (err) {
+      console.error('[Story] Failed to toggle favorite', err);
+      toast({
+        title: "Error",
+        description: "Failed to update favorite state.",
+        variant: "destructive",
+      });
+    } finally {
+      setFavoriteLoading(false);
     }
   };
 
@@ -1548,6 +1630,21 @@ const Story = () => {
                 <h1 className="text-3xl font-bold" style={{ wordBreak: "break-word" }}>
                   {story.title}
                 </h1>
+                <button
+                  type="button"
+                  onClick={toggleFavorite}
+                  disabled={favoriteLoading}
+                  title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                  className="inline-flex items-center justify-center p-1 rounded-full border border-transparent hover:bg-pink-50 disabled:opacity-60"
+                >
+                  <Heart
+                    className={
+                      isFavorite
+                        ? "h-5 w-5 text-pink-500 fill-pink-500"
+                        : "h-5 w-5 text-gray-400"
+                    }
+                  />
+                </button>
                 {story.visibility && (
                   <span
                     className={`px-2 py-1 rounded-full text-xs ${
@@ -1566,59 +1663,8 @@ const Story = () => {
                 )}
               </div>
 
-              {/* Reactions and comments */}
-              <div className="mb-6 flex items-center gap-4 text-sm">
-                <button
-                  type="button"
-                  onClick={() => handleReact('like')}
-                  className="px-3 py-1 rounded border bg-white hover:bg-gray-50"
-                >
-                  👍 Like ({reactions.find(r => r.reaction_type === 'like')?.count ?? 0})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleReact('dislike')}
-                  className="px-3 py-1 rounded border bg-white hover:bg-gray-50"
-                >
-                  👎 Dislike ({reactions.find(r => r.reaction_type === 'dislike')?.count ?? 0})
-                </button>
-              </div>
-
-              <div className="mb-8">
-                <h3 className="text-sm font-semibold mb-2">Comments</h3>
-                <div className="space-y-2 mb-3">
-                  {comments.length === 0 ? (
-                    <div className="text-xs text-gray-500">No comments yet.</div>
-                  ) : (
-                    comments.map((c) => (
-                      <div key={c.id} className="text-xs border-b py-1">
-                        <div className="text-gray-800">{c.body}</div>
-                        <div className="text-[10px] text-gray-400">{new Date(c.created_at).toLocaleString()}</div>
-                      </div>
-                    ))
-                  )}
-                </div>
-                <div className="flex gap-2 items-start">
-                  <textarea
-                    className="flex-1 border rounded px-2 py-1 text-xs resize-none overflow-hidden"
-                    rows={1}
-                    placeholder="Add a comment..."
-                    value={newComment}
-                    onChange={(e) => {
-                      setNewComment(e.target.value);
-                      e.currentTarget.style.height = 'auto';
-                      e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={handlePostComment}
-                    className="px-2 py-1 text-xs rounded bg-blue-500 text-white hover:bg-blue-600"
-                  >
-                    Post
-                  </button>
-                </div>
-              </div>
+              {/* Unified reactions + comments for this story */}
+              <InteractionsWidget kind="story" storyTitleId={story.story_title_id} />
 
               {/* Read-only story text (experience mode content) */}
               <div id="experience-top" className="space-y-6">

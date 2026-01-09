@@ -13,6 +13,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import FavoriteStories from "@/modules/favorite stories";
+import LivingExperiencingStories from "@/modules/living-experiencing stories";
+import LivedExperiencedStories from "@/modules/lived-experienced stories";
 
 // Use same-origin API base in development; dev server proxies to backend.
 // In production, VITE_API_BASE_URL can point at the deployed API.
@@ -36,6 +39,21 @@ interface MostActiveStory {
   story_title: string;
   story_title_id: string;
   last_activity_at: string;
+}
+
+interface NewestScreenplay {
+  screenplay_id: string;
+  title: string;
+  created_at: string;
+  slugline?: string | null;
+}
+
+interface MostActiveScreenplay {
+  screenplay_id: string;
+  title: string;
+  created_at: string;
+  last_activity_at: string;
+  slugline?: string | null;
 }
 
 const BranchList = React.lazy(() => import("@/components/BranchList"));
@@ -65,6 +83,14 @@ const Index = () => {
   // State for most active stories
   const [mostActiveStories, setMostActiveStories] = useState<MostActiveStory[]>([]);
   const [loadingMostActive, setLoadingMostActive] = useState(true);
+
+  // State for newest screenplays
+  const [newestScreenplays, setNewestScreenplays] = useState<NewestScreenplay[]>([]);
+  const [loadingScreenplays, setLoadingScreenplays] = useState(true);
+
+  // State for most active screenplays
+  const [mostActiveScreenplays, setMostActiveScreenplays] = useState<MostActiveScreenplay[]>([]);
+  const [loadingMostActiveScreenplays, setLoadingMostActiveScreenplays] = useState(true);
 
   useEffect(() => {
     const fetchNewestStories = async () => {
@@ -131,6 +157,71 @@ const Index = () => {
     };
 
     fetchMostActiveStories();
+  }, []);
+
+  useEffect(() => {
+    const fetchNewestScreenplays = async () => {
+      setLoadingScreenplays(true);
+      try {
+        const params = new URLSearchParams({ limit: "9" });
+        const res = await fetch(`${API_BASE}/screenplays/newest?${params.toString()}`);
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          console.error("Error fetching newest screenplays", { status: res.status, body });
+          setNewestScreenplays([]);
+        } else {
+          const data = await res.json();
+          setNewestScreenplays(
+            (data as any[]).map((item) => ({
+              screenplay_id: item.screenplay_id,
+              title: item.title || "Untitled Screenplay",
+              created_at: item.created_at,
+              slugline: item.slugline ?? null,
+            })),
+          );
+        }
+      } catch (err) {
+        console.error("Error fetching newest screenplays", err);
+        setNewestScreenplays([]);
+      } finally {
+        setLoadingScreenplays(false);
+      }
+    };
+
+    fetchNewestScreenplays();
+  }, []);
+
+  useEffect(() => {
+    const fetchMostActiveScreenplays = async () => {
+      setLoadingMostActiveScreenplays(true);
+      try {
+        const params = new URLSearchParams({ limit: "9" });
+        const res = await fetch(`${API_BASE}/screenplays/most-active?${params.toString()}`);
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          console.error("Error fetching most active screenplays", { status: res.status, body });
+          setMostActiveScreenplays([]);
+        } else {
+          const data = await res.json();
+          setMostActiveScreenplays(
+            (data as any[]).map((item) => ({
+              screenplay_id: item.screenplay_id,
+              title: item.title || "Untitled Screenplay",
+              created_at: item.created_at,
+              last_activity_at: item.last_activity_at || item.created_at,
+              slugline: item.slugline ?? null,
+            })),
+          );
+        }
+      } catch (err) {
+        console.error("Error fetching most active screenplays", err);
+        setMostActiveScreenplays([]);
+      } finally {
+        setLoadingMostActiveScreenplays(false);
+      }
+    };
+
+    fetchMostActiveScreenplays();
   }, []);
 
   return (
@@ -315,6 +406,7 @@ const Index = () => {
                   On this page they're only for you to see. The same functionality will be available in the User Profile with Visibililty options: public, private, for friends only
                 </EditableText>
               </p>
+              <FavoriteStories userId={user ? (user as any).id ?? (user as any).user_id ?? null : null} />
             </div>
           </section>
 
@@ -375,12 +467,32 @@ const Index = () => {
                 <CardDescription className="text-xs mt-0.5">Newest Screnplays to be discovered and loved by the community</CardDescription>
               </CardHeader>
               <CardContent className="p-4 bg-white dark:bg-gray-800 rounded-b-xl">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* Placeholder for popular stories */}
-                  <div className="h-28 rounded bg-yellow-100 dark:bg-orange-900/20 flex items-center justify-center text-yellow-700 dark:text-yellow-300 text-base font-medium">Story preview</div>
-                  <div className="h-28 rounded bg-yellow-100 dark:bg-orange-900/20 flex items-center justify-center text-yellow-700 dark:text-yellow-300 text-base font-medium">Story preview</div>
-                  <div className="h-28 rounded bg-yellow-100 dark:bg-orange-900/20 flex items-center justify-center text-yellow-700 dark:text-yellow-300 text-base font-medium">Story preview</div>
-                </div>
+                {loadingScreenplays ? (
+                  <div className="text-center text-gray-400 py-6 text-sm">Loading...</div>
+                ) : newestScreenplays.length === 0 ? (
+                  <div className="text-center text-gray-400 py-6 text-sm">No screenplays found</div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {newestScreenplays.map((screenplay) => (
+                      <Link
+                        key={screenplay.screenplay_id}
+                        to={`/screenplay/${screenplay.screenplay_id}`}
+                        className="block rounded-md bg-white dark:bg-slate-800/80 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition p-4 shadow ring-1 ring-amber-100 dark:ring-amber-900/30 hover-scale group"
+                        title={screenplay.title}
+                      >
+                        <div className="font-medium text-base mb-0.5 truncate text-amber-700 dark:text-amber-100 group-hover:underline">
+                          {screenplay.title}
+                        </div>
+                        {screenplay.slugline && (
+                          <div className="text-xs text-gray-700 dark:text-gray-300">{screenplay.slugline}</div>
+                        )}
+                        <div className="text-[11px] text-gray-400 mt-1">
+                          {new Date(screenplay.created_at).toLocaleString()}
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -434,12 +546,32 @@ const Index = () => {
                 <CardDescription className="text-xs mt-0.5">Most active screenplays loved by the community</CardDescription>
               </CardHeader>
               <CardContent className="p-4 bg-white dark:bg-gray-800 rounded-b-xl">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* Placeholder for popular stories */}
-                  <div className="h-28 rounded bg-yellow-100 dark:bg-orange-900/20 flex items-center justify-center text-yellow-700 dark:text-yellow-300 text-base font-medium">Story preview</div>
-                  <div className="h-28 rounded bg-yellow-100 dark:bg-orange-900/20 flex items-center justify-center text-yellow-700 dark:text-yellow-300 text-base font-medium">Story preview</div>
-                  <div className="h-28 rounded bg-yellow-100 dark:bg-orange-900/20 flex items-center justify-center text-yellow-700 dark:text-yellow-300 text-base font-medium">Story preview</div>
-                </div>
+                {loadingMostActiveScreenplays ? (
+                  <div className="text-center text-gray-400 py-6 text-sm">Loading...</div>
+                ) : mostActiveScreenplays.length === 0 ? (
+                  <div className="text-center text-gray-400 py-6 text-sm">No active screenplays found</div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {mostActiveScreenplays.map((screenplay) => (
+                      <Link
+                        key={screenplay.screenplay_id}
+                        to={`/screenplay/${screenplay.screenplay_id}`}
+                        className="block rounded-md bg-white dark:bg-slate-800/80 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition p-4 shadow ring-1 ring-amber-100 dark:ring-amber-900/30 hover-scale group"
+                        title={screenplay.title}
+                      >
+                        <div className="font-medium text-base mb-0.5 truncate text-amber-700 dark:text-amber-100 group-hover:underline">
+                          {screenplay.title}
+                        </div>
+                        {screenplay.slugline && (
+                          <div className="text-xs text-gray-700 dark:text-gray-300">{screenplay.slugline}</div>
+                        )}
+                        <div className="text-[11px] text-gray-400 mt-1">
+                          Last activity: {new Date(screenplay.last_activity_at || screenplay.created_at).toLocaleString()}
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -500,11 +632,9 @@ const Index = () => {
                     This section is only for you to see. The same functionality will be available in the User Profile with Visibililty options: public, private, for friends only
                   </EditableText>
                 </p>
-                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Placeholder for current stories */}
-                  <div className="h-24 rounded-md bg-gradient-to-r from-fuchsia-100 to-purple-100 dark:from-fuchsia-900/20 dark:to-purple-900/20 flex items-center justify-center text-purple-900 dark:text-purple-100 font-semibold">Current story</div>
-                  <div className="h-24 rounded-md bg-gradient-to-r from-fuchsia-100 to-purple-100 dark:from-fuchsia-900/20 dark:to-purple-900/20 flex items-center justify-center text-purple-900 dark:text-purple-100 font-semibold">Current story</div>
-                </div>
+                <LivingExperiencingStories
+                  userId={user ? (user as any).id ?? (user as any).user_id ?? null : null}
+                />
               </CardContent>
             </Card>
           </section>
@@ -529,11 +659,9 @@ const Index = () => {
                     This section is only for you to see. The same functionality will be available in the User Profile with Visibililty options: public, private, for friends only
                   </EditableText>
                 </p>
-                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Placeholder for past stories */}
-                  <div className="h-24 rounded-md bg-gradient-to-r from-cyan-100 to-teal-100 dark:from-cyan-900/20 dark:to-teal-900/20 flex items-center justify-center text-teal-900 dark:text-teal-100 font-semibold">Past story</div>
-                  <div className="h-24 rounded-md bg-gradient-to-r from-cyan-100 to-teal-100 dark:from-cyan-900/20 dark:to-teal-900/20 flex items-center justify-center text-teal-900 dark:text-teal-100 font-semibold">Past story</div>
-                </div>
+                <LivedExperiencedStories
+                  userId={user ? (user as any).id ?? (user as any).user_id ?? null : null}
+                />
               </CardContent>
             </Card>
           </section>

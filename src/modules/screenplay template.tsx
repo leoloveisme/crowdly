@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { Heart } from "lucide-react";
+import InteractionsWidget from "@/modules/InteractionsWidget";
 
 // Use same-origin API base in development; dev server proxies to backend.
 // In production, VITE_API_BASE_URL can point at the deployed API.
@@ -48,6 +50,19 @@ const BLOCK_TYPE_LABELS: { value: string; label: string }[] = [
   { value: "general", label: "General" },
 ];
 
+// Scene-level wrapper around the shared InteractionsWidget
+const SceneComments: React.FC<SceneCommentsProps> = ({ sceneId, screenplayId }) => {
+  if (!screenplayId) return null;
+  return (
+    <InteractionsWidget
+      kind="scene"
+      screenplayId={screenplayId}
+      sceneId={sceneId}
+      label="Scene comments"
+    />
+  );
+};
+
 const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
   initialScreenplayId,
 }) => {
@@ -64,6 +79,9 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
   const [savingTitle, setSavingTitle] = useState(false);
   const [scenes, setScenes] = useState<ScreenplayScene[]>([]);
   const [blocks, setBlocks] = useState<ScreenplayBlock[]>([]);
+
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
 
   const canEdit = !!user;
 
@@ -171,6 +189,124 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialScreenplayId]);
+
+  // Load favorite state for this screenplay when user or screenplay changes
+  useEffect(() => {
+    const loadFavorite = async () => {
+      if (!user?.id || !screenplayId) {
+        setIsFavorite(false);
+        return;
+      }
+      try {
+        const res = await fetch(`${API_BASE}/users/${user.id}/favorites`);
+        if (!res.ok) {
+          setIsFavorite(false);
+          return;
+        }
+        const data = await res.json().catch(() => []);
+        if (!Array.isArray(data)) {
+          setIsFavorite(false);
+          return;
+        }
+        const found = data.some(
+          (item: any) => item.content_type === 'screenplay' && item.content_id === screenplayId,
+        );
+        setIsFavorite(found);
+      } catch (err) {
+        console.error('[ScreenplayTemplate] Failed to load favorite state', err);
+        setIsFavorite(false);
+      }
+    };
+    loadFavorite();
+  }, [user?.id, screenplayId]);
+
+  // (Reactions for screenplay title are handled by InteractionsWidget)
+
+  const toggleFavorite = async () => {
+    if (!user || !screenplayId) {
+      toast({
+        title: "Login required",
+        description: "You must be logged in to favorite this screenplay.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (favoriteLoading) return;
+    const next = !isFavorite;
+    setFavoriteLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/users/${user.id}/story-status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contentType: "screenplay",
+          screenplayId,
+          isFavorite: next,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error('[ScreenplayTemplate] Failed to toggle favorite', { status: res.status, body });
+        toast({
+          title: "Error",
+          description: body.error || "Failed to update favorite state.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setIsFavorite(next);
+    } catch (err) {
+      console.error('[ScreenplayTemplate] Failed to toggle favorite', err);
+      toast({
+        title: "Error",
+        description: "Failed to update favorite state.",
+        variant: "destructive",
+      });
+    } finally {
+      setFavoriteLoading(false);
+    }
+  };
+
+  const handlePostComment = async () => {
+    if (!user) {
+      toast({
+        title: "Login required",
+        description: "You must be logged in to comment.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!screenplayId || !newComment.trim()) return;
+    try {
+      const res = await fetch(`${API_BASE}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user.id,
+          screenplayId,
+          body: newComment.trim(),
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast({
+          title: "Error",
+          description: body.error || "Failed to post comment",
+          variant: "destructive",
+        });
+        return;
+      }
+      setNewComment("");
+      setComments((prev) => [...prev, body]);
+    } catch (err) {
+      console.error('[ScreenplayTemplate] Failed to post comment', err);
+      toast({
+        title: "Error",
+        description: "Failed to post comment",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleSaveTitle = async () => {
     if (!screenplayId || savingTitle) return;
@@ -588,17 +724,44 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
             />
           </div>
           {screenplayId && (
-            <div className="text-xs text-gray-500 whitespace-nowrap ml-2">
-              Screenplay ID:{" "}
-              <Link
-                to={`/screenplay/${screenplayId}`}
-                className="font-mono text-blue-600 hover:underline"
+            <div className="flex items-center gap-2 text-xs text-gray-500 whitespace-nowrap ml-2">
+              <span>
+                Screenplay ID{" "}
+                <Link
+                  to={`/screenplay/${screenplayId}`}
+                  className="font-mono text-blue-600 hover:underline"
+                >
+                  {screenplayId}
+                </Link>
+              </span>
+              <button
+                type="button"
+                onClick={toggleFavorite}
+                disabled={favoriteLoading}
+                title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                className="inline-flex items-center justify-center p-1 rounded-full border border-transparent hover:bg-pink-50 disabled:opacity-60"
               >
-                {screenplayId}
-              </Link>
+                <Heart
+                  className={
+                    isFavorite
+                      ? "h-4 w-4 text-pink-500 fill-pink-500"
+                      : "h-4 w-4 text-gray-400"
+                  }
+                />
+              </button>
             </div>
           )}
         </div>
+        {screenplayId && (
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-600">
+            {/* Screenplay-level reactions + comments via shared widget */}
+            <InteractionsWidget
+              kind="screenplay"
+              screenplayId={screenplayId}
+              label="Screenplay comments"
+            />
+          </div>
+        )}
       </div>
 
       {!screenplayId && (
@@ -767,6 +930,11 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
                       >
                         Add element
                       </button>
+                      {/* Scene-specific comments */}
+                      <div className="mt-4 border-t pt-3">
+                        <h4 className="text-[11px] font-semibold mb-1">Scene comments</h4>
+                        <SceneComments sceneId={scene.scene_id} screenplayId={screenplayId} />
+                      </div>
                     </div>
                   </section>
                 );

@@ -122,11 +122,25 @@ async function ensureParagraphBranchesTable() {
 async function ensureProfilesRealNicknameColumn() {
   try {
     await pool.query(
-      "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS real_nickname text",
+      'ALTER TABLE profiles ADD COLUMN IF NOT EXISTS real_nickname text',
     );
     console.log('[init] ensured profiles.real_nickname column exists');
   } catch (err) {
     console.error('[init] failed to ensure profiles.real_nickname column:', err);
+  }
+}
+
+async function ensureProfilesVisibilityColumns() {
+  try {
+    await pool.query(
+      'ALTER TABLE profiles ADD COLUMN IF NOT EXISTS show_public_stories boolean DEFAULT true',
+    );
+    await pool.query(
+      'ALTER TABLE profiles ADD COLUMN IF NOT EXISTS show_public_screenplays boolean DEFAULT true',
+    );
+    console.log('[init] ensured profiles visibility columns exist');
+  } catch (err) {
+    console.error('[init] failed to ensure profiles visibility columns:', err);
   }
 }
 
@@ -378,6 +392,125 @@ async function ensureContributionsTable() {
   }
 }
 
+// Track per-user experience state (favorites / living / lived) for both
+// stories and screenplays without disturbing existing story tables.
+async function ensureUserStoryStatusTable() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS user_story_status (
+        id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id       uuid NOT NULL,
+        content_type  text NOT NULL,
+        story_title_id uuid NULL,
+        screenplay_id  uuid NULL,
+        is_favorite   boolean NOT NULL DEFAULT false,
+        is_living     boolean NOT NULL DEFAULT false,
+        is_lived      boolean NOT NULL DEFAULT false,
+        created_at    timestamptz NOT NULL DEFAULT now(),
+        updated_at    timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+
+    // Constrain content_type to the two supported kinds.
+    await pool.query(
+      "ALTER TABLE user_story_status ADD CONSTRAINT user_story_status_type_check CHECK (content_type IN ('story','screenplay'))",
+    ).catch((err) => {
+      if (err && err.code !== '23505' && err.code !== '42710') {
+        // 23505 = duplicate_object in some PG versions, 42710 = duplicate_object
+        console.error('[init] failed to add user_story_status_type_check:', err);
+      }
+    });
+
+    // Ensure we don't create duplicate rows per user/content.
+    await pool.query(
+      'CREATE UNIQUE INDEX IF NOT EXISTS user_story_status_unique ON user_story_status(user_id, content_type, story_title_id, screenplay_id)',
+    );
+
+    // Simple index for querying by user and flags.
+    await pool.query(
+      'CREATE INDEX IF NOT EXISTS user_story_status_user_idx ON user_story_status(user_id, content_type)',
+    );
+
+    console.log('[init] ensured user_story_status table exists');
+  } catch (err) {
+    console.error('[init] failed to ensure user_story_status table:', err);
+  }
+}
+
+// Extend comments table to support screenplay-level comments as well as
+// story-level comments. This keeps existing story functionality intact while
+// allowing new callers to associate comments with a screenplay_id and an
+// optional per-scene association.
+async function ensureCommentsScreenplayColumn() {
+  try {
+    await pool.query(
+      'ALTER TABLE comments ADD COLUMN IF NOT EXISTS screenplay_id uuid',
+    );
+    await pool.query(
+      'ALTER TABLE comments ADD COLUMN IF NOT EXISTS screenplay_scene_id uuid',
+    );
+    await pool.query(
+      'CREATE INDEX IF NOT EXISTS comments_screenplay_idx ON comments(screenplay_id)',
+    );
+    await pool.query(
+      'CREATE INDEX IF NOT EXISTS comments_screenplay_scene_idx ON comments(screenplay_scene_id)',
+    );
+
+    // Best-effort: add a foreign key from comments.screenplay_scene_id to
+    // screenplay_scene.scene_id, if it is not already present.
+    await pool
+      .query(`
+        DO $$
+        BEGIN
+          IF NOT EXISTS (
+            SELECT 1
+            FROM information_schema.table_constraints
+            WHERE constraint_name = 'comments_screenplay_scene_id_fkey'
+              AND table_name = 'comments'
+          ) THEN
+            ALTER TABLE comments
+              ADD CONSTRAINT comments_screenplay_scene_id_fkey
+              FOREIGN KEY (screenplay_scene_id)
+              REFERENCES screenplay_scene(scene_id)
+              ON DELETE CASCADE;
+          END IF;
+        END
+        $$;
+      `)
+      .catch((err) => {
+        // If the constraint already exists or the table is missing, log and
+        // continue without failing startup.
+        console.error('[init] ensureCommentsScreenplayColumn FK setup issue:', err);
+      });
+
+    console.log('[init] ensured comments screenplay columns exist');
+  } catch (err) {
+    console.error('[init] failed to ensure comments screenplay columns:', err);
+  }
+}
+
+// Extend reactions table to support screenplay-level and scene-level reactions
+// in addition to story/paragraph reactions.
+async function ensureReactionsScreenplayColumns() {
+  try {
+    await pool.query(
+      'ALTER TABLE reactions ADD COLUMN IF NOT EXISTS screenplay_id uuid',
+    );
+    await pool.query(
+      'ALTER TABLE reactions ADD COLUMN IF NOT EXISTS screenplay_scene_id uuid',
+    );
+    await pool.query(
+      'CREATE INDEX IF NOT EXISTS reactions_screenplay_idx ON reactions(screenplay_id)',
+    );
+    await pool.query(
+      'CREATE INDEX IF NOT EXISTS reactions_screenplay_scene_idx ON reactions(screenplay_scene_id)',
+    );
+    console.log('[init] ensured reactions screenplay columns exist');
+  } catch (err) {
+    console.error('[init] failed to ensure reactions screenplay columns:', err);
+  }
+}
+
 // Screenplay tables: title, scenes, blocks, and linking table between stories
 // and screenplays. These mirror the story tables but are kept separate to
 // avoid breaking existing story functionality.
@@ -550,6 +683,9 @@ ensureParagraphBranchesTable().catch((err) => {
 ensureProfilesRealNicknameColumn().catch((err) => {
   console.error('[init] ensureProfilesRealNicknameColumn unhandled error:', err);
 });
+ensureProfilesVisibilityColumns().catch((err) => {
+  console.error('[init] ensureProfilesVisibilityColumns unhandled error:', err);
+});
 ensureCrdtDocumentsTables().catch((err) => {
   console.error('[init] ensureCrdtDocumentsTables unhandled error:', err);
 });
@@ -564,6 +700,15 @@ ensureContributionsTable().catch((err) => {
 });
 ensureScreenplayTables().catch((err) => {
   console.error('[init] ensureScreenplayTables unhandled error:', err);
+});
+ensureUserStoryStatusTable().catch((err) => {
+  console.error('[init] ensureUserStoryStatusTable unhandled error:', err);
+});
+ensureCommentsScreenplayColumn().catch((err) => {
+  console.error('[init] ensureCommentsScreenplayColumn unhandled error:', err);
+});
+ensureReactionsScreenplayColumns().catch((err) => {
+  console.error('[init] ensureReactionsScreenplayColumns unhandled error:', err);
 });
 
 app.get('/health', async (_req, res) => {
@@ -931,6 +1076,113 @@ app.get('/screenplays', async (req, res) => {
   } catch (err) {
     console.error('[GET /screenplays] failed:', err);
     res.status(500).json({ error: 'Failed to fetch user screenplays' });
+  }
+});
+
+// List newest screenplays across the platform.
+// Uses screenplay_title.created_at and shows the first scene's slugline when available.
+app.get('/screenplays/newest', async (req, res) => {
+  const rawLimit = req.query.limit;
+  const parsed = rawLimit ? parseInt(String(rawLimit), 10) : 10;
+  const limit = Number.isFinite(parsed) && parsed > 0 && parsed <= 50 ? parsed : 10;
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT
+         st.screenplay_id,
+         st.title,
+         st.created_at,
+         fs.slugline
+       FROM screenplay_title st
+       LEFT JOIN LATERAL (
+         SELECT slugline
+         FROM screenplay_scene ss
+         WHERE ss.screenplay_id = st.screenplay_id
+         ORDER BY ss.scene_index ASC, ss.created_at ASC
+         LIMIT 1
+       ) fs ON TRUE
+       WHERE st.visibility = 'public' AND st.published = true
+       ORDER BY st.created_at DESC
+       LIMIT $1`,
+      [limit],
+    );
+
+    res.json(rows);
+  } catch (err) {
+    console.error('[GET /screenplays/newest] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch newest screenplays' });
+  }
+});
+
+// List most active screenplays across the platform, ordered by recent activity
+// and overall content volume (scenes and blocks).
+app.get('/screenplays/most-active', async (req, res) => {
+  const rawLimit = req.query.limit;
+  const parsed = rawLimit ? parseInt(String(rawLimit), 10) : 10;
+  const limit = Number.isFinite(parsed) && parsed > 0 && parsed <= 50 ? parsed : 10;
+
+  try {
+    const { rows } = await pool.query(
+      `WITH screenplay_stats AS (
+         SELECT
+           st.screenplay_id,
+           st.title,
+           GREATEST(
+             MAX(st.created_at),
+             MAX(st.updated_at),
+             MAX(ss.created_at),
+             MAX(ss.updated_at),
+             MAX(sb.created_at),
+             MAX(sb.updated_at)
+           ) AS last_activity_at,
+           COUNT(DISTINCT ss.scene_id) AS scene_count,
+           COUNT(DISTINCT sb.block_id) AS block_count
+         FROM screenplay_title st
+         LEFT JOIN screenplay_scene ss ON ss.screenplay_id = st.screenplay_id
+         LEFT JOIN screenplay_block sb ON sb.screenplay_id = st.screenplay_id
+         WHERE st.visibility = 'public' AND st.published = true
+         GROUP BY st.screenplay_id, st.title
+       ),
+       scored AS (
+         SELECT
+           screenplay_id,
+           title,
+           last_activity_at,
+           scene_count,
+           block_count,
+           (scene_count + block_count) AS content_score
+         FROM screenplay_stats
+       ),
+       first_scene AS (
+         SELECT
+           ss.screenplay_id,
+           ss.slugline,
+           ss.created_at,
+           ROW_NUMBER() OVER (
+             PARTITION BY ss.screenplay_id
+             ORDER BY ss.scene_index ASC, ss.created_at ASC
+           ) AS rn
+         FROM screenplay_scene ss
+       )
+       SELECT
+         sc.screenplay_id,
+         sc.title,
+         sc.last_activity_at,
+         fs.slugline,
+         st.created_at
+       FROM scored sc
+       JOIN screenplay_title st ON st.screenplay_id = sc.screenplay_id
+       LEFT JOIN first_scene fs ON fs.screenplay_id = sc.screenplay_id AND fs.rn = 1
+       WHERE sc.last_activity_at IS NOT NULL
+       ORDER BY sc.last_activity_at DESC, sc.content_score DESC, sc.title ASC
+       LIMIT $1`,
+      [limit],
+    );
+
+    res.json(rows);
+  } catch (err) {
+    console.error('[GET /screenplays/most-active] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch most active screenplays' });
   }
 });
 
@@ -1805,6 +2057,7 @@ app.get('/stories/most-active', async (req, res) => {
   }
 });
 
+
 // List chapters (stories rows) for a story
 app.get('/chapters', async (req, res) => {
   const storyTitleId = req.query.storyTitleId;
@@ -1992,6 +2245,200 @@ app.get('/users/:userId/screenplays', async (req, res) => {
   } catch (err) {
     console.error('[GET /users/:userId/screenplays] failed:', err);
     res.status(500).json({ error: 'Failed to fetch user screenplays' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// User experience endpoints (favorites / living / lived)
+// ---------------------------------------------------------------------------
+
+app.post('/users/:userId/story-status', async (req, res) => {
+  const { userId } = req.params;
+  const { contentType, storyTitleId, screenplayId, isFavorite, isLiving, isLived } =
+    req.body ?? {};
+
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+
+  if (contentType !== 'story' && contentType !== 'screenplay') {
+    return res.status(400).json({ error: 'contentType must be "story" or "screenplay"' });
+  }
+
+  if (contentType === 'story' && !storyTitleId) {
+    return res.status(400).json({ error: 'storyTitleId is required for contentType="story"' });
+  }
+  if (contentType === 'screenplay' && !screenplayId) {
+    return res
+      .status(400)
+      .json({ error: 'screenplayId is required for contentType="screenplay"' });
+  }
+
+  try {
+    const result = await pool.query(
+      `INSERT INTO user_story_status (user_id, content_type, story_title_id, screenplay_id,
+                                      is_favorite, is_living, is_lived)
+       VALUES ($1, $2, $3, $4,
+               COALESCE($5, false), COALESCE($6, false), COALESCE($7, false))
+       ON CONFLICT (user_id, content_type, story_title_id, screenplay_id)
+       DO UPDATE SET
+         is_favorite = COALESCE(EXCLUDED.is_favorite, user_story_status.is_favorite),
+         is_living   = COALESCE(EXCLUDED.is_living,   user_story_status.is_living),
+         is_lived    = COALESCE(EXCLUDED.is_lived,    user_story_status.is_lived),
+         updated_at  = now()
+       RETURNING *`,
+      [
+        userId,
+        contentType,
+        contentType === 'story' ? storyTitleId : null,
+        contentType === 'screenplay' ? screenplayId : null,
+        isFavorite,
+        isLiving,
+        isLived,
+      ],
+    );
+
+    return res.json(result.rows[0]);
+  } catch (err) {
+    console.error('[POST /users/:userId/story-status] failed:', err);
+    return res.status(500).json({ error: 'Failed to update story status' });
+  }
+});
+
+async function fetchUserExperienceItems(userId, flagColumn) {
+  // Stories
+  const storyRowsPromise = pool.query(
+    `SELECT
+       us.id,
+       us.content_type,
+       us.story_title_id,
+       st.title,
+       st.created_at,
+       us.is_favorite,
+       us.is_living,
+       us.is_lived
+     FROM user_story_status us
+     JOIN story_title st ON st.story_title_id = us.story_title_id
+     WHERE us.user_id = $1
+       AND us.content_type = 'story'
+       AND us.${flagColumn} = true
+       AND st.visibility = 'public'
+       AND st.published = true`,
+    [userId],
+  );
+
+  // Screenplays (include first scene slugline for context)
+  const screenplayRowsPromise = pool.query(
+    `SELECT
+       us.id,
+       us.content_type,
+       us.screenplay_id,
+       st.title,
+       st.created_at,
+       us.is_favorite,
+       us.is_living,
+       us.is_lived,
+       fs.slugline
+     FROM user_story_status us
+     JOIN screenplay_title st ON st.screenplay_id = us.screenplay_id
+     LEFT JOIN LATERAL (
+       SELECT slugline
+       FROM screenplay_scene ss
+       WHERE ss.screenplay_id = st.screenplay_id
+       ORDER BY ss.scene_index ASC, ss.created_at ASC
+       LIMIT 1
+     ) fs ON TRUE
+     WHERE us.user_id = $1
+       AND us.content_type = 'screenplay'
+       AND us.${flagColumn} = true
+       AND st.visibility = 'public'
+       AND st.published = true`,
+    [userId],
+  );
+
+  const [storyRowsResult, screenplayRowsResult] = await Promise.all([
+    storyRowsPromise,
+    screenplayRowsPromise,
+  ]);
+
+  const items = [];
+
+  for (const row of storyRowsResult.rows) {
+    items.push({
+      id: row.id,
+      content_type: 'story',
+      content_id: row.story_title_id,
+      title: row.title,
+      created_at: row.created_at,
+      is_favorite: row.is_favorite,
+      is_living: row.is_living,
+      is_lived: row.is_lived,
+      kind: 'novel',
+    });
+  }
+
+  for (const row of screenplayRowsResult.rows) {
+    items.push({
+      id: row.id,
+      content_type: 'screenplay',
+      content_id: row.screenplay_id,
+      title: row.title,
+      created_at: row.created_at,
+      is_favorite: row.is_favorite,
+      is_living: row.is_living,
+      is_lived: row.is_lived,
+      slugline: row.slugline,
+      kind: 'screenplay',
+    });
+  }
+
+  // Sort newest first by created_at
+  items.sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+  );
+
+  return items;
+}
+
+app.get('/users/:userId/favorites', async (req, res) => {
+  const { userId } = req.params;
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+  try {
+    const items = await fetchUserExperienceItems(userId, 'is_favorite');
+    return res.json(items);
+  } catch (err) {
+    console.error('[GET /users/:userId/favorites] failed:', err);
+    return res.status(500).json({ error: 'Failed to fetch favorites' });
+  }
+});
+
+app.get('/users/:userId/experiencing', async (req, res) => {
+  const { userId } = req.params;
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+  try {
+    const items = await fetchUserExperienceItems(userId, 'is_living');
+    return res.json(items);
+  } catch (err) {
+    console.error('[GET /users/:userId/experiencing] failed:', err);
+    return res.status(500).json({ error: 'Failed to fetch experiencing stories' });
+  }
+});
+
+app.get('/users/:userId/experienced', async (req, res) => {
+  const { userId } = req.params;
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+  try {
+    const items = await fetchUserExperienceItems(userId, 'is_lived');
+    return res.json(items);
+  } catch (err) {
+    console.error('[GET /users/:userId/experienced] failed:', err);
+    return res.status(500).json({ error: 'Failed to fetch experienced stories' });
   }
 });
 
@@ -2749,37 +3196,150 @@ app.delete('/story-titles/:storyTitleId', async (req, res) => {
 
 // Reactions (likes/dislikes)
 app.post('/reactions', async (req, res) => {
-  const { userId, storyTitleId, chapterId, paragraphIndex, reactionType } = req.body ?? {};
+  const {
+    userId,
+    storyTitleId,
+    chapterId,
+    paragraphIndex,
+    screenplayId,
+    screenplaySceneId,
+    reactionType,
+  } = req.body ?? {};
 
-  if (!userId || !reactionType || (!storyTitleId && !chapterId)) {
-    return res.status(400).json({ error: 'userId, reactionType, and storyTitleId or chapterId are required' });
+  if (!userId || !reactionType) {
+    return res.status(400).json({ error: 'userId and reactionType are required' });
   }
 
+  const hasStoryFields = !!storyTitleId || !!chapterId;
+  const hasScreenplayFields = !!screenplayId || !!screenplaySceneId;
+
+  if (hasStoryFields && hasScreenplayFields) {
+    return res.status(400).json({
+      error: 'Provide either storyTitleId/chapterId or screenplayId/screenplaySceneId, not both',
+    });
+  }
+
+  if (!hasStoryFields && !hasScreenplayFields) {
+    return res.status(400).json({
+      error: 'storyTitleId/chapterId or screenplayId/screenplaySceneId is required',
+    });
+  }
+
+  const client = await pool.connect();
   try {
-    await pool.query(
-      'INSERT INTO reactions (user_id, story_title_id, chapter_id, paragraph_index, reaction_type) VALUES ($1, $2, $3, $4, $5)',
-      [userId, storyTitleId || null, chapterId || null, paragraphIndex ?? null, reactionType],
-    );
-    res.status(201).json({ ok: true });
+    await client.query('BEGIN');
+
+    // Helper to implement toggle/update semantics for a given WHERE clause
+    const handleToggle = async (whereSql, whereParams) => {
+      const selectSql = `SELECT id, reaction_type FROM reactions WHERE user_id = $1 AND ${whereSql} ORDER BY id ASC`;
+      const { rows } = await client.query(selectSql, [userId, ...whereParams]);
+
+      if (rows.length > 0) {
+        const existing = rows[0];
+        if (existing.reaction_type === reactionType) {
+          // Same reaction clicked again -> remove (toggle off)
+          await client.query('DELETE FROM reactions WHERE id = $1', [existing.id]);
+        } else {
+          // Switch like <-> dislike
+          await client.query(
+            'UPDATE reactions SET reaction_type = $1 WHERE id = $2',
+            [reactionType, existing.id],
+          );
+        }
+
+        // Clean up any stray duplicates for this user/target
+        if (rows.length > 1) {
+          const extraIds = rows.slice(1).map((r) => r.id);
+          await client.query('DELETE FROM reactions WHERE id = ANY($1::uuid[])', [extraIds]);
+        }
+      } else {
+        // No existing reaction for this user/target -> insert new
+        await client.query(
+          `INSERT INTO reactions (user_id, story_title_id, chapter_id, paragraph_index, screenplay_id, screenplay_scene_id, reaction_type)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [
+            userId,
+            storyTitleId || null,
+            chapterId || null,
+            paragraphIndex ?? null,
+            screenplayId || null,
+            screenplaySceneId || null,
+            reactionType,
+          ],
+        );
+      }
+    };
+
+    if (hasStoryFields) {
+      // Story/chapter reactions: match on story_title_id + chapter_id + paragraph_index
+      const whereSql =
+        'COALESCE(story_title_id::text, \'\') = COALESCE($2::text, \'\') AND COALESCE(chapter_id::text, \'\') = COALESCE($3::text, \'\') AND COALESCE(paragraph_index, -1) = COALESCE($4, -1) AND screenplay_id IS NULL AND screenplay_scene_id IS NULL';
+      const whereParams = [storyTitleId || null, chapterId || null, paragraphIndex ?? null];
+      await handleToggle(whereSql, whereParams);
+    } else {
+      // Screenplay/scene reactions: match on screenplay_id + screenplay_scene_id
+      if (!screenplayId) {
+        await client.query('ROLLBACK');
+        return res
+          .status(400)
+          .json({ error: 'screenplayId is required for screenplay reactions' });
+      }
+
+      const whereSql =
+        'COALESCE(screenplay_id::text, \'\') = COALESCE($2::text, \'\') AND COALESCE(screenplay_scene_id::text, \'\') = COALESCE($3::text, \'\') AND story_title_id IS NULL AND chapter_id IS NULL';
+      const whereParams = [screenplayId || null, screenplaySceneId || null];
+      await handleToggle(whereSql, whereParams);
+    }
+
+    await client.query('COMMIT');
+    return res.status(201).json({ ok: true });
   } catch (err) {
+    await client.query('ROLLBACK');
     console.error('[POST /reactions] failed:', err);
     res.status(500).json({ error: 'Failed to record reaction' });
+  } finally {
+    client.release();
   }
 });
 
 app.get('/reactions', async (req, res) => {
-  const { storyTitleId } = req.query;
-  if (!storyTitleId) {
-    return res.status(400).json({ error: 'storyTitleId query parameter is required' });
+  const { storyTitleId, chapterId, screenplayId, screenplaySceneId } = req.query;
+
+  const hasStory = !!storyTitleId || !!chapterId;
+  const hasScreenplay = !!screenplayId || !!screenplaySceneId;
+
+  if ((hasStory && hasScreenplay) || (!hasStory && !hasScreenplay)) {
+    return res.status(400).json({
+      error: 'Provide storyTitleId/chapterId or (screenplayId/screenplaySceneId)',
+    });
+  }
+
+  let where = '';
+  let param = null;
+
+  if (hasStory) {
+    if (chapterId) {
+      where = 'chapter_id = $1';
+      param = chapterId;
+    } else {
+      where = 'story_title_id = $1';
+      param = storyTitleId;
+    }
+  } else if (screenplaySceneId) {
+    where = 'screenplay_scene_id = $1';
+    param = screenplaySceneId;
+  } else {
+    where = 'screenplay_id = $1';
+    param = screenplayId;
   }
 
   try {
     const { rows } = await pool.query(
       `SELECT reaction_type, COUNT(*) as count
        FROM reactions
-       WHERE story_title_id = $1
+       WHERE ${where}
        GROUP BY reaction_type`,
-      [storyTitleId],
+      [param],
     );
     res.json(rows);
   } catch (err) {
@@ -3187,20 +3747,104 @@ app.post('/proposals/:proposalId/decline', async (req, res) => {
 
 // Comments
 app.post('/comments', async (req, res) => {
-  const { userId, storyTitleId, chapterId, paragraphIndex, body, parentCommentId } = req.body ?? {};
+  const {
+    userId,
+    storyTitleId,
+    screenplayId,
+    chapterId,
+    screenplaySceneId,
+    paragraphIndex,
+    body,
+    parentCommentId,
+  } = req.body ?? {};
 
-  if (!userId || !storyTitleId || !body) {
-    return res.status(400).json({ error: 'userId, storyTitleId, and body are required' });
+  if (!userId || !body) {
+    return res
+      .status(400)
+      .json({ error: 'userId and body are required to post a comment' });
+  }
+
+  const hasStoryFields = !!storyTitleId || !!chapterId;
+  const hasScreenplayFields = !!screenplayId || !!screenplaySceneId;
+
+  if (hasStoryFields && hasScreenplayFields) {
+    return res.status(400).json({
+      error: 'Provide either storyTitleId/chapterId or screenplayId/screenplaySceneId, not both',
+    });
+  }
+
+  if (!hasStoryFields && !hasScreenplayFields) {
+    return res.status(400).json({
+      error: 'storyTitleId/chapterId or screenplayId/screenplaySceneId is required',
+    });
   }
 
   try {
+    // Story comments (optionally chapter/paragraph scoped)
+    if (hasStoryFields) {
+      let finalStoryTitleId = storyTitleId || null;
+
+      // If only chapterId is provided, derive story_title_id from stories
+      if (!finalStoryTitleId && chapterId) {
+        try {
+          const lookup = await pool.query(
+            'SELECT story_title_id FROM stories WHERE chapter_id = $1',
+            [chapterId],
+          );
+          if (lookup.rows.length > 0) {
+            finalStoryTitleId = lookup.rows[0].story_title_id;
+          }
+        } catch (lookupErr) {
+          console.error('[POST /comments] failed to derive story_title_id from chapterId:', lookupErr);
+        }
+      }
+
+      if (!finalStoryTitleId) {
+        return res.status(400).json({
+          error: 'storyTitleId is required for story comments (directly or via chapterId lookup)',
+        });
+      }
+
+      const { rows } = await pool.query(
+        `INSERT INTO comments (user_id, story_title_id, chapter_id, paragraph_index, body, parent_comment_id)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING *`,
+        [
+          userId,
+          finalStoryTitleId,
+          chapterId || null,
+          paragraphIndex ?? null,
+          body,
+          parentCommentId || null,
+        ],
+      );
+      return res.status(201).json(rows[0]);
+    }
+
+    // Screenplay comments (optionally scene-scoped). We require screenplayId
+    // explicitly so callers cannot accidentally attach comments to a scene
+    // from the wrong screenplay.
+    if (!screenplayId) {
+      return res
+        .status(400)
+        .json({ error: 'screenplayId is required for screenplay comments' });
+    }
+
     const { rows } = await pool.query(
-      `INSERT INTO comments (user_id, story_title_id, chapter_id, paragraph_index, body, parent_comment_id)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO comments (user_id, screenplay_id, screenplay_scene_id, chapter_id, paragraph_index, body, parent_comment_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [userId, storyTitleId, chapterId || null, paragraphIndex ?? null, body, parentCommentId || null],
+      [
+        userId,
+        screenplayId,
+        screenplaySceneId || null,
+        chapterId || null,
+        paragraphIndex ?? null,
+        body,
+        parentCommentId || null,
+      ],
     );
-    res.status(201).json(rows[0]);
+    return res.status(201).json(rows[0]);
   } catch (err) {
     console.error('[POST /comments] failed:', err);
     res.status(500).json({ error: 'Failed to post comment' });
@@ -3208,17 +3852,50 @@ app.post('/comments', async (req, res) => {
 });
 
 app.get('/comments', async (req, res) => {
-  const { storyTitleId } = req.query;
-  if (!storyTitleId) {
-    return res.status(400).json({ error: 'storyTitleId query parameter is required' });
+  const { storyTitleId, screenplayId, chapterId, screenplaySceneId } = req.query;
+
+  const hasStoryFields = !!storyTitleId || !!chapterId;
+  const hasScreenplayFields = !!screenplayId || !!screenplaySceneId;
+
+  if (hasStoryFields && hasScreenplayFields) {
+    return res.status(400).json({
+      error: 'Provide either storyTitleId/chapterId or screenplayId/screenplaySceneId, not both',
+    });
+  }
+
+  if (!hasStoryFields && !hasScreenplayFields) {
+    return res.status(400).json({
+      error: 'storyTitleId, chapterId, screenplayId, or screenplaySceneId is required',
+    });
+  }
+
+  let where = '';
+  let params = [];
+
+  if (hasStoryFields) {
+    if (chapterId) {
+      where = 'chapter_id = $1';
+      params = [chapterId];
+    } else {
+      where = 'story_title_id = $1';
+      params = [storyTitleId];
+    }
+  } else if (hasScreenplayFields) {
+    if (screenplaySceneId) {
+      where = 'screenplay_scene_id = $1';
+      params = [screenplaySceneId];
+    } else {
+      where = 'screenplay_id = $1';
+      params = [screenplayId];
+    }
   }
 
   try {
     const { rows } = await pool.query(
       `SELECT * FROM comments
-       WHERE story_title_id = $1
+       WHERE ${where}
        ORDER BY created_at ASC`,
-      [storyTitleId],
+      params,
     );
     res.json(rows);
   } catch (err) {

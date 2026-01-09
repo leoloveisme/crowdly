@@ -93,7 +93,9 @@ const INITIAL_PROFILE = {
   notify_phone: false,
   notify_app: true,
   notify_email: true,
-  username: ""    // <-- Add this line
+  username: "",    // <-- Add this line
+  show_public_stories: true,
+  show_public_screenplays: true,
 };
 
 const Profile = () => {
@@ -764,7 +766,7 @@ const Profile = () => {
                   <RadioGroup 
                     value={visibilityOption} 
                     onValueChange={setVisibilityOption}
-                    className="space-y-2"
+                    className="space-y-2 mb-3"
                   >
                     <div className="flex items-center space-x-2">
                       <RadioGroupItem value="public" id="public-popup" />
@@ -788,6 +790,44 @@ const Profile = () => {
                       </Label>
                     </div>
                   </RadioGroup>
+
+                  <div className="mt-2 border-t pt-2 space-y-1">
+                    <p className="text-xs font-medium text-gray-500 mb-1">
+                      <EditableText id="section-visibility-heading">
+                        Sections visible on your public profile
+                      </EditableText>
+                    </p>
+                    <div className="flex items-center space-x-2 text-xs text-gray-600">
+                      <Checkbox
+                        id="show-public-stories"
+                        checked={(profile as any).show_public_stories !== false}
+                        onCheckedChange={(checked) =>
+                          saveProfileField(
+                            "show_public_stories" as any,
+                            Boolean(checked),
+                          )
+                        }
+                      />
+                      <Label htmlFor="show-public-stories" className="cursor-pointer">
+                        Show my stories
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2 text-xs text-gray-600">
+                      <Checkbox
+                        id="show-public-screenplays"
+                        checked={(profile as any).show_public_screenplays !== false}
+                        onCheckedChange={(checked) =>
+                          saveProfileField(
+                            "show_public_screenplays" as any,
+                            Boolean(checked),
+                          )
+                        }
+                      />
+                      <Label htmlFor="show-public-screenplays" className="cursor-pointer">
+                        Show my screenplays
+                      </Label>
+                    </div>
+                  </div>
                 </PopoverContent>
               </Popover>
             )}

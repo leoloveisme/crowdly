@@ -145,60 +145,64 @@ const PublicProfile: React.FC = () => {
           </header>
 
           {/* Public stories */}
-          <section className="mb-10">
-            <h2 className="text-xl font-bold mb-3 flex items-center gap-2">
-              <span>Stories</span>
-            </h2>
-            {stories.length === 0 ? (
-              <p className="text-sm text-gray-400 italic">
-                No public stories yet.
-              </p>
-            ) : (
-              <ul className="space-y-1 text-sm">
-                {stories.map((s) => (
-                  <li key={s.story_title_id} className="flex items-center gap-2">
-                    <Link
-                      to={`/story/${s.story_title_id}`}
-                      className="text-purple-700 hover:underline"
-                    >
-                      {s.title}
-                    </Link>
-                    <span className="text-[11px] text-gray-500">
-                      ({new Date(s.created_at).toLocaleString()})
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+          {profile.show_public_stories !== false && (
+            <section className="mb-10">
+              <h2 className="text-xl font-bold mb-3 flex items-center gap-2">
+                <span>Stories</span>
+              </h2>
+              {stories.length === 0 ? (
+                <p className="text-sm text-gray-400 italic">
+                  No public stories yet.
+                </p>
+              ) : (
+                <ul className="space-y-1 text-sm">
+                  {stories.map((s) => (
+                    <li key={s.story_title_id} className="flex items-center gap-2">
+                      <Link
+                        to={`/story/${s.story_title_id}`}
+                        className="text-purple-700 hover:underline"
+                      >
+                        {s.title}
+                      </Link>
+                      <span className="text-[11px] text-gray-500">
+                        ({new Date(s.created_at).toLocaleString()})
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
 
           {/* Public screenplays */}
-          <section className="mb-10">
-            <h2 className="text-xl font-bold mb-3 flex items-center gap-2">
-              <span>Screenplays</span>
-            </h2>
-            {screenplays.length === 0 ? (
-              <p className="text-sm text-gray-400 italic">
-                No public screenplays yet.
-              </p>
-            ) : (
-              <ul className="space-y-1 text-sm">
-                {screenplays.map((sp) => (
-                  <li key={sp.screenplay_id} className="flex items-center gap-2">
-                    <Link
-                      to={`/screenplay/${sp.screenplay_id}`}
-                      className="text-purple-700 hover:underline"
-                    >
-                      {sp.title}
-                    </Link>
-                    <span className="text-[11px] text-gray-500">
-                      ({new Date(sp.created_at).toLocaleString()})
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+          {profile.show_public_screenplays !== false && (
+            <section className="mb-10">
+              <h2 className="text-xl font-bold mb-3 flex items-center gap-2">
+                <span>Screenplays</span>
+              </h2>
+              {screenplays.length === 0 ? (
+                <p className="text-sm text-gray-400 italic">
+                  No public screenplays yet.
+                </p>
+              ) : (
+                <ul className="space-y-1 text-sm">
+                  {screenplays.map((sp) => (
+                    <li key={sp.screenplay_id} className="flex items-center gap-2">
+                      <Link
+                        to={`/screenplay/${sp.screenplay_id}`}
+                        className="text-purple-700 hover:underline"
+                      >
+                        {sp.title}
+                      </Link>
+                      <span className="text-[11px] text-gray-500">
+                        ({new Date(sp.created_at).toLocaleString()})
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
         </div>
       </main>
       <CrowdlyFooter />
