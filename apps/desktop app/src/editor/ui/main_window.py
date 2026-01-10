@@ -54,6 +54,7 @@ from ..exporting.markdown_utils import render_html_from_markdown
 from .editor_widget import EditorWidget
 from .preview_widget import PreviewWidget
 from .compare_revisions import CompareRevisionsWindow
+from .master_document_window import MasterDocumentWindow
 
 
 class MainWindow(QMainWindow):
@@ -183,9 +184,13 @@ class MainWindow(QMainWindow):
         self._action_new_story = new_menu.addAction(
             self.tr("Story"), self._new_story_from_template
         )
-        # Placeholder submenu for future master-document features.
+        # Master Document workspace entry point.
         master_document_menu = new_menu.addMenu(self.tr("Master document"))
         self._master_document_menu = master_document_menu
+        self._action_open_master_document = master_document_menu.addAction(
+            self.tr("Open master document window"),
+            self._open_master_document_window,
+        )
         # Workspace creation helpers.
         self._action_new_tab = new_menu.addAction(
             self.tr("Tab"), self._new_tab
@@ -204,6 +209,14 @@ class MainWindow(QMainWindow):
         self._action_open_file = open_menu.addAction(
             self.tr("File"),
             self._open_document,
+        )
+
+        # Master document open helpers.
+        master_open_menu = open_menu.addMenu(self.tr("Master document"))
+        self._master_open_menu = master_open_menu
+        self._action_open_master_file = master_open_menu.addAction(
+            self.tr("From file..."),
+            self._open_master_document_from_file,
         )
 
         # Spaces menu: lets the user manage and switch between multiple creative spaces.
@@ -1155,6 +1168,29 @@ class MainWindow(QMainWindow):
         # Trigger a re-application of all translatable strings.
         self._retranslate_ui()
 
+    def closeEvent(self, event) -> None:  # pragma: no cover - UI wiring
+        """Ensure all extra top-level windows close with the main window."""
+
+        try:
+            app = QCoreApplication.instance()
+            if app is not None:
+                extra = getattr(app, "_extra_windows", None)
+                if isinstance(extra, list):
+                    # Create a copy so that closing windows that mutate
+                    # the list does not interfere with iteration.
+                    for win in list(extra):
+                        try:
+                            # Avoid closing self twice.
+                            if win is self:
+                                continue
+                            win.close()
+                        except Exception:
+                            continue
+        except Exception:
+            pass
+
+        super().closeEvent(event)
+
     def _update_language_actions(self) -> None:
         """Ensure the language menu reflects the current setting."""
 
@@ -2033,6 +2069,85 @@ class MainWindow(QMainWindow):
                 self.tr("An unexpected error occurred while opening a new window."),
             )
 
+    def _open_master_document_window(self) -> None:  # pragma: no cover - UI wiring
+        """Open a full-window Master Document workspace.
+
+        The new window reuses the current settings instance and project
+        space but otherwise operates independently of the main editor
+        tabs, so existing behaviour remains unchanged.
+        """
+
+        app = QCoreApplication.instance()
+        if app is None:
+            return
+
+        try:
+            window = MasterDocumentWindow(
+                settings=self._settings,
+                project_space=self._project_space_path,
+                master_path=None,
+                parent=None,
+            )
+            # Start maximised to satisfy the full-width / full-height
+            # requirement; users can resize afterwards if desired.
+            window.showMaximized()
+
+            # Keep a strong reference attached to the QApplication instance so
+            # Python's garbage collector does not close the window prematurely.
+            extra = getattr(app, "_extra_windows", None)
+            if not isinstance(extra, list):
+                extra = []
+                setattr(app, "_extra_windows", extra)
+            extra.append(window)
+        except Exception:
+            QMessageBox.critical(
+                self,
+                self.tr("Error"),
+                self.tr("An unexpected error occurred while opening the master document window."),
+            )
+
+    def _open_master_document_from_file(self) -> None:  # pragma: no cover - UI wiring
+        """Let the user pick a `.master` file and open it in its own window."""
+
+        start_dir = str(self._project_space_path) if self._project_space_path else ""
+        path_str, _ = QFileDialog.getOpenFileName(
+            self,
+            self.tr("Open master document"),
+            start_dir,
+            self.tr("Master documents (*.master);;All files (*)"),
+        )
+        if not path_str:
+            return
+
+        self._open_master_document_from_path(Path(path_str))
+
+    def _open_master_document_from_path(self, master_path: Path) -> None:
+        """Open *master_path* in a dedicated MasterDocumentWindow."""
+
+        app = QCoreApplication.instance()
+        if app is None:
+            return
+
+        try:
+            window = MasterDocumentWindow(
+                settings=self._settings,
+                project_space=self._project_space_path,
+                master_path=master_path,
+                parent=None,
+            )
+            window.showMaximized()
+
+            extra = getattr(app, "_extra_windows", None)
+            if not isinstance(extra, list):
+                extra = []
+                setattr(app, "_extra_windows", extra)
+            extra.append(window)
+        except Exception:
+            QMessageBox.critical(
+                self,
+                self.tr("Error"),
+                self.tr("An unexpected error occurred while opening the master document file."),
+            )
     def _export_as_pdf(self) -> None:  # pragma: no cover - UI wiring
         """Export the current document as a PDF file."""
 
@@ -3258,11 +3373,30 @@ class MainWindow(QMainWindow):
         if not valid_paths:
             return
 
-        # Open the first file in the current tab.
-        self._load_document_from_path(valid_paths[0])
+        # Split into `.master` files and regular documents.
+        master_paths: list[Path] = []
+        normal_paths: list[Path] = []
+        for p in valid_paths:
+            if p.suffix.lower() == ".master":
+                master_paths.append(p)
+            else:
+                normal_paths.append(p)
 
-        # Any remaining files are opened in their own tabs.
-        for extra in valid_paths[1:]:
+        # Open each master document in its own dedicated window.
+        for mp in master_paths:
+            try:
+                self._open_master_document_from_path(mp)
+            except Exception:
+                continue
+
+        if not normal_paths:
+            return
+
+        # Open the first *non-master* file in the current tab.
+        self._load_document_from_path(normal_paths[0])
+
+        # Any remaining non-master files are opened in their own tabs.
+        for extra in normal_paths[1:]:
             try:
                 # Create a new blank tab and make it active.
                 self._new_tab()

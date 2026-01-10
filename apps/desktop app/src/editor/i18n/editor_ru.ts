@@ -5,7 +5,19 @@
     <name>MainWindow</name>
     <message>
         <source>Distraction-Free Editor</source>
-        <translation>Crowdly desktop app</translation>
+        <translation>Crowdly компьютерное приложение</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Поиск</translation>
+    </message>
+    <message>
+        <source>Find</source>
+        <translation>Найти</translation>
+    </message>
+    <message>
+        <source>Replace</source>
+        <translation>Заменить</translation>
     </message>
     <message>
         <source>Main menu</source>
@@ -18,6 +30,14 @@
     <message>
         <source>Master document</source>
         <translation>Мастер документ</translation>
+    </message>
+    <message>
+        <source>From file...</source>
+        <translation>из файла</translation>
+    </message>
+    <message>
+        <source>Open master document window</source>
+        <translation>Откпыть окно создания мастер документа</translation>
     </message>
     <message>
         <source>New document</source>
