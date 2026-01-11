@@ -38,8 +38,12 @@ from .pdf_exporter import PdfExporter  # noqa: E402
 from .docx_exporter import DocxExporter  # noqa: E402
 from .odt_exporter import OdtExporter  # noqa: E402
 from .epub_exporter import EpubExporter  # noqa: E402
+from .fdx_exporter import FdxExporter  # noqa: E402
+from .fountain_exporter import FountainExporter  # noqa: E402
 
 register_exporter(ExportFormat.PDF, PdfExporter())
 register_exporter(ExportFormat.DOCX, DocxExporter())
 register_exporter(ExportFormat.ODT, OdtExporter())
 register_exporter(ExportFormat.EPUB, EpubExporter())
+register_exporter(ExportFormat.FDX, FdxExporter())
+register_exporter(ExportFormat.FOUNTAIN, FountainExporter())

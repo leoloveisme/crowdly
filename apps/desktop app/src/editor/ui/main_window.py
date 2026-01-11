@@ -51,6 +51,7 @@ from ..importing.base import DocumentImportError
 from ..exporting import controller as exporting_controller
 from ..exporting.base import ExportError, ExportFormat, ExportRequest
 from ..exporting.markdown_utils import render_html_from_markdown
+from .. import storage
 from .editor_widget import EditorWidget
 from .preview_widget import PreviewWidget
 from .compare_revisions import CompareRevisionsWindow
@@ -137,6 +138,10 @@ class MainWindow(QMainWindow):
         self._autosave_timer = QTimer(self)
         self._autosave_timer.setSingleShot(True)
         self._autosave_timer.timeout.connect(self._perform_autosave)
+
+        # Track whether we've already shown the "no Space set" warning in this
+        # window so that it appears at most once.
+        self._no_space_warning_shown: bool = False
 
         # Inline search/replace state.
         self._search_text: str = ""
@@ -245,6 +250,12 @@ class MainWindow(QMainWindow):
         )
         self._action_export_odt = export_menu.addAction(
             self.tr("as odt"), self._export_as_odt
+        )
+        self._action_export_fdx = export_menu.addAction(
+            self.tr("as FDX"), self._export_as_fdx
+        )
+        self._action_export_fountain = export_menu.addAction(
+            self.tr("as FOUNTAIN"), self._export_as_fountain
         )
 
         settings_menu = menu.addMenu(self.tr("Settings"))
@@ -521,9 +532,147 @@ class MainWindow(QMainWindow):
             if bar is not None:
                 bar.showMessage(text)
 
-    # ------------------------------------------------------------------
-    # Spaces (creative project-space roots)
-    # ------------------------------------------------------------------
+    def _space_and_project_space_unset(self) -> bool:
+        """Return True when there is no active project space configured.
+
+        This reflects the "if none of the Space is set and the project space is
+        also empty" condition: from the editor's perspective this simply means
+        that there is no current project-space root (``self._project_space_path``).
+        """
+
+        return self._project_space_path is None
+
+    def _maybe_warn_no_space_on_input(self, new_text: str) -> None:
+        """Show a one-time warning when typing with no Space / project space.
+
+        The dialog is modal, so the user cannot continue typing until it is
+        closed, and it appears at most once per window.
+        """
+
+        if self._no_space_warning_shown:
+            return
+        if not self._space_and_project_space_unset():
+            return
+        if not new_text or not str(new_text).strip():
+            return
+
+        self._no_space_warning_shown = True
+
+        QMessageBox.information(
+            self,
+            self.tr("Project space is not set"),
+            self.tr("There is no Space set now. You need to set it now to keep your input."),
+        )
+
+    def _should_offer_save_for_document_without_space(self, document: Document | None) -> bool:
+        """Return True if unsaved input should trigger a save/backup prompt.
+
+        The prompt is only shown when there are no configured Spaces, no
+        project space and the document is an in-memory draft without a
+        filesystem path.
+        """
+
+        if not self._space_and_project_space_unset():
+            return False
+        if not isinstance(document, Document):
+            return False
+
+        content = getattr(document, "content", "") or ""
+        if not content.strip():
+            return False
+
+        # Only treat documents without a concrete path as at-risk new drafts.
+        if getattr(document, "path", None) is not None:
+            return False
+
+        return True
+
+    def _write_backup_to_home(self, document: Document) -> None:
+        """Best-effort: write the document content to ``~/*.bupx``.
+
+        This is used when the user chooses not to save explicitly but we still
+        want to keep a safety copy of their input in the home directory.
+        """
+
+        try:
+            home = Path.home()
+            timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+            backup_path = home / f"crowdly-backup-{timestamp}.bupx"
+            storage.write_text(backup_path, getattr(document, "content", "") or "")
+        except Exception:
+            # Backups must never interfere with core behaviour.
+            pass
+
+    def _confirm_preserve_input_for_document(self, document: Document | None) -> bool:
+        """Ask whether to save or discard unsaved input for *document*.
+
+        Returns ``True`` when the caller may proceed with a potentially
+        destructive action (new document, close tab, close window) and
+        ``False`` when the action should be cancelled.
+        """
+
+        if not self._should_offer_save_for_document_without_space(document):
+            return True
+
+        # Inform the user that their current in-memory input would be lost.
+        result = QMessageBox.question(
+            self,
+            self.tr("Unsaved input"),
+            self.tr("Your input will be lost. Do you want to save it?"),
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes,
+        )
+
+        if result == QMessageBox.StandardButton.Yes:
+            # Let the user choose where to save the current document.
+            default_name = datetime.now().strftime("untitled-%Y%m%d-%H%M%S.md")
+            initial = str(Path.home() / default_name)
+
+            path_str, _ = QFileDialog.getSaveFileName(
+                self,
+                self.tr("Save document"),
+                initial,
+                self.tr("Markdown files (*.md);;All files (*)"),
+            )
+            if not path_str:
+                # User changed their mind; cancel the original action.
+                return False
+
+            target_path = Path(path_str)
+            if target_path.suffix.lower() != ".md":
+                target_path = target_path.with_suffix(".md")
+
+            try:
+                # Use the document model so metadata and dirty flags stay consistent.
+                assert isinstance(document, Document)
+                document.save(target_path)
+            except Exception:
+                # If the explicit save fails we do not proceed with destroying
+                # the content.
+                QMessageBox.warning(
+                    self,
+                    self.tr("Save failed"),
+                    self.tr(
+                        "The document could not be saved. The operation has been cancelled."
+                    ),
+                )
+                return False
+
+            return True
+
+        # "No" branch: proceed with the requested operation but first write a
+        # backup into the user's home directory.
+        try:
+            if isinstance(document, Document):
+                self._write_backup_to_home(document)
+        except Exception:
+            pass
+
+        return True
+
+        # ------------------------------------------------------------------
+        # Spaces (creative project-space roots)
+        # ------------------------------------------------------------------
 
     def _ensure_space_registered(self, path: Path) -> None:
         """Add *path* to the known spaces list and settings if it is missing."""
@@ -751,6 +900,10 @@ class MainWindow(QMainWindow):
         an autosave after a short delay.
         """
 
+        # If there is no configured Space / project space yet, warn once so
+        # the user knows they need to configure it to keep their input.
+        self._maybe_warn_no_space_on_input(text)
+
         self._document.set_content(text)
         self._last_change_from_preview = False
 
@@ -773,6 +926,10 @@ class MainWindow(QMainWindow):
         in the preview. We treat this as the canonical source so that the local
         file and backend sync remain Markdown-based.
         """
+
+        # Apply the same one-time "no Space set" warning when editing via the
+        # WYSIWYG pane.
+        self._maybe_warn_no_space_on_input(text)
 
         self._document.set_content(text)
         self._last_change_from_preview = True
@@ -841,15 +998,35 @@ class MainWindow(QMainWindow):
     def _on_tab_close_requested(self, index: int) -> None:  # pragma: no cover - UI wiring
         """Handle requests to close a tab via its 'x' button.
 
-        At least one tab is always kept open; closing the last remaining tab is
-        ignored for now.
+        When the last remaining tab is closed, we keep the tab in place but
+        start a fresh blank document in it (equivalent to "New  New document"),
+        so there is always at least one workspace available.
         """
 
         if index < 0 or index >= len(self._tab_widgets):
             return
 
-        # Do not allow closing the last remaining tab.
+        # Give the user a chance to preserve unsaved input when there is no
+        # configured Space / project space and the tab holds an in-memory
+        # draft.
+        try:
+            doc = self._tab_documents[index]
+        except Exception:
+            doc = None
+        if not self._confirm_preserve_input_for_document(doc if isinstance(doc, Document) else None):
+            return
+
+        # Special case: closing the only tab should behave like starting a new
+        # document rather than removing the tab entirely.
         if self._tab_widget.count() <= 1:
+            # Ensure the tab we're "closing" is treated as the active tab.
+            if index != self._current_tab_index:
+                self._tab_widget.setCurrentIndex(index)
+                self._on_tab_changed(index)
+
+            # Equivalent to using "New  New document" on the single tab, but we
+            # skip an extra confirmation because we have already asked above.
+            self._reset_current_tab_document()
             return
 
         # Remove the tab from the QTabWidget first; Qt will pick a new current
@@ -1171,6 +1348,17 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event) -> None:  # pragma: no cover - UI wiring
         """Ensure all extra top-level windows close with the main window."""
 
+        # When there is unsaved in-memory input and no Space / project space is
+        # configured, give the user a chance to save it or write a backup
+        # before closing the window entirely.
+        try:
+            if not self._confirm_preserve_input_for_document(self._document):
+                event.ignore()
+                return
+        except Exception:
+            # Never prevent the window from closing due to prompt failures.
+            pass
+
         try:
             app = QCoreApplication.instance()
             if app is not None:
@@ -1326,6 +1514,10 @@ class MainWindow(QMainWindow):
             self._action_export_docx.setText(self.tr("as docx"))
         if hasattr(self, "_action_export_odt"):
             self._action_export_odt.setText(self.tr("as odt"))
+        if hasattr(self, "_action_export_fdx"):
+            self._action_export_fdx.setText(self.tr("as FDX"))
+        if hasattr(self, "_action_export_fountain"):
+            self._action_export_fountain.setText(self.tr("as FOUNTAIN"))
         if hasattr(self, "_action_choose_project_space"):
             self._action_choose_project_space.setText(
                 self.tr("Create or choose your project space")
@@ -1634,12 +1826,8 @@ class MainWindow(QMainWindow):
 
     # Slots ---------------------------------------------------------------
 
-    def _new_document(self) -> None:  # pragma: no cover - UI wiring
-        """Save the current document (if needed) and start a new blank one.
-
-        This only affects the *current* tab; other tabs keep their documents
-        unchanged.
-        """
+    def _reset_current_tab_document(self) -> None:
+        """Internal helper: clear the current tab and start a blank document."""
 
         # Ensure any pending autosave is processed immediately.
         if self._autosave_timer.isActive():
@@ -1666,6 +1854,21 @@ class MainWindow(QMainWindow):
         self._current_story_or_screenplay_id = None
         self._current_story_or_screenplay_url = None
         self._update_story_link_label()
+
+    def _new_document(self) -> None:  # pragma: no cover - UI wiring
+        """Save the current document (if needed) and start a new blank one.
+
+        This only affects the *current* tab; other tabs keep their documents
+        unchanged.
+        """
+
+        # When there is no configured Space / project space and the current
+        # document is an in-memory draft, ask the user whether and how to
+        # preserve their input before discarding it.
+        if not self._confirm_preserve_input_for_document(self._document):
+            return
+
+        self._reset_current_tab_document()
 
     def _new_story_from_template(self) -> None:  # pragma: no cover - UI wiring
         """Create a new Crowdly story or screenplay using backend templates.
@@ -2182,6 +2385,24 @@ class MainWindow(QMainWindow):
             ExportFormat.ODT,
             self.tr("Export as odt"),
             self.tr("OpenDocument text (*.odt);;All files (*)"),
+        )
+
+    def _export_as_fdx(self) -> None:  # pragma: no cover - UI wiring
+        """Export the current document as a Final Draft (.fdx) file."""
+
+        self._export_document(
+            ExportFormat.FDX,
+            self.tr("Export as FDX"),
+            self.tr("Final Draft files (*.fdx);;All files (*)"),
+        )
+
+    def _export_as_fountain(self) -> None:  # pragma: no cover - UI wiring
+        """Export the current document as a Fountain (.fountain) file."""
+
+        self._export_document(
+            ExportFormat.FOUNTAIN,
+            self.tr("Export as Fountain"),
+            self.tr("Fountain files (*.fountain);;All files (*)"),
         )
 
     def _import_from_file(self) -> None:  # pragma: no cover - UI wiring

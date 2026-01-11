@@ -4,6 +4,8 @@ This file provides guidance to WARP (warp.dev) when working with code in this re
 
 ## Commands
 
+### Python = Python3 !!!! Use python3 instead just python
+
 ### Environment and setup (web app)
 - Requires Node.js and npm (README recommends installing Node via nvm).
 - All frontend commands below are run from the repository root.

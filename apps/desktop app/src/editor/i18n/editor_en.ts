@@ -335,5 +335,33 @@ Details: {error}</translation>
       <source>Genre updated.</source>
       <translation>Genre updated.</translation>
     </message>
+    <message>
+      <source>Project space is not set</source>
+      <translation>Project space is not set</translation>
+    </message>
+    <message>
+      <source>There is no Space set now. You need to set it now to keep your input.</source>
+      <translation>There is no Space set now. You need to set it now to keep your input.</translation>
+    </message>
+    <message>
+      <source>Unsaved input</source>
+      <translation>Unsaved input</translation>
+    </message>
+    <message>
+      <source>You input will be lost. Do you want to save it?</source>
+      <translation>You input will be lost. Do you want to save it?</translation>
+    </message>
+    <message>
+      <source>Save document</source>
+      <translation>Save document</translation>
+    </message>
+    <message>
+      <source>Save failed</source>
+      <translation>Save failed</translation>
+    </message>
+    <message>
+      <source>The document could not be saved. The operation has been cancelled.</source>
+      <translation>The document could not be saved. The operation has been cancelled.</translation>
+    </message>
   </context>
 </TS>

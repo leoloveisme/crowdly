@@ -15,6 +15,8 @@ class ExportFormat(str, Enum):
     EPUB = "epub"
     DOCX = "docx"
     ODT = "odt"
+    FDX = "fdx"
+    FOUNTAIN = "fountain"
 
     @property
     def extension(self) -> str:

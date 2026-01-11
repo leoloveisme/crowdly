@@ -55,11 +55,15 @@ def _register_builtin_importers() -> None:
     from .odt_importer import OdtImporter
     from .pdf_importer import PdfImporter
     from .epub_importer import EpubImporter
+    from .fdx_importer import FdxImporter
+    from .fountain_importer import FountainImporter
 
     register_importer(".docx", DocxImporter())
     register_importer(".odt", OdtImporter())
     register_importer(".pdf", PdfImporter())
     register_importer(".epub", EpubImporter())
+    register_importer(".fdx", FdxImporter())
+    register_importer(".fountain", FountainImporter())
 
 
 # Eagerly register built-ins on import so callers can immediately query
