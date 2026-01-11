@@ -211,9 +211,21 @@ class MainWindow(QMainWindow):
             self.tr("Story on the web"),
             self._open_story_on_web,
         )
-        self._action_open_file = open_menu.addAction(
-            self.tr("File"),
-            self._open_document,
+
+        # File-open submenu with options for current tab, new tab and new window.
+        file_open_menu = open_menu.addMenu(self.tr("File"))
+        self._file_open_menu = file_open_menu
+        self._action_open_file_current_tab = file_open_menu.addAction(
+            self.tr("in the current tab"),
+            self._open_document_in_current_tab,
+        )
+        self._action_open_file_new_tab = file_open_menu.addAction(
+            self.tr("in a new tab"),
+            self._open_document_in_new_tab,
+        )
+        self._action_open_file_new_window = file_open_menu.addAction(
+            self.tr("in a new window"),
+            self._open_document_in_new_window,
         )
 
         # Master document open helpers.
@@ -510,6 +522,35 @@ class MainWindow(QMainWindow):
         self._update_story_link_label()
 
     # Internal helpers ----------------------------------------------------
+
+    def _update_window_title(self) -> None:
+        """Update the OS window title with app name and current filename.
+
+        Many window managers center the full title string, so we cannot control
+        alignment of the app name vs. filename independently; instead we show
+        both in a single title, e.g. "document.md — Distraction-Free Editor".
+        """
+
+        app_name = self.tr("Distraction-Free Editor")
+        title = app_name
+
+        path = getattr(self._document, "path", None)
+        if isinstance(path, Path):
+            try:
+                name = path.name
+            except Exception:
+                try:
+                    name = str(path)
+                except Exception:
+                    name = ""
+            if name:
+                title = f"{name} — {app_name}"
+
+        try:
+            self.setWindowTitle(title)
+        except Exception:
+            # Never let title updates affect core behaviour.
+            pass
 
     def _update_project_space_status(self) -> None:
         """Update the status bar label with the current project space."""
@@ -1076,6 +1117,7 @@ class MainWindow(QMainWindow):
         self.preview.set_markdown(self._document.content)
         self._update_document_stats_label()
         self._update_story_link_label()
+        self._update_window_title()
 
         # Keep the pane visibility in sync with the global checkboxes.
         if hasattr(self, "_chk_md_editor"):
@@ -1170,6 +1212,7 @@ class MainWindow(QMainWindow):
             return
 
         self._document.save(target_path)
+        self._update_window_title()
 
         # Enqueue a local versioning snapshot under the `.crowdly` directory
         # so that all changes are captured for later revision/diff pipelines.
@@ -1403,7 +1446,8 @@ class MainWindow(QMainWindow):
     def _retranslate_ui(self) -> None:
         """(Re-)apply all translatable UI strings for the current language."""
 
-        self.setWindowTitle(self.tr("Distraction-Free Editor"))
+        # Window title shows app name and current filename when available.
+        self._update_window_title()
 
         # Menus and actions.
         if hasattr(self, "_burger_button"):
@@ -1424,10 +1468,20 @@ class MainWindow(QMainWindow):
             self._action_new_window.setText(self.tr("Window"))
         if hasattr(self, "_open_menu"):
             self._open_menu.setTitle(self.tr("Open"))
+        if hasattr(self, "_file_open_menu"):
+            self._file_open_menu.setTitle(self.tr("File"))
         if hasattr(self, "_action_open_story_web"):
             self._action_open_story_web.setText(self.tr("Story on the web"))
-        if hasattr(self, "_action_open_file"):
-            self._action_open_file.setText(self.tr("File"))
+        if hasattr(self, "_action_open_file_current_tab"):
+            self._action_open_file_current_tab.setText(
+                self.tr("in the current tab")
+            )
+        if hasattr(self, "_action_open_file_new_tab"):
+            self._action_open_file_new_tab.setText(self.tr("in a new tab"))
+        if hasattr(self, "_action_open_file_new_window"):
+            self._action_open_file_new_window.setText(
+                self.tr("in a new window")
+            )
         if hasattr(self, "_settings_menu"):
             self._settings_menu.setTitle(self.tr("Settings"))
         if hasattr(self, "_spaces_menu"):
@@ -1854,6 +1908,7 @@ class MainWindow(QMainWindow):
         self._current_story_or_screenplay_id = None
         self._current_story_or_screenplay_url = None
         self._update_story_link_label()
+        self._update_window_title()
 
     def _new_document(self) -> None:  # pragma: no cover - UI wiring
         """Save the current document (if needed) and start a new blank one.
@@ -2215,6 +2270,7 @@ class MainWindow(QMainWindow):
             self.preview.set_markdown(doc.content)
             self._update_document_stats_label()
             self._update_story_link_label()
+            self._update_filename_header_label()
         except Exception as exc:  # pragma: no cover - defensive
             traceback.print_exc()
             try:
@@ -3251,6 +3307,7 @@ class MainWindow(QMainWindow):
         self.preview.set_markdown(doc.content)
         self._update_document_stats_label()
         self._update_story_link_label()
+        self._update_window_title()
 
     def _on_crowdly_screenplay_fetched(self, payload: object) -> None:  # pragma: no cover - UI wiring
         """Handle a successful screenplay fetch by persisting locally and loading."""
@@ -3501,21 +3558,102 @@ class MainWindow(QMainWindow):
                 self.tr("An unexpected error occurred while handling the web-screenplay error."),
             )
 
-    def _open_document(self) -> None:  # pragma: no cover - UI wiring
-        """Open an existing Markdown document and load it into the editor."""
+    def _pick_markdown_file_to_open(self) -> Path | None:
+        """Open a file dialog and return the chosen Markdown path, if any."""
 
         start_dir = str(self._project_space_path) if self._project_space_path else ""
-        path, _ = QFileDialog.getOpenFileName(
+        path_str, _ = QFileDialog.getOpenFileName(
             self,
             self.tr("Open Markdown document"),
             start_dir,
             self.tr("Markdown files (*.md);;All files (*)"),
         )
-        if not path:
+        if not path_str:
+            return None
+
+        return Path(path_str)
+
+    def _open_document(self) -> None:  # pragma: no cover - UI wiring
+        """Open an existing Markdown document and load it into the current tab."""
+
+        external_path = self._pick_markdown_file_to_open()
+        if external_path is None:
             return
 
-        external_path = Path(path)
         self._load_document_from_path(external_path)
+
+    def _open_document_in_current_tab(self) -> None:  # pragma: no cover - UI wiring
+        """Open a Markdown document in the current tab.
+
+        This preserves the previous behaviour of the "Open → File" action,
+        which always loaded the chosen document into the active workspace.
+        """
+
+        self._open_document()
+
+    def _open_document_in_new_tab(self) -> None:  # pragma: no cover - UI wiring
+        """Open a Markdown document in a brand new tab."""
+
+        external_path = self._pick_markdown_file_to_open()
+        if external_path is None:
+            return
+
+        # Create a new blank tab and make it active, then load the document
+        # into that tab so existing content in other tabs is left untouched.
+        self._new_tab()
+        self._load_document_from_path(external_path)
+
+        # Optionally, name the tab after the file for better discoverability.
+        try:
+            index = self._current_tab_index
+            self._tab_widget.setTabText(index, external_path.name)
+        except Exception:
+            pass
+
+    def _open_document_in_new_window(self) -> None:  # pragma: no cover - UI wiring
+        """Open a Markdown document in a separate top-level window."""
+
+        external_path = self._pick_markdown_file_to_open()
+        if external_path is None:
+            return
+
+        app = QCoreApplication.instance()
+        if app is None:
+            return
+
+        try:
+            # Reuse the current settings instance so preferences are shared,
+            # and carry over the active translator so language stays in sync.
+            new_window = MainWindow(self._settings, parent=None, translator=self._translator)
+
+            # Load the chosen document into the new window's initial tab,
+            # preserving all existing project-space and metadata behaviour.
+            new_window._load_document_from_path(external_path)
+
+            new_window.show()
+
+            # Explicitly raise and activate the window so it opens in front.
+            try:
+                new_window.raise_()
+                new_window.activateWindow()
+            except Exception:
+                pass
+
+            # Keep a strong reference attached to the QApplication instance so
+            # Python's garbage collector doesn't close the window prematurely.
+            extra = getattr(app, "_extra_windows", None)
+            if not isinstance(extra, list):
+                extra = []
+                setattr(app, "_extra_windows", extra)
+            extra.append(new_window)
+        except Exception:
+            # Mirror the behaviour of _new_window: never let failures terminate
+            # the app.
+            QMessageBox.critical(
+                self,
+                self.tr("Error"),
+                self.tr("An unexpected error occurred while opening a new window."),
+            )
 
     def _load_document_from_path(self, external_path: Path) -> None:
         """Load a document from *external_path* into the current tab.
@@ -3598,6 +3736,7 @@ class MainWindow(QMainWindow):
         self.preview.set_markdown(doc.content)
         self._update_document_stats_label()
         self._update_story_link_label()
+        self._update_window_title()
 
     def _open_paths_from_cli(self, paths: list[str]) -> None:
         """Open one or more filesystem *paths* passed on the command line.

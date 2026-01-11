@@ -8,6 +8,32 @@
         <translation>Crowdly компьютерное приложение</translation>
     </message>
     <message>
+        <source>Previous</source>
+        <translation>Предыдущий</translation>
+    </message>
+
+    <message>
+        <source>Find:</source>
+        <translation>Найти</translation>
+    </message>
+    <message>
+        <source>Replace:</source>
+        <translation>Заменить</translation>
+    </message>
+
+    <message>
+        <source>Next</source>
+        <translation>Следующий</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Закрыть</translation>
+    </message>
+    <message>
+        <source>Replace All</source>
+        <translation>Заменить все</translation>
+    </message>
+    <message>
         <source>Search</source>
         <translation>Поиск</translation>
     </message>
@@ -82,6 +108,18 @@
     <message>
         <source>File</source>
         <translation>Файл</translation>
+    </message>
+    <message>
+        <source>in the current tab</source>
+        <translation>в текущей вкладке</translation>
+    </message>
+    <message>
+        <source>in a new tab</source>
+        <translation>в новой вкладке</translation>
+    </message>
+    <message>
+        <source>in a new window</source>
+        <translation>в новом окне</translation>
     </message>
     <message>
         <source>Settings</source>

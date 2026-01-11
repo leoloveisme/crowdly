@@ -40,6 +40,18 @@
       <translation>File</translation>
     </message>
     <message>
+      <source>in the current tab</source>
+      <translation>in the current tab</translation>
+    </message>
+    <message>
+      <source>in a new tab</source>
+      <translation>in a new tab</translation>
+    </message>
+    <message>
+      <source>in a new window</source>
+      <translation>in a new window</translation>
+    </message>
+    <message>
       <source>Settings</source>
       <translation>Settings</translation>
     </message>
