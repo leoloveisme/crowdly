@@ -2246,7 +2246,11 @@ class MainWindow(QMainWindow):
         self._tab_widget.setCurrentIndex(index)
 
     def _new_window(self) -> None:  # pragma: no cover - UI wiring
-        """Open a new top-level editor window sharing the same settings."""
+        """Open a new top-level editor window sharing the same settings.
+
+        The new window is shown in the foreground and activated so it does
+        not appear "behind" the existing window on some window managers.
+        """
 
         app = QCoreApplication.instance()
         if app is None:
@@ -2256,6 +2260,13 @@ class MainWindow(QMainWindow):
             # Reuse the current settings instance so preferences are shared.
             new_window = MainWindow(self._settings, parent=None, translator=self._translator)
             new_window.show()
+
+            # Explicitly raise and activate the window so it opens in front.
+            try:
+                new_window.raise_()
+                new_window.activateWindow()
+            except Exception:
+                pass
 
             # Keep a strong reference attached to the QApplication instance so
             # Python's garbage collector doesn't close the window prematurely.
@@ -2277,7 +2288,8 @@ class MainWindow(QMainWindow):
 
         The new window reuses the current settings instance and project
         space but otherwise operates independently of the main editor
-        tabs, so existing behaviour remains unchanged.
+        tabs, so existing behaviour remains unchanged. The window is
+        shown in the foreground to avoid opening behind the main window.
         """
 
         app = QCoreApplication.instance()
@@ -2294,6 +2306,13 @@ class MainWindow(QMainWindow):
             # Start maximised to satisfy the full-width / full-height
             # requirement; users can resize afterwards if desired.
             window.showMaximized()
+
+            # Explicitly raise and activate so the window appears on top.
+            try:
+                window.raise_()
+                window.activateWindow()
+            except Exception:
+                pass
 
             # Keep a strong reference attached to the QApplication instance so
             # Python's garbage collector does not close the window prematurely.
@@ -2325,7 +2344,11 @@ class MainWindow(QMainWindow):
         self._open_master_document_from_path(Path(path_str))
 
     def _open_master_document_from_path(self, master_path: Path) -> None:
-        """Open *master_path* in a dedicated MasterDocumentWindow."""
+        """Open *master_path* in a dedicated MasterDocumentWindow.
+
+        The window is maximised and activated so that it opens in the
+        foreground rather than behind existing windows.
+        """
 
         app = QCoreApplication.instance()
         if app is None:
@@ -2339,6 +2362,13 @@ class MainWindow(QMainWindow):
                 parent=None,
             )
             window.showMaximized()
+
+            # Explicitly raise and activate so it appears on top.
+            try:
+                window.raise_()
+                window.activateWindow()
+            except Exception:
+                pass
 
             extra = getattr(app, "_extra_windows", None)
             if not isinstance(extra, list):

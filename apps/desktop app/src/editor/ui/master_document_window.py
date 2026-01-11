@@ -50,6 +50,10 @@ class _IncludeListWidget(QListWidget):
     being dragged near the top or bottom edge so that users can move
     includes across large documents without having to drag-and-drop in
     multiple small steps.
+
+    It also keeps every row's width locked to the viewport width so that
+    include containers always span the full work area, regardless of
+    edits, pastes or window resizes.
     """
 
     def __init__(self, *args, **kwargs) -> None:  # pragma: no cover - UI wiring
@@ -60,6 +64,47 @@ class _IncludeListWidget(QListWidget):
         # Use a slightly larger margin so scrolling kicks in before the
         # cursor hits the exact edge of the viewport.
         self.setAutoScrollMargin(32)
+        # We never want a horizontal scrollbar; each item is stretched to
+        # the viewport width instead.
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
+    def resizeEvent(self, event) -> None:  # pragma: no cover - UI wiring
+        """Keep all rows stretched to the viewport width on resize."""
+
+        super().resizeEvent(event)
+        try:
+            self._update_item_widths()
+        except Exception:
+            # Width synchronisation is best-effort only and must not break
+            # basic list behaviour if anything goes wrong.
+            pass
+
+    def _update_item_widths(self) -> None:
+        """Force every item's width to match the viewport width.
+
+        This is called on resize and by the master document window whenever
+        a container's height changes so that edits and pastes cannot cause
+        rows to "shrink" horizontally.
+        """
+
+        try:
+            viewport_width = self.viewport().width()
+        except Exception:
+            viewport_width = 0
+
+        if viewport_width <= 0:
+            return
+
+        for row in range(self.count()):
+            item = self.item(row)
+            if item is None:
+                continue
+            hint = item.sizeHint()
+            if not hint.isValid():
+                continue
+            if hint.width() != viewport_width:
+                hint.setWidth(viewport_width)
+                item.setSizeHint(hint)
 
     def dropEvent(self, event) -> None:  # pragma: no cover - UI wiring
         pos = self.dropIndicatorPosition()
@@ -373,7 +418,9 @@ class IncludeContainerWidget(QWidget):
 
             self._content.setMinimumHeight(min_height)
 
-        self.adjustSize()
+        # Let the parent layout and QListWidget control the overall width; we
+        # only hint that the geometry has changed so height can be updated.
+        self.updateGeometry()
         self.sizeChanged.emit()
 
     def eventFilter(self, obj, event):  # pragma: no cover - UI wiring
@@ -602,15 +649,10 @@ class MasterDocumentWindow(QMainWindow):
         widget = IncludeContainerWidget(editable, parent=self._include_list)
         item = QListWidgetItem(self._include_list)
 
-        # Force the row to span the full viewport width; only the height is
-        # driven by the widget's size hint.
+        # Let the list widget control the row width; we only care about the
+        # height here. The width will be stretched to the viewport width via
+        # _IncludeListWidget._update_item_widths().
         hint = widget.sizeHint()
-        try:
-            viewport_width = self._include_list.viewport().width()
-        except Exception:
-            viewport_width = 0
-        if viewport_width > 0:
-            hint.setWidth(viewport_width)
         item.setSizeHint(hint)
 
         # Explicitly enable drag and drop on this list item so Qt's internal
@@ -626,6 +668,12 @@ class MasterDocumentWindow(QMainWindow):
         widget.sizeChanged.connect(self._on_container_size_changed)
         widget.contentChanged.connect(self._on_container_modified)
         widget.filePathNeeded.connect(self._on_container_file_path_needed)
+
+        # Ensure all rows span the full work area, including this new one.
+        try:
+            self._include_list._update_item_widths()  # type: ignore[attr-defined]
+        except Exception:
+            pass
 
         self._mark_dirty()
 
@@ -649,8 +697,9 @@ class MasterDocumentWindow(QMainWindow):
 
         item = self._container_items.get(sender)
         if item is not None:
-            # Preserve width equal to the viewport width and only adjust the
-            # height so that containers always span the full work area.
+            # Keep the item's height in sync with the widget's preferred
+            # height. Width is handled centrally by _IncludeListWidget so that
+            # containers always span the full work area.
             current = item.sizeHint()
             new_hint = sender.sizeHint()
             if not current.isValid():
@@ -658,14 +707,14 @@ class MasterDocumentWindow(QMainWindow):
             else:
                 current.setHeight(new_hint.height())
 
-            try:
-                viewport_width = self._include_list.viewport().width()
-            except Exception:
-                viewport_width = 0
-            if viewport_width > 0:
-                current.setWidth(viewport_width)
-
             item.setSizeHint(current)
+
+        # After adjusting a single row, reapply the full-width policy so that
+        # no row can accidentally shrink horizontally during edits or pastes.
+        try:
+            self._include_list._update_item_widths()  # type: ignore[attr-defined]
+        except Exception:
+            pass
 
     def _on_container_modified(self) -> None:
         """Slot invoked when any include container's content/title changes."""
@@ -782,13 +831,9 @@ class MasterDocumentWindow(QMainWindow):
             widget = IncludeContainerWidget(True, parent=self._include_list)
             item = QListWidgetItem(self._include_list)
 
+            # Initial size hint comes from the widget; width will be stretched
+            # to the viewport width by _IncludeListWidget.
             hint = widget.sizeHint()
-            try:
-                viewport_width = self._include_list.viewport().width()
-            except Exception:
-                viewport_width = 0
-            if viewport_width > 0:
-                hint.setWidth(viewport_width)
             item.setSizeHint(hint)
 
             # Explicitly enable drag and drop on this list item.
@@ -809,6 +854,11 @@ class MasterDocumentWindow(QMainWindow):
             widget.load_from_master(file_path=file_path, title=title, content=content)
 
         # After a successful load the in-memory state reflects the file.
+        try:
+            self._include_list._update_item_widths()  # type: ignore[attr-defined]
+        except Exception:
+            pass
+
         self._dirty = False
 
     # Context menu --------------------------------------------------------
