@@ -108,7 +108,12 @@ const CreativeSpacesModule: React.FC<CreativeSpacesProps> = ({
             <div className="flex items-center justify-between gap-2">
               <div className="flex flex-col min-w-0">
                 <div className="font-medium text-gray-900 truncate">
-                  {space.name}
+                  <Link
+                    to={`/creative_space/${space.id}`}
+                    className="hover:underline text-purple-700"
+                  >
+                    {space.name}
+                  </Link>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-500 mt-0.5">
                   <span className="truncate">space_id: {space.id}</span>

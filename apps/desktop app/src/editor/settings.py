@@ -41,6 +41,13 @@ class Settings:
     # payloads and CRDT-style update streams.
     device_id: str | None = None
 
+    # Per-project-space synchronisation state. Keys are absolute local
+    # project-space paths (as strings), values are small dictionaries with
+    # fields such as ``remote_space_id`` and ``last_pull_at`` (ISO
+    # timestamps). This is used to optimise Space sync payloads and support
+    # multi-device scenarios.
+    space_sync_state: dict[str, dict[str, str]] = field(default_factory=dict)
+
 
 def _get_config_dir() -> Path:
     """Return the directory where configuration files are stored."""
@@ -94,12 +101,25 @@ def load_settings() -> Settings:
     crowdly_base_url = raw.get("crowdly_base_url")
     device_id = raw.get("device_id") or str(uuid.uuid4())
 
+    raw_state = raw.get("space_sync_state") or {}
+    space_sync_state: dict[str, dict[str, str]] = {}
+    if isinstance(raw_state, dict):
+        for key, value in raw_state.items():
+            if not isinstance(key, str) or not isinstance(value, dict):
+                continue
+            cleaned: dict[str, str] = {}
+            for k2, v2 in value.items():
+                if isinstance(k2, str) and isinstance(v2, str):
+                    cleaned[k2] = v2
+            space_sync_state[key] = cleaned
+
     settings = Settings(
         project_space=project_space,
         spaces=spaces,
         interface_language=interface_language,
         crowdly_base_url=crowdly_base_url,
         device_id=device_id,
+        space_sync_state=space_sync_state,
     )
 
     # Ensure device_id is persisted for older configs.

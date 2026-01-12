@@ -279,7 +279,7 @@ const CreativeSpacePage: React.FC = () => {
             className={`hover:underline ${currentPath === "" ? "font-semibold" : ""}`}
             onClick={() => handleBreadcrumbClick("")}
           >
-            /
+            /{space.name}
           </button>
           {breadcrumbs.map((crumb, idx) => (
             <React.Fragment key={crumb.path}>

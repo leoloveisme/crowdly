@@ -14,8 +14,9 @@ from typing import Any, Dict, List, Tuple
 import json
 import os
 from urllib import request, error
+from urllib.parse import quote as _urlquote
 
-from .settings import Settings
+from .settings import Settings, save_settings
 
 
 DEFAULT_API_BASE = "http://localhost:4000"
@@ -247,6 +248,25 @@ def sync_space_to_web(settings: Settings, project_space: Path, user_id: str) -> 
   deleted = int(body.get("deleted", 0))
 
   message = f"Synced {created} new, {updated} updated and {deleted} deleted items."
+
+  # Remember the mapping from this local project-space path to the remote
+  # creative space id so that later pulls can find the correct Space even
+  # if its name or path metadata change.
+  try:
+    root = project_space.expanduser().resolve()
+    root_path = str(root)
+    state = getattr(settings, "space_sync_state", {}) or {}
+    if not isinstance(state, dict):
+      state = {}
+    mapping = dict(state.get(root_path) or {})
+    mapping["remote_space_id"] = space_id
+    state[root_path] = mapping
+    settings.space_sync_state = state  # type: ignore[assignment]
+    save_settings(settings)
+  except Exception:
+    # Best-effort; failure to persist mapping should not make the sync fail.
+    pass
+
   return True, message
 
 
@@ -273,34 +293,50 @@ def pull_space_from_web(settings: Settings, project_space: Path, user_id: str) -
   root_path = str(root)
   folder_name = root.name
 
+  # Load any previously recorded sync state for this local project-space.
+  state = getattr(settings, "space_sync_state", {}) or {}
+  mapping = state.get(root_path) if isinstance(state, dict) else None
+  mapped_space_id: str | None = None
+  last_pull_at: str | None = None
+  if isinstance(mapping, dict):
+    val = mapping.get("remote_space_id")
+    if isinstance(val, str) and val:
+      mapped_space_id = val
+    lp = mapping.get("last_pull_at")
+    if isinstance(lp, str) and lp:
+      last_pull_at = lp
+
   # 1) Resolve the corresponding creative space id using the same rules as
-  #    sync_space_to_web.
-  space_id: str | None = None
-  list_url = f"{api_base}/creative-spaces?userId={user_id}"
-  status, body = _get_json(list_url)
-  if status == 200 and isinstance(body, list):
-    for row in body:
-      try:
-        if str(row.get("path") or "") == root_path:
-          sid = row.get("id")
+  #    sync_space_to_web, preferring any previously remembered mapping.
+  space_id: str | None = mapped_space_id
+  if space_id is None:
+    list_url = f"{api_base}/creative-spaces?userId={user_id}"
+    status, body = _get_json(list_url)
+    if status == 200 and isinstance(body, list):
+      # Prefer an exact path match on the current root.
+      for row in body:
+        try:
+          if str(row.get("path") or "") == root_path:
+            sid = row.get("id")
+            if isinstance(sid, str) and sid:
+              space_id = sid
+              break
+        except Exception:
+          continue
+
+      # Otherwise fall back to a unique name match.
+      if space_id is None:
+        try:
+          candidates = [
+            r for r in body
+            if isinstance(r.get("name"), str) and r.get("name") == folder_name
+          ]
+        except Exception:
+          candidates = []
+        if len(candidates) == 1:
+          sid = candidates[0].get("id")
           if isinstance(sid, str) and sid:
             space_id = sid
-            break
-      except Exception:
-        continue
-
-    if space_id is None:
-      try:
-        candidates = [
-          r for r in body
-          if isinstance(r.get("name"), str) and r.get("name") == folder_name
-        ]
-      except Exception:
-        candidates = []
-      if len(candidates) == 1:
-        sid = candidates[0].get("id")
-        if isinstance(sid, str) and sid:
-          space_id = sid
 
   if space_id is None:
     # Nothing to pull: the web knows nothing about this Space yet.
@@ -309,10 +345,14 @@ def pull_space_from_web(settings: Settings, project_space: Path, user_id: str) -
       "nothing was pulled. Try syncing this Space to the web first."
     )
 
-  # 2) Fetch the list of items for this creative space. For now we always
-  #    request the full set; a future iteration can pass a `since` value
-  #    to support incremental pulls.
-  sync_url = f"{api_base}/creative-spaces/{space_id}/sync"
+  # 2) Fetch the list of items for this creative space. When we have a
+  #    previously recorded ``last_pull_at`` timestamp, we request only
+  #    items that changed since then to keep payloads small.
+  if last_pull_at:
+    encoded_since = _urlquote(last_pull_at, safe="")
+    sync_url = f"{api_base}/creative-spaces/{space_id}/sync?since={encoded_since}"
+  else:
+    sync_url = f"{api_base}/creative-spaces/{space_id}/sync"
   status, body = _get_json(sync_url)
   if status != 200:
     raise RuntimeError(body.get("error") or f"Failed to fetch creative space items (status {status})")
@@ -320,6 +360,19 @@ def pull_space_from_web(settings: Settings, project_space: Path, user_id: str) -
   items = body.get("items") or []
   if not isinstance(items, list):
     raise RuntimeError("Backend returned an invalid items payload for creative space sync")
+
+  # Track the newest updated_at timestamp so we can perform incremental
+  # pulls next time for this Space.
+  latest_updated: str | None = None
+  if items:
+    try:
+      # The backend orders by updated_at ASC, so the last row has the
+      # newest timestamp.
+      candidate = items[-1].get("updated_at")
+      if isinstance(candidate, str) and candidate:
+        latest_updated = candidate
+    except Exception:
+      latest_updated = None
 
   created_folders = 0
   created_files = 0
@@ -396,6 +449,23 @@ def pull_space_from_web(settings: Settings, project_space: Path, user_id: str) -
     parts.append(f"skipped {skipped_existing} existing path(s)")
   if skipped_deletes:
     parts.append(f"skipped {skipped_deletes} remote deletion(s) (kept local copies)")
+
+  # Persist updated sync state for this Space so that future pulls can be
+  # incremental and we remember the remote mapping across sessions.
+  try:
+    state = getattr(settings, "space_sync_state", {}) or {}
+    if not isinstance(state, dict):
+      state = {}
+    mapping = dict(state.get(root_path) or {})
+    mapping["remote_space_id"] = space_id
+    if latest_updated:
+      mapping["last_pull_at"] = latest_updated
+    state[root_path] = mapping
+    settings.space_sync_state = state  # type: ignore[assignment]
+    save_settings(settings)
+  except Exception:
+    # Best-effort only; failure to persist should not abort the pull.
+    pass
 
   if not parts:
     return "Space is already up to date; no structural changes were pulled from the web."
