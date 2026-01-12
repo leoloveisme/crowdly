@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 export type CreativeSpace = {
   id: string;
@@ -7,6 +8,12 @@ export type CreativeSpace = {
   path?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
+  // Backend metadata
+  visibility?: "public" | "private" | "friends" | "selected" | null;
+  published?: boolean | null;
+  default_item_visibility?: string | null;
+  last_synced_at?: string | null;
+  sync_state?: string | null;
 };
 
 interface CreativeSpacesProps {
@@ -16,6 +23,9 @@ interface CreativeSpacesProps {
   onRename?: (space: CreativeSpace) => void;
   onDelete?: (space: CreativeSpace) => void;
   onClone?: (space: CreativeSpace) => void;
+  onToggleVisibility?: (space: CreativeSpace, nextVisibility: CreativeSpace["visibility"]) => void;
+  onTogglePublished?: (space: CreativeSpace, nextPublished: boolean) => void;
+  onShowStats?: (space: CreativeSpace) => void;
 }
 
 /**
@@ -37,6 +47,9 @@ const CreativeSpacesModule: React.FC<CreativeSpacesProps> = ({
   onRename,
   onDelete,
   onClone,
+  onToggleVisibility,
+  onTogglePublished,
+  onShowStats,
 }) => {
   if (isLoading) {
     return (
@@ -68,6 +81,13 @@ const CreativeSpacesModule: React.FC<CreativeSpacesProps> = ({
     );
   }
 
+  const renderVisibility = (space: CreativeSpace) => {
+    const vis = space.visibility || "private";
+    const published = Boolean(space.published);
+    const label = published ? `${vis} · published` : `${vis} · unpublished`;
+    return <span className="text-[11px] text-gray-500 whitespace-nowrap">{label}</span>;
+  };
+
   return (
     <div className="border rounded-lg bg-white p-4">
       <div className="flex items-center justify-between mb-3">
@@ -86,10 +106,59 @@ const CreativeSpacesModule: React.FC<CreativeSpacesProps> = ({
         {spaces.map((space) => (
           <li key={space.id} className="py-2 flex flex-col gap-1">
             <div className="flex items-center justify-between gap-2">
-              <div className="font-medium text-gray-900 truncate">
-                {space.name}
+              <div className="flex flex-col min-w-0">
+                <div className="font-medium text-gray-900 truncate">
+                  {space.name}
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-[11px] text-gray-500 mt-0.5">
+                  <span className="truncate">space_id: {space.id}</span>
+                  {renderVisibility(space)}
+                  {space.last_synced_at && (
+                    <span className="truncate">
+                      last sync: {new Date(space.last_synced_at).toLocaleString()}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-1 text-[11px] text-gray-500">
+                <Link
+                  to={`/creative_space/${space.id}`}
+                  className="px-1 py-0.5 rounded hover:bg-purple-50 text-purple-700"
+                >
+                  Open
+                </Link>
+                {onShowStats && (
+                  <button
+                    type="button"
+                    onClick={() => onShowStats(space)}
+                    className="px-1 py-0.5 rounded hover:bg-gray-100"
+                  >
+                    Stats
+                  </button>
+                )}
+                {onToggleVisibility && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onToggleVisibility(
+                        space,
+                        (space.visibility === "private" ? "public" : "private") as CreativeSpace["visibility"],
+                      )
+                    }
+                    className="px-1 py-0.5 rounded hover:bg-gray-100"
+                  >
+                    {space.visibility === "private" ? "Make public" : "Make private"}
+                  </button>
+                )}
+                {onTogglePublished && (
+                  <button
+                    type="button"
+                    onClick={() => onTogglePublished(space, !Boolean(space.published))}
+                    className="px-1 py-0.5 rounded hover:bg-gray-100"
+                  >
+                    {space.published ? "Unpublish" : "Publish"}
+                  </button>
+                )}
                 {onRename && (
                   <button
                     type="button"

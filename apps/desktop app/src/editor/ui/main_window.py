@@ -45,6 +45,8 @@ from ..document import Document
 from ..settings import Settings, save_settings
 from .. import file_metadata
 from .. import story_sync
+from .. import auth as local_auth
+from .. import websync
 from ..versioning import local_queue
 from ..format import types as format_types
 from ..importing import controller as importing_controller
@@ -116,6 +118,9 @@ class MainWindow(QMainWindow):
 
         # Cached Crowdly web credentials for the current app session.
         self._crowdly_web_credentials: tuple[str, str] | None = None
+        # Local backend user id corresponding to the logged-in username, used
+        # for Spaces synchronisation with the web platform.
+        self._crowdly_user_id: str | None = None
 
         # Background thread used to initialise a new Crowdly story for a local
         # file and a simple flag guarding against concurrent inits.
@@ -295,6 +300,13 @@ class MainWindow(QMainWindow):
             self.tr("web platform"), self._toggle_sync_web_platform
         )
         self._action_sync_web.setCheckable(True)
+
+        # One-off manual sync of the current project space to the web
+        # platform. This is an alpha feature focused on pushing a snapshot
+        # of local folders/files into the user's default creative space.
+        self._action_sync_current_space = sync_menu.addAction(
+            self.tr("Sync current Space now"), self._sync_current_space_to_web
+        )
 
         online_storage_menu = sync_menu.addMenu(self.tr("online storage"))
         self._online_storage_menu = online_storage_menu
@@ -2928,6 +2940,69 @@ class MainWindow(QMainWindow):
         self._sync_google_drive = not self._sync_google_drive
         self._retranslate_ui()
 
+    def _sync_current_space_to_web(self) -> None:  # pragma: no cover - UI wiring
+        """Manually push the current project Space to the Crowdly backend.
+
+        This is an alpha implementation that builds a snapshot of the
+        current project-space directory and sends it to the
+        /creative-spaces/:spaceId/sync endpoint using the logged-in
+        local user id.
+        """
+
+        from PySide6.QtWidgets import QMessageBox
+
+        project_space = self._project_space_path
+        if project_space is None:
+            QMessageBox.information(
+                self,
+                self.tr("Sync current Space now"),
+                self.tr("There is no active project space set. Please choose or create one first."),
+            )
+            return
+
+        # Ensure we know which Crowdly user to attribute this sync to. When the
+        # user is logged in we try to resolve their local user id; otherwise we
+        # kindly ask them to log in first.
+        if not self._crowdly_user_id:
+            if self._username and self._username != "username":
+                try:
+                    self._crowdly_user_id = local_auth.get_user_id_for_email(self._username)
+                except Exception:
+                    self._crowdly_user_id = None
+
+        if not self._crowdly_user_id:
+            QMessageBox.warning(
+                self,
+                self.tr("Sync current Space now"),
+                self.tr(
+                    "You need to be logged in to the Crowdly web platform before syncing Spaces."
+                ),
+            )
+            return
+
+        try:
+            ok, message = websync.sync_space_to_web(self._settings, project_space, self._crowdly_user_id)  # type: ignore[arg-type]
+        except Exception as exc:  # pragma: no cover - network dependent
+            QMessageBox.warning(
+                self,
+                self.tr("Sync failed"),
+                self.tr(
+                    "Failed to sync the current Space to the web platform.\n\nDetails: {error}"
+                ).format(error=str(exc)),
+            )
+            return
+
+        if ok:
+            try:
+                self._update_sync_status_label()
+            except Exception:
+                pass
+            QMessageBox.information(
+                self,
+                self.tr("Sync complete"),
+                message,
+            )
+
     def _toggle_login_logout(self) -> None:  # pragma: no cover - UI wiring
         """Handle Login / Logout menu action.
 
@@ -2975,6 +3050,15 @@ class MainWindow(QMainWindow):
 
         self._username = username
         self._logged_in = True
+
+        # Resolve the corresponding local user id so Spaces sync can attribute
+        # updates to the correct Crowdly account.
+        try:
+            user_id = local_auth.get_user_id_for_email(username)
+        except Exception:  # pragma: no cover - DB environment dependent
+            user_id = None
+        self._crowdly_user_id = user_id
+
         self._retranslate_ui()
         self._update_user_status_label()
         self._update_sync_status_label()

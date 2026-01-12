@@ -23,6 +23,7 @@ import EditingModeToggle from "./components/EditingModeToggle";
 import Story from "./pages/Story";
 import Screenplay from "./pages/Screenplay";
 import PublicProfile from "./pages/PublicProfile";
+import CreativeSpacePage from "./pages/CreativeSpacePage";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +54,7 @@ const App = () => {
                 <Route path="/story/:story_id" element={<Story />} />
                 <Route path="/story/:story_id/chapter/:chapter_id" element={<Story />} />
                 <Route path="/screenplay/:screenplay_id" element={<Screenplay />} />
+                <Route path="/creative_space/:spaceId" element={<CreativeSpacePage />} />
                 {/* Public user page, e.g. /leolove */}
                 <Route path="/:username" element={<PublicProfile />} />
                 <Route path="*" element={<NotFound />} />

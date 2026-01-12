@@ -395,6 +395,12 @@ async function ensureCreativeSpacesTable() {
         name        text NOT NULL,
         description text,
         path        text,
+        -- Visibility/publishing and sync metadata for web Spaces
+        visibility  text NOT NULL DEFAULT 'private',
+        published   boolean NOT NULL DEFAULT false,
+        default_item_visibility text NULL,
+        last_synced_at timestamptz NULL,
+        sync_state  text NULL,
         created_at  timestamptz NOT NULL DEFAULT now(),
         updated_at  timestamptz NOT NULL DEFAULT now()
       )
@@ -422,12 +428,68 @@ async function ensureCreativeSpacesTable() {
       'ALTER TABLE creative_spaces ALTER COLUMN user_id TYPE text USING user_id::text',
     );
 
+    // Ensure new columns exist on older databases without failing if they
+    // are already present.
+    await pool.query(
+      "ALTER TABLE creative_spaces ADD COLUMN IF NOT EXISTS visibility text NOT NULL DEFAULT 'private'",
+    );
+    await pool.query(
+      'ALTER TABLE creative_spaces ADD COLUMN IF NOT EXISTS published boolean NOT NULL DEFAULT false',
+    );
+    await pool.query(
+      'ALTER TABLE creative_spaces ADD COLUMN IF NOT EXISTS default_item_visibility text',
+    );
+    await pool.query(
+      'ALTER TABLE creative_spaces ADD COLUMN IF NOT EXISTS last_synced_at timestamptz',
+    );
+    await pool.query(
+      'ALTER TABLE creative_spaces ADD COLUMN IF NOT EXISTS sync_state text',
+    );
+
     await pool.query(
       'CREATE INDEX IF NOT EXISTS creative_spaces_user_idx ON creative_spaces(user_id)',
     );
     console.log('[init] ensured creative_spaces table exists');
   } catch (err) {
     console.error('[init] failed to ensure creative_spaces table:', err);
+  }
+}
+
+// Items (folders/files) inside creative spaces
+async function ensureCreativeSpaceItemsTable() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS creative_space_items (
+        id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        space_id      uuid NOT NULL REFERENCES creative_spaces(id) ON DELETE CASCADE,
+        relative_path text NOT NULL,
+        name          text NOT NULL,
+        kind          text NOT NULL,
+        mime_type     text,
+        size_bytes    bigint,
+        hash          text,
+        visibility    text,
+        published     boolean,
+        deleted       boolean NOT NULL DEFAULT false,
+        created_at    timestamptz NOT NULL DEFAULT now(),
+        updated_at    timestamptz NOT NULL DEFAULT now(),
+        updated_by    text
+      )
+    `);
+
+    await pool.query(
+      'CREATE UNIQUE INDEX IF NOT EXISTS creative_space_items_space_path_idx ON creative_space_items(space_id, relative_path)',
+    );
+    await pool.query(
+      'CREATE INDEX IF NOT EXISTS creative_space_items_space_idx ON creative_space_items(space_id)',
+    );
+    await pool.query(
+      'CREATE INDEX IF NOT EXISTS creative_space_items_space_updated_idx ON creative_space_items(space_id, updated_at)',
+    );
+
+    console.log('[init] ensured creative_space_items table exists');
+  } catch (err) {
+    console.error('[init] failed to ensure creative_space_items table:', err);
   }
 }
 
@@ -812,6 +874,9 @@ ensureCommentsScreenplayColumn().catch((err) => {
 });
 ensureReactionsScreenplayColumns().catch((err) => {
   console.error('[init] ensureReactionsScreenplayColumns unhandled error:', err);
+});
+ensureCreativeSpaceItemsTable().catch((err) => {
+  console.error('[init] ensureCreativeSpaceItemsTable unhandled error:', err);
 });
 
 app.get('/health', async (_req, res) => {
@@ -2849,6 +2914,29 @@ app.get('/users/:userId/experienced', async (req, res) => {
 // Creative spaces (project spaces) CRUD
 // ---------------------------------------------------------------------------
 
+function normalizeCreativeSpacePath(raw) {
+  const value = typeof raw === 'string' ? raw.trim() : '';
+  if (!value) return '';
+  let path = value.replace(/\\/g, '/');
+  path = path.replace(/\/+/g, '/');
+  path = path.replace(/^\/+|\/+$/g, '');
+  if (path === '.' || path === '/') return '';
+  return path;
+}
+
+function buildCreativeSpaceBreadcrumbs(path) {
+  const normalized = normalizeCreativeSpacePath(path);
+  if (!normalized) return [];
+  const segments = normalized.split('/');
+  const crumbs = [];
+  let acc = '';
+  for (const seg of segments) {
+    acc = acc ? `${acc}/${seg}` : seg;
+    crumbs.push({ name: seg, path: acc });
+  }
+  return crumbs;
+}
+
 // List creative spaces for a user
 app.get('/creative-spaces', async (req, res) => {
   const userId = req.query.userId;
@@ -2865,6 +2953,25 @@ app.get('/creative-spaces', async (req, res) => {
   } catch (err) {
     console.error('[GET /creative-spaces] failed:', err);
     res.status(500).json({ error: 'Failed to fetch creative spaces' });
+  }
+});
+
+// Get a single creative space by id (for detail page / ownership checks)
+app.get('/creative-spaces/:spaceId', async (req, res) => {
+  const { spaceId } = req.params;
+  if (!spaceId) {
+    return res.status(400).json({ error: 'spaceId is required' });
+  }
+
+  try {
+    const { rows } = await pool.query('SELECT * FROM creative_spaces WHERE id = $1', [spaceId]);
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Creative space not found' });
+    }
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('[GET /creative-spaces/:spaceId] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch creative space' });
   }
 });
 
@@ -2888,8 +2995,11 @@ app.post('/creative-spaces/ensure-default', async (req, res) => {
 
     const id = randomUUID();
     const { rows } = await pool.query(
-      'INSERT INTO creative_spaces (id, user_id, name) VALUES ($1, $2, $3) RETURNING *',
-      [id, userId, 'No name creative space'],
+      `INSERT INTO creative_spaces (
+         id, user_id, name, visibility, published
+       ) VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [id, userId, 'No name creative space', 'private', false],
     );
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -2900,7 +3010,7 @@ app.post('/creative-spaces/ensure-default', async (req, res) => {
 
 // Create a new creative space
 app.post('/creative-spaces', async (req, res) => {
-  const { userId, name, description, path } = req.body ?? {};
+  const { userId, name, description, path, visibility, published } = req.body ?? {};
 
   console.error('[POST /creative-spaces] incoming body:', req.body);
 
@@ -2911,11 +3021,19 @@ app.post('/creative-spaces', async (req, res) => {
   const trimmedName = typeof name === 'string' ? name.trim() : '';
   const finalName = trimmedName || 'No name creative space';
 
+  // For now, anything created via API defaults to private/unpublished unless
+  // the caller explicitly requests otherwise.
+  const vis = typeof visibility === 'string' && visibility.trim() ? visibility.trim() : 'private';
+  const pub = Boolean(published) && vis !== 'private';
+
   try {
     const id = randomUUID();
     const { rows } = await pool.query(
-      'INSERT INTO creative_spaces (id, user_id, name, description, path) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [id, userId, finalName, description || null, path || null],
+      `INSERT INTO creative_spaces (
+         id, user_id, name, description, path, visibility, published
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING *`,
+      [id, userId, finalName, description || null, path || null, vis, pub],
     );
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -2925,6 +3043,8 @@ app.post('/creative-spaces', async (req, res) => {
       name,
       description,
       path,
+      visibility,
+      published,
     });
     res.status(500).json({ error: 'Failed to create creative space' });
   }
@@ -2933,7 +3053,8 @@ app.post('/creative-spaces', async (req, res) => {
 // Update (rename / edit) a creative space owned by the user
 app.patch('/creative-spaces/:spaceId', async (req, res) => {
   const { spaceId } = req.params;
-  const { userId, name, description, path } = req.body ?? {};
+  const { userId, name, description, path, visibility, published, defaultItemVisibility } =
+    req.body ?? {};
 
   if (!userId) {
     return res.status(400).json({ error: 'userId is required' });
@@ -2956,6 +3077,18 @@ app.patch('/creative-spaces/:spaceId', async (req, res) => {
   if (path !== undefined) {
     fields.push(`path = $${idx++}`);
     values.push(path || null);
+  }
+  if (visibility !== undefined) {
+    fields.push(`visibility = $${idx++}`);
+    values.push(visibility || 'private');
+  }
+  if (published !== undefined) {
+    fields.push(`published = $${idx++}`);
+    values.push(Boolean(published));
+  }
+  if (defaultItemVisibility !== undefined) {
+    fields.push(`default_item_visibility = $${idx++}`);
+    values.push(defaultItemVisibility || null);
   }
 
   if (fields.length === 0) {
@@ -3031,14 +3164,494 @@ app.post('/creative-spaces/:spaceId/clone', async (req, res) => {
 
     const cloneName = `${src.name || 'No name creative space'} (copy)`;
     const { rows } = await pool.query(
-      'INSERT INTO creative_spaces (user_id, name, description, path) VALUES ($1, $2, $3, $4) RETURNING *',
-      [userId, cloneName, src.description || null, src.path || null],
+      `INSERT INTO creative_spaces (
+         user_id, name, description, path, visibility, published
+       ) VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING *`,
+      [
+        userId,
+        cloneName,
+        src.description || null,
+        src.path || null,
+        src.visibility || 'private',
+        src.published || false,
+      ],
     );
 
     res.status(201).json(rows[0]);
   } catch (err) {
     console.error('[POST /creative-spaces/:spaceId/clone] failed:', err);
     res.status(500).json({ error: 'Failed to clone creative space' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Creative space items (folders/files) within a space
+// ---------------------------------------------------------------------------
+
+// List direct child items under a given path within a space
+app.get('/creative-spaces/:spaceId/items', async (req, res) => {
+  const { spaceId } = req.params;
+  const rawPath = typeof req.query.path === 'string' ? req.query.path : '';
+  const path = normalizeCreativeSpacePath(rawPath);
+
+  if (!spaceId) {
+    return res.status(400).json({ error: 'spaceId is required' });
+  }
+
+  try {
+    const { rows } = await pool.query(
+      'SELECT * FROM creative_space_items WHERE space_id = $1 AND deleted = false',
+      [spaceId],
+    );
+
+    const items = [];
+    for (const row of rows) {
+      const rel = normalizeCreativeSpacePath(row.relative_path);
+      if (!rel) {
+        // We do not expose a synthetic root item for now.
+        if (path === '') continue;
+      }
+
+      if (path === '') {
+        if (!rel.includes('/')) {
+          items.push(row);
+        }
+        continue;
+      }
+
+      if (!rel.startsWith(`${path}/`)) continue;
+      const remainder = rel.slice(path.length + 1);
+      if (!remainder || remainder.includes('/')) continue;
+      items.push(row);
+    }
+
+    res.json({ path, items, breadcrumbs: buildCreativeSpaceBreadcrumbs(path) });
+  } catch (err) {
+    console.error('[GET /creative-spaces/:spaceId/items] failed:', err);
+    res.status(500).json({ error: 'Failed to list creative space items' });
+  }
+});
+
+// Create a folder inside a space
+app.post('/creative-spaces/:spaceId/items/folder', async (req, res) => {
+  const { spaceId } = req.params;
+  const { parentPath, name, userId } = req.body ?? {};
+
+  if (!spaceId) {
+    return res.status(400).json({ error: 'spaceId is required' });
+  }
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+
+  const base = normalizeCreativeSpacePath(parentPath || '');
+  const rawName = typeof name === 'string' ? name.trim() : '';
+  const safeName = rawName.replace(/\//g, '');
+  if (!safeName) {
+    return res.status(400).json({ error: 'Folder name is required' });
+  }
+
+  const relPath = base ? `${base}/${safeName}` : safeName;
+
+  try {
+    // Ensure the space exists
+    const spaceRes = await pool.query('SELECT visibility FROM creative_spaces WHERE id = $1', [
+      spaceId,
+    ]);
+    if (spaceRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Creative space not found' });
+    }
+
+    const { rows: existing } = await pool.query(
+      'SELECT id FROM creative_space_items WHERE space_id = $1 AND relative_path = $2 AND deleted = false',
+      [spaceId, relPath],
+    );
+    if (existing.length > 0) {
+      return res.status(409).json({ error: 'An item with that name already exists in this folder' });
+    }
+
+    const visibility = spaceRes.rows[0].visibility || 'private';
+
+    const { rows } = await pool.query(
+      `INSERT INTO creative_space_items (
+         space_id, relative_path, name, kind, visibility, published, updated_by
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+       RETURNING *`,
+      [spaceId, relPath, safeName, 'folder', visibility, false, String(userId)],
+    );
+
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error('[POST /creative-spaces/:spaceId/items/folder] failed:', err);
+    res.status(500).json({ error: 'Failed to create folder' });
+  }
+});
+
+// Create a file metadata entry inside a space
+app.post('/creative-spaces/:spaceId/items/file', async (req, res) => {
+  const { spaceId } = req.params;
+  const { parentPath, name, mimeType, sizeBytes, hash, userId } = req.body ?? {};
+
+  if (!spaceId) {
+    return res.status(400).json({ error: 'spaceId is required' });
+  }
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+
+  const base = normalizeCreativeSpacePath(parentPath || '');
+  const rawName = typeof name === 'string' ? name.trim() : '';
+  const safeName = rawName.replace(/\//g, '');
+  if (!safeName) {
+    return res.status(400).json({ error: 'File name is required' });
+  }
+
+  const relPath = base ? `${base}/${safeName}` : safeName;
+
+  try {
+    const spaceRes = await pool.query('SELECT visibility FROM creative_spaces WHERE id = $1', [
+      spaceId,
+    ]);
+    if (spaceRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Creative space not found' });
+    }
+
+    const { rows: existing } = await pool.query(
+      'SELECT id FROM creative_space_items WHERE space_id = $1 AND relative_path = $2 AND deleted = false',
+      [spaceId, relPath],
+    );
+    if (existing.length > 0) {
+      return res.status(409).json({ error: 'An item with that name already exists in this folder' });
+    }
+
+    const visibility = spaceRes.rows[0].visibility || 'private';
+
+    const { rows } = await pool.query(
+      `INSERT INTO creative_space_items (
+         space_id, relative_path, name, kind, mime_type, size_bytes, hash, visibility, published, updated_by
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       RETURNING *`,
+      [
+        spaceId,
+        relPath,
+        safeName,
+        'file',
+        mimeType || null,
+        typeof sizeBytes === 'number' ? sizeBytes : null,
+        hash || null,
+        visibility,
+        false,
+        String(userId),
+      ],
+    );
+
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error('[POST /creative-spaces/:spaceId/items/file] failed:', err);
+    res.status(500).json({ error: 'Failed to create file metadata' });
+  }
+});
+
+// Rename or move an item (and its descendants if it is a folder)
+app.patch('/creative-space-items/:itemId', async (req, res) => {
+  const { itemId } = req.params;
+  const { newName, newParentPath, userId } = req.body ?? {};
+
+  if (!itemId) {
+    return res.status(400).json({ error: 'itemId is required' });
+  }
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+
+  if (newName === undefined && newParentPath === undefined) {
+    return res.status(400).json({ error: 'newName or newParentPath must be provided' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const existingRes = await client.query(
+      'SELECT * FROM creative_space_items WHERE id = $1 FOR UPDATE',
+      [itemId],
+    );
+    if (existingRes.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Item not found' });
+    }
+    const item = existingRes.rows[0];
+    const oldRel = normalizeCreativeSpacePath(item.relative_path);
+
+    const currentParent = oldRel.includes('/')
+      ? oldRel.slice(0, oldRel.lastIndexOf('/'))
+      : '';
+
+    const base =
+      newParentPath !== undefined
+        ? normalizeCreativeSpacePath(newParentPath || '')
+        : currentParent;
+
+    const rawName =
+      newName !== undefined && typeof newName === 'string' && newName.trim()
+        ? newName.trim()
+        : item.name;
+    const safeName = rawName.replace(/\//g, '');
+    if (!safeName) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Item name cannot be empty' });
+    }
+
+    const newRel = base ? `${base}/${safeName}` : safeName;
+
+    // Prevent collisions with other live items
+    const dupRes = await client.query(
+      'SELECT id FROM creative_space_items WHERE space_id = $1 AND relative_path = $2 AND id <> $3 AND deleted = false',
+      [item.space_id, newRel, itemId],
+    );
+    if (dupRes.rows.length > 0) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'Another item with that name already exists' });
+    }
+
+    if (item.kind === 'folder') {
+      // Update the folder itself
+      await client.query(
+        'UPDATE creative_space_items SET relative_path = $1, name = $2, updated_at = now(), updated_by = $3 WHERE id = $4',
+        [newRel, safeName, String(userId), itemId],
+      );
+
+      const oldPrefix = oldRel ? `${oldRel}/` : '';
+      const newPrefix = newRel ? `${newRel}/` : '';
+      if (oldPrefix) {
+        const childrenRes = await client.query(
+          'SELECT id, relative_path FROM creative_space_items WHERE space_id = $1 AND relative_path LIKE $2',
+          [item.space_id, `${oldPrefix}%`],
+        );
+        for (const child of childrenRes.rows) {
+          const rel = normalizeCreativeSpacePath(child.relative_path);
+          if (!rel.startsWith(oldPrefix)) continue;
+          const suffix = rel.slice(oldPrefix.length);
+          const updatedRel = newPrefix + suffix;
+          await client.query(
+            'UPDATE creative_space_items SET relative_path = $1, updated_at = now(), updated_by = $2 WHERE id = $3',
+            [updatedRel, String(userId), child.id],
+          );
+        }
+      }
+    } else {
+      await client.query(
+        'UPDATE creative_space_items SET relative_path = $1, name = $2, updated_at = now(), updated_by = $3 WHERE id = $4',
+        [newRel, safeName, String(userId), itemId],
+      );
+    }
+
+    const updatedRes = await client.query('SELECT * FROM creative_space_items WHERE id = $1', [
+      itemId,
+    ]);
+    await client.query('COMMIT');
+    res.json(updatedRes.rows[0]);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('[PATCH /creative-space-items/:itemId] failed:', err);
+    res.status(500).json({ error: 'Failed to update item' });
+  } finally {
+    client.release();
+  }
+});
+
+// Soft-delete (or hard-delete) an item and its descendants when it is a folder
+app.delete('/creative-space-items/:itemId', async (req, res) => {
+  const { itemId } = req.params;
+  const hard = String(req.query.hard ?? '').toLowerCase() === 'true';
+
+  if (!itemId) {
+    return res.status(400).json({ error: 'itemId is required' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const existingRes = await client.query(
+      'SELECT * FROM creative_space_items WHERE id = $1 FOR UPDATE',
+      [itemId],
+    );
+    if (existingRes.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Item not found' });
+    }
+    const item = existingRes.rows[0];
+    const rel = normalizeCreativeSpacePath(item.relative_path);
+
+    if (hard) {
+      if (item.kind === 'folder' && rel) {
+        await client.query(
+          'DELETE FROM creative_space_items WHERE space_id = $1 AND (id = $2 OR relative_path LIKE $3)',
+          [item.space_id, itemId, `${rel}/%`],
+        );
+      } else {
+        await client.query('DELETE FROM creative_space_items WHERE id = $1', [itemId]);
+      }
+    } else {
+      if (item.kind === 'folder' && rel) {
+        await client.query(
+          'UPDATE creative_space_items SET deleted = true, updated_at = now() WHERE space_id = $1 AND (id = $2 OR relative_path LIKE $3)',
+          [item.space_id, itemId, `${rel}/%`],
+        );
+      } else {
+        await client.query(
+          'UPDATE creative_space_items SET deleted = true, updated_at = now() WHERE id = $1',
+          [itemId],
+        );
+      }
+    }
+
+    await client.query('COMMIT');
+    res.status(204).send();
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('[DELETE /creative-space-items/:itemId] failed:', err);
+    res.status(500).json({ error: 'Failed to delete item' });
+  } finally {
+    client.release();
+  }
+});
+
+// Desktop → web snapshot sync for creative spaces
+app.post('/creative-spaces/:spaceId/sync', async (req, res) => {
+  const { spaceId } = req.params;
+  const { userId, snapshotGeneratedAt, items } = req.body ?? {};
+
+  if (!spaceId) {
+    return res.status(400).json({ error: 'spaceId is required' });
+  }
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+  if (!Array.isArray(items)) {
+    return res.status(400).json({ error: 'items[] snapshot is required' });
+  }
+
+  let spaceRow;
+  try {
+    const spaceRes = await pool.query(
+      'SELECT id, user_id, visibility FROM creative_spaces WHERE id = $1',
+      [spaceId],
+    );
+    if (spaceRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Creative space not found' });
+    }
+    spaceRow = spaceRes.rows[0];
+    if (String(spaceRow.user_id) !== String(userId)) {
+      return res.status(403).json({ error: 'You do not own this creative space' });
+    }
+  } catch (err) {
+    console.error('[POST /creative-spaces/:spaceId/sync] failed to load space:', err);
+    return res.status(500).json({ error: 'Failed to prepare sync' });
+  }
+
+  const client = await pool.connect();
+  let created = 0;
+  let updated = 0;
+  let deletedCount = 0;
+
+  try {
+    await client.query('BEGIN');
+
+    for (const raw of items) {
+      if (!raw || typeof raw.relativePath !== 'string') continue;
+      const rel = normalizeCreativeSpacePath(raw.relativePath);
+      if (!rel) continue;
+
+      const kind = raw.kind === 'folder' ? 'folder' : 'file';
+      const name = rel.includes('/') ? rel.slice(rel.lastIndexOf('/') + 1) : rel;
+      const sizeBytes =
+        typeof raw.sizeBytes === 'number' && Number.isFinite(raw.sizeBytes)
+          ? raw.sizeBytes
+          : null;
+      const hash = typeof raw.hash === 'string' && raw.hash ? raw.hash : null;
+      const isDeleted = Boolean(raw.deleted);
+
+      const existingRes = await client.query(
+        'SELECT id, kind, size_bytes, hash, deleted FROM creative_space_items WHERE space_id = $1 AND relative_path = $2',
+        [spaceId, rel],
+      );
+
+      if (isDeleted) {
+        if (existingRes.rows.length > 0) {
+          await client.query(
+            'UPDATE creative_space_items SET deleted = true, updated_at = now(), updated_by = $1 WHERE space_id = $2 AND relative_path = $3',
+            [String(userId), spaceId, rel],
+          );
+          deletedCount += 1;
+        }
+        continue;
+      }
+
+      if (existingRes.rows.length === 0) {
+        await client.query(
+          `INSERT INTO creative_space_items (
+             space_id, relative_path, name, kind, size_bytes, hash, visibility, published, deleted, updated_by
+           ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, false, $9)`,
+          [
+            spaceId,
+            rel,
+            name,
+            kind,
+            sizeBytes,
+            hash,
+            spaceRow.visibility || 'private',
+            false,
+            String(userId),
+          ],
+        );
+        created += 1;
+      } else {
+        const ex = existingRes.rows[0];
+        const exSize = ex.size_bytes == null ? null : Number(ex.size_bytes);
+        const exHash = ex.hash == null ? null : String(ex.hash);
+        const needsUpdate =
+          ex.kind !== kind || exSize !== sizeBytes || exHash !== hash || ex.deleted === true;
+
+        if (needsUpdate) {
+          await client.query(
+            `UPDATE creative_space_items
+               SET kind = $1,
+                   size_bytes = $2,
+                   hash = $3,
+                   name = $4,
+                   deleted = false,
+                   updated_at = now(),
+                   updated_by = $5
+             WHERE space_id = $6 AND relative_path = $7`,
+            [kind, sizeBytes, hash, name, String(userId), spaceId, rel],
+          );
+          updated += 1;
+        }
+      }
+    }
+
+    await client.query(
+      'UPDATE creative_spaces SET last_synced_at = now(), sync_state = $1, updated_at = now() WHERE id = $2',
+      ['idle', spaceId],
+    );
+
+    await client.query('COMMIT');
+
+    return res.json({
+      ok: true,
+      spaceId,
+      created,
+      updated,
+      deleted: deletedCount,
+      snapshotGeneratedAt: snapshotGeneratedAt || null,
+    });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('[POST /creative-spaces/:spaceId/sync] failed:', err);
+    return res.status(500).json({ error: 'Failed to sync creative space snapshot' });
+  } finally {
+    client.release();
   }
 });
 

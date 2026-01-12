@@ -138,11 +138,10 @@ const Profile = () => {
   }[]>([]);
   const [screenplaysLoading, setScreenplaysLoading] = useState(false);
 
-  // Creative spaces: for now, this is just a placeholder list. In a
-  // later step we will fetch real creative spaces from the backend and
-  // keep them in sync with the desktop app's project spaces.
+  // Creative spaces: these mirror project spaces on the desktop app.
   const [creativeSpaces, setCreativeSpaces] = useState<CreativeSpace[]>([]);
   const [creativeSpacesLoading, setCreativeSpacesLoading] = useState(false);
+  const [activeSpaceForStats, setActiveSpaceForStats] = useState<CreativeSpace | null>(null);
 
   // Legacy state starts, merged for compatibility
   const [newInterest, setNewInterest] = useState("");
@@ -450,7 +449,20 @@ const Profile = () => {
           setCreativeSpaces([]);
         } else {
           const data = await res.json();
-          setCreativeSpaces(Array.isArray(data) ? data : []);
+          const mapped = (Array.isArray(data) ? data : []).map((row: any) => ({
+            id: row.id,
+            name: row.name,
+            description: row.description ?? null,
+            path: row.path ?? null,
+            createdAt: row.created_at ?? null,
+            updatedAt: row.updated_at ?? null,
+            visibility: (row.visibility as any) ?? 'private',
+            published: Boolean(row.published),
+            default_item_visibility: row.default_item_visibility ?? null,
+            last_synced_at: row.last_synced_at ?? null,
+            sync_state: row.sync_state ?? null,
+          } satisfies CreativeSpace));
+          setCreativeSpaces(mapped);
         }
       } catch (err) {
         console.error('Failed to fetch creative spaces', err);
@@ -782,12 +794,73 @@ const Profile = () => {
         });
         return;
       }
-      setCreativeSpaces((prev) => [...prev, body]);
+      setCreativeSpaces((prev) => [...prev, body as CreativeSpace]);
     } catch (err) {
       console.error("Failed to clone creative space", err);
       toast({
         title: "Error",
         description: "Failed to clone creative space.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleToggleSpaceVisibility = async (
+    space: CreativeSpace,
+    nextVisibility: CreativeSpace["visibility"],
+  ) => {
+    if (!authUser?.id) return;
+    try {
+      const res = await fetch(`${API_BASE}/creative-spaces/${space.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: authUser.id, visibility: nextVisibility }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error("Failed to update creative space visibility", { status: res.status, body });
+        toast({
+          title: "Error",
+          description: body.error || "Failed to update creative space visibility.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setCreativeSpaces((prev) => prev.map((s) => (s.id === space.id ? (body as CreativeSpace) : s)));
+    } catch (err) {
+      console.error("Failed to update creative space visibility", err);
+      toast({
+        title: "Error",
+        description: "Failed to update creative space visibility.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleToggleSpacePublished = async (space: CreativeSpace, nextPublished: boolean) => {
+    if (!authUser?.id) return;
+    try {
+      const res = await fetch(`${API_BASE}/creative-spaces/${space.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: authUser.id, published: nextPublished }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error("Failed to update creative space publish state", { status: res.status, body });
+        toast({
+          title: "Error",
+          description: body.error || "Failed to update creative space publish state.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setCreativeSpaces((prev) => prev.map((s) => (s.id === space.id ? (body as CreativeSpace) : s)));
+    } catch (err) {
+      console.error("Failed to update creative space publish state", err);
+      toast({
+        title: "Error",
+        description: "Failed to update creative space publish state.",
         variant: "destructive",
       });
     }
@@ -1054,7 +1127,42 @@ const Profile = () => {
             onRename={handleRenameCreativeSpace}
             onDelete={handleDeleteCreativeSpace}
             onClone={handleCloneCreativeSpace}
+            onToggleVisibility={handleToggleSpaceVisibility}
+            onTogglePublished={handleToggleSpacePublished}
+            onShowStats={(space) => setActiveSpaceForStats(space)}
           />
+          {activeSpaceForStats && (
+            <div className="mt-3 text-xs text-gray-600 border rounded-lg p-3 bg-gray-50">
+              <div className="flex justify-between items-start mb-1">
+                <div className="font-semibold text-gray-800 truncate">
+                  Space stats: {activeSpaceForStats.name}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveSpaceForStats(null)}
+                  className="text-gray-400 hover:text-gray-600 text-[11px]"
+                >
+                  Close
+                </button>
+              </div>
+              <div className="space-y-1">
+                <div>space_id: {activeSpaceForStats.id}</div>
+                <div>
+                  visibility/published: {activeSpaceForStats.visibility || "private"} ·
+                  {" "}
+                  {activeSpaceForStats.published ? "published" : "unpublished"}
+                </div>
+                {activeSpaceForStats.last_synced_at && (
+                  <div>
+                    last sync: {new Date(activeSpaceForStats.last_synced_at).toLocaleString()}
+                  </div>
+                )}
+                {activeSpaceForStats.sync_state && (
+                  <div>sync state: {activeSpaceForStats.sync_state}</div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
         
         {/* Stories the user is creating / co-creating */}

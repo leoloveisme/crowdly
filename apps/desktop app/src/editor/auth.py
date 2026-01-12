@@ -33,6 +33,50 @@ class AuthResult:
     error_message: Optional[str] = None
 
 
+def get_user_id_for_email(email: str) -> Optional[str]:
+    """Return the local_users.id for *email*, or ``None`` if not found.
+
+    This is a convenience helper used by the desktop UI to map a
+    successfully authenticated username (email address) to the
+    corresponding UUID used by the Crowdly backend.
+    """
+
+    email = email.strip()
+    if not email:
+        return None
+
+    try:
+        conn = _get_connection()
+    except Exception:  # pragma: no cover - DB environment dependent
+        return None
+
+    try:
+        with conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    sql.SQL(
+                        """
+                        SELECT id
+                          FROM local_users
+                         WHERE email = %s
+                         LIMIT 1
+                        """
+                    ),
+                    (email,),
+                )
+                row = cur.fetchone()
+                if not row:
+                    return None
+                return str(row[0])
+    except Exception:  # pragma: no cover - DB environment dependent
+        return None
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
+
+
 def _get_connection() -> psycopg2.extensions.connection:
     """Return a new connection to the local ``crowdly`` database.
 
