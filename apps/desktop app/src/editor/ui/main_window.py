@@ -46,12 +46,14 @@ from ..settings import Settings, save_settings
 from .. import file_metadata
 from .. import story_sync
 from ..versioning import local_queue
+from ..format import types as format_types
 from ..importing import controller as importing_controller
 from ..importing.base import DocumentImportError
 from ..exporting import controller as exporting_controller
 from ..exporting.base import ExportError, ExportFormat, ExportRequest
 from ..exporting.markdown_utils import render_html_from_markdown
 from .. import storage
+from ..format import story_markup, screenplay_markup
 from .editor_widget import EditorWidget
 from .preview_widget import PreviewWidget
 from .compare_revisions import CompareRevisionsWindow
@@ -123,6 +125,11 @@ class MainWindow(QMainWindow):
         # Track where the last content change originated from so that we can
         # decide whether re-rendering the preview from Markdown is safe.
         self._last_change_from_preview = False
+
+        # Track which pane ("md" or "wysiwyg") is currently considered active
+        # based on focus. This is used to decide which on-disk format (.md,
+        # .story, .screenplay) should be used when saving.
+        self._active_pane: str = "md"
 
         # Current in-memory document being edited. With multiple tabs, this
         # always refers to the document in the *active* tab.
@@ -552,6 +559,38 @@ class MainWindow(QMainWindow):
             # Never let title updates affect core behaviour.
             pass
 
+    def _update_filename_header_label(self) -> None:
+        """Update any inline filename header label, if present.
+
+        Current builds do not expose a dedicated filename header widget, but
+        older experiments referenced this helper. To keep the code robust we
+        implement it as a no-op unless a suitable label is attached.
+        """
+
+        label = getattr(self, "_filename_header_label", None)
+        if label is None:
+            return
+        try:
+            from PySide6.QtWidgets import QLabel  # local import; defensive
+
+            if not isinstance(label, QLabel):
+                return
+        except Exception:
+            return
+
+        path = getattr(self._document, "path", None)
+        text = ""
+        try:
+            if isinstance(path, Path):
+                text = str(path)
+        except Exception:
+            text = ""
+
+        try:
+            label.setText(text)
+        except Exception:
+            pass
+
     def _update_project_space_status(self) -> None:
         """Update the status bar label with the current project space."""
 
@@ -945,13 +984,34 @@ class MainWindow(QMainWindow):
         # the user knows they need to configure it to keep their input.
         self._maybe_warn_no_space_on_input(text)
 
+        # Editing came from the Markdown pane; treat it as the active pane for
+        # subsequent save/format decisions regardless of focus quirks.
+        self._active_pane = "md"
+
+        # For story/screenplay documents the Markdown pane edits the raw DSL
+        # directly; for plain Markdown documents it edits Markdown as before.
+        storage_format = getattr(self._document, "storage_format", "markdown") or "markdown"
+
         self._document.set_content(text)
         self._last_change_from_preview = False
 
-        # Push the updated Markdown into the WYSIWYG preview without
-        # triggering a feedback loop.
         if self.preview.isVisible():
-            self.preview.set_markdown(text)
+            if storage_format == "story_v1":
+                # Render DSL → HTML.
+                try:
+                    html = story_markup.dsl_to_html(text)
+                except Exception:
+                    html = ""
+                self.preview.set_html(html)
+            elif storage_format == "screenplay_v1":
+                try:
+                    html = screenplay_markup.dsl_to_html(text)
+                except Exception:
+                    html = ""
+                self.preview.set_html(html)
+            else:
+                # Plain Markdown path (existing behaviour).
+                self.preview.set_markdown(text)
 
         # Restart autosave timer.
         if self._autosave_timer.isActive():
@@ -964,21 +1024,63 @@ class MainWindow(QMainWindow):
         """Handle text changes from the WYSIWYG preview.
 
         *text* is the Markdown representation of the current document as edited
-        in the preview. We treat this as the canonical source so that the local
-        file and backend sync remain Markdown-based.
+        in the preview.
+
+        For plain Markdown documents we continue to treat this as canonical.
+        For `.story` / `.screenplay` documents we convert the edited Markdown
+        back into their DSL so that on-disk formats remain robust.
         """
 
         # Apply the same one-time "no Space set" warning when editing via the
         # WYSIWYG pane.
         self._maybe_warn_no_space_on_input(text)
 
-        self._document.set_content(text)
+        # Editing came from the WYSIWYG pane; treat it as the active pane for
+        # subsequent save/format decisions regardless of focus quirks.
+        self._active_pane = "wysiwyg"
+
+        storage_format = getattr(self._document, "storage_format", "markdown") or "markdown"
+
+        if storage_format == "story_v1":
+            # For `.story` documents the WYSIWYG pane is canonical. Use the
+            # current rich-text formatting (alignment, bold/italic/underline,
+            # font color, font size, background highlight) to generate DSL
+            # headers rather than relying on Markdown-only structure.
+            try:
+                build_story_dsl = getattr(self.preview, "build_story_dsl", None)
+                if callable(build_story_dsl):
+                    dsl = build_story_dsl()
+                else:
+                    # Fallback to the older Markdown → DSL path if needed.
+                    dsl = story_markup.markdown_to_dsl(text)
+            except Exception:
+                dsl = text
+            self._document.set_content(dsl)
+            canonical_text = dsl
+        elif storage_format == "screenplay_v1":
+            # For `.screenplay` documents, mirror the `.story` behaviour and
+            # treat the WYSIWYG pane as canonical when editing here.
+            try:
+                build_screenplay_dsl = getattr(self.preview, "build_screenplay_dsl", None)
+                if callable(build_screenplay_dsl):
+                    dsl = build_screenplay_dsl()
+                else:
+                    dsl = screenplay_markup.markdown_to_dsl(text)
+            except Exception:
+                dsl = text
+            self._document.set_content(dsl)
+            canonical_text = dsl
+        else:
+            # Plain Markdown: keep existing behaviour.
+            self._document.set_content(text)
+            canonical_text = text
+
         self._last_change_from_preview = True
 
         # Update the plain-text editor without triggering a feedback loop.
         old_state = self.editor.blockSignals(True)
         try:
-            self.editor.setPlainText(text)
+            self.editor.setPlainText(canonical_text)
         finally:
             self.editor.blockSignals(old_state)
 
@@ -1006,6 +1108,17 @@ class MainWindow(QMainWindow):
         # Keep document and preview in sync with editor content for this tab.
         editor.textChangedWithContent.connect(self._on_editor_text_changed)
         preview.markdownEdited.connect(self._on_preview_markdown_changed)
+
+        # Track which pane currently has focus so save/autosave can select the
+        # appropriate on-disk format.
+        try:
+            editor.paneFocused.connect(self._on_pane_focused)
+        except Exception:
+            pass
+        try:
+            preview.paneFocused.connect(self._on_pane_focused)
+        except Exception:
+            pass
 
         index = self._tab_widget.addTab(
             splitter,
@@ -1131,6 +1244,16 @@ class MainWindow(QMainWindow):
             except Exception:
                 self._set_preview_visible(True)
 
+    def _on_pane_focused(self, pane: str) -> None:  # pragma: no cover - UI wiring
+        """Remember which pane ("md" or "wysiwyg") is currently active.
+
+        The value is driven by focus events from :class:`EditorWidget` and
+        :class:`PreviewWidget`.
+        """
+
+        if pane in ("md", "wysiwyg"):
+            self._active_pane = pane
+
     def _set_preview_visible(self, visible: bool) -> None:  # pragma: no cover - UI wiring
         """Show or hide the preview pane without affecting the editor.
 
@@ -1161,15 +1284,33 @@ class MainWindow(QMainWindow):
     def _generate_default_document_path(self) -> Path:
         """Return a default path for new documents in the project space.
 
-        The current strategy is ``untitled-YYYYMMDD-HHMMSS.md`` inside the
-        selected project space directory.
+        The filename uses the pattern ``untitled-YYYYMMDD-HHMMSS<ext>`` where
+        ``<ext>`` is chosen based on the current document kind and the active
+        pane:
+
+        * When the Markdown pane is active, ``.md`` is always used.
+        * When the WYSIWYG pane is active, stories prefer ``.story`` and
+          screenplays prefer ``.screenplay``; other documents fall back to
+          ``.md``.
         """
 
         if not self._project_space_path:
             raise RuntimeError("Cannot generate document path without project space")
 
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        return self._project_space_path / f"untitled-{timestamp}.md"
+
+        try:
+            kind = getattr(self._document, "kind", "generic") or "generic"
+        except Exception:
+            kind = "generic"
+
+        try:
+            active = getattr(self, "_active_pane", "md") or "md"
+        except Exception:
+            active = "md"
+
+        ext = format_types.default_extension_for(kind, active)
+        return self._project_space_path / f"untitled-{timestamp}{ext}"
 
     def _map_external_path_to_project_space(self, external: Path) -> Path:
         """Map a file outside the project space into it as a new copy.
@@ -1204,12 +1345,105 @@ class MainWindow(QMainWindow):
             return
 
         if self._document.path is not None:
+            # Start from the current path but, when editing via the WYSIWYG pane,
+            # allow stories/screenplays to move to their dedicated extensions
+            # (.story / .screenplay). We never delete the original file; we
+            # simply start saving to the new path alongside it.
             target_path = self._document.path
+            try:
+                kind = getattr(self._document, "kind", "generic") or "generic"
+                active = getattr(self, "_active_pane", "md") or "md"
+                desired_ext = format_types.default_extension_for(kind, active)
+                current_ext = target_path.suffix.lower()
+                if active == "wysiwyg" and desired_ext and desired_ext.lower() != current_ext:
+                    target_path = target_path.with_suffix(desired_ext)
+            except Exception:
+                # If anything goes wrong, fall back to the existing path.
+                target_path = self._document.path
         elif self._project_space_path is not None:
             target_path = self._generate_default_document_path()
         else:
             # No file path and no project space to create one in.
             return
+
+        # Update the document's storage_format based on the target extension so
+        # that downstream components (metadata, exports, sync) can reason about
+        # it. When we transition from plain Markdown to `.story`/`.screenplay`
+        # we also perform a best-effort automatic migration of the current
+        # Markdown content into the corresponding DSL.
+        try:
+            old_format = getattr(self._document, "storage_format", "markdown") or "markdown"
+            suffix = target_path.suffix.lower()
+            if suffix == ".story":
+                new_format = "story_v1"
+                if getattr(self._document, "kind", "generic") == "generic":
+                    self._document.kind = "story"
+            elif suffix == ".screenplay":
+                new_format = "screenplay_v1"
+                if getattr(self._document, "kind", "generic") == "generic":
+                    self._document.kind = "screenplay"
+            else:
+                new_format = "markdown"
+
+            # Automatic migration for existing Markdown documents the first
+            # time they are saved as `.story` / `.screenplay`. We also repair
+            # older `.story` / `.screenplay` files that do not yet use the DSL
+            # tags by checking for the expected markers.
+            raw_content = getattr(self._document, "content", "") or ""
+
+            if new_format == "story_v1":
+                active = getattr(self, "_active_pane", "md") or "md"
+
+                # When saving from the WYSIWYG pane, treat its rich-text
+                # formatting as canonical and build DSL directly from the
+                # current document instead of guessing from Markdown.
+                if active == "wysiwyg":
+                    try:
+                        build_story_dsl = getattr(self.preview, "build_story_dsl", None)
+                        if callable(build_story_dsl):
+                            self._document.content = build_story_dsl()
+                            raw_content = self._document.content or ""
+                    except Exception:
+                        # If DSL building fails, fall through to the
+                        # migration heuristics below using the existing text.
+                        raw_content = getattr(self._document, "content", "") or ""
+
+                # Only run Markdown → DSL migration when the content does not
+                # already look like `.story` DSL (no [story_title header yet)
+                # and the previous format was not already story_v1.
+                is_already_dsl = "[story_title" in raw_content
+                if old_format != "story_v1" and not is_already_dsl:
+                    try:
+                        self._document.content = story_markup.markdown_to_dsl(raw_content)
+                    except Exception:
+                        # If migration fails for any reason, fall back to
+                        # storing the original text so no content is lost.
+                        pass
+            elif new_format == "screenplay_v1":
+                active = getattr(self, "_active_pane", "md") or "md"
+
+                if active == "wysiwyg":
+                    try:
+                        build_screenplay_dsl = getattr(self.preview, "build_screenplay_dsl", None)
+                        if callable(build_screenplay_dsl):
+                            self._document.content = build_screenplay_dsl()
+                            raw_content = self._document.content or ""
+                    except Exception:
+                        raw_content = getattr(self._document, "content", "") or ""
+
+                needs_migration = (
+                    old_format != "screenplay_v1" and "[screenplay_title" not in raw_content
+                )
+                if needs_migration:
+                    try:
+                        self._document.content = screenplay_markup.markdown_to_dsl(raw_content)
+                    except Exception:
+                        pass
+
+            self._document.storage_format = new_format
+        except Exception:
+            # Never let classification issues prevent a save.
+            pass
 
         self._document.save(target_path)
         self._update_window_title()
@@ -1277,11 +1511,29 @@ class MainWindow(QMainWindow):
         return cleaned or "untitled"
 
     def _build_export_request(self) -> ExportRequest:
-        """Construct an :class:`ExportRequest` for the current document."""
+        """Construct an :class:`ExportRequest` for the current document.
 
-        markdown = getattr(self._document, "content", "") or ""
+        The request always contains both a Markdown representation and an HTML
+        representation so that exporters can choose the most appropriate
+        starting point. For `.story` and `.screenplay` documents we derive
+        HTML from their respective DSLs; for plain Markdown we reuse the
+        existing Markdown → HTML pipeline.
+        """
+
+        raw_content = getattr(self._document, "content", "") or ""
+        storage_format = getattr(self._document, "storage_format", "markdown") or "markdown"
+
+        if storage_format == "story_v1":
+            markdown = raw_content  # For now we expose the DSL text as-is.
+            html = story_markup.dsl_to_html(raw_content)
+        elif storage_format == "screenplay_v1":
+            markdown = raw_content
+            html = screenplay_markup.dsl_to_html(raw_content)
+        else:
+            markdown = raw_content
+            html = render_html_from_markdown(markdown)
+
         title = self._guess_document_title()
-        html = render_html_from_markdown(markdown)
 
         # Placeholder for richer metadata (author, language, etc.).
         metadata: dict[str, object] = {}
@@ -2143,7 +2395,8 @@ class MainWindow(QMainWindow):
             title = self._guess_document_title() or "Untitled Screenplay"
 
             created = client.create_desktop_screenplay(title=title)
-            screenplay_id = created.get("screenplay_id")
+            # Accept both snake_case and camelCase keys from the backend.
+            screenplay_id = created.get("screenplay_id") or created.get("screenplayId")
             if not isinstance(screenplay_id, str) or not screenplay_id.strip():
                 raise CrowdlyClientError(
                     "Create-screenplay response did not include screenplayId.",
@@ -2190,6 +2443,11 @@ class MainWindow(QMainWindow):
             local_path = project_space / filename
 
             doc = Document(path=None, content=body_md, is_dirty=True)
+            # New screenplays start as Markdown but are classified explicitly so
+            # that autosave can transition them into `.screenplay` files when
+            # edited via the WYSIWYG pane.
+            doc.kind = "screenplay"
+            doc.storage_format = "markdown"
             doc.save(local_path)
 
             # Best-effort: record screenplay id + URL in xattrs so the status
@@ -3269,6 +3527,12 @@ class MainWindow(QMainWindow):
             )
 
             doc = map_story_to_document(story)
+            # Imported web stories start life as Markdown but are classified as
+            # "story" documents so that WYSIWYG-based saves can move them into
+            # the `.story` format when desired.
+            doc.kind = "story"
+            doc.storage_format = "markdown"
+
             local_path = suggest_local_path(self._project_space_path, story)
             doc.save(local_path)
             persist_import_metadata(local_path, story)
@@ -3559,14 +3823,19 @@ class MainWindow(QMainWindow):
             )
 
     def _pick_markdown_file_to_open(self) -> Path | None:
-        """Open a file dialog and return the chosen Markdown path, if any."""
+        """Open a file dialog and return the chosen document path, if any.
+
+        The filter includes Markdown, `.story` and `.screenplay` files so that
+        all supported text formats are discoverable while keeping existing
+        behaviour for Markdown-only workflows.
+        """
 
         start_dir = str(self._project_space_path) if self._project_space_path else ""
         path_str, _ = QFileDialog.getOpenFileName(
             self,
-            self.tr("Open Markdown document"),
+            self.tr("Open document"),
             start_dir,
-            self.tr("Markdown files (*.md);;All files (*)"),
+            self.tr("Text documents (*.md *.story *.screenplay);;All files (*)"),
         )
         if not path_str:
             return None
@@ -3726,14 +3995,37 @@ class MainWindow(QMainWindow):
             self._tab_documents[self._current_tab_index] = self._document
 
         # Populate editor and preview without triggering autosave. We update
-        # the preview explicitly.
+        # the preview explicitly. For `.story` / `.screenplay` documents the
+        # editor shows raw DSL text and the preview is driven by DSL → HTML.
         old_state = self.editor.blockSignals(True)
         try:
             self.editor.setPlainText(doc.content)
         finally:
             self.editor.blockSignals(old_state)
 
-        self.preview.set_markdown(doc.content)
+        try:
+            kind, storage_format = format_types.detect_kind_and_format(doc.path or external_path)
+        except Exception:
+            kind, storage_format = ("generic", "markdown")
+
+        doc.kind = kind
+        doc.storage_format = storage_format
+
+        if storage_format == "story_v1":
+            try:
+                html = story_markup.dsl_to_html(doc.content)
+            except Exception:
+                html = ""
+            self.preview.set_html(html)
+        elif storage_format == "screenplay_v1":
+            try:
+                html = screenplay_markup.dsl_to_html(doc.content)
+            except Exception:
+                html = ""
+            self.preview.set_html(html)
+        else:
+            self.preview.set_markdown(doc.content)
+
         self._update_document_stats_label()
         self._update_story_link_label()
         self._update_window_title()

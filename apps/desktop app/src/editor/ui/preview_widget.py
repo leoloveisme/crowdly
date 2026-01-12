@@ -16,10 +16,25 @@ from PySide6.QtWidgets import (
     QComboBox,
     QTextEdit,
 )
-from PySide6.QtGui import QTextCharFormat, QTextCursor, QFont, QColor
+from PySide6.QtGui import QTextCharFormat, QTextCursor, QFont, QColor, QTextBlockFormat
 
 import markdown
 import re
+
+
+
+# Canonical color names for DSL attributes, keyed by QColor.name() hex.
+_NAMED_COLOR_BY_HEX = {
+    QColor("black").name(): "black",
+    QColor("red").name(): "red",
+    QColor("green").name(): "green",
+    QColor("blue").name(): "blue",
+    QColor("orange").name(): "orange",
+    QColor("yellow").name(): "yellow",
+    QColor("white").name(): "white",
+    QColor("brown").name(): "brown",
+    QColor("gray").name(): "grey",
+}
 
 
 class PreviewWidget(QWidget):
@@ -34,6 +49,9 @@ class PreviewWidget(QWidget):
     # We emit Markdown so the source editor, local file, and backend sync all
     # remain Markdown-based (sending raw HTML to the backend breaks story pages).
     markdownEdited = Signal(str)
+    # Emitted when the preview gains focus so the main window can treat the
+    # WYSIWYG pane as the active one for save/format decisions.
+    paneFocused = Signal(str)
 
     def __init__(self, parent: object | None = None) -> None:
         super().__init__(parent)
@@ -132,11 +150,43 @@ class PreviewWidget(QWidget):
         self._font_color.addItem("Red", QColor("red"))
         self._font_color.addItem("Green", QColor("green"))
         self._font_color.addItem("Blue", QColor("blue"))
+        self._font_color.addItem("Orange", QColor("orange"))
+        self._font_color.addItem("Yellow", QColor("yellow"))
         self._font_color.addItem("White", QColor("white"))
         self._font_color.addItem("Brown", QColor("brown"))
         self._font_color.addItem("Grey", QColor("gray"))
         self._font_color.currentIndexChanged.connect(self._apply_font_color)
         toolbar_layout.addWidget(self._font_color)
+
+        # Word/text wrap color drop-down (background highlight), using the
+        # same palette as font color.
+        self._wrap_color = QComboBox(toolbar)
+        self._wrap_color.addItem("Wrap: Default", None)
+        self._wrap_color.addItem("Wrap: Black", QColor("black"))
+        self._wrap_color.addItem("Wrap: Red", QColor("red"))
+        self._wrap_color.addItem("Wrap: Green", QColor("green"))
+        self._wrap_color.addItem("Wrap: Blue", QColor("blue"))
+        self._wrap_color.addItem("Wrap: Orange", QColor("orange"))
+        self._wrap_color.addItem("Wrap: Yellow", QColor("yellow"))
+        self._wrap_color.addItem("Wrap: White", QColor("white"))
+        self._wrap_color.addItem("Wrap: Brown", QColor("brown"))
+        self._wrap_color.addItem("Wrap: Grey", QColor("gray"))
+        self._wrap_color.currentIndexChanged.connect(self._apply_wrap_color)
+        toolbar_layout.addWidget(self._wrap_color)
+
+        # Horizontal positioning (applies to all text elements).
+        self._h_position = QComboBox(toolbar)
+        self._h_position.addItems(["Left", "Center", "Right"])
+        self._h_position.setCurrentText("Left")
+        self._h_position.currentIndexChanged.connect(self._apply_global_h_position)
+        toolbar_layout.addWidget(self._h_position)
+
+        # Vertical positioning (applies to the whole document visually).
+        self._v_position = QComboBox(toolbar)
+        self._v_position.addItems(["Top", "Middle", "Bottom"])
+        self._v_position.setCurrentText("Top")
+        self._v_position.currentIndexChanged.connect(self._apply_global_v_position)
+        toolbar_layout.addWidget(self._v_position)
 
         layout.addWidget(toolbar)
 
@@ -187,6 +237,19 @@ class PreviewWidget(QWidget):
 
         return self._editor.toMarkdown()
 
+    def set_html(self, html: str) -> None:
+        """Replace the editor content with raw HTML without emitting Markdown.
+
+        This is used for `.story` / `.screenplay` documents where the
+        WYSIWYG pane is driven by a DSL → HTML mapping instead of Markdown.
+        """
+
+        self._updating_from_source = True
+        try:
+            self._editor.setHtml(html or "")
+        finally:
+            self._updating_from_source = False
+
     def get_html(self) -> str:
         """Return the current content as HTML.
 
@@ -197,7 +260,281 @@ class PreviewWidget(QWidget):
 
         return self._editor.toHtml()
 
+    # Story / screenplay DSL helpers --------------------------------------
+
+    def build_story_dsl(self) -> str:
+        """Generate `.story` DSL text from the current rich-text document.
+
+        This inspects block-level alignment and the *dominant* character
+        formatting per block (bold/italic/underline/strike, foreground color,
+        font size, background color) to produce headers like::
+
+            [paragraph right bold italic font_color=orange font_size=12]Text[/paragraph]
+
+        The mapping is intentionally simple and focuses on block-level styling
+        rather than preserving every inline variation.
+        """
+
+        doc = self._editor.document()
+        lines: list[str] = []
+
+        block = doc.begin()
+        while block.isValid():  # type: ignore[truthy-function]
+            text = block.text() or ""
+            if not text.strip():
+                block = block.next()
+                continue
+
+            block_fmt = block.blockFormat()
+            heading_level = getattr(block_fmt, "headingLevel", lambda: 0)()
+
+            if heading_level == 1:
+                tag = "story_title"
+            elif heading_level == 2:
+                tag = "chapter_title"
+            else:
+                tag = "paragraph"
+
+            # Alignment attribute as a bare token (left/center/right).
+            align_token = "left"
+            alignment = block_fmt.alignment()
+            if alignment & Qt.AlignmentFlag.AlignHCenter:
+                align_token = "center"
+            elif alignment & Qt.AlignmentFlag.AlignRight:
+                align_token = "right"
+
+            tokens: list[str] = [align_token]
+
+            # Derive dominant character formatting for this block.
+            (
+                is_bold,
+                is_italic,
+                is_underline,
+                is_strike,
+                font_color,
+                font_size,
+                bg_color,
+            ) = self._dominant_char_style_for_block(block)
+
+            if is_bold:
+                tokens.append("bold")
+            if is_italic:
+                tokens.append("italic")
+            if is_underline:
+                tokens.append("underlined")
+            if is_strike:
+                tokens.append("stroke-through")
+
+            if font_color:
+                tokens.append(f"font_color={font_color}")
+
+            if font_size is not None:
+                # Store as integer when very close to an integer point size.
+                if abs(font_size - round(font_size)) < 0.01:
+                    tokens.append(f"font_size={int(round(font_size))}")
+                else:
+                    tokens.append(f"font_size={font_size:.1f}")
+
+            # Background color is mapped to text_wrap attribute for now.
+            if bg_color:
+                tokens.append(f"text_wrap={bg_color}")
+
+            header_attrs = " ".join(tokens) if tokens else ""
+            header = f"[{tag} {header_attrs}]" if header_attrs else f"[{tag}]"
+            closing = f"[/{tag}]"
+
+            # QTextBlock.text() already omits the trailing newline; we keep the
+            # raw text as-is and let downstream HTML rendering handle escaping.
+            body = text.rstrip("\n")
+
+            lines.append(f"{header}{body}{closing}")
+            lines.append("")
+
+            block = block.next()
+
+        # Normalise trailing whitespace.
+        return "\n".join(lines).rstrip() + "\n"
+
+    def _dominant_char_style_for_block(self, block) -> tuple[bool, bool, bool, bool, str | None, float | None, str | None]:
+        """Return dominant style flags for *block*.
+
+        The result is a tuple of:
+
+        (bold, italic, underline, strike, font_color, font_size, background_color)
+
+        "Dominant" means "applies to more than half of the characters" for the
+        boolean flags and "most frequent" for colors / sizes.
+        """
+
+        from PySide6.QtGui import QFont
+
+        total_len = 0
+        bold_chars = italic_chars = underline_chars = strike_chars = 0
+        fg_counts: dict[str, int] = {}
+        bg_counts: dict[str, int] = {}
+        size_counts: dict[float, int] = {}
+
+        it = block.begin()
+        while not it.atEnd():  # type: ignore[truthy-function]
+            frag = it.fragment()
+            if frag.isValid():
+                text = frag.text() or ""
+                length = len(text)
+                if length > 0:
+                    fmt = frag.charFormat()
+                    total_len += length
+
+                    if fmt.fontWeight() > QFont.Weight.Normal:
+                        bold_chars += length
+                    if fmt.fontItalic():
+                        italic_chars += length
+                    if fmt.fontUnderline():
+                        underline_chars += length
+                    if fmt.fontStrikeOut():
+                        strike_chars += length
+
+                    fg = fmt.foreground()
+                    if fg.isOpaque():
+                        name = fg.color().name()
+                        fg_counts[name] = fg_counts.get(name, 0) + length
+
+                    bg = fmt.background()
+                    if bg.isOpaque():
+                        name = bg.color().name()
+                        bg_counts[name] = bg_counts.get(name, 0) + length
+
+                    size = float(fmt.fontPointSize())
+                    if size > 0.0:
+                        size_counts[size] = size_counts.get(size, 0) + length
+
+            it += 1
+
+        if total_len <= 0:
+            return False, False, False, False, None, None, None
+
+        def _majority(count: int) -> bool:
+            return count > (total_len / 2.0)
+
+        is_bold = _majority(bold_chars)
+        is_italic = _majority(italic_chars)
+        is_underline = _majority(underline_chars)
+        is_strike = _majority(strike_chars)
+
+        def _most_common(mapping: dict[str, int]) -> str | None:
+            if not mapping:
+                return None
+            hex_code, _ = max(mapping.items(), key=lambda item: item[1])
+            # Normalise to a friendly name when possible.
+            return _NAMED_COLOR_BY_HEX.get(hex_code, hex_code)
+
+        font_color = _most_common(fg_counts)
+        bg_color = _most_common(bg_counts)
+
+        font_size: float | None
+        if not size_counts:
+            font_size = None
+        else:
+            size, _ = max(size_counts.items(), key=lambda item: item[1])
+            font_size = size
+
+        return is_bold, is_italic, is_underline, is_strike, font_color, font_size, bg_color
+
+    def build_screenplay_dsl(self) -> str:
+        """Generate `.screenplay` DSL text from the current rich-text document.
+
+        This mirrors :meth:`build_story_dsl` but uses screenplay-specific tag
+        names:
+
+        * heading level 1 → ``screenplay_title``
+        * heading level 2 → ``scene_slugline``
+        * other blocks → ``action``
+        """
+
+        doc = self._editor.document()
+        lines: list[str] = []
+
+        block = doc.begin()
+        while block.isValid():  # type: ignore[truthy-function]
+            text = block.text() or ""
+            if not text.strip():
+                block = block.next()
+                continue
+
+            block_fmt = block.blockFormat()
+            heading_level = getattr(block_fmt, "headingLevel", lambda: 0)()
+
+            if heading_level == 1:
+                tag = "screenplay_title"
+            elif heading_level == 2:
+                tag = "scene_slugline"
+            else:
+                tag = "action"
+
+            # Alignment attribute as a bare token (left/center/right).
+            align_token = "left"
+            alignment = block_fmt.alignment()
+            if alignment & Qt.AlignmentFlag.AlignHCenter:
+                align_token = "center"
+            elif alignment & Qt.AlignmentFlag.AlignRight:
+                align_token = "right"
+
+            tokens: list[str] = [align_token]
+
+            # Derive dominant character formatting for this block.
+            (
+                is_bold,
+                is_italic,
+                is_underline,
+                is_strike,
+                font_color,
+                font_size,
+                bg_color,
+            ) = self._dominant_char_style_for_block(block)
+
+            if is_bold:
+                tokens.append("bold")
+            if is_italic:
+                tokens.append("italic")
+            if is_underline:
+                tokens.append("underlined")
+            if is_strike:
+                tokens.append("stroke-through")
+
+            if font_color:
+                tokens.append(f"font_color={font_color}")
+
+            if font_size is not None:
+                if abs(font_size - round(font_size)) < 0.01:
+                    tokens.append(f"font_size={int(round(font_size))}")
+                else:
+                    tokens.append(f"font_size={font_size:.1f}")
+
+            if bg_color:
+                tokens.append(f"text_wrap={bg_color}")
+
+            header_attrs = " ".join(tokens) if tokens else ""
+            header = f"[{tag} {header_attrs}]" if header_attrs else f"[{tag}]"
+            closing = f"[/{tag}]"
+
+            body = text.rstrip("\n")
+
+            lines.append(f"{header}{body}{closing}")
+            lines.append("")
+
+            block = block.next()
+
+        return "\n".join(lines).rstrip() + "\n"
+
     # Text-widget compatibility layer -------------------------------------
+
+    def focusInEvent(self, event) -> None:  # pragma: no cover - UI wiring
+        """Emit a pane-focused signal when the preview gains focus."""
+
+        try:
+            self.paneFocused.emit("wysiwyg")
+        except Exception:
+            pass
+        super().focusInEvent(event)
 
     def textCursor(self) -> QTextCursor:
         """Expose the underlying editor cursor for search/replace helpers."""
@@ -340,6 +677,67 @@ class PreviewWidget(QWidget):
             fmt.setForeground(color)
 
         self._merge_char_format(_update)
+
+    def _apply_wrap_color(self, index: int) -> None:
+        """Apply background highlight color for word/text wrap.
+
+        When no selection is active the highlight is applied to the word under
+        the cursor; otherwise it covers the current selection.
+        """
+
+        color = self._wrap_color.currentData()
+        if color is None:
+            # Clear background highlight.
+            def _update(fmt: QTextCharFormat) -> None:
+                fmt.clearBackground()
+            self._merge_char_format(_update)
+            return
+
+        def _update(fmt: QTextCharFormat) -> None:
+            fmt.setBackground(color)
+
+        self._merge_char_format(_update)
+
+    def _apply_global_h_position(self, index: int) -> None:
+        """Apply horizontal alignment to the current block or selection.
+
+        This lets different text elements (paragraphs, titles, etc.) be
+        aligned independently (left/centre/right).
+        """
+
+        if index == 0:
+            align = Qt.AlignmentFlag.AlignLeft
+        elif index == 1:
+            align = Qt.AlignmentFlag.AlignHCenter
+        else:
+            align = Qt.AlignmentFlag.AlignRight
+
+        cursor = self._editor.textCursor()
+        block_fmt = cursor.blockFormat()
+        block_fmt.setAlignment(align)
+        cursor.mergeBlockFormat(block_fmt)
+
+    def _apply_global_v_position(self, index: int) -> None:
+        """Approximate vertical positioning for the current block/selection.
+
+        In a scrolling text view there is no absolute page vertical alignment,
+        so we treat this as extra spacing before the block (top margin). This
+        still allows different elements to "float" higher or lower relative to
+        their neighbours.
+        """
+
+        # Choose additional top margin in points.
+        if index == 0:      # Top
+            top_margin = 0.0
+        elif index == 1:    # Middle
+            top_margin = 40.0
+        else:               # Bottom
+            top_margin = 80.0
+
+        cursor = self._editor.textCursor()
+        block_fmt = cursor.blockFormat()
+        block_fmt.setTopMargin(top_margin)
+        cursor.mergeBlockFormat(block_fmt)
 
     # Slots ----------------------------------------------------------------
 

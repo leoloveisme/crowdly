@@ -16,12 +16,29 @@ from . import file_metadata
 
 @dataclass
 class Document:
-    """Represents a single text/Markdown document on disk."""
+    """Represents a single text/Markdown document on disk.
+
+    ``content`` always stores the canonical representation for the on-disk
+    ``storage_format``:
+
+    * ``"markdown"``  – raw Markdown/text, as before.
+    * ``"story_v1"``  – raw ``.story`` DSL text.
+    * ``"screenplay_v1"`` – raw ``.screenplay`` DSL text.
+
+    The higher-level UI and conversion layer are responsible for mapping
+    between these formats and what the user sees in the MD/WYSIWYG panes.
+    """
 
     path: Path | None = None
     content: str = ""
     is_dirty: bool = False
     last_saved_at: datetime | None = None
+    # High-level type hint used by the UI and sync layers. "generic" means the
+    # document is not yet classified as a story or screenplay.
+    kind: str = "generic"  # "generic" | "story" | "screenplay"
+    # Low-level storage format for ``content``. This mirrors the
+    # ``file_metadata.body_format`` xattr where available.
+    storage_format: str = "markdown"  # "markdown" | "story_v1" | "screenplay_v1"
 
     @classmethod
     def load(cls, path: Path) -> "Document":
@@ -57,9 +74,14 @@ class Document:
         storage.write_text(target, self.content)
 
         # Best-effort: if this file is associated with a Crowdly story, update
-        # the change_date metadata automatically.
+        # the change_date metadata automatically and mirror the storage_format
+        # into the body_format xattr so other components can reason about it.
         try:
             file_metadata.touch_change_date(target)
+            # Persist the body_format hint even for non-Crowdly documents; this
+            # is harmless on platforms without xattr support.
+            fmt = (self.storage_format or "").strip() or "markdown"
+            file_metadata.set_attr(target, file_metadata.FIELD_BODY_FORMAT, fmt)
         except Exception:
             # Never fail a save due to metadata issues.
             pass

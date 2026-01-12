@@ -11,9 +11,15 @@ from PySide6.QtWidgets import QPlainTextEdit
 
 
 class EditorWidget(QPlainTextEdit):
-    """Plain text editor that emits the full content on change."""
+    """Plain text editor that emits the full content on change.
+
+    In addition to the usual ``textChangedWithContent`` signal, the editor
+    emits ``paneFocused`` whenever it gains focus so that the main window can
+    treat the Markdown pane as the active one for save/format decisions.
+    """
 
     textChangedWithContent = Signal(str)
+    paneFocused = Signal(str)
 
     def __init__(self, parent: object | None = None) -> None:
         super().__init__(parent)
@@ -50,6 +56,17 @@ class EditorWidget(QPlainTextEdit):
 
     def _on_text_changed(self) -> None:  # pragma: no cover - thin wrapper
         self.textChangedWithContent.emit(self.toPlainText())
+
+    # Focus handling ------------------------------------------------------
+
+    def focusInEvent(self, event) -> None:  # pragma: no cover - UI wiring
+        """Emit a pane-focused signal when the editor gains focus."""
+
+        try:
+            self.paneFocused.emit("md")
+        except Exception:
+            pass
+        super().focusInEvent(event)
 
     # Zoom handling -------------------------------------------------------
 
