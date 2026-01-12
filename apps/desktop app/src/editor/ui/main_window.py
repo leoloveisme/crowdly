@@ -308,6 +308,15 @@ class MainWindow(QMainWindow):
             self.tr("Sync current Space now"), self._sync_current_space_to_web
         )
 
+        # Manual pull of changes made on the Crowdly web platform back into
+        # the current project-space directory. This operates on the folder /
+        # file *structure* (creating missing folders/files locally) and is
+        # intentionally conservative about overwriting or deleting existing
+        # local files.
+        self._action_pull_current_space = sync_menu.addAction(
+            self.tr("Pull updates for current Space"), self._pull_current_space_from_web
+        )
+
         online_storage_menu = sync_menu.addMenu(self.tr("online storage"))
         self._online_storage_menu = online_storage_menu
 
@@ -2939,6 +2948,62 @@ class MainWindow(QMainWindow):
 
         self._sync_google_drive = not self._sync_google_drive
         self._retranslate_ui()
+
+    def _pull_current_space_from_web(self) -> None:  # pragma: no cover - UI wiring
+        """Manually pull folder/file structure from the Crowdly backend.
+
+        This mirrors the current creative space's *structure* into the local
+        project-space directory without overwriting or deleting existing local
+        files. It is a conservative first step for two-way Spaces sync.
+        """
+
+        from PySide6.QtWidgets import QMessageBox
+
+        project_space = self._project_space_path
+        if project_space is None:
+            QMessageBox.information(
+                self,
+                self.tr("Pull updates for current Space"),
+                self.tr("There is no active project space set. Please choose or create one first."),
+            )
+            return
+
+        # Ensure we know which Crowdly user is associated with this Space so
+        # we can resolve the correct creative space id on the backend.
+        if not self._crowdly_user_id:
+            if self._username and self._username != "username":
+                try:
+                    self._crowdly_user_id = local_auth.get_user_id_for_email(self._username)
+                except Exception:
+                    self._crowdly_user_id = None
+
+        if not self._crowdly_user_id:
+            QMessageBox.warning(
+                self,
+                self.tr("Pull updates for current Space"),
+                self.tr(
+                    "You need to be logged in to the Crowdly web platform before pulling Space updates."
+                ),
+            )
+            return
+
+        try:
+            summary = websync.pull_space_from_web(self._settings, project_space, self._crowdly_user_id)  # type: ignore[arg-type]
+        except Exception as exc:  # pragma: no cover - network / filesystem dependent
+            QMessageBox.warning(
+                self,
+                self.tr("Pull failed"),
+                self.tr(
+                    "Failed to pull updates for the current Space from the web platform.\n\nDetails: {error}"
+                ).format(error=str(exc)),
+            )
+            return
+
+        QMessageBox.information(
+            self,
+            self.tr("Pull complete"),
+            summary,
+        )
 
     def _sync_current_space_to_web(self) -> None:  # pragma: no cover - UI wiring
         """Manually push the current project Space to the Crowdly backend.

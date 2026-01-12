@@ -3517,7 +3517,45 @@ app.delete('/creative-space-items/:itemId', async (req, res) => {
   }
 });
 
-// Desktop → web snapshot sync for creative spaces
+// Web  desktop sync listing for creative spaces
+app.get('/creative-spaces/:spaceId/sync', async (req, res) => {
+  const { spaceId } = req.params;
+  const sinceRaw = typeof req.query.since === 'string' ? req.query.since : null;
+
+  if (!spaceId) {
+    return res.status(400).json({ error: 'spaceId is required' });
+  }
+
+  try {
+    const spaceRes = await pool.query('SELECT * FROM creative_spaces WHERE id = $1', [spaceId]);
+    if (spaceRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Creative space not found' });
+    }
+
+    const params = [spaceId];
+    let where = 'space_id = $1';
+
+    if (sinceRaw) {
+      const since = new Date(sinceRaw);
+      if (!Number.isNaN(since.getTime())) {
+        where += ' AND updated_at > $2';
+        params.push(since);
+      }
+    }
+
+    const itemsRes = await pool.query(
+      `SELECT * FROM creative_space_items WHERE ${where} ORDER BY updated_at ASC`,
+      params,
+    );
+
+    return res.json({ space: spaceRes.rows[0], items: itemsRes.rows });
+  } catch (err) {
+    console.error('[GET /creative-spaces/:spaceId/sync] failed:', err);
+    return res.status(500).json({ error: 'Failed to load creative space changes' });
+  }
+});
+
+// Desktop  web snapshot sync for creative spaces
 app.post('/creative-spaces/:spaceId/sync', async (req, res) => {
   const { spaceId } = req.params;
   const { userId, snapshotGeneratedAt, items } = req.body ?? {};

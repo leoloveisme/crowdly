@@ -165,8 +165,12 @@ def sync_space_to_web(settings: Settings, project_space: Path, user_id: str) -> 
   api_base = _build_api_base(settings)
   snapshot = build_space_snapshot(project_space)
 
-  root_path = str(project_space.expand_user().resolve()) if hasattr(project_space, "expand_user") else str(project_space.resolve())
-  folder_name = project_space.resolve().name
+  # Normalise the project-space root path and folder name once; this is
+  # used both for matching existing creative spaces and for creating
+  # new ones when necessary.
+  root = project_space.expanduser().resolve()
+  root_path = str(root)
+  folder_name = root.name
 
   # 1) Try to find an existing space for this user and path/name.
   space_id: str | None = None
@@ -244,3 +248,156 @@ def sync_space_to_web(settings: Settings, project_space: Path, user_id: str) -> 
 
   message = f"Synced {created} new, {updated} updated and {deleted} deleted items."
   return True, message
+
+
+def pull_space_from_web(settings: Settings, project_space: Path, user_id: str) -> str:
+  """Pull folder/file structure for *project_space* from the Crowdly backend.
+
+  The current implementation is deliberately conservative: it mirrors
+  *remote* folders and files into the local project-space directory but
+  does **not** overwrite or delete existing local files. Remote deletions
+  are treated as "hints" and skipped locally to avoid accidental data
+  loss; they can be reconciled later by the user from the desktop side.
+
+  Returns a short human-readable summary string describing how many
+  folders/files were created locally and how many remote deletions or
+  existing paths were skipped.
+  """
+
+  api_base = _build_api_base(settings)
+
+  root = project_space.expanduser().resolve()
+  if not root.exists() or not root.is_dir():
+    raise ValueError(f"Project space does not exist or is not a directory: {root}")
+
+  root_path = str(root)
+  folder_name = root.name
+
+  # 1) Resolve the corresponding creative space id using the same rules as
+  #    sync_space_to_web.
+  space_id: str | None = None
+  list_url = f"{api_base}/creative-spaces?userId={user_id}"
+  status, body = _get_json(list_url)
+  if status == 200 and isinstance(body, list):
+    for row in body:
+      try:
+        if str(row.get("path") or "") == root_path:
+          sid = row.get("id")
+          if isinstance(sid, str) and sid:
+            space_id = sid
+            break
+      except Exception:
+        continue
+
+    if space_id is None:
+      try:
+        candidates = [
+          r for r in body
+          if isinstance(r.get("name"), str) and r.get("name") == folder_name
+        ]
+      except Exception:
+        candidates = []
+      if len(candidates) == 1:
+        sid = candidates[0].get("id")
+        if isinstance(sid, str) and sid:
+          space_id = sid
+
+  if space_id is None:
+    # Nothing to pull: the web knows nothing about this Space yet.
+    return (
+      "No matching creative Space was found on the web for this project space; "
+      "nothing was pulled. Try syncing this Space to the web first."
+    )
+
+  # 2) Fetch the list of items for this creative space. For now we always
+  #    request the full set; a future iteration can pass a `since` value
+  #    to support incremental pulls.
+  sync_url = f"{api_base}/creative-spaces/{space_id}/sync"
+  status, body = _get_json(sync_url)
+  if status != 200:
+    raise RuntimeError(body.get("error") or f"Failed to fetch creative space items (status {status})")
+
+  items = body.get("items") or []
+  if not isinstance(items, list):
+    raise RuntimeError("Backend returned an invalid items payload for creative space sync")
+
+  created_folders = 0
+  created_files = 0
+  skipped_existing = 0
+  skipped_deletes = 0
+
+  # First create folder structure so file creation never fails due to
+  # missing parents.
+  for raw in items:
+    try:
+      rel = str(raw.get("relative_path") or "").strip()
+    except Exception:
+      continue
+    if not rel:
+      continue
+
+    kind = "folder" if raw.get("kind") == "folder" else "file"
+    deleted = bool(raw.get("deleted"))
+    local_path = root / rel
+
+    if deleted:
+      if local_path.exists():
+        skipped_deletes += 1
+      continue
+
+    if kind != "folder":
+      continue
+
+    if not local_path.exists():
+      try:
+        local_path.mkdir(parents=True, exist_ok=True)
+        created_folders += 1
+      except OSError:
+        # Best-effort: skip problematic paths.
+        continue
+    else:
+      skipped_existing += 1
+
+  # Now create any missing files.
+  for raw in items:
+    try:
+      rel = str(raw.get("relative_path") or "").strip()
+    except Exception:
+      continue
+    if not rel:
+      continue
+
+    kind = "folder" if raw.get("kind") == "folder" else "file"
+    deleted = bool(raw.get("deleted"))
+    local_path = root / rel
+
+    if deleted or kind != "file":
+      continue
+
+    if local_path.exists():
+      skipped_existing += 1
+      continue
+
+    try:
+      local_path.parent.mkdir(parents=True, exist_ok=True)
+      # We intentionally create an empty placeholder file here; the actual
+      # text content remains managed locally for now.
+      local_path.touch(exist_ok=True)
+      created_files += 1
+    except OSError:
+      continue
+
+  parts: list[str] = []
+  if created_folders:
+    parts.append(f"created {created_folders} folder(s)")
+  if created_files:
+    parts.append(f"created {created_files} file(s)")
+  if skipped_existing:
+    parts.append(f"skipped {skipped_existing} existing path(s)")
+  if skipped_deletes:
+    parts.append(f"skipped {skipped_deletes} remote deletion(s) (kept local copies)")
+
+  if not parts:
+    return "Space is already up to date; no structural changes were pulled from the web."
+
+  return "; ".join(parts) + "."
