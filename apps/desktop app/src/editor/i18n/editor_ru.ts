@@ -219,7 +219,7 @@
     </message>
     <message>
         <source>web platform</source>
-        <translation>веб-платформой</translation>
+        <translation>Crowdly платформой</translation>
     </message>
     <message>
         <source>online storage</source>

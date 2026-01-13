@@ -141,7 +141,7 @@
     </message>
     <message>
       <source>web platform</source>
-      <translation>web platform</translation>
+      <translation>Crowdly platform</translation>
     </message>
     <message>
       <source>online storage</source>
