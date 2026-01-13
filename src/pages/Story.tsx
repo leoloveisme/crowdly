@@ -1888,6 +1888,14 @@ const Story = () => {
                           </button>
                         )}
                         {isOwner && (
+                          <button
+                            onClick={() => navigate(`/story/${story.story_title_id}/details`)}
+                            className="px-2 py-1 rounded border hover:bg-gray-50 border-gray-300"
+                          >
+                            Details & Space
+                          </button>
+                        )}
+                        {isOwner && (
                           <>
                             <button
                               onClick={toggleVisibility}

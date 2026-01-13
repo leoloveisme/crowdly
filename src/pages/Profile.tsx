@@ -1171,6 +1171,12 @@ const Profile = () => {
             <BookOpen className="h-5 w-5 text-purple-600" />
             Stories I'm creating / co-creating
             <Settings className="h-5 w-5 text-purple-600" />
+            <Link
+              to="/stories/spaces-migration"
+              className="ml-auto text-xs text-blue-700 hover:underline"
+            >
+              Manage story–Space assignments
+            </Link>
           </h2>
           {storiesLoading ? (
             <div className="text-gray-500 text-sm">Loading your stories...</div>

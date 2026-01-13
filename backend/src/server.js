@@ -493,6 +493,79 @@ async function ensureCreativeSpaceItemsTable() {
   }
 }
 
+// Ensure story/screenplay Space association and attachment tables exist.
+async function ensureStoryCreativeSpaceColumnsAndAttachments() {
+  try {
+    // Add creative_space_id directly on story_title and screenplay_title so
+    // each story/screenplay can have a primary owning Space.
+    await pool.query(
+      'ALTER TABLE story_title ADD COLUMN IF NOT EXISTS creative_space_id uuid NULL REFERENCES creative_spaces(id) ON DELETE SET NULL',
+    );
+    await pool.query(
+      'ALTER TABLE screenplay_title ADD COLUMN IF NOT EXISTS creative_space_id uuid NULL REFERENCES creative_spaces(id) ON DELETE SET NULL',
+    );
+
+    await pool.query(
+      'CREATE INDEX IF NOT EXISTS story_title_space_idx ON story_title(creative_space_id)',
+    );
+    await pool.query(
+      'CREATE INDEX IF NOT EXISTS screenplay_title_space_idx ON screenplay_title(creative_space_id)',
+    );
+
+    // Attachments table linking stories to specific files inside Spaces.
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS story_attachments (
+        id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        story_title_id  uuid NOT NULL REFERENCES story_title(story_title_id) ON DELETE CASCADE,
+        space_id        uuid NOT NULL REFERENCES creative_spaces(id) ON DELETE CASCADE,
+        item_id         uuid NOT NULL REFERENCES creative_space_items(id) ON DELETE CASCADE,
+        kind            text NOT NULL DEFAULT 'other',
+        role            text,
+        created_at      timestamptz NOT NULL DEFAULT now(),
+        updated_at      timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+
+    await pool.query(
+      'CREATE UNIQUE INDEX IF NOT EXISTS story_attachments_story_item_idx ON story_attachments(story_title_id, item_id)',
+    );
+    await pool.query(
+      'CREATE INDEX IF NOT EXISTS story_attachments_space_idx ON story_attachments(space_id)',
+    );
+
+    console.log('[init] ensured story creative_space columns and story_attachments table exist');
+  } catch (err) {
+    console.error('[init] failed to ensure story creative_space/attachments structures:', err);
+  }
+}
+
+// Join table for associating stories with multiple Spaces (primary + copies).
+async function ensureStorySpacesTable() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS story_spaces (
+        id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        story_title_id uuid NOT NULL REFERENCES story_title(story_title_id) ON DELETE CASCADE,
+        space_id       uuid NOT NULL REFERENCES creative_spaces(id) ON DELETE CASCADE,
+        role           text,
+        created_at     timestamptz NOT NULL DEFAULT now(),
+        updated_at     timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+
+    await pool.query(
+      'CREATE UNIQUE INDEX IF NOT EXISTS story_spaces_story_space_idx ON story_spaces(story_title_id, space_id)',
+    );
+    await pool.query(
+      'CREATE INDEX IF NOT EXISTS story_spaces_space_idx ON story_spaces(space_id)',
+    );
+
+    console.log('[init] ensured story_spaces table exists');
+  } catch (err) {
+    console.error('[init] failed to ensure story_spaces table:', err);
+  }
+}
+
 // Record per-paragraph and proposal-based contributions in a dedicated table
 // so we can easily query contributions per story and per user.
 async function ensureContributionsTable() {
@@ -877,6 +950,12 @@ ensureReactionsScreenplayColumns().catch((err) => {
 });
 ensureCreativeSpaceItemsTable().catch((err) => {
   console.error('[init] ensureCreativeSpaceItemsTable unhandled error:', err);
+});
+ensureStoryCreativeSpaceColumnsAndAttachments().catch((err) => {
+  console.error('[init] ensureStoryCreativeSpaceColumnsAndAttachments unhandled error:', err);
+});
+ensureStorySpacesTable().catch((err) => {
+  console.error('[init] ensureStorySpacesTable unhandled error:', err);
 });
 
 app.get('/health', async (_req, res) => {
@@ -2096,6 +2175,30 @@ app.get('/screenplays/:screenplayId/export.pdf', async (_req, res) => {
   res.status(501).json({ error: 'PDF export not implemented yet' });
 });
 
+// Helper: fetch attachments for a story_title as a rich list including
+// linked creative space items. Used by multiple endpoints.
+async function loadStoryAttachments(storyTitleId) {
+  const { rows } = await pool.query(
+    `SELECT
+       sa.id,
+       sa.space_id,
+       sa.item_id,
+       sa.kind,
+       sa.role,
+       csi.relative_path,
+       csi.name,
+       csi.kind AS item_kind,
+       csi.mime_type,
+       csi.size_bytes
+     FROM story_attachments sa
+     JOIN creative_space_items csi ON csi.id = sa.item_id
+     WHERE sa.story_title_id = $1 AND csi.deleted = false
+     ORDER BY csi.relative_path ASC`,
+    [storyTitleId],
+  );
+  return rows;
+}
+
 // List story titles created by a user
 app.get('/story-titles', async (req, res) => {
   const userId = req.query.userId;
@@ -2112,6 +2215,30 @@ app.get('/story-titles', async (req, res) => {
   } catch (err) {
     console.error('[story-titles] failed:', err);
     res.status(500).json({ error: 'Failed to fetch user stories' });
+  }
+});
+
+// List stories for a user that do not yet belong to any creative Space. This is
+// used by the web admin/bulk migration UI to assign legacy web-only stories
+// into Spaces without disturbing existing ones.
+app.get('/stories/unbound', async (req, res) => {
+  const userId = req.query.userId;
+  if (!userId) {
+    return res.status(400).json({ error: 'userId query parameter is required' });
+  }
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT story_title_id, title, visibility, published, created_at, updated_at
+       FROM story_title
+       WHERE creator_id = $1 AND creative_space_id IS NULL
+       ORDER BY created_at ASC`,
+      [userId],
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('[GET /stories/unbound] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch unbound stories' });
   }
 });
 
@@ -2133,8 +2260,19 @@ app.get('/story-titles/:storyTitleId', async (req, res) => {
     const story = rows[0];
     const visibility = story.visibility ?? 'public';
 
+    // Always attach Space-aware file attachments; this is additive metadata
+    // and does not affect access control.
+    let attachments = [];
+    try {
+      attachments = await loadStoryAttachments(storyTitleId);
+    } catch (err) {
+      console.error('[GET /story-titles/:storyTitleId] failed to load attachments:', err);
+    }
+
+    const payload = { ...story, attachments };
+
     if (visibility !== 'private') {
-      return res.json(story);
+      return res.json(payload);
     }
 
     // Private story: enforce access
@@ -2149,7 +2287,7 @@ app.get('/story-titles/:storyTitleId', async (req, res) => {
 
     // Creator always has access
     if (story.creator_id === userId) {
-      return res.json(story);
+      return res.json(payload);
     }
 
     // Check story_access table; if it does not exist, fall back to creator-only access
@@ -2159,7 +2297,7 @@ app.get('/story-titles/:storyTitleId', async (req, res) => {
         [storyTitleId, userId],
       );
       if (access.rows.length > 0) {
-        return res.json(story);
+        return res.json(payload);
       }
 
       console.warn('[GET /story-titles/:storyTitleId] access denied for private story', {
@@ -2187,6 +2325,234 @@ app.get('/story-titles/:storyTitleId', async (req, res) => {
   } catch (err) {
     console.error('[GET /story-titles/:storyTitleId] failed:', err);
     res.status(500).json({ error: 'Failed to fetch story' });
+  }
+});
+
+// List attachments linked to a story, including creative_space_items data.
+app.get('/stories/:storyTitleId/attachments', async (req, res) => {
+  const { storyTitleId } = req.params;
+  try {
+    const attachments = await loadStoryAttachments(storyTitleId);
+    res.json(attachments);
+  } catch (err) {
+    console.error('[GET /stories/:storyTitleId/attachments] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch story attachments' });
+  }
+});
+
+// Attach a creative_space_items entry as a file belonging to a story.
+app.post('/stories/:storyTitleId/attachments', async (req, res) => {
+  const { storyTitleId } = req.params;
+  const { spaceId, itemId, kind, role } = req.body ?? {};
+
+  if (!storyTitleId || !spaceId || !itemId) {
+    return res
+      .status(400)
+      .json({ error: 'storyTitleId, spaceId, and itemId are required' });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const storyRes = await client.query(
+      'SELECT story_title_id, creative_space_id FROM story_title WHERE story_title_id = $1 FOR UPDATE',
+      [storyTitleId],
+    );
+    if (storyRes.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Story not found' });
+    }
+    const story = storyRes.rows[0];
+
+    const itemRes = await client.query(
+      'SELECT id, space_id FROM creative_space_items WHERE id = $1 AND deleted = false',
+      [itemId],
+    );
+    if (itemRes.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Attachment item not found in Space' });
+    }
+    const item = itemRes.rows[0];
+
+    if (String(item.space_id) !== String(spaceId)) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Item does not belong to the specified Space' });
+    }
+
+    // If the story does not yet have a creative_space_id, adopt this Space
+    // as its primary container. If it already has one and differs, log but
+    // do not override to avoid surprising users.
+    if (!story.creative_space_id) {
+      try {
+        await client.query(
+          'UPDATE story_title SET creative_space_id = $1 WHERE story_title_id = $2',
+          [spaceId, storyTitleId],
+        );
+      } catch (errSetSpace) {
+        console.error('[POST /stories/:storyTitleId/attachments] failed to set creative_space_id:', errSetSpace);
+      }
+    } else if (String(story.creative_space_id) !== String(spaceId)) {
+      console.warn(
+        '[POST /stories/:storyTitleId/attachments] story already linked to a different creative_space_id',
+        {
+          storyTitleId,
+          existingSpaceId: story.creative_space_id,
+          requestedSpaceId: spaceId,
+        },
+      );
+    }
+
+    const { rows } = await client.query(
+      `INSERT INTO story_attachments (story_title_id, space_id, item_id, kind, role)
+       VALUES ($1, $2, $3, COALESCE($4, 'other'), $5)
+       ON CONFLICT (story_title_id, item_id)
+       DO UPDATE SET
+         kind = COALESCE(EXCLUDED.kind, story_attachments.kind),
+         role = COALESCE(EXCLUDED.role, story_attachments.role),
+         updated_at = now()
+       RETURNING *`,
+      [storyTitleId, spaceId, itemId, kind || null, role || null],
+    );
+
+    await client.query('COMMIT');
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('[POST /stories/:storyTitleId/attachments] failed:', err);
+    res.status(500).json({ error: 'Failed to attach file to story' });
+  } finally {
+    client.release();
+  }
+});
+
+// Detach a file from a story (does not delete the underlying creative_space_item).
+app.delete('/stories/:storyTitleId/attachments/:attachmentId', async (req, res) => {
+  const { storyTitleId, attachmentId } = req.params;
+
+  if (!storyTitleId || !attachmentId) {
+    return res.status(400).json({ error: 'storyTitleId and attachmentId are required' });
+  }
+
+  try {
+    const { rowCount } = await pool.query(
+      'DELETE FROM story_attachments WHERE id = $1 AND story_title_id = $2',
+      [attachmentId, storyTitleId],
+    );
+    if (rowCount === 0) {
+      return res.status(404).json({ error: 'Attachment not found for this story' });
+    }
+    res.status(204).send();
+  } catch (err) {
+    console.error('[DELETE /stories/:storyTitleId/attachments/:attachmentId] failed:', err);
+    res.status(500).json({ error: 'Failed to delete story attachment' });
+  }
+});
+
+// Update or clear the primary creative space for a story. This keeps all
+// existing story fields intact and simply changes story_title.creative_space_id.
+app.patch('/story-titles/:storyTitleId/space', async (req, res) => {
+  const { storyTitleId } = req.params;
+  const { creativeSpaceId } = req.body ?? {};
+
+  if (!storyTitleId) {
+    return res.status(400).json({ error: 'storyTitleId is required' });
+  }
+
+  try {
+    // If a Space id was provided, best-effort validate that it exists. If not
+    // found, treat this as a 400 to avoid dangling references.
+    if (creativeSpaceId) {
+      const spaceCheck = await pool.query(
+        'SELECT id FROM creative_spaces WHERE id = $1 LIMIT 1',
+        [creativeSpaceId],
+      );
+      if (spaceCheck.rows.length === 0) {
+        return res.status(400).json({ error: 'Creative Space not found' });
+      }
+    }
+
+    const { rows } = await pool.query(
+      'UPDATE story_title SET creative_space_id = $1, updated_at = now() WHERE story_title_id = $2 RETURNING *',
+      [creativeSpaceId || null, storyTitleId],
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Story not found' });
+    }
+
+    const updated = rows[0];
+
+    // Best-effort: if a Space was provided, keep story_spaces in sync so that
+    // downstream tools can reason about multi-Space membership.
+    if (creativeSpaceId) {
+      try {
+        await pool.query(
+          `INSERT INTO story_spaces (story_title_id, space_id, role)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (story_title_id, space_id)
+           DO UPDATE SET role = COALESCE(EXCLUDED.role, story_spaces.role), updated_at = now()`,
+          [storyTitleId, creativeSpaceId, 'primary'],
+        );
+      } catch (errSpaces) {
+        console.error('[PATCH /story-titles/:storyTitleId/space] failed to upsert story_spaces row:', errSpaces);
+      }
+    }
+
+    // Attachments are additive metadata; include them for convenience so the
+    // frontend can refresh its view without an extra round-trip.
+    let attachments = [];
+    try {
+      attachments = await loadStoryAttachments(storyTitleId);
+    } catch (err) {
+      console.error('[PATCH /story-titles/:storyTitleId/space] failed to load attachments:', err);
+    }
+
+    res.json({ ...updated, attachments });
+  } catch (err) {
+    console.error('[PATCH /story-titles/:storyTitleId/space] failed:', err);
+    res.status(500).json({ error: 'Failed to update story creative space' });
+  }
+});
+
+// Copy a story into an additional Space without changing its primary Space.
+app.post('/stories/:storyTitleId/copy-to-space', async (req, res) => {
+  const { storyTitleId } = req.params;
+  const { targetSpaceId, role } = req.body ?? {};
+
+  if (!storyTitleId || !targetSpaceId) {
+    return res.status(400).json({ error: 'storyTitleId and targetSpaceId are required' });
+  }
+
+  try {
+    const storyCheck = await pool.query(
+      'SELECT story_title_id FROM story_title WHERE story_title_id = $1',
+      [storyTitleId],
+    );
+    if (storyCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Story not found' });
+    }
+
+    const spaceCheck = await pool.query(
+      'SELECT id FROM creative_spaces WHERE id = $1',
+      [targetSpaceId],
+    );
+    if (spaceCheck.rows.length === 0) {
+      return res.status(400).json({ error: 'Creative Space not found' });
+    }
+
+    await pool.query(
+      `INSERT INTO story_spaces (story_title_id, space_id, role)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (story_title_id, space_id)
+       DO UPDATE SET role = COALESCE(EXCLUDED.role, story_spaces.role), updated_at = now()`,
+      [storyTitleId, targetSpaceId, role || 'secondary'],
+    );
+
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error('[POST /stories/:storyTitleId/copy-to-space] failed:', err);
+    return res.status(500).json({ error: 'Failed to copy story into Space' });
   }
 });
 
@@ -2236,7 +2602,7 @@ async function getNextParagraphRevisionNumber(chapterId, paragraphIndex) {
 
 // Create story title + initial revision + first chapter in a single transaction
 app.post('/stories/template', async (req, res) => {
-  const { title, chapterTitle, paragraphs, userId } = req.body ?? {};
+  const { title, chapterTitle, paragraphs, userId, creativeSpaceId } = req.body ?? {};
 
   if (!title || !chapterTitle || !Array.isArray(paragraphs) || !userId) {
     return res.status(400).json({ error: 'title, chapterTitle, paragraphs[], and userId are required' });
@@ -2247,10 +2613,26 @@ app.post('/stories/template', async (req, res) => {
     await client.query('BEGIN');
 
     const insertTitle = await client.query(
-      'INSERT INTO story_title (title, creator_id) VALUES ($1, $2) RETURNING story_title_id, title',
-      [title, userId],
+      'INSERT INTO story_title (title, creator_id, creative_space_id) VALUES ($1, $2, $3) RETURNING story_title_id, title, creative_space_id',
+      [title, userId, creativeSpaceId || null],
     );
     const storyTitleRow = insertTitle.rows[0];
+
+    // Best-effort: track the primary Space membership in story_spaces when a
+    // creativeSpaceId was provided.
+    if (creativeSpaceId) {
+      try {
+        await client.query(
+          `INSERT INTO story_spaces (story_title_id, space_id, role)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (story_title_id, space_id)
+           DO UPDATE SET role = COALESCE(EXCLUDED.role, story_spaces.role), updated_at = now()`,
+          [storyTitleRow.story_title_id, creativeSpaceId, 'primary'],
+        );
+      } catch (errSpaces) {
+        console.error('[POST /stories/template] failed to upsert story_spaces row:', errSpaces);
+      }
+    }
 
     await client.query(
       'INSERT INTO story_title_revisions (story_title_id, prev_title, new_title, created_by, revision_number, revision_reason, language) VALUES ($1, $2, $3, $4, $5, $6, $7)',
@@ -5295,7 +5677,7 @@ app.patch('/story-titles/:storyTitleId/settings', async (req, res) => {
 // }
 app.post('/story-titles/:storyTitleId/sync-desktop', async (req, res) => {
   const { storyTitleId } = req.params;
-  const { userId, title, metadata, chapters, bodyType } = req.body ?? {};
+  const { userId, title, metadata, chapters, bodyType, creativeSpaceId, spaceId } = req.body ?? {};
 
   if (!userId) {
     return res.status(400).json({ error: 'userId is required' });
@@ -5343,7 +5725,7 @@ app.post('/story-titles/:storyTitleId/sync-desktop', async (req, res) => {
     await client.query('BEGIN');
 
     const storyRes = await client.query(
-      'SELECT story_title_id, title, creator_id, genre, tags FROM story_title WHERE story_title_id = $1 FOR UPDATE',
+      'SELECT story_title_id, title, creator_id, genre, tags, creative_space_id FROM story_title WHERE story_title_id = $1 FOR UPDATE',
       [storyTitleId],
     );
     if (storyRes.rows.length === 0) {
@@ -5353,6 +5735,44 @@ app.post('/story-titles/:storyTitleId/sync-desktop', async (req, res) => {
 
     const storyRow = storyRes.rows[0];
     const creatorId = storyRow.creator_id;
+
+    // Optional Space-aware association: if the desktop client provided a
+    // candidate creative Space for this story, adopt it on first sync. If the
+    // story is already linked to a different Space, log but keep the existing
+    // association to avoid surprising users.
+    const candidateSpaceId = (creativeSpaceId || spaceId || null) && String(creativeSpaceId || spaceId);
+    if (candidateSpaceId) {
+      try {
+        if (!storyRow.creative_space_id) {
+          const spaceCheck = await client.query(
+            'SELECT id FROM creative_spaces WHERE id = $1',
+            [candidateSpaceId],
+          );
+          if (spaceCheck.rows.length > 0) {
+            await client.query(
+              'UPDATE story_title SET creative_space_id = $1 WHERE story_title_id = $2',
+              [candidateSpaceId, storyTitleId],
+            );
+          } else {
+            console.warn(
+              '[POST /story-titles/:storyTitleId/sync-desktop] provided creativeSpaceId does not exist',
+              { storyTitleId, creativeSpaceId: candidateSpaceId },
+            );
+          }
+        } else if (String(storyRow.creative_space_id) !== String(candidateSpaceId)) {
+          console.warn(
+            '[POST /story-titles/:storyTitleId/sync-desktop] story already linked to different creative_space_id',
+            {
+              storyTitleId,
+              existingSpaceId: storyRow.creative_space_id,
+              requestedSpaceId: candidateSpaceId,
+            },
+          );
+        }
+      } catch (spaceErr) {
+        console.error('[POST /story-titles/:storyTitleId/sync-desktop] failed to update creative_space_id:', spaceErr);
+      }
+    }
 
     // 1) Sync title (with revision)
     const newTitle = title.trim();
@@ -5559,7 +5979,7 @@ app.post('/story-titles/:storyTitleId/sync-desktop', async (req, res) => {
 // Clone a story (title + chapters) for the requesting user
 app.post('/stories/:storyTitleId/clone', async (req, res) => {
   const { storyTitleId } = req.params;
-  const { userId } = req.body ?? {};
+  const { userId, targetSpaceId } = req.body ?? {};
 
   if (!userId) {
     return res.status(400).json({ error: 'userId is required to clone a story' });
@@ -5570,7 +5990,7 @@ app.post('/stories/:storyTitleId/clone', async (req, res) => {
     await client.query('BEGIN');
 
     const sourceTitleRes = await client.query(
-      'SELECT story_title_id, title, visibility, published FROM story_title WHERE story_title_id = $1',
+      'SELECT story_title_id, title, visibility, published, creative_space_id FROM story_title WHERE story_title_id = $1',
       [storyTitleId],
     );
     if (sourceTitleRes.rows.length === 0) {
@@ -5579,11 +5999,42 @@ app.post('/stories/:storyTitleId/clone', async (req, res) => {
     }
     const src = sourceTitleRes.rows[0];
 
+    // Decide which Space (if any) the cloned story should belong to.
+    let newCreativeSpaceId = src.creative_space_id || null;
+
+    if (targetSpaceId) {
+      const spaceCheck = await client.query(
+        'SELECT id FROM creative_spaces WHERE id = $1',
+        [targetSpaceId],
+      );
+      if (spaceCheck.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'Target Creative Space not found' });
+      }
+      newCreativeSpaceId = targetSpaceId;
+    }
+
     const insertTitleRes = await client.query(
-      'INSERT INTO story_title (title, creator_id, visibility, published) VALUES ($1, $2, $3, $4) RETURNING story_title_id, title, visibility, published',
-      [src.title, userId, src.visibility ?? 'public', src.published ?? true],
+      'INSERT INTO story_title (title, creator_id, visibility, published, creative_space_id) VALUES ($1, $2, $3, $4, $5) RETURNING story_title_id, title, visibility, published, creative_space_id',
+      [src.title, userId, src.visibility ?? 'public', src.published ?? true, newCreativeSpaceId],
     );
     const newTitle = insertTitleRes.rows[0];
+
+    // Track cloned story membership in story_spaces as primary when we know
+    // which Space should own it.
+    if (newCreativeSpaceId) {
+      try {
+        await client.query(
+          `INSERT INTO story_spaces (story_title_id, space_id, role)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (story_title_id, space_id)
+           DO UPDATE SET role = COALESCE(EXCLUDED.role, story_spaces.role), updated_at = now()`,
+          [newTitle.story_title_id, newCreativeSpaceId, 'primary'],
+        );
+      } catch (errSpaces) {
+        console.error('[POST /stories/:storyTitleId/clone] failed to upsert story_spaces for clone:', errSpaces);
+      }
+    }
 
     await client.query(
       `INSERT INTO stories (story_title_id, episode_number, part_number, chapter_index, chapter_title, paragraphs)

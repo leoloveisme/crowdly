@@ -479,11 +479,17 @@ class CrowdlyClient:
         title: str,
         chapters: list[dict[str, Any]],
         metadata: dict[str, Any] | None,
+        creative_space_id: str | None = None,
     ) -> Any:
-        """Sync story metadata + full content to the backend (desktop endpoint)."""
+        """Sync story metadata + full content to the backend (desktop endpoint).
+
+        ``creative_space_id`` is optional and, when provided, is treated by the
+        backend as the primary Space that owns this story. This is kept
+        best-effort so existing stories without Spaces continue to work.
+        """
 
         user_id = self.login()  # raises on auth error
-        payload = {
+        payload: dict[str, Any] = {
             "userId": user_id,
             "title": title,
             "metadata": metadata or {},
@@ -493,6 +499,11 @@ class CrowdlyClient:
             # screenplay syncs using the same revision machinery.
             "bodyType": "story",
         }
+        if creative_space_id:
+            # The backend accepts either creativeSpaceId or spaceId; we send
+            # both for clarity and forwards compatibility.
+            payload["creativeSpaceId"] = creative_space_id
+            payload["spaceId"] = creative_space_id
         return self._http_post_json(f"{self.base_url}/story-titles/{story_id}/sync-desktop", payload)
 
     def sync_desktop_screenplay(

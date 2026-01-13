@@ -14,6 +14,7 @@ import uuid
 
 CONFIG_DIR_NAME = "crowdly_editor"
 CONFIG_FILE_NAME = "settings.json"
+SPACES_STATUS_FILE_NAME = "spaces-status.json"
 
 
 @dataclass
@@ -156,3 +157,128 @@ def save_settings(settings: Settings) -> None:
 
     cfg_path = _get_config_path()
     cfg_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+
+def write_spaces_status_log(settings: Settings) -> None:
+    """Write a human-readable log of Space mappings to a separate JSON file.
+
+    This does not affect behaviour; it is intended for debugging and
+    inspection, so users can see which local folders are associated with
+    which remote Spaces and when they were last touched.
+    """
+
+    try:
+        cfg_dir = _get_config_dir()
+        cfg_dir.mkdir(parents=True, exist_ok=True)
+        log_path = cfg_dir.joinpath(SPACES_STATUS_FILE_NAME)
+
+        raw_state = getattr(settings, "space_sync_state", {}) or {}
+        if not isinstance(raw_state, dict):
+            raw_state = {}
+
+        # First, normalise and deduplicate mappings so that there is at most
+        # one root path per remote_space_id. When multiple roots exist for the
+        # same Space, we prefer:
+        #   1) Paths that currently exist on disk as directories.
+        #   2) Among those, the shallowest (fewest path components).
+        #   3) As a final tie-breaker, lexicographically smallest.
+        # This avoids stale nested/duplicate entries such as
+        #   ".../Test 33/Test 33-<id>" when ".../Test 33" is the canonical root.
+        by_space: dict[str, list[str]] = {}
+        for root_str, mapping in raw_state.items():
+            if not isinstance(root_str, str) or not isinstance(mapping, dict):
+                continue
+            rsid = mapping.get("remote_space_id")
+            if not isinstance(rsid, str) or not rsid:
+                continue
+            by_space.setdefault(rsid, []).append(root_str)
+
+        canonical_roots: set[str] = set()
+        for rsid, roots in by_space.items():
+            if not roots:
+                continue
+            existing: list[str] = []
+            for r in roots:
+                try:
+                    p = Path(r).expanduser()
+                    if p.exists() and p.is_dir():
+                        existing.append(r)
+                except Exception:
+                    continue
+            candidates = existing or roots
+
+            def _score(path_str: str) -> tuple[int, int, str]:
+                try:
+                    p = Path(path_str)
+                    depth = len(p.parts)
+                except Exception:
+                    depth = 9999
+                return (depth, len(path_str), path_str)
+
+            chosen = min(candidates, key=_score)
+            canonical_roots.add(chosen)
+
+        # Build pruned state: keep all mappings that either have no
+        # remote_space_id or are the canonical root for their Space id.
+        pruned_state: dict[str, dict[str, str]] = {}
+        for root_str, mapping in raw_state.items():
+            if not isinstance(root_str, str) or not isinstance(mapping, dict):
+                continue
+            rsid = mapping.get("remote_space_id")
+            if isinstance(rsid, str) and rsid:
+                if root_str not in canonical_roots:
+                    continue
+            cleaned_mapping: dict[str, str] = {}
+            for k2, v2 in mapping.items():
+                if isinstance(k2, str) and isinstance(v2, str):
+                    cleaned_mapping[k2] = v2
+            if cleaned_mapping:
+                pruned_state[root_str] = cleaned_mapping
+
+        # Update the in-memory settings so the rest of the app sees the
+        # canonicalised mapping from now on.
+        settings.space_sync_state = pruned_state  # type: ignore[assignment]
+
+        payload = {
+            "space_sync_state": pruned_state,
+        }
+        log_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    except Exception:
+        # Logging must never interfere with core behaviour.
+        pass
+
+
+def load_spaces_status_log() -> dict[str, dict[str, str]]:
+    """Load mappings from spaces-status.json if it exists.
+
+    This is used as an additional, best-effort source of truth when
+    reconstructing Space mappings for sync routines that may run in a
+    fresh process where in-memory Settings do not yet reflect previous
+    sessions.
+    """
+
+    try:
+        cfg_dir = _get_config_dir()
+        log_path = cfg_dir.joinpath(SPACES_STATUS_FILE_NAME)
+        if not log_path.is_file():
+            return {}
+
+        raw = json.loads(log_path.read_text(encoding="utf-8"))
+        state = raw.get("space_sync_state") or {}
+        if not isinstance(state, dict):
+            return {}
+
+        cleaned_state: dict[str, dict[str, str]] = {}
+        for key, value in state.items():
+            if not isinstance(key, str) or not isinstance(value, dict):
+                continue
+            cleaned_mapping: dict[str, str] = {}
+            for k2, v2 in value.items():
+                if isinstance(k2, str) and isinstance(v2, str):
+                    cleaned_mapping[k2] = v2
+            if cleaned_mapping:
+                cleaned_state[key] = cleaned_mapping
+        return cleaned_state
+    except Exception:
+        # Reading the status log must never interfere with core behaviour.
+        return {}

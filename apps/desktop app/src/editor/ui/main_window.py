@@ -42,9 +42,10 @@ from PySide6.QtGui import (
 )
 
 from ..document import Document
-from ..settings import Settings, save_settings
+from ..settings import Settings, save_settings, load_spaces_status_log
 from .. import file_metadata
 from .. import story_sync
+from .. import websync
 from .. import auth as local_auth
 from .. import websync
 from ..versioning import local_queue
@@ -2921,6 +2922,34 @@ class MainWindow(QMainWindow):
                 # immediately). Use authenticated credentials so private stories
                 # work without extra prompts.
                 self._start_pull_from_web(force=True, credentials=creds)
+
+                # Also perform a best-effort structural pull for Spaces. When no
+                # project space is configured yet, we mirror all remote Spaces
+                # owned by the user into a local base directory. When a
+                # project space is already set, we only pull for that Space.
+                try:
+                    if self._project_space_path is not None:
+                        self._pull_current_space_from_web()
+                    else:
+                        self._pull_all_remote_spaces_if_no_project_space()
+                except Exception:
+                    # Structural pulls are best-effort; failures are already
+                    # surfaced via message boxes inside the helpers above.
+                    pass
+
+                # Finally, when a project space is already configured, perform a
+                # best-effort *push* of the current Space so that any new local
+                # folders/files (like freshly created subdirectories) are
+                # reflected on the web as soon as sync is enabled. This mirrors
+                # the behaviour of the manual "Sync current Space now" action
+                # that the user reports as working reliably.
+                try:
+                    if self._project_space_path is not None:
+                        self._sync_current_space_to_web()
+                except Exception:
+                    # Pushing Spaces is also best-effort in this flow; detailed
+                    # errors are already surfaced by the helper.
+                    pass
             else:
                 # Turning sync off: stop polling + pending push debounce.
                 self._sync_web_platform = False
@@ -2948,6 +2977,379 @@ class MainWindow(QMainWindow):
 
         self._sync_google_drive = not self._sync_google_drive
         self._retranslate_ui()
+
+    def _pull_all_remote_spaces_if_no_project_space(self) -> None:  # pragma: no cover - UI wiring
+        """Pull all remote Spaces owned by the current user when no project space is set.
+
+        This helper is only used when web sync is enabled while
+        ``self._project_space_path`` is still ``None``. It lets the user
+        choose a base directory and then creates one local folder per
+        remote Space, mirroring the folder/file *structure* for each via
+        :func:`websync.pull_space_from_web`.
+        """
+
+        from PySide6.QtWidgets import QMessageBox, QFileDialog
+        from pathlib import Path as _Path
+
+        # If a project space is already configured, this helper is a no-op.
+        if self._project_space_path is not None:
+            return
+
+        # Resolve the Crowdly user id so that Spaces can be fetched.
+        if not self._crowdly_user_id:
+            if self._username and self._username != "username":
+                try:
+                    self._crowdly_user_id = local_auth.get_user_id_for_email(self._username)
+                except Exception:
+                    self._crowdly_user_id = None
+
+        if not self._crowdly_user_id:
+            QMessageBox.warning(
+                self,
+                self.tr("Pull Spaces from web"),
+                self.tr(
+                    "You need to be logged in to the Crowdly web platform before pulling Spaces."
+                ),
+            )
+            return
+
+        try:
+            remote_spaces = websync.list_remote_spaces_for_user(self._settings, self._crowdly_user_id)  # type: ignore[arg-type]
+        except Exception as exc:
+            QMessageBox.warning(
+                self,
+                self.tr("Pull Spaces from web"),
+                self.tr(
+                    "Failed to list Spaces on the web platform.\n\nDetails: {error}"
+                ).format(error=str(exc)),
+            )
+            return
+
+        if not remote_spaces:
+            # Nothing to mirror yet; keep behaviour quiet.
+            return
+
+        # Derive existing mappings from settings.space_sync_state and
+        # spaces-status.json. This lets us avoid creating duplicate local
+        # folders for Spaces that are already mapped and whose directories still
+        # exist on disk.
+        state = getattr(self._settings, "space_sync_state", {}) or {}
+        if not isinstance(state, dict):
+            state = {}
+
+        # Merge any mappings from spaces-status.json that are not already in
+        # the in-memory Settings object. This is best-effort and only adds
+        # entries; it never removes or overwrites existing ones.
+        try:
+            status_state = load_spaces_status_log()
+        except Exception:
+            status_state = {}
+        if isinstance(status_state, dict):
+            for root_str, mapping in status_state.items():
+                if root_str not in state and isinstance(mapping, dict):
+                    state[root_str] = mapping
+
+        existing_roots_by_space_id: dict[str, _Path] = {}
+        if isinstance(state, dict):
+            for root_str, mapping in state.items():
+                if not isinstance(root_str, str) or not isinstance(mapping, dict):
+                    continue
+                sid = mapping.get("remote_space_id")
+                if not isinstance(sid, str) or not sid:
+                    continue
+                try:
+                    root_path = _Path(root_str).expanduser()
+                except Exception:
+                    continue
+                if not root_path.exists() or not root_path.is_dir():
+                    # Stale mapping: local folder was moved or deleted.
+                    continue
+                if sid not in existing_roots_by_space_id:
+                    existing_roots_by_space_id[sid] = root_path
+
+        mapped_spaces: list[dict] = []
+        unmapped_spaces: list[dict] = []
+        for row in remote_spaces:
+            sid = row.get("id")
+            if not isinstance(sid, str) or not sid:
+                continue
+            if sid in existing_roots_by_space_id:
+                mapped_spaces.append(row)
+            else:
+                unmapped_spaces.append(row)
+
+        summaries: list[str] = []
+        first_root: _Path | None = None
+
+        # First, pull updates for Spaces that already have a local mapping and
+        # folder, then push a fresh snapshot so local structural changes are
+        # reflected on the web as well.
+        for row in mapped_spaces:
+            sid = row.get("id")
+            name = (row.get("name") or "No name creative space")
+            local_root = existing_roots_by_space_id.get(sid)
+            if local_root is None:
+                continue
+
+            # 1) Pull remote structural changes into this local root.
+            try:
+                pull_summary = websync.pull_space_from_web(
+                    self._settings,
+                    local_root,
+                    self._crowdly_user_id,  # type: ignore[arg-type]
+                )
+            except Exception as exc:
+                pull_summary = self.tr("Failed to pull: {error}").format(error=str(exc))
+
+            # 2) Push local structural changes back to the web so that enabling
+            # web sync behaves like a full two-way sync for already-mapped
+            # Spaces.
+            push_suffix: str
+            try:
+                ok, msg = websync.sync_space_to_web(
+                    self._settings,
+                    local_root,
+                    self._crowdly_user_id,  # type: ignore[arg-type]
+                )
+                if ok:
+                    push_suffix = self.tr("; pushed snapshot ({details})").format(details=msg)
+                else:
+                    push_suffix = self.tr("; failed to push snapshot ({details})").format(details=msg)
+            except Exception as exc:
+                push_suffix = self.tr("; failed to push snapshot ({details})").format(details=str(exc))
+
+            summary = f"{pull_summary}{push_suffix}"
+            summaries.append(f"{name}: {summary}")
+
+            try:
+                self._ensure_space_registered(local_root)
+            except Exception:
+                pass
+
+            if first_root is None:
+                first_root = local_root
+
+        # If there are no unmapped Spaces left, we are done after pulling updates.
+        if not unmapped_spaces:
+            if first_root is not None:
+                self._project_space_path = first_root
+                self._settings.project_space = first_root
+                save_settings(self._settings)
+                self._update_project_space_status()
+                self._rebuild_spaces_menu()
+            if summaries:
+                QMessageBox.information(
+                    self,
+                    self.tr("Spaces pulled from web"),
+                    "\n\n".join(summaries),
+                )
+            return
+
+        # Ask how the user wants to mirror only the *unmapped* Spaces locally.
+        count = len(unmapped_spaces)
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Icon.Question)
+        box.setWindowTitle(self.tr("Sync Spaces from web"))
+        box.setText(
+            self.tr(
+                "You have {count} Space(s) on the Crowdly platform that are not yet mirrored locally. How should they be created?"
+            ).format(count=count),
+        )
+        same_dir_btn = box.addButton(
+            self.tr("All into one folder"),
+            QMessageBox.ButtonRole.AcceptRole,
+        )
+        per_space_btn = box.addButton(
+            self.tr("Choose folder per Space"),
+            QMessageBox.ButtonRole.ActionRole,
+        )
+        cancel_btn = box.addButton(
+            self.tr("Cancel"),
+            QMessageBox.ButtonRole.RejectRole,
+        )
+        box.setDefaultButton(same_dir_btn)
+        box.exec()
+
+        clicked = box.clickedButton()
+        if clicked is cancel_btn:
+            return
+        per_space = clicked is per_space_btn
+
+        def _safe_base_name_for_space(row: dict) -> str:
+            """Return a filesystem-safe base folder name for a Space.
+
+            This mirrors the Space name from the Crowdly platform as closely as
+            possible. We deliberately do *not* append an id suffix here so that
+            new Spaces are created simply as "Test 123" etc. A suffix is added
+            later only when a naming collision occurs in the chosen parent
+            directory.
+            """
+
+            raw = str(row.get("name") or "Space").strip() or "Space"
+            # Simple filesystem-safe normalisation: replace path separators
+            # and limit length.
+            invalid = ["/", "\\"]
+            for ch in invalid:
+                raw = raw.replace(ch, "_")
+            if len(raw) > 80:
+                raw = raw[:80].rstrip(" .-_")
+            return raw or "Space"
+
+        def _pick_local_root_for_space(parent: _Path, row: dict) -> _Path:
+            """Choose a local folder for an unmapped Space under *parent*.
+
+            - Prefer a plain folder named after the Space (e.g. "Test 123").
+            - If that already exists, fall back to a suffixed variant like
+              "Test 123-<idprefix>". If that also exists, we append a
+              numeric counter to ensure uniqueness.
+            """
+
+            base_name = _safe_base_name_for_space(row)
+            candidate = parent / base_name
+            if not candidate.exists():
+                return candidate
+
+            sid = str(row.get("id") or "").strip()
+            prefix = base_name
+            suffix_core = sid[:8] if sid else ""
+
+            attempt = 1
+            while True:
+                if suffix_core and attempt == 1:
+                    name = f"{prefix}-{suffix_core}"
+                elif suffix_core:
+                    name = f"{prefix}-{suffix_core}-{attempt}"
+                else:
+                    name = f"{prefix}-{attempt}"
+                candidate = parent / name
+                if not candidate.exists():
+                    return candidate
+                attempt += 1
+
+        start_dir = str(getattr(self._settings, "project_space", "") or _Path.home())
+
+        if not per_space:
+            # Single base directory for all *unmapped* Spaces.
+            base_dir = QFileDialog.getExistingDirectory(
+                self,
+                self.tr("Choose base folder for Spaces"),
+                start_dir,
+            )
+            if not base_dir:
+                return
+
+            base = _Path(base_dir)
+
+            for row in unmapped_spaces:
+                sid = row.get("id")
+                if not isinstance(sid, str) or not sid:
+                    continue
+                name = (row.get("name") or "No name creative space")
+                local_root = _pick_local_root_for_space(base, row)
+                try:
+                    local_root.mkdir(parents=True, exist_ok=True)
+                except Exception:
+                    continue
+
+                # Preseed mapping so pull_space_from_web uses this Space id
+                # rather than guessing by path/name.
+                try:
+                    state = getattr(self._settings, "space_sync_state", {}) or {}
+                    if not isinstance(state, dict):
+                        state = {}
+                    root_path = str(local_root)
+                    mapping = dict(state.get(root_path) or {})
+                    mapping["remote_space_id"] = sid
+                    state[root_path] = mapping
+                    self._settings.space_sync_state = state  # type: ignore[assignment]
+                    save_settings(self._settings)
+                except Exception:
+                    pass
+
+                try:
+                    summary = websync.pull_space_from_web(self._settings, local_root, self._crowdly_user_id)  # type: ignore[arg-type]
+                except Exception as exc:
+                    summary = self.tr("Failed to pull: {error}").format(error=str(exc))
+
+                summaries.append(f"{name}: {summary}")
+
+                # Register this folder as a known creative Space in the UI.
+                try:
+                    self._ensure_space_registered(local_root)
+                except Exception:
+                    pass
+
+                if first_root is None:
+                    first_root = local_root
+        else:
+            # Let the user choose a directory for each *unmapped* Space individually.
+            last_dir = start_dir
+            for row in unmapped_spaces:
+                sid = row.get("id")
+                if not isinstance(sid, str) or not sid:
+                    continue
+                name = (row.get("name") or "No name creative space")
+
+                parent_dir = QFileDialog.getExistingDirectory(
+                    self,
+                    self.tr("Choose folder for Space '{name}'").format(name=name),
+                    last_dir,
+                )
+                if not parent_dir:
+                    # Skip this Space if the user cancels.
+                    continue
+
+                last_dir = parent_dir
+                parent = _Path(parent_dir)
+                local_root = _pick_local_root_for_space(parent, row)
+                try:
+                    local_root.mkdir(parents=True, exist_ok=True)
+                except Exception:
+                    continue
+
+                try:
+                    state = getattr(self._settings, "space_sync_state", {}) or {}
+                    if not isinstance(state, dict):
+                        state = {}
+                    root_path = str(local_root)
+                    mapping = dict(state.get(root_path) or {})
+                    mapping["remote_space_id"] = sid
+                    state[root_path] = mapping
+                    self._settings.space_sync_state = state  # type: ignore[assignment]
+                    save_settings(self._settings)
+                except Exception:
+                    pass
+
+                try:
+                    summary = websync.pull_space_from_web(self._settings, local_root, self._crowdly_user_id)  # type: ignore[arg-type]
+                except Exception as exc:
+                    summary = self.tr("Failed to pull: {error}").format(error=str(exc))
+
+                summaries.append(f"{name}: {summary}")
+
+                try:
+                    self._ensure_space_registered(local_root)
+                except Exception:
+                    pass
+
+                if first_root is None:
+                    first_root = local_root
+
+        # Use the first mirrored or already-mapped Space as the active project
+        # space so that subsequent sync operations have a well-defined root.
+        if first_root is not None:
+            self._project_space_path = first_root
+            self._settings.project_space = first_root
+            save_settings(self._settings)
+            self._update_project_space_status()
+            self._rebuild_spaces_menu()
+
+        if summaries:
+            QMessageBox.information(
+                self,
+                self.tr("Spaces pulled from web"),
+                "\n\n".join(summaries),
+            )
 
     def _pull_current_space_from_web(self) -> None:  # pragma: no cover - UI wiring
         """Manually pull folder/file structure from the Crowdly backend.
@@ -2990,12 +3392,95 @@ class MainWindow(QMainWindow):
         try:
             summary = websync.pull_space_from_web(self._settings, project_space, self._crowdly_user_id)  # type: ignore[arg-type]
         except Exception as exc:  # pragma: no cover - network / filesystem dependent
+            message = str(exc)
+
+            # Special handling: the previously mapped creative Space has been
+            # deleted on the web. Offer the user explicit choices instead of
+            # silently recreating or ignoring it.
+            if isinstance(message, str) and message.startswith("REMOTE_SPACE_MISSING:"):
+                missing_id = message.split(":", 1)[1] if ":" in message else ""
+
+                box = QMessageBox(self)
+                box.setIcon(QMessageBox.Icon.Warning)
+                box.setWindowTitle(self.tr("Space missing on web"))
+                box.setText(
+                    self.tr(
+                        "The Crowdly Space previously linked to this project space no longer exists on the web.\n\n"
+                        "Local folder: {path}\nRemote Space id: {sid}"
+                    ).format(path=str(project_space), sid=missing_id or "(unknown)"),
+                )
+                recreate_btn = box.addButton(
+                    self.tr("Recreate on web"),
+                    QMessageBox.ButtonRole.AcceptRole,
+                )
+                detach_btn = box.addButton(
+                    self.tr("Detach mapping"),
+                    QMessageBox.ButtonRole.DestructiveRole,
+                )
+                cancel_btn = box.addButton(
+                    self.tr("Cancel"),
+                    QMessageBox.ButtonRole.RejectRole,
+                )
+                box.setDefaultButton(recreate_btn)
+                box.exec()
+
+                clicked = box.clickedButton()
+                if clicked is recreate_btn:
+                    try:
+                        ok, msg = websync.sync_space_to_web(self._settings, project_space, self._crowdly_user_id)  # type: ignore[arg-type]
+                        if ok:
+                            QMessageBox.information(
+                                self,
+                                self.tr("Sync complete"),
+                                msg,
+                            )
+                    except Exception as sync_exc:
+                        QMessageBox.warning(
+                            self,
+                            self.tr("Sync failed"),
+                            self.tr(
+                                "Failed to recreate the Space on the web.\n\nDetails: {error}"
+                            ).format(error=str(sync_exc)),
+                        )
+                elif clicked is detach_btn:
+                    try:
+                        state = getattr(self._settings, "space_sync_state", {}) or {}
+                        if not isinstance(state, dict):
+                            state = {}
+                        root_path = str(project_space)
+                        mapping = state.get(root_path)
+                        if isinstance(mapping, dict) and "remote_space_id" in mapping:
+                            mapping = dict(mapping)
+                            mapping.pop("remote_space_id", None)
+                            mapping.pop("last_pull_at", None)
+                            state[root_path] = mapping
+                            self._settings.space_sync_state = state  # type: ignore[assignment]
+                            save_settings(self._settings)
+                        QMessageBox.information(
+                            self,
+                            self.tr("Mapping detached"),
+                            self.tr(
+                                "The link between this project space and its Crowdly Space has been removed. "
+                                "You can sync it again later to create or attach to a Space on the web."
+                            ),
+                        )
+                    except Exception as detach_exc:
+                        QMessageBox.warning(
+                            self,
+                            self.tr("Detach failed"),
+                            self.tr(
+                                "Could not update the local mapping for this project space.\n\nDetails: {error}"
+                            ).format(error=str(detach_exc)),
+                        )
+                # In all three branches we stop further processing here.
+                return
+
             QMessageBox.warning(
                 self,
                 self.tr("Pull failed"),
                 self.tr(
                     "Failed to pull updates for the current Space from the web platform.\n\nDetails: {error}"
-                ).format(error=str(exc)),
+                ).format(error=message),
             )
             return
 
@@ -3127,6 +3612,20 @@ class MainWindow(QMainWindow):
         self._retranslate_ui()
         self._update_user_status_label()
         self._update_sync_status_label()
+
+        # If web sync is already enabled and the user logs in afterwards,
+        # immediately perform a best-effort structural pull so that newly
+        # created Spaces on the web are reflected locally.
+        try:
+            if getattr(self, "_sync_web_platform", False):
+                if self._project_space_path is not None:
+                    self._pull_current_space_from_web()
+                else:
+                    self._pull_all_remote_spaces_if_no_project_space()
+        except Exception:
+            # Any errors in the automatic pull are surfaced via message boxes
+            # inside the helper methods; they must not break login.
+            pass
 
     def _on_md_checkbox_toggled(self, checked: bool) -> None:  # pragma: no cover - UI wiring
         """Show or hide the Markdown/HTML editor pane via the top-bar checkbox.
@@ -4757,6 +5256,92 @@ class MainWindow(QMainWindow):
             if not story_id or not source_url:
                 return
 
+            # Derive the project-space root (local creative Space) that owns
+            # this file, if any, so we can map the story to a specific
+            # creative_space on the backend.
+            project_root: Path | None = None
+            try:
+                if self._project_space_path is not None:
+                    candidate_root = self._project_space_path.resolve()
+                    try:
+                        inside = path.resolve().is_relative_to(candidate_root)  # type: ignore[attr-defined]
+                    except AttributeError:  # Python < 3.9 fallback
+                        inside = str(path.resolve()).startswith(str(candidate_root))
+                    if inside:
+                        project_root = candidate_root
+            except Exception:
+                project_root = None
+
+            # If we could not match against the active project-space root, fall
+            # back to any known Space whose path is a prefix of the document
+            # path. This allows multiple Spaces while still providing a
+            # deterministic mapping.
+            if project_root is None:
+                try:
+                    for space in getattr(self, "_spaces", []) or []:
+                        try:
+                            candidate_root = space.resolve()
+                        except Exception:
+                            candidate_root = space
+                        try:
+                            inside = path.resolve().is_relative_to(candidate_root)  # type: ignore[attr-defined]
+                        except AttributeError:
+                            inside = str(path.resolve()).startswith(str(candidate_root))
+                        if inside:
+                            project_root = candidate_root
+                            break
+                except Exception:
+                    project_root = None
+
+            # When a document lives under a project-space root that has not yet
+            # been linked to a remote creative Space, show a one-time
+            # informational prompt so the user understands that a default Space
+            # will be created on first sync.
+            if project_root is not None:
+                try:
+                    key = str(project_root)
+                    shown = getattr(self, "_space_mapping_prompts", None)
+                    if not isinstance(shown, set):
+                        shown = set()
+                        self._space_mapping_prompts = shown
+                    state = getattr(self._settings, "space_sync_state", {}) or {}
+                    mapping = state.get(key) if isinstance(state, dict) else None
+                    has_remote = (
+                        isinstance(mapping, dict)
+                        and isinstance(mapping.get("remote_space_id"), str)
+                        and bool(mapping.get("remote_space_id"))
+                    )
+                    if key not in shown and not has_remote:
+                        shown.add(key)
+                        QMessageBox.information(
+                            self,
+                            self.tr("Link project space to Crowdly Space"),
+                            self.tr(
+                                "This document belongs to your project space at:\n{path}\n\n"
+                                "On the first sync we will create or reuse a default Crowdly Space "
+                                "for this project and link future stories to it."
+                            ).format(path=str(project_root)),
+                        )
+                except Exception:
+                    # Prompt failures must never prevent sync from proceeding.
+                    pass
+
+            # Look up the mapped remote creative_space id for this project-space
+            # root using the existing space_sync_state structure. If there is no
+            # mapping yet, we still sync the story content but omit the
+            # creative_space_id hint so behaviour remains backward compatible.
+            creative_space_id: str | None = None
+            try:
+                if project_root is not None:
+                    state = getattr(self._settings, "space_sync_state", {}) or {}
+                    mapping = state.get(str(project_root)) if isinstance(state, dict) else None
+                    if isinstance(mapping, dict):
+                        val = mapping.get("remote_space_id")
+                        if isinstance(val, str) and val:
+                            creative_space_id = val
+            except Exception:
+                creative_space_id = None
+
             # If a sync is already running, don't start a second one.
             thread = getattr(self, "_story_sync_thread", None)
             if isinstance(thread, _StorySyncThread) and thread.isRunning():
@@ -4819,6 +5404,8 @@ class MainWindow(QMainWindow):
                 metadata=meta_payload,
                 credentials=creds,
                 local_path=path,
+                creative_space_id=creative_space_id,
+                project_root=project_root,
                 parent=self,
             )
 
@@ -5129,6 +5716,35 @@ class MainWindow(QMainWindow):
         import traceback
 
         try:
+            # When the sync thread provides Space information, persist the
+            # mapping between the local project-space root and the remote
+            # creative Space so future syncs can reuse it.
+            try:
+                if isinstance(result, dict):
+                    project_root = result.get("project_root")
+                    space_id = result.get("creative_space_id")
+                    if isinstance(project_root, str) and project_root and isinstance(space_id, str) and space_id:
+                        state = getattr(self._settings, "space_sync_state", None)
+                        if not isinstance(state, dict):
+                            state = {}
+                            self._settings.space_sync_state = state  # type: ignore[assignment]
+                        mapping = state.get(project_root)
+                        if not isinstance(mapping, dict):
+                            mapping = {}
+                            state[project_root] = mapping
+                        if mapping.get("remote_space_id") != space_id:
+                            mapping["remote_space_id"] = space_id
+                            try:
+                                from .. import file_metadata as _fm
+
+                                mapping["last_story_sync_at"] = _fm.now_human()
+                            except Exception:
+                                pass
+                            save_settings(self._settings)
+            except Exception:
+                # Space-mapping persistence is best-effort; never break UI.
+                traceback.print_exc()
+
             bar = self.statusBar()
             if bar is not None:
                 bar.showMessage(self.tr("Story synced to the web."), 5000)
@@ -5525,7 +6141,12 @@ class _StoryPullThread(QThread):
 
 
 class _StorySyncThread(QThread):
-    """Background thread that syncs a local story back to the Crowdly backend."""
+    """Background thread that syncs a local story back to the Crowdly backend.
+
+    In addition to pushing the story metadata and full text, this thread can
+    (optionally) associate the story with a creative Space and register
+    attachments under that Space based on the local filesystem layout.
+    """
 
     syncSucceeded = Signal(object)
     syncFailed = Signal(object)
@@ -5540,6 +6161,8 @@ class _StorySyncThread(QThread):
         metadata: dict,
         credentials: tuple[str, str],
         local_path: Path,
+        creative_space_id: str | None,
+        project_root: Path | None,
         parent: QObject | None = None,
     ) -> None:
         super().__init__(parent)
@@ -5550,6 +6173,8 @@ class _StorySyncThread(QThread):
         self._metadata = metadata
         self._credentials = credentials
         self._local_path = local_path
+        self._creative_space_id = creative_space_id
+        self._project_root = project_root
 
     def run(self) -> None:
         import traceback
@@ -5558,23 +6183,216 @@ class _StorySyncThread(QThread):
             from ..crowdly_client import CrowdlyClient
 
             client = CrowdlyClient(self._api_base, credentials=self._credentials)
+
+            # If we know which project-space root owns this file but there is no
+            # mapped creative Space yet, lazily ensure a default Space exists on
+            # the backend for the current user. This keeps the behaviour
+            # best-effort: failures here do not prevent the main story sync.
+            if self._project_root is not None and not self._creative_space_id:
+                try:
+                    user_id = client.login()
+                    payload = {"userId": user_id}
+                    default_space = client._http_post_json(  # type: ignore[attr-defined]
+                        f"{client.base_url}/creative-spaces/ensure-default",
+                        payload,
+                    )
+                    space_id = None
+                    if isinstance(default_space, dict):
+                        sid = default_space.get("id")
+                        if isinstance(sid, str) and sid:
+                            space_id = sid
+                    if space_id:
+                        self._creative_space_id = space_id
+                except Exception:
+                    # Space creation is best-effort; continue without a Space on failure.
+                    pass
+
             result = client.sync_desktop_story(
                 self._story_id,
                 title=self._title,
                 chapters=self._chapters,
                 metadata=self._metadata,
+                creative_space_id=self._creative_space_id,
             )
 
-            # Update last_sync_date on success.
+            # After a successful story sync, best-effort register attachments in
+            # the mapped creative Space when available.
             try:
-                file_metadata.touch_last_sync_date(self._local_path)
+                self._sync_attachments_to_space(client)
             except Exception:
+                # Attachment sync must never break the main story sync pipeline.
                 pass
 
-            self.syncSucceeded.emit(result)
+            payload = {
+                "result": result,
+                "project_root": str(self._project_root) if self._project_root is not None else None,
+                "creative_space_id": self._creative_space_id,
+            }
+            self.syncSucceeded.emit(payload)
         except Exception as exc:
             traceback.print_exc()
             self.syncFailed.emit(str(exc))
+
+    def _sync_attachments_to_space(self, client: "CrowdlyClient") -> None:
+        """Best-effort: register story attachment files under the mapped Space.
+
+        Convention: for a document ``/path/to/My Story.md`` (or `.story`), we
+        look for a sibling directory named ``My Story.assets``. All files under
+        that directory are treated as attachments for the current story and are
+        mapped into the project-space tree relative to ``self._project_root``.
+        """
+
+        from pathlib import Path as _Path
+        import os
+
+        if self._project_root is None or not self._creative_space_id:
+            return
+
+        root = self._project_root
+        try:
+            doc_path = self._local_path.resolve()
+        except Exception:
+            doc_path = self._local_path
+
+        assets_dir = doc_path.with_suffix(".assets")
+        if not assets_dir.is_dir():
+            return
+
+        try:
+            from .. import file_metadata as _fm  # re-use for potential future hints
+        except Exception:  # noqa: F401
+            _fm = None  # type: ignore[assignment]
+
+        for dirpath, _dirnames, filenames in os.walk(assets_dir):
+            base = _Path(dirpath)
+            for name in filenames:
+                full_path = base / name
+                try:
+                    rel = full_path.resolve().relative_to(root.resolve())
+                except Exception:
+                    # Attachment is outside the project-space root; skip.
+                    continue
+
+                rel_posix = rel.as_posix()
+                parent_rel = rel.parent.as_posix() if rel.parent != _Path(".") else ""
+
+                try:
+                    stat_result = full_path.stat()
+                    size_bytes = int(stat_result.st_size)
+                except OSError:
+                    size_bytes = None
+
+                # First, ensure there is a creative_space_items row for this file
+                # by hitting the existing /creative-spaces/:spaceId/items/file
+                # endpoint. We do a best-effort lookup via the items listing to
+                # avoid duplicates when possible.
+                try:
+                    from urllib.parse import urlencode as _urlencode
+                    import json as _json
+                    from urllib import request as _request
+
+                    space_id = self._creative_space_id
+
+                    # Check if an item already exists at this relative_path.
+                    items_url = f"{client.base_url}/creative-spaces/{space_id}/items?" + _urlencode({"path": parent_rel})
+                    req = _request.Request(
+                        items_url,
+                        headers={"User-Agent": "crowdly-editor/0.1", "Accept": "application/json"},
+                        method="GET",
+                    )
+                    existing_id = None
+                    try:
+                        with _request.urlopen(req, timeout=10.0) as resp:  # type: ignore[arg-type]
+                            if "json" in (resp.headers.get_content_type() or "").lower():
+                                data = _json.loads(resp.read().decode(resp.headers.get_content_charset() or "utf-8"))
+                                items = data.get("items") if isinstance(data, dict) else None
+                                if isinstance(items, list):
+                                    for row in items:
+                                        try:
+                                            if str(row.get("relative_path") or "").strip() == rel_posix:
+                                                cid = row.get("id")
+                                                if isinstance(cid, str) and cid:
+                                                    existing_id = cid
+                                                    break
+                                        except Exception:
+                                            continue
+                    except Exception:
+                        existing_id = None
+
+                    if existing_id is None:
+                        # Create a new file metadata entry inside the Space.
+                        payload = {
+                            "parentPath": parent_rel or "",
+                            "name": name,
+                            "mimeType": None,
+                            "sizeBytes": size_bytes,
+                            "hash": None,
+                            "userId": None,
+                        }
+                        raw = _json.dumps(payload).encode("utf-8")
+                        file_url = f"{client.base_url}/creative-spaces/{space_id}/items/file"
+                        file_req = _request.Request(
+                            file_url,
+                            data=raw,
+                            headers={
+                                "User-Agent": "crowdly-editor/0.1",
+                                "Accept": "application/json",
+                                "Content-Type": "application/json",
+                            },
+                            method="POST",
+                        )
+                        try:
+                            with _request.urlopen(file_req, timeout=10.0) as resp:  # type: ignore[arg-type]
+                                if "json" in (resp.headers.get_content_type() or "").lower():
+                                    data = _json.loads(resp.read().decode(resp.headers.get_content_charset() or "utf-8"))
+                                    cid = data.get("id")
+                                    if isinstance(cid, str) and cid:
+                                        existing_id = cid
+                        except Exception:
+                            existing_id = None
+
+                    if not existing_id:
+                        continue
+
+                    # Classify attachment kind based on file extension.
+                    lower_name = name.lower()
+                    if lower_name.endswith((".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg")):
+                        kind = "image"
+                    elif lower_name.endswith((".mp3", ".wav", ".flac", ".ogg", ".m4a")):
+                        kind = "audio"
+                    elif lower_name.endswith((".mp4", ".mov", ".avi", ".mkv", ".webm")):
+                        kind = "video"
+                    elif lower_name.endswith((".pdf", ".doc", ".docx", ".odt", ".rtf", ".txt")):
+                        kind = "document"
+                    else:
+                        kind = "other"
+
+                    attach_payload = {
+                        "spaceId": space_id,
+                        "itemId": existing_id,
+                        "kind": kind,
+                        "role": None,
+                    }
+                    raw_attach = _json.dumps(attach_payload).encode("utf-8")
+                    attach_url = f"{client.base_url}/stories/{self._story_id}/attachments"
+                    attach_req = _request.Request(
+                        attach_url,
+                        data=raw_attach,
+                        headers={
+                            "User-Agent": "crowdly-editor/0.1",
+                            "Accept": "application/json",
+                            "Content-Type": "application/json",
+                        },
+                        method="POST",
+                    )
+                    try:
+                        _request.urlopen(attach_req, timeout=10.0)  # type: ignore[arg-type]
+                    except Exception:
+                        # Attachment linking is best-effort.
+                        continue
+                except Exception:
+                    # Per-file failures should not stop the whole loop.
+                    continue
 
 
 class _ScreenplayPullThread(QThread):

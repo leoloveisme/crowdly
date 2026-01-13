@@ -70,6 +70,10 @@ export default defineConfig(({ mode }) => ({
         target: "http://localhost:4000",
         changeOrigin: true,
       },
+      "/creative-space-items": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
       "/profiles": {
         target: "http://localhost:4000",
         changeOrigin: true,

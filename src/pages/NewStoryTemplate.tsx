@@ -99,12 +99,19 @@ import StorySelector from "@/components/StorySelector";
 import NewStoryDialog from "@/components/NewStoryDialog";
 import ParagraphBranchPopover from "@/components/ParagraphBranchPopover";
 import ScreenplayTemplate from "@/modules/screenplay template";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Use same-origin API base in development; dev server proxies to backend.
 // In production, VITE_API_BASE_URL can point at the deployed API.
 const API_BASE = import.meta.env.PROD
   ? (import.meta.env.VITE_API_BASE_URL ?? "")
   : "";
+
+interface CreativeSpaceRow {
+  id: string;
+  name: string;
+}
+
 const DEFAULT_STORY_TITLE = "Story of my life";
 const DEFAULT_CHAPTER_TITLE = "Chapter 1 - The day I was conceived";
 const showAdvanced = false; // hide advanced controls/cards for now
@@ -113,6 +120,7 @@ const NewStoryTemplate = () => {
   const [searchParams] = useSearchParams();
   const templateType =
     searchParams.get('type') === 'screenplay' ? 'screenplay' : 'story';
+  const initialSpaceIdFromQuery = searchParams.get('spaceId') || undefined;
 
   const [storyTitleId, setStoryTitleId] = useState<string | null>(null);
   const [chapterId, setChapterId] = useState<string | null>(null);
@@ -150,6 +158,11 @@ const NewStoryTemplate = () => {
   const [storyTitleRevisions, setStoryTitleRevisions] = useState<any[]>([]);
   const [stories, setStories] = useState<any[]>([]); // List of all user's stories
   const [editingChapterId, setEditingChapterId] = useState<string | null>(null);
+  const [spaces, setSpaces] = useState<CreativeSpaceRow[]>([]);
+  const [spacesLoading, setSpacesLoading] = useState(false);
+  const [selectedSpaceId, setSelectedSpaceId] = useState<string | "none">(
+    initialSpaceIdFromQuery || "none",
+  );
   const [editingChapterTitle, setEditingChapterTitle] = useState("");
   const [editingParagraph, setEditingParagraph] = useState<{
     chapterId: string;
@@ -291,6 +304,7 @@ const NewStoryTemplate = () => {
                 .map((p: string) => p.trim())
                 .filter((p: string) => p.length > 0),
               userId: user.id,
+              creativeSpaceId: selectedSpaceId === "none" ? null : selectedSpaceId,
             }),
           });
 
@@ -409,6 +423,93 @@ const NewStoryTemplate = () => {
     }
   };
 
+  // Fetch creative Spaces for the current user (for Space selection)
+  const fetchUserSpaces = async () => {
+    if (!user) return;
+    setSpacesLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/creative-spaces?userId=${user.id}`);
+      const body = await res.json().catch(() => []);
+      if (res.ok && Array.isArray(body)) {
+        const mapped: CreativeSpaceRow[] = body.map((row: any) => ({
+          id: row.id,
+          name: row.name || 'No name creative space',
+        }));
+        setSpaces(mapped);
+        if (initialSpaceIdFromQuery && mapped.some((s) => s.id === initialSpaceIdFromQuery)) {
+          setSelectedSpaceId(initialSpaceIdFromQuery);
+        }
+      } else {
+        console.error('[NewStoryTemplate] Failed to load creative spaces', {
+          status: res.status,
+          body,
+        });
+      }
+    } catch (err) {
+      console.error('[NewStoryTemplate] Error loading creative spaces', err);
+    } finally {
+      setSpacesLoading(false);
+    }
+  };
+
+  const handleInlineCreateSpace = async () => {
+    if (!user) return;
+    const name = window.prompt('Name for the new Creative Space:', '');
+    if (name === null) {
+      return; // user cancelled
+    }
+    const trimmed = name.trim();
+    if (!trimmed) {
+      toast({
+        title: 'No name entered',
+        description: 'Please provide a non-empty Space name.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/creative-spaces`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          name: trimmed,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast({
+          title: 'Failed to create Space',
+          description: (body as any).error || 'Unexpected error while creating Space.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      const createdId = (body as any).id as string | undefined;
+      const createdName = ((body as any).name as string) || trimmed;
+      if (createdId) {
+        const newSpace: CreativeSpaceRow = { id: createdId, name: createdName };
+        setSpaces((prev) => {
+          if (prev.some((s) => s.id === createdId)) return prev;
+          return [...prev, newSpace];
+        });
+        setSelectedSpaceId(createdId);
+      }
+      toast({
+        title: 'Space created',
+        description: `Space "${createdName}" is ready to use.`,
+      });
+    } catch (err) {
+      console.error('[NewStoryTemplate] Failed to create Space', err);
+      toast({
+        title: 'Failed to create Space',
+        description: 'Unexpected error while creating Space.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   // Create a new story, set as selected & navigate
   const handleCreateNewStory = async (title: string) => {
     if (!user) return;
@@ -422,6 +523,7 @@ const NewStoryTemplate = () => {
           chapterTitle: "Intro",
           paragraphs: ["This is the beginning!"],
           userId: user.id,
+          creativeSpaceId: selectedSpaceId === "none" ? null : selectedSpaceId,
         }),
       });
 
@@ -456,7 +558,7 @@ const NewStoryTemplate = () => {
   useEffect(() => {
     if (!user) return;
     const fetchForUser = async () => {
-      await fetchAllUserStories();
+      await Promise.all([fetchAllUserStories(), fetchUserSpaces()]);
       setLoading(false);
     };
     fetchForUser();
@@ -977,6 +1079,49 @@ const NewStoryTemplate = () => {
                       ) : (
                         <Eye className="h-5 w-5" />
                       )}
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+
+            {/* Optional Space selection for the new story */}
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-medium">Space (optional)</p>
+                    <p className="text-xs text-muted-foreground">
+                      Choose a Creative Space to own this story. You can change it later from the story details page.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Select
+                      value={selectedSpaceId}
+                      onValueChange={(val) => setSelectedSpaceId(val as string | "none")}
+                      disabled={spacesLoading}
+                    >
+                      <SelectTrigger className="w-48">
+                        <SelectValue
+                          placeholder={spacesLoading ? 'Loading Spaces…' : 'No Space'}
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No Space</SelectItem>
+                        {spaces.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleInlineCreateSpace}
+                    >
+                      New Space
                     </Button>
                   </div>
                 </div>

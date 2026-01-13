@@ -24,6 +24,8 @@ import Story from "./pages/Story";
 import Screenplay from "./pages/Screenplay";
 import PublicProfile from "./pages/PublicProfile";
 import CreativeSpacePage from "./pages/CreativeSpacePage";
+import StoryDetails from "./pages/StoryDetails";
+import StoriesSpacesMigration from "./pages/StoriesSpacesMigration";
 
 const queryClient = new QueryClient();
 
@@ -50,9 +52,11 @@ const App = () => {
                 <Route path="/lounge" element={<Lounge />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/stories/spaces-migration" element={<StoriesSpacesMigration />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="/story/:story_id" element={<Story />} />
                 <Route path="/story/:story_id/chapter/:chapter_id" element={<Story />} />
+                <Route path="/story/:story_id/details" element={<StoryDetails />} />
                 <Route path="/screenplay/:screenplay_id" element={<Screenplay />} />
                 <Route path="/creative_space/:spaceId" element={<CreativeSpacePage />} />
                 {/* Public user page, e.g. /leolove */}

@@ -266,6 +266,14 @@ const CreativeSpacePage: React.FC = () => {
             <Link to="/profile" className="text-xs text-purple-700 hover:underline">
               Back to profile
             </Link>
+            {space && (
+              <Link
+                to={`/new-story-template?spaceId=${space.id}`}
+                className="text-xs text-blue-700 hover:underline"
+              >
+                New story in this Space
+              </Link>
+            )}
             <Button size="sm" onClick={handleCreateFolder}>
               New folder
             </Button>

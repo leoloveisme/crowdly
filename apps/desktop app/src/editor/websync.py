@@ -16,7 +16,7 @@ import os
 from urllib import request, error
 from urllib.parse import quote as _urlquote
 
-from .settings import Settings, save_settings
+from .settings import Settings, save_settings, write_spaces_status_log
 
 
 DEFAULT_API_BASE = "http://localhost:4000"
@@ -173,35 +173,60 @@ def sync_space_to_web(settings: Settings, project_space: Path, user_id: str) -> 
   root_path = str(root)
   folder_name = root.name
 
-  # 1) Try to find an existing space for this user and path/name.
+  # Load any previously recorded sync state for this local project-space.
+  state = getattr(settings, "space_sync_state", {}) or {}
+  mapping = state.get(root_path) if isinstance(state, dict) else None
+  mapped_space_id: str | None = None
+  if isinstance(mapping, dict):
+    val = mapping.get("remote_space_id")
+    if isinstance(val, str) and val:
+      mapped_space_id = val
+
+  # 1) Try to find an existing space for this user and path/name, preferring
+  #    any previously remembered mapping.
   space_id: str | None = None
   list_url = f"{api_base}/creative-spaces?userId={user_id}"
   status, body = _get_json(list_url)
   if status == 200 and isinstance(body, list):
-    # Prefer an exact path match.
-    for row in body:
-      try:
-        if str(row.get("path") or "") == root_path:
-          sid = row.get("id")
+    remote_spaces = body
+
+    # 1a) If we have a mapped remote_space_id, trust it when it still exists.
+    if mapped_space_id is not None:
+      for row in remote_spaces:
+        try:
+          rid = row.get("id")
+        except Exception:
+          continue
+        if isinstance(rid, str) and rid == mapped_space_id:
+          space_id = mapped_space_id
+          break
+
+    # 1b) Otherwise fall back to path/name heuristics.
+    if space_id is None:
+      # Prefer an exact path match.
+      for row in remote_spaces:
+        try:
+          if str(row.get("path") or "") == root_path:
+            sid = row.get("id")
+            if isinstance(sid, str) and sid:
+              space_id = sid
+              break
+        except Exception:
+          continue
+
+      # Otherwise fall back to a unique name match.
+      if space_id is None:
+        try:
+          candidates = [
+            r for r in remote_spaces
+            if isinstance(r.get("name"), str) and r.get("name") == folder_name
+          ]
+        except Exception:
+          candidates = []
+        if len(candidates) == 1:
+          sid = candidates[0].get("id")
           if isinstance(sid, str) and sid:
             space_id = sid
-            break
-      except Exception:
-        continue
-
-    # Otherwise fall back to a unique name match.
-    if space_id is None:
-      try:
-        candidates = [
-          r for r in body
-          if isinstance(r.get("name"), str) and r.get("name") == folder_name
-        ]
-      except Exception:
-        candidates = []
-      if len(candidates) == 1:
-        sid = candidates[0].get("id")
-        if isinstance(sid, str) and sid:
-          space_id = sid
 
   # 2) If still unknown, create a new creative space for this project-space.
   if space_id is None:
@@ -263,11 +288,28 @@ def sync_space_to_web(settings: Settings, project_space: Path, user_id: str) -> 
     state[root_path] = mapping
     settings.space_sync_state = state  # type: ignore[assignment]
     save_settings(settings)
+    write_spaces_status_log(settings)
   except Exception:
     # Best-effort; failure to persist mapping should not make the sync fail.
     pass
 
   return True, message
+
+
+def list_remote_spaces_for_user(settings: Settings, user_id: str) -> list[Dict[str, Any]]:
+  """Return all creative spaces owned by *user_id* on the Crowdly backend.
+
+  This is a thin wrapper around ``GET /creative-spaces?userId=...`` that
+  normalises errors into RuntimeError so that callers can present a clear
+  message to the user.
+  """
+
+  api_base = _build_api_base(settings)
+  url = f"{api_base}/creative-spaces?userId={user_id}"
+  status, body = _get_json(url)
+  if status != 200 or not isinstance(body, list):
+    raise RuntimeError(body.get("error") or f"Failed to list creative spaces (status {status})")
+  return body
 
 
 def pull_space_from_web(settings: Settings, project_space: Path, user_id: str) -> str:
@@ -308,35 +350,60 @@ def pull_space_from_web(settings: Settings, project_space: Path, user_id: str) -
 
   # 1) Resolve the corresponding creative space id using the same rules as
   #    sync_space_to_web, preferring any previously remembered mapping.
-  space_id: str | None = mapped_space_id
-  if space_id is None:
-    list_url = f"{api_base}/creative-spaces?userId={user_id}"
-    status, body = _get_json(list_url)
-    if status == 200 and isinstance(body, list):
-      # Prefer an exact path match on the current root.
-      for row in body:
-        try:
-          if str(row.get("path") or "") == root_path:
-            sid = row.get("id")
-            if isinstance(sid, str) and sid:
-              space_id = sid
-              break
-        except Exception:
-          continue
+  list_url = f"{api_base}/creative-spaces?userId={user_id}"
+  status, body = _get_json(list_url)
+  if status != 200 or not isinstance(body, list):
+    raise RuntimeError(body.get("error") or f"Failed to list creative spaces (status {status})")
 
-      # Otherwise fall back to a unique name match.
-      if space_id is None:
-        try:
-          candidates = [
-            r for r in body
-            if isinstance(r.get("name"), str) and r.get("name") == folder_name
-          ]
-        except Exception:
-          candidates = []
-        if len(candidates) == 1:
-          sid = candidates[0].get("id")
+  space_id: str | None = None
+  remote_spaces = body
+
+  # 1a) If we previously recorded a remote_space_id for this project-space,
+  #     check whether that Space still exists on the backend.
+  if mapped_space_id is not None:
+    exists = False
+    for row in remote_spaces:
+      try:
+        rid = row.get("id")
+      except Exception:
+        continue
+      if isinstance(rid, str) and rid == mapped_space_id:
+        exists = True
+        break
+    if exists:
+      space_id = mapped_space_id
+    else:
+      # The Space we previously mapped to no longer exists on the web. This is
+      # treated as a conflict so that the UI can ask the user how to proceed
+      # instead of silently creating or mapping to a different Space.
+      raise RuntimeError(f"REMOTE_SPACE_MISSING:{mapped_space_id}")
+
+  # 1b) If there is no mapping yet, fall back to path/name heuristics.
+  if space_id is None:
+    # Prefer an exact path match on the current root.
+    for row in remote_spaces:
+      try:
+        if str(row.get("path") or "") == root_path:
+          sid = row.get("id")
           if isinstance(sid, str) and sid:
             space_id = sid
+            break
+      except Exception:
+        continue
+
+    # Otherwise fall back to a unique name match.
+    if space_id is None:
+      try:
+        candidates = [
+          r for r in remote_spaces
+          if isinstance(r.get("name"), str) and r.get("name") == folder_name
+        ]
+      except Exception:
+        candidates = []
+      if len(candidates) == 1:
+        sid = candidates[0].get("id")
+        if isinstance(sid, str) and sid:
+          space_id = sid
 
   if space_id is None:
     # Nothing to pull: the web knows nothing about this Space yet.
@@ -463,6 +530,7 @@ def pull_space_from_web(settings: Settings, project_space: Path, user_id: str) -
     state[root_path] = mapping
     settings.space_sync_state = state  # type: ignore[assignment]
     save_settings(settings)
+    write_spaces_status_log(settings)
   except Exception:
     # Best-effort only; failure to persist should not abort the pull.
     pass
