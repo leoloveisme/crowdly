@@ -110,7 +110,13 @@ const StoryContentTypeSelector: React.FC<StoryContentTypeSelectorProps> = ({
         <div key={currentChapter.chapter_id} className="mb-8">
           <div className="flex flex-col gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="font-semibold text-lg">
-              Chapter {safeIndex + 1}: {currentChapter.chapter_title}
+              {(() => {
+                const rawTitle = String(currentChapter.chapter_title ?? "");
+                const looksPrefixed = /^\s*chapter\s+\d+/i.test(rawTitle);
+                return looksPrefixed
+                  ? rawTitle
+                  : `Chapter ${safeIndex + 1}: ${rawTitle}`;
+              })()}
             </div>
             {hasChapters && chapters.length > 1 && (
               <div className="flex items-center gap-2 text-xs text-gray-600">
