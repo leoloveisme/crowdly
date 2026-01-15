@@ -3,6 +3,76 @@
   padding: 24px;
 }
 
+/*
+  Crowdly header
+  - Desktop & landscape: table-based layout
+  - Mobile portrait: div-based layout
+  - Hidden when the page is in distraction-free mode (via .page.distraction-free)
+*/
+.crowdly-header {
+  margin-bottom: 16px;
+  font: 12px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Hide header when distraction-free mode is enabled on the page container */
+.page.distraction-free .crowdly-header {
+  display: none;
+}
+
+.crowdly-header-desktop {
+  display: block;
+}
+
+.crowdly-header-mobile {
+  display: none;
+}
+
+.crowdly-header-cell {
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+
+.crowdly-header-logo {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  margin-right: 6px;
+}
+
+.crowdly-header-mobile-row {
+  padding: 2px 0;
+}
+
+.crowdly-header-mobile-row-top {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.crowdly-header-mobile-row-path {
+  text-align: center;
+}
+
+.crowdly-header-mobile-row-bottom {
+  text-align: right;
+}
+
+.crowdly-header-mobile-language-and-greeting {
+  display: inline-block;
+}
+
+/* Mobile portrait: use div-based layout, hide the table layout */
+@media (max-width: 768px) and (orientation: portrait) {
+  .crowdly-header-desktop {
+    display: none;
+  }
+
+  .crowdly-header-mobile {
+    display: block;
+  }
+}
+
 .topbar {
   display: flex;
   justify-content: flex-end;
@@ -140,6 +210,13 @@ body:not(.has-active-editable) .ui-widget-overlay {
 
 .undo-btn:hover {
   background: #333;
+}
+
+.story-id-footer {
+  margin-top: 32px;
+  text-align: center;
+  font: 12px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  color: #555;
 }
 
 .empty-state {

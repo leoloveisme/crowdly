@@ -27,9 +27,13 @@ interface PublicProfileData {
   favorites_visibility?: "public" | "private" | "friends" | "selected";
   living_visibility?: "public" | "private" | "friends" | "selected";
   lived_visibility?: "public" | "private" | "friends" | "selected";
+  stories_visibility?: "public" | "private" | "friends" | "selected";
+  screenplays_visibility?: "public" | "private" | "friends" | "selected";
   favorites_selected_user_ids?: string[] | null;
   living_selected_user_ids?: string[] | null;
   lived_selected_user_ids?: string[] | null;
+  stories_selected_user_ids?: string[] | null;
+  screenplays_selected_user_ids?: string[] | null;
 }
 
 interface PublicStory {
@@ -167,6 +171,49 @@ const PublicProfile: React.FC = () => {
     return false;
   };
 
+  const resolveStoriesVisibility = (
+    kind: "stories" | "screenplays",
+  ): "public" | "private" | "friends" | "selected" => {
+    if (!profile) return "public";
+    const field =
+      kind === "stories" ? "stories_visibility" : "screenplays_visibility";
+    const raw = (profile as any)[field];
+    if (raw === "public" || raw === "private" || raw === "friends" || raw === "selected") {
+      return raw;
+    }
+    const legacyFlag =
+      kind === "stories"
+        ? profile.show_public_stories
+        : profile.show_public_screenplays;
+    return legacyFlag === false ? "private" : "public";
+  };
+
+  const canSeeStoriesContainer = (
+    kind: "stories" | "screenplays",
+  ): boolean => {
+    if (!profile) return false;
+    if (isOwner) return true;
+
+    const mode = resolveStoriesVisibility(kind);
+    if (mode === "public") return true;
+    if (mode === "private") return false;
+
+    if (mode === "selected") {
+      if (!viewerId) return false;
+      const list =
+        kind === "stories"
+          ? profile.stories_selected_user_ids
+          : profile.screenplays_selected_user_ids;
+      return Array.isArray(list) && list.includes(viewerId as string);
+    }
+
+    // As with experience containers, friends-only behaves like private until
+    // a real friends graph exists.
+    if (mode === "friends") return false;
+
+    return false;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -219,7 +266,7 @@ const PublicProfile: React.FC = () => {
           </header>
 
           {/* Public stories */}
-          {profile.show_public_stories !== false && (
+          {canSeeStoriesContainer("stories") && (
             <section className="mb-10">
               <h2 className="text-xl font-bold mb-3 flex items-center gap-2">
                 <span>Stories</span>
@@ -249,7 +296,7 @@ const PublicProfile: React.FC = () => {
           )}
 
           {/* Public screenplays */}
-          {profile.show_public_screenplays !== false && (
+          {canSeeStoriesContainer("screenplays") && (
             <section className="mb-10">
               <h2 className="text-xl font-bold mb-3 flex items-center gap-2">
                 <span>Screenplays</span>

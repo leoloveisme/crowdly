@@ -23,6 +23,11 @@ type UndoEntry = {
 
 const STORAGE_KEY = "web-editor:blocks:v1";
 
+// In this standalone editor, talk directly to the Crowdly backend.
+// Prefer VITE_API_BASE_URL if provided; otherwise fall back to the
+// default local backend port used by the main app.
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000";
+
 const TITLE_POOL = 3;
 const CHAPTER_POOL = 10;
 const PARAGRAPH_POOL = 50;
@@ -141,6 +146,14 @@ function pickRandom(list: string[], fallback: string): string {
 const App: React.FC = () => {
   const [interfaceLanguage, setInterfaceLanguage] = useState<InterfaceLanguage>("english");
 
+  // When opened as /story/:id, treat the path segment as the
+  // canonical story_title_id from the Crowdly backend so we can
+  // load the same story content as the main platform.
+  const [storyIdFromUrl] = useState<string | null>(() => {
+    const match = window.location.pathname.match(/^\/story\/(.+)$/);
+    return match ? decodeURIComponent(match[1]) : null;
+  });
+
   const [greeting, setGreeting] = useState<string>(() =>
     pickRandom(greetingsByLanguage["english"], "Welcome")
   );
@@ -155,12 +168,29 @@ const App: React.FC = () => {
         const raw = localStorage.getItem("crowdly_auth_user");
         if (!raw) return null;
         return JSON.parse(raw) as { id: string; email: string; roles?: string[] };
-      } catch (err) {
-        console.error("Failed to parse stored auth user for screenplay editor", err);
+      } catch {
         return null;
       }
     }
   );
+
+  const [storyTitleId, setStoryTitleId] = useState<string | null>(() => {
+    // If we are on /story/:id, prefer that ID as the canonical
+    // story_title_id; otherwise fall back to whatever the web
+    // editor last created.
+    try {
+      const match = window.location.pathname.match(/^\/story\/(.+)$/);
+      if (match) {
+        return decodeURIComponent(match[1]);
+      }
+      return localStorage.getItem("web-editor:last-story-title-id") ?? null;
+    } catch {
+      return null;
+    }
+  });
+
+  const storyCreationInFlightRef = useRef(false);
+  const initialBlocksRef = useRef<Block[] | null>(null);
 
   const isLoggedIn = !!authUser;
   const username = authUser?.email || "username";
@@ -410,6 +440,115 @@ const App: React.FC = () => {
     return createdChapterId;
   }, []);
 
+  const cloneChapterAfter = useCallback(
+    (sourceChapterId: string) => {
+      let createdChapterId: string | null = null;
+
+      setBlocks((prev) => {
+        const visible = prev
+          .filter((b) => b.visible)
+          .slice()
+          .sort((a, b) => a.order - b.order);
+
+        const sourceIdx = visible.findIndex(
+          (b) => b.id === sourceChapterId && b.kind === "chapter",
+        );
+        if (sourceIdx === -1) return prev;
+
+        // Build the chapter section: chapter heading + its paragraphs until the
+        // next chapter or title (or end of document).
+        const section: Block[] = [];
+        const source = visible[sourceIdx];
+        section.push(source);
+        for (let i = sourceIdx + 1; i < visible.length; i++) {
+          const block = visible[i];
+          if (block.kind === "chapter" || block.kind === "title") break;
+          if (block.kind === "paragraph") section.push(block);
+        }
+
+        if (section.length === 0) return prev;
+
+        const lastBlock = section[section.length - 1];
+        const anchorOrder = lastBlock.order;
+        const next = prev.map((b) => ({ ...b }));
+
+        const now = Date.now();
+        let offset = 0.1;
+
+        section.forEach((src, idx) => {
+          const newId = `${src.kind}-${now}-${idx}-${Math.random().toString(36).slice(2, 6)}`;
+          if (idx === 0) {
+            createdChapterId = newId;
+          }
+          next.push({
+            id: newId,
+            kind: src.kind,
+            order: anchorOrder + offset,
+            visible: true,
+            html: getHtmlFromDom(src.id) || src.html,
+          });
+          offset += 0.1;
+        });
+
+        return normalizeOrders(next);
+      });
+
+      return createdChapterId;
+    },
+    [getHtmlFromDom],
+  );
+
+  const cloneStoryAfter = useCallback(
+    (sourceTitleId: string) => {
+      setBlocks((prev) => {
+        const visible = prev
+          .filter((b) => b.visible)
+          .slice()
+          .sort((a, b) => a.order - b.order);
+
+        const sourceIdx = visible.findIndex(
+          (b) => b.id === sourceTitleId && b.kind === "title",
+        );
+        if (sourceIdx === -1) return prev;
+
+        // Story section: from this title up to (but not including) the next
+        // title, or end of document.
+        const section: Block[] = [];
+        const sourceTitle = visible[sourceIdx];
+        section.push(sourceTitle);
+        for (let i = sourceIdx + 1; i < visible.length; i++) {
+          const block = visible[i];
+          if (block.kind === "title") break;
+          section.push(block);
+        }
+
+        if (section.length === 0) return prev;
+
+        const lastBlock = section[section.length - 1];
+        const anchorOrder = lastBlock.order;
+        const next = prev.map((b) => ({ ...b }));
+
+        const now = Date.now();
+        let offset = 0.1;
+
+        section.forEach((src, idx) => {
+          const newId = `${src.kind}-${now}-${idx}-${Math.random().toString(36).slice(2, 6)}`;
+          next.push({
+            id: newId,
+            kind: src.kind,
+            order: anchorOrder + offset,
+            visible: true,
+            html: getHtmlFromDom(src.id) || src.html,
+          });
+          offset += 0.1;
+        });
+
+        return normalizeOrders(next);
+      });
+    },
+    [getHtmlFromDom],
+  );
+
   const showUndo = useCallback((entry: UndoEntry) => {
     if (undoTimerRef.current != null) {
       window.clearTimeout(undoTimerRef.current);
@@ -522,6 +661,207 @@ const App: React.FC = () => {
     ]
   );
 
+  // Remember the very first blocks array so we can detect the
+  // first *change* caused by the user. This lets us delay backend
+  // story creation until the user actually edits something.
+  useEffect(() => {
+    if (!initialBlocksRef.current) {
+      initialBlocksRef.current = blocks;
+    }
+  }, [blocks]);
+
+  // When editing an existing story via /story/:id, load the
+  // canonical story title + chapters from the Crowdly backend and
+  // map them into the Aloha block model. The backend is the source
+  // of truth for the initial content; subsequent edits are local
+  // (for now) but start from the same data as the platform.
+  useEffect(() => {
+    if (!storyIdFromUrl) return;
+    if (!storyTitleId || storyTitleId !== storyIdFromUrl) return;
+
+    let cancelled = false;
+
+    const loadStoryIntoBlocks = async () => {
+      try {
+        // 1) Fetch story title
+        const titleRes = await fetch(`${API_BASE}/story-titles/${encodeURIComponent(storyTitleId)}`);
+        if (!titleRes.ok) {
+          // Do not crash editor if backend is unavailable; just keep local blocks.
+          return;
+        }
+        const titleRow = (await titleRes.json()) as { title?: string };
+
+        // 2) Fetch chapters
+        const params = new URLSearchParams({ storyTitleId: storyTitleId });
+        const chaptersRes = await fetch(`${API_BASE}/chapters?${params.toString()}`);
+        if (!chaptersRes.ok) {
+          return;
+        }
+        const chapters = (await chaptersRes.json()) as Array<{
+          chapter_id: string;
+          chapter_title: string;
+          paragraphs: string[] | null;
+        }>;
+
+        if (cancelled) return;
+
+        setBlocks((prev) => {
+          // Start from a fresh pool so we don't mix old sample
+          // content with loaded story content.
+          const base = buildInitialBlocks().map((b) => ({ ...b, visible: false, html: "" }));
+
+          let order = 0;
+
+          // Title
+          const titleBlock = base.find((b) => b.kind === "title");
+          if (titleBlock) {
+            titleBlock.visible = true;
+            titleBlock.order = order++;
+            titleBlock.html = (titleRow.title || "Untitled story").replace(/</g, "&lt;");
+          }
+
+          // Chapters + paragraphs
+          const chapterPool = base.filter((b) => b.kind === "chapter");
+          const paragraphPool = base.filter((b) => b.kind === "paragraph");
+          let chapterIdx = 0;
+          let paragraphIdx = 0;
+
+          for (const ch of chapters) {
+            const chapterBlock = chapterPool[chapterIdx++];
+            if (!chapterBlock) break;
+            chapterBlock.visible = true;
+            chapterBlock.order = order++;
+            chapterBlock.html = (ch.chapter_title || "").replace(/</g, "&lt;");
+
+            const paras = Array.isArray(ch.paragraphs) ? ch.paragraphs : [];
+            for (const text of paras) {
+              const pBlock = paragraphPool[paragraphIdx++];
+              if (!pBlock) break;
+              pBlock.visible = true;
+              pBlock.order = order++;
+              pBlock.html = String(text || "").replace(/</g, "&lt;");
+            }
+          }
+
+          const next = normalizeOrders(base);
+          // Also update persisted blocks so refresh keeps this state.
+          persistBlocks(next);
+          return next;
+        });
+      } catch {
+        // Ignore backend errors; fall back to existing local blocks.
+      }
+    };
+
+    void loadStoryIntoBlocks();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [storyIdFromUrl, storyTitleId, persistBlocks]);
+
+  const createStoryFromBlocks = useCallback(
+    async (currentBlocks: Block[]) => {
+      if (!authUser?.id) return;
+      if (storyTitleId) return;
+      if (storyCreationInFlightRef.current) return;
+
+      storyCreationInFlightRef.current = true;
+
+      try {
+        const snapshot = snapshotBlocksFromDom(currentBlocks);
+        const visible = snapshot
+          .filter((b) => b.visible)
+          .slice()
+          .sort((a, b) => a.order - b.order);
+
+        const titleBlock = visible.find((b) => b.kind === "title");
+        const chapterBlock = visible.find((b) => b.kind === "chapter");
+        const paragraphBlocks = visible.filter((b) => b.kind === "paragraph");
+
+        const stripHtml = (html: string) =>
+          html.replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ").replace(/\s+/g, " ").trim();
+
+        const titleText = stripHtml(titleBlock?.html || "Title of the story") || "Title of the story";
+        const chapterTitleText =
+          stripHtml(chapterBlock?.html || "Chapter 1 - Journey into wilderness") ||
+          "Chapter 1 - Journey into wilderness";
+
+        const paragraphs = paragraphBlocks
+          .map((b) => stripHtml(b.html))
+          .filter((text) => text.length > 0);
+
+        const payload = {
+          title: titleText,
+          chapterTitle: chapterTitleText,
+          paragraphs: paragraphs.length > 0 ? paragraphs : [""],
+          userId: authUser.id,
+          creativeSpaceId: null as string | null,
+        };
+
+        try {
+          const res = await fetch(`${API_BASE}/stories/template`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          const body = await res.json().catch(() => ({}));
+
+          if (!res.ok) {
+            console.error("[web-editor] Failed to create story template", {
+              status: res.status,
+              body,
+            });
+            if (typeof window !== "undefined") {
+              window.alert(
+                (body && (body.error || body.details)) ||
+                  "Failed to create story on the Crowdly backend.",
+              );
+            }
+            return;
+          }
+
+          const newId = (body as any).storyTitleId as string | undefined;
+          if (!newId) {
+            console.error("[web-editor] /stories/template missing storyTitleId", body);
+            return;
+          }
+
+          setStoryTitleId(newId);
+          try {
+            localStorage.setItem("web-editor:last-story-title-id", newId);
+          } catch {
+            // ignore storage errors
+          }
+        } catch (err) {
+          console.error("[web-editor] Error while creating story template", err);
+          if (typeof window !== "undefined") {
+            window.alert("Unexpected error while creating story on the backend.");
+          }
+        }
+      } finally {
+        storyCreationInFlightRef.current = false;
+      }
+    },
+    [authUser, snapshotBlocksFromDom, storyTitleId],
+  );
+
+  // Whenever the blocks change for the first time after mount and we
+  // don't yet have a storyTitleId, create a real story in the Crowdly
+  // database so the footer can show a true story ID. When editing an
+  // existing story via /story/:id, skip auto-creation and rely on the
+  // existing story_title_id instead.
+  useEffect(() => {
+    if (!authUser?.id) return;
+    if (storyIdFromUrl) return; // do not create a new story when bound to an existing one
+    if (storyTitleId) return;
+    if (!initialBlocksRef.current) return;
+    if (blocks === initialBlocksRef.current) return;
+
+    void createStoryFromBlocks(blocks);
+  }, [authUser, blocks, createStoryFromBlocks, storyIdFromUrl, storyTitleId]);
+
   // Bootstrap Aloha once.
   useEffect(() => {
     let cancelled = false;
@@ -613,8 +953,8 @@ const App: React.FC = () => {
   const handleLogoutFromHeader = () => {
     try {
       localStorage.removeItem("crowdly_auth_user");
-    } catch (err) {
-      console.error("Failed to clear auth user during screenplay logout", err);
+    } catch {
+      // ignore
     }
     setAuthUser(null);
     window.location.href = "/";
@@ -714,10 +1054,9 @@ const App: React.FC = () => {
                     e.stopPropagation();
                     hideControlsEverywhere();
 
-                    const html = getHtmlFromDom(b.id);
-                    const newId = withNewBlockAfter(b.id, b.kind, html);
+                    const newChapterId = cloneChapterAfter(b.id);
                     saveAllFromDom();
-                    if (newId) pendingActivateIdRef.current = newId;
+                    if (newChapterId) pendingActivateIdRef.current = newChapterId;
                   }}
                 >
                   Clone
@@ -743,11 +1082,10 @@ const App: React.FC = () => {
                     e.stopPropagation();
                     hideControlsEverywhere();
 
-                    // Ensure we clone the latest HTML (not a possibly stale React state value).
-                    const html = getHtmlFromDom(b.id);
-                    const newId = withNewBlockAfter(b.id, b.kind, html);
+                    // Clone the entire story (title + all chapters and paragraphs)
+                    // and append it below the current one.
+                    cloneStoryAfter(b.id);
                     saveAllFromDom();
-                    if (newId) pendingActivateIdRef.current = newId;
                   }}
                 >
                   Clone
@@ -829,6 +1167,25 @@ const App: React.FC = () => {
             </div>
           );
         })}
+      </div>
+
+      <div className="story-id-footer">
+        Story ID{" "}
+        {storyTitleId ? (
+          <>
+            <a href={`/story/${storyTitleId}`}>{storyTitleId}</a>
+            {" "}|{" "}
+            <a
+              href={`http://localhost:8080/story/${storyTitleId}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              open on Crowdly platform
+            </a>
+          </>
+        ) : (
+          <span>not yet created</span>
+        )}
       </div>
 
       {undoEntry ? (

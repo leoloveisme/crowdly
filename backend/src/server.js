@@ -163,6 +163,12 @@ async function ensureProfilesVisibilityColumns() {
     await pool.query(
       "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS lived_visibility text DEFAULT 'public'",
     );
+    await pool.query(
+      "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS stories_visibility text DEFAULT 'public'",
+    );
+    await pool.query(
+      "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS screenplays_visibility text DEFAULT 'public'",
+    );
 
     // Selected-users-only audiences for each container. Stored as arrays of
     // local user ids; gating is enforced in the web layer for now.
@@ -174,6 +180,12 @@ async function ensureProfilesVisibilityColumns() {
     );
     await pool.query(
       "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS lived_selected_user_ids uuid[] DEFAULT '{}'::uuid[]",
+    );
+    await pool.query(
+      "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS stories_selected_user_ids uuid[] DEFAULT '{}'::uuid[]",
+    );
+    await pool.query(
+      "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS screenplays_selected_user_ids uuid[] DEFAULT '{}'::uuid[]",
     );
 
     console.log('[init] ensured profiles visibility columns exist');
@@ -1280,15 +1292,19 @@ async function handleProfileUpdate(req, res) {
     'real_nickname',
     'show_public_stories',
     'show_public_screenplays',
-'show_public_favorites',
+    'show_public_favorites',
     'show_public_living',
     'show_public_lived',
     'favorites_visibility',
     'living_visibility',
     'lived_visibility',
+    'stories_visibility',
+    'screenplays_visibility',
     'favorites_selected_user_ids',
     'living_selected_user_ids',
     'lived_selected_user_ids',
+    'stories_selected_user_ids',
+    'screenplays_selected_user_ids',
   ];
 
   const fields = [];

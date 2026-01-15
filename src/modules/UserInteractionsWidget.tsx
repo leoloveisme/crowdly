@@ -19,7 +19,7 @@ export interface SimpleUser {
 
 interface UserInteractionsWidgetProps {
   ownerUserId: string;
-  containerKey: "favorites" | "living" | "lived";
+  containerKey: "favorites" | "living" | "lived" | "stories" | "screenplays";
   selectedUserIds: string[];
   onChangeSelectedUserIds: (ids: string[]) => void;
 }

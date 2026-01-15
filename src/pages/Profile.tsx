@@ -108,9 +108,14 @@ const INITIAL_PROFILE = {
   favorites_visibility: "public" as "public" | "private" | "friends" | "selected",
   living_visibility: "public" as "public" | "private" | "friends" | "selected",
   lived_visibility: "public" as "public" | "private" | "friends" | "selected",
+  // New containers: stories the user is creating and screenplays they are creating
+  stories_visibility: "public" as "public" | "private" | "friends" | "selected",
+  screenplays_visibility: "public" as "public" | "private" | "friends" | "selected",
   favorites_selected_user_ids: [] as string[],
   living_selected_user_ids: [] as string[],
   lived_selected_user_ids: [] as string[],
+  stories_selected_user_ids: [] as string[],
+  screenplays_selected_user_ids: [] as string[],
 };
 
 const Profile = () => {
@@ -162,6 +167,8 @@ const Profile = () => {
   const [favoritesSettingsOpen, setFavoritesSettingsOpen] = useState(false);
   const [livingSettingsOpen, setLivingSettingsOpen] = useState(false);
   const [livedSettingsOpen, setLivedSettingsOpen] = useState(false);
+  const [storiesSettingsOpen, setStoriesSettingsOpen] = useState(false);
+  const [screenplaysSettingsOpen, setScreenplaysSettingsOpen] = useState(false);
 
   // Responsive design
   const isMobile = useIsMobile();
@@ -613,15 +620,26 @@ const Profile = () => {
 
   // Helper: resolve current visibility mode for a given experience container,
   // falling back to legacy boolean flags when the newer fields are not set.
+  type VisibilityContainer =
+    | "favorites"
+    | "living"
+    | "lived"
+    | "stories"
+    | "screenplays";
+
   const getContainerVisibility = (
-    container: "favorites" | "living" | "lived",
+    container: VisibilityContainer,
   ): "public" | "private" | "friends" | "selected" => {
     const field =
       container === "favorites"
         ? "favorites_visibility"
         : container === "living"
         ? "living_visibility"
-        : "lived_visibility";
+        : container === "lived"
+        ? "lived_visibility"
+        : container === "stories"
+        ? "stories_visibility"
+        : "screenplays_visibility";
     const raw = (profile as any)[field];
     if (raw === "public" || raw === "private" || raw === "friends" || raw === "selected") {
       return raw;
@@ -631,12 +649,16 @@ const Profile = () => {
         ? (profile as any).show_public_favorites
         : container === "living"
         ? (profile as any).show_public_living
-        : (profile as any).show_public_lived;
+        : container === "lived"
+        ? (profile as any).show_public_lived
+        : container === "stories"
+        ? (profile as any).show_public_stories
+        : (profile as any).show_public_screenplays;
     return legacyFlag === false ? "private" : "public";
   };
 
   const setContainerVisibility = (
-    container: "favorites" | "living" | "lived",
+    container: VisibilityContainer,
     mode: "public" | "private" | "friends" | "selected",
   ) => {
     const field =
@@ -644,7 +666,11 @@ const Profile = () => {
         ? "favorites_visibility"
         : container === "living"
         ? "living_visibility"
-        : "lived_visibility";
+        : container === "lived"
+        ? "lived_visibility"
+        : container === "stories"
+        ? "stories_visibility"
+        : "screenplays_visibility";
     saveProfileField(field as keyof typeof profile, mode);
 
     // For backward compatibility with older public profile consumers, keep the
@@ -654,13 +680,17 @@ const Profile = () => {
         ? "show_public_favorites"
         : container === "living"
         ? "show_public_living"
-        : "show_public_lived";
+        : container === "lived"
+        ? "show_public_lived"
+        : container === "stories"
+        ? "show_public_stories"
+        : "show_public_screenplays";
     const isPublic = mode === "public";
     saveProfileField(boolField as keyof typeof profile, isPublic);
   };
 
   const handleSelectedUsersChange = (
-    container: "favorites" | "living" | "lived",
+    container: VisibilityContainer,
     ids: string[],
   ) => {
     const field =
@@ -668,7 +698,11 @@ const Profile = () => {
         ? "favorites_selected_user_ids"
         : container === "living"
         ? "living_selected_user_ids"
-        : "lived_selected_user_ids";
+        : container === "lived"
+        ? "lived_selected_user_ids"
+        : container === "stories"
+        ? "stories_selected_user_ids"
+        : "screenplays_selected_user_ids";
     saveProfileField(field as keyof typeof profile, ids);
   };
 
@@ -952,88 +986,6 @@ const Profile = () => {
                     </div>
                   </RadioGroup>
 
-                  <div className="mt-2 border-t pt-2 space-y-1">
-                    <p className="text-xs font-medium text-gray-500 mb-1">
-                      <EditableText id="section-visibility-heading">
-                        Sections visible on your public profile
-                      </EditableText>
-                    </p>
-                    <div className="flex items-center space-x-2 text-xs text-gray-600">
-                      <Checkbox
-                        id="show-public-stories"
-                        checked={(profile as any).show_public_stories !== false}
-                        onCheckedChange={(checked) =>
-                          saveProfileField(
-                            "show_public_stories" as any,
-                            Boolean(checked),
-                          )
-                        }
-                      />
-                      <Label htmlFor="show-public-stories" className="cursor-pointer">
-                        Show my stories
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2 text-xs text-gray-600">
-                      <Checkbox
-                        id="show-public-screenplays"
-                        checked={(profile as any).show_public_screenplays !== false}
-                        onCheckedChange={(checked) =>
-                          saveProfileField(
-                            "show_public_screenplays" as any,
-                            Boolean(checked),
-                          )
-                        }
-                      />
-                      <Label htmlFor="show-public-screenplays" className="cursor-pointer">
-                        Show my screenplays
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2 text-xs text-gray-600">
-                      <Checkbox
-                        id="show-public-favorites"
-                        checked={(profile as any).show_public_favorites !== false}
-                        onCheckedChange={(checked) =>
-                          saveProfileField(
-                            "show_public_favorites" as any,
-                            Boolean(checked),
-                          )
-                        }
-                      />
-                      <Label htmlFor="show-public-favorites" className="cursor-pointer">
-                        Show my favorites list
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2 text-xs text-gray-600">
-                      <Checkbox
-                        id="show-public-living"
-                        checked={(profile as any).show_public_living !== false}
-                        onCheckedChange={(checked) =>
-                          saveProfileField(
-                            "show_public_living" as any,
-                            Boolean(checked),
-                          )
-                        }
-                      />
-                      <Label htmlFor="show-public-living" className="cursor-pointer">
-                        Show my living / experiencing list
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2 text-xs text-gray-600">
-                      <Checkbox
-                        id="show-public-lived"
-                        checked={(profile as any).show_public_lived !== false}
-                        onCheckedChange={(checked) =>
-                          saveProfileField(
-                            "show_public_lived" as any,
-                            Boolean(checked),
-                          )
-                        }
-                      />
-                      <Label htmlFor="show-public-lived" className="cursor-pointer">
-                        Show my lived / experienced list
-                      </Label>
-                    </div>
-                  </div>
                 </PopoverContent>
               </Popover>
             )}
@@ -1170,7 +1122,105 @@ const Profile = () => {
           <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
             <BookOpen className="h-5 w-5 text-purple-600" />
             Stories I'm creating / co-creating
-            <Settings className="h-5 w-5 text-purple-600" />
+            {!previewMode && authUser?.id && (
+              <Popover open={storiesSettingsOpen} onOpenChange={setStoriesSettingsOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 p-0 text-purple-600 hover:text-purple-700"
+                  >
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-3" align="start">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Visibility</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 p-0"
+                        onClick={() => setStoriesSettingsOpen(false)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Control who can see the list of stories you are creating or
+                      co-creating on your public profile.
+                    </p>
+                    <RadioGroup
+                      value={getContainerVisibility("stories")}
+                      onValueChange={(val) =>
+                        setContainerVisibility(
+                          "stories",
+                          val as "public" | "private" | "friends" | "selected",
+                        )
+                      }
+                      className="space-y-1 text-xs"
+                    >
+                      <div className="flex items-center gap-2 cursor-pointer">
+                        <RadioGroupItem value="public" id="stories-public" />
+                        <Label
+                          htmlFor="stories-public"
+                          className="flex items-center gap-1 cursor-pointer"
+                        >
+                          <Eye className="h-3 w-3 text-green-600" />
+                          <span>Make visible (Public)</span>
+                        </Label>
+                      </div>
+                      <div className="flex items-center gap-2 cursor-pointer">
+                        <RadioGroupItem value="private" id="stories-private" />
+                        <Label
+                          htmlFor="stories-private"
+                          className="flex items-center gap-1 cursor-pointer"
+                        >
+                          <EyeOff className="h-3 w-3 text-gray-600" />
+                          <span>Make invisible (Private)</span>
+                        </Label>
+                      </div>
+                      <div className="flex items-center gap-2 cursor-pointer">
+                        <RadioGroupItem value="friends" id="stories-friends" />
+                        <Label
+                          htmlFor="stories-friends"
+                          className="flex items-center gap-1 cursor-pointer"
+                        >
+                          <Users className="h-3 w-3 text-purple-600" />
+                          <span>Friends only</span>
+                        </Label>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2 cursor-pointer">
+                          <RadioGroupItem value="selected" id="stories-selected" />
+                          <Label
+                            htmlFor="stories-selected"
+                            className="flex items-center gap-1 cursor-pointer"
+                          >
+                            <User className="h-3 w-3 text-purple-600" />
+                            <span>Selected users only</span>
+                          </Label>
+                        </div>
+                        {getContainerVisibility("stories") === "selected" && (
+                          <div className="mt-2 border-t pt-2">
+                            <UserInteractionsWidget
+                              ownerUserId={authUser.id}
+                              containerKey="stories"
+                              selectedUserIds={
+                                (profile as any).stories_selected_user_ids || []
+                              }
+                              onChangeSelectedUserIds={(ids) =>
+                                handleSelectedUsersChange("stories", ids)
+                              }
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </RadioGroup>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
             <Link
               to="/stories/spaces-migration"
               className="ml-auto text-xs text-blue-700 hover:underline"
@@ -1206,7 +1256,108 @@ const Profile = () => {
           <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
             <FileText className="h-5 w-5 text-purple-600" />
             Screenplays I'm creating / co-creating
-            <Settings className="h-5 w-5 text-purple-600" />
+            {!previewMode && authUser?.id && (
+              <Popover
+                open={screenplaysSettingsOpen}
+                onOpenChange={setScreenplaysSettingsOpen}
+              >
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 p-0 text-purple-600 hover:text-purple-700"
+                  >
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80 p-3" align="start">
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Visibility</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-5 w-5 p-0"
+                        onClick={() => setScreenplaysSettingsOpen(false)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Control who can see the list of screenplays you are
+                      creating or co-creating on your public profile.
+                    </p>
+                    <RadioGroup
+                      value={getContainerVisibility("screenplays")}
+                      onValueChange={(val) =>
+                        setContainerVisibility(
+                          "screenplays",
+                          val as "public" | "private" | "friends" | "selected",
+                        )
+                      }
+                      className="space-y-1 text-xs"
+                    >
+                      <div className="flex items-center gap-2 cursor-pointer">
+                        <RadioGroupItem value="public" id="screenplays-public" />
+                        <Label
+                          htmlFor="screenplays-public"
+                          className="flex items-center gap-1 cursor-pointer"
+                        >
+                          <Eye className="h-3 w-3 text-green-600" />
+                          <span>Make visible (Public)</span>
+                        </Label>
+                      </div>
+                      <div className="flex items-center gap-2 cursor-pointer">
+                        <RadioGroupItem value="private" id="screenplays-private" />
+                        <Label
+                          htmlFor="screenplays-private"
+                          className="flex items-center gap-1 cursor-pointer"
+                        >
+                          <EyeOff className="h-3 w-3 text-gray-600" />
+                          <span>Make invisible (Private)</span>
+                        </Label>
+                      </div>
+                      <div className="flex items-center gap-2 cursor-pointer">
+                        <RadioGroupItem value="friends" id="screenplays-friends" />
+                        <Label
+                          htmlFor="screenplays-friends"
+                          className="flex items-center gap-1 cursor-pointer"
+                        >
+                          <Users className="h-3 w-3 text-purple-600" />
+                          <span>Friends only</span>
+                        </Label>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-2 cursor-pointer">
+                          <RadioGroupItem value="selected" id="screenplays-selected" />
+                          <Label
+                            htmlFor="screenplays-selected"
+                            className="flex items-center gap-1 cursor-pointer"
+                          >
+                            <User className="h-3 w-3 text-purple-600" />
+                            <span>Selected users only</span>
+                          </Label>
+                        </div>
+                        {getContainerVisibility("screenplays") === "selected" && (
+                          <div className="mt-2 border-t pt-2">
+                            <UserInteractionsWidget
+                              ownerUserId={authUser.id}
+                              containerKey="screenplays"
+                              selectedUserIds={
+                                (profile as any).screenplays_selected_user_ids || []
+                              }
+                              onChangeSelectedUserIds={(ids) =>
+                                handleSelectedUsersChange("screenplays", ids)
+                              }
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </RadioGroup>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            )}
           </h2>
           {screenplaysLoading ? (
             <div className="text-gray-500 text-sm">Loading your screenplays...</div>
