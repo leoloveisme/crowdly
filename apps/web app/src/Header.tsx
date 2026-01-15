@@ -48,14 +48,18 @@ const Header: React.FC<HeaderProps> = ({
             <tr>
               <td className="crowdly-header-cell" align="left">
                 <img
-                  src=""
+                  src="/images/crowdly-app.png"
                   title="Crowdly logo"
                   alt="Crowdly logo"
                   className="crowdly-header-logo"
                 />
               </td>
               <td className="crowdly-header-cell" align="left">
-                <strong>Crowdly web app</strong>
+                <strong>
+                  <a href="/" style={{ color: "inherit", textDecoration: "none" }}>
+                    Crowdly web app
+                  </a>
+                </strong>
               </td>
               <td className="crowdly-header-cell" align="center">
                 Path: Space | directory | file name
@@ -131,7 +135,11 @@ const Header: React.FC<HeaderProps> = ({
             alt="Crowdly logo"
             className="crowdly-header-logo"
           />
-          <strong>Crowdly web app</strong>
+          <strong>
+            <a href="/" style={{ color: "inherit", textDecoration: "none" }}>
+              Crowdly web app
+            </a>
+          </strong>
         </div>
         <div className="crowdly-header-mobile-row crowdly-header-mobile-row-path">
           Path: Space | directory | file name

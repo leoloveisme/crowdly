@@ -139,6 +139,8 @@ const Index: React.FC = () => {
 
   const [currentScreenplayId, setCurrentScreenplayId] = useState<string | null>(null);
 
+  const [storyIdInput, setStoryIdInput] = useState("");
+
   const isLoggedIn = !!authUser;
   const usernameForHeader = authUser?.email || username || "Guest";
 
@@ -203,6 +205,33 @@ const Index: React.FC = () => {
 
   const handleLanguageChange = (language: InterfaceLanguage) => {
     setInterfaceLanguage(language);
+  };
+
+  const handleGoToStory = () => {
+    const raw = storyIdInput.trim();
+    if (!raw) return;
+
+    // Accept plain ID, or full URLs for 8080 or 5173 and extract the ID.
+    let id = raw;
+    try {
+      if (raw.startsWith("http://") || raw.startsWith("https://")) {
+        const url = new URL(raw);
+        const match = url.pathname.match(/\/story\/([^/]+)/);
+        if (match) {
+          id = match[1];
+        }
+      } else {
+        const match = raw.match(/\/story\/([^/]+)/);
+        if (match) {
+          id = match[1];
+        }
+      }
+    } catch {
+      // If URL parsing fails, fall back to raw input.
+    }
+
+    if (!id) return;
+    window.location.href = `/story/${id}`;
   };
 
   const openLoginFromHeader = () => {
@@ -371,10 +400,76 @@ const Index: React.FC = () => {
         }}
       >
         {/* Minimal hint content so the page is not literally empty, but still white and clean */}
-        <p style={{ color: "#666", fontSize: "14px", textAlign: "center" }}>
-          Right-click (desktop) or tap and hold (mobile) anywhere on the page to
-          choose what kind of story you would like to create.
-        </p>
+        <div style={{ maxWidth: 480, width: "100%" }}>
+          <p style={{ color: "#666", fontSize: "14px", textAlign: "center", marginBottom: 12 }}>
+            Right-click (desktop) or tap and hold (mobile) anywhere on the page to
+            choose what kind of story you would like to create.
+          </p>
+
+          <div
+            style={{
+              marginTop: 16,
+              padding: "10px 14px",
+              borderRadius: 12,
+              border: "1px solid rgba(0,0,0,0.12)",
+              backgroundColor: "#fafafa",
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+            }}
+          >
+            <div style={{ fontSize: 13, fontWeight: 500, color: "#111" }}>
+              Go to the story / Open story
+            </div>
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "row",
+                gap: 8,
+                alignItems: "center",
+              }}
+            >
+              <input
+                type="text"
+                placeholder="Paste story ID or story URL here"
+                value={storyIdInput}
+                onChange={(e) => setStoryIdInput(e.target.value)}
+                style={{
+                  flex: 1,
+                  padding: "6px 8px",
+                  borderRadius: 8,
+                  border: "1px solid rgba(0,0,0,0.2)",
+                  fontSize: 13,
+                }}
+              />
+              <button
+                type="button"
+                onClick={handleGoToStory}
+                style={{
+                  padding: "6px 14px",
+                  borderRadius: 999,
+                  border: "1px solid #111",
+                  backgroundColor: "#111",
+                  color: "#fff",
+                  fontSize: 13,
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Go
+              </button>
+            </div>
+            <div style={{ fontSize: 11, color: "#666" }}>
+              Accepted formats:
+              <br />
+               b7 Story ID: <code>afc0ca9b-5a67-46a0-b01c-9da9d27ae642</code>
+              <br />
+               b7 Crowdly URL: <code>http://localhost:8080/story/&lt;id&gt;</code>
+              <br />
+               b7 Web app URL: <code>http://localhost:5173/story/&lt;id&gt;</code>
+            </div>
+          </div>
+        </div>
       </div>
 
       {isOpen && (
