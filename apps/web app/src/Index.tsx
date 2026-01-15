@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import StoryTemplate from "./story template";
-import ScreenplayTemplate from "./screenplay template";
 import Header, { InterfaceLanguage } from "./Header";
 
 type StoryKind = "story" | "screenplay";
@@ -137,8 +136,6 @@ const Index: React.FC = () => {
   const [authError, setAuthError] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
 
-  const [currentScreenplayId, setCurrentScreenplayId] = useState<string | null>(null);
-
   const [storyIdInput, setStoryIdInput] = useState("");
 
   const isLoggedIn = !!authUser;
@@ -207,31 +204,69 @@ const Index: React.FC = () => {
     setInterfaceLanguage(language);
   };
 
-  const handleGoToStory = () => {
+  const handleGoToStory = async () => {
     const raw = storyIdInput.trim();
     if (!raw) return;
 
-    // Accept plain ID, or full URLs for 8080 or 5173 and extract the ID.
-    let id = raw;
+    let id: string | null = null;
+    let explicitKind: StoryKind | null = null;
+
     try {
       if (raw.startsWith("http://") || raw.startsWith("https://")) {
         const url = new URL(raw);
-        const match = url.pathname.match(/\/story\/([^/]+)/);
-        if (match) {
-          id = match[1];
+        const path = url.pathname;
+        const screenplayMatch = path.match(/\/screenplay\/([^/]+)/);
+        const storyMatch = path.match(/\/story\/([^/]+)/);
+        if (screenplayMatch) {
+          explicitKind = "screenplay";
+          id = screenplayMatch[1];
+        } else if (storyMatch) {
+          explicitKind = "story";
+          id = storyMatch[1];
         }
       } else {
-        const match = raw.match(/\/story\/([^/]+)/);
-        if (match) {
-          id = match[1];
+        const screenplayMatch = raw.match(/\/screenplay\/([^/]+)/);
+        const storyMatch = raw.match(/\/story\/([^/]+)/);
+        if (screenplayMatch) {
+          explicitKind = "screenplay";
+          id = screenplayMatch[1];
+        } else if (storyMatch) {
+          explicitKind = "story";
+          id = storyMatch[1];
+        } else {
+          // Plain ID, let backend determine whether it's a screenplay or story.
+          id = raw;
         }
       }
     } catch {
-      // If URL parsing fails, fall back to raw input.
+      // If URL parsing fails, fall back to treating the raw input as an ID.
+      id = raw;
     }
 
     if (!id) return;
-    window.location.href = `/story/${id}`;
+
+    // If the kind is explicit from the URL, just route there.
+    if (explicitKind === "screenplay") {
+      window.location.href = `/screenplay/${encodeURIComponent(id)}`;
+      return;
+    }
+    if (explicitKind === "story") {
+      window.location.href = `/story/${encodeURIComponent(id)}`;
+      return;
+    }
+
+    // Ambiguous plain IDs: first try screenplay, then fall back to story.
+    try {
+      const res = await fetch(`${API_BASE}/screenplays/${encodeURIComponent(id)}`);
+      if (res.ok) {
+        window.location.href = `/screenplay/${encodeURIComponent(id)}`;
+        return;
+      }
+    } catch {
+      // Ignore network errors here; we'll still try story as a fallback.
+    }
+
+    window.location.href = `/story/${encodeURIComponent(id)}`;
   };
 
   const openLoginFromHeader = () => {
@@ -269,7 +304,7 @@ const Index: React.FC = () => {
         setActiveView("story");
       } else if (kind === "screenplay") {
         // Mirror the Crowdly platform: create a new screenplay on the backend
-        // before opening the screenplay editor.
+        // and then open the canonical /screenplay/:id route in this web app.
         void (async () => {
           const screenplayId = await createScreenplayFromTemplate({
             title: "Untitled Screenplay",
@@ -277,8 +312,7 @@ const Index: React.FC = () => {
             formatType: "feature_film",
           });
           if (screenplayId) {
-            setCurrentScreenplayId(screenplayId);
-            setActiveView("screenplay");
+            window.location.href = `/screenplay/${encodeURIComponent(screenplayId)}`;
           }
         })();
       }
@@ -352,8 +386,7 @@ const Index: React.FC = () => {
           formatType: "feature_film",
         });
         if (screenplayId) {
-          setCurrentScreenplayId(screenplayId);
-          setActiveView("screenplay");
+          window.location.href = `/screenplay/${encodeURIComponent(screenplayId)}`;
         }
       }
     } catch (err: any) {
@@ -370,9 +403,6 @@ const Index: React.FC = () => {
     return <StoryTemplate />;
   }
 
-  if (activeView === "screenplay") {
-    return <ScreenplayTemplate />;
-  }
 
   return (
     <div className="page">
@@ -419,7 +449,7 @@ const Index: React.FC = () => {
             }}
           >
             <div style={{ fontSize: 13, fontWeight: 500, color: "#111" }}>
-              Go to the story / Open story
+              Go to story or screenplay
             </div>
             <div
               style={{
@@ -431,7 +461,7 @@ const Index: React.FC = () => {
             >
               <input
                 type="text"
-                placeholder="Paste story ID or story URL here"
+                placeholder="Paste story or screenplay ID / URL here"
                 value={storyIdInput}
                 onChange={(e) => setStoryIdInput(e.target.value)}
                 style={{
@@ -462,11 +492,13 @@ const Index: React.FC = () => {
             <div style={{ fontSize: 11, color: "#666" }}>
               Accepted formats:
               <br />
-               b7 Story ID: <code>afc0ca9b-5a67-46a0-b01c-9da9d27ae642</code>
+              \u0000b7 Story or screenplay ID: <code>055b3e41-4f7d-490f-9b29-128b908c3552</code>
               <br />
-               b7 Crowdly URL: <code>http://localhost:8080/story/&lt;id&gt;</code>
+              \u0000b7 Crowdly URL: <code>http://localhost:8080/story/&lt;id&gt;</code> or
+              <code> http://localhost:8080/screenplay/&lt;id&gt;</code>
               <br />
-               b7 Web app URL: <code>http://localhost:5173/story/&lt;id&gt;</code>
+              \u0000b7 Web app URL: <code>http://localhost:5173/story/&lt;id&gt;</code> or
+              <code> http://localhost:5173/screenplay/&lt;id&gt;</code>
             </div>
           </div>
         </div>

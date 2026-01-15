@@ -225,6 +225,12 @@ const App: React.FC = () => {
   const [undoEntry, setUndoEntry] = useState<UndoEntry | null>(null);
   const undoTimerRef = useRef<number | null>(null);
 
+  const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
+  const [resetConfirmation, setResetConfirmation] = useState("");
+
+  const DANGER_CONFIRM_TEXT =
+    "Yes, I want to reset the story. I'm aware that I will lose ALL content from this story.";
+
   const pendingActivateIdRef = useRef<string | null>(null);
 
   const longPressTimerRef = useRef<number | null>(null);
@@ -847,6 +853,59 @@ const App: React.FC = () => {
     [authUser, snapshotBlocksFromDom, storyTitleId],
   );
 
+  const resetStoryOnBackendToSample = useCallback(
+    async (): Promise<boolean> => {
+      if (!authUser?.id || !storyTitleId) return false;
+
+      const payload = {
+        userId: authUser.id,
+        title: "Title of the story",
+        chapters: [
+          {
+            chapterTitle: "Chapter 1 - Journey into wilderness",
+            paragraphs: [
+              "Some text with some text",
+              "Another paragraph with some more text",
+            ],
+          },
+        ],
+      };
+
+      try {
+        const res = await fetch(
+          `${API_BASE}/story-titles/${encodeURIComponent(storyTitleId)}/sync-desktop`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          },
+        );
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          console.error("[web-editor] Failed to reset story on backend", {
+            status: res.status,
+            body,
+          });
+          if (typeof window !== "undefined") {
+            window.alert(
+              (body && (body.error || body.details)) ||
+                "Failed to reset story on the Crowdly backend.",
+            );
+          }
+          return false;
+        }
+        return true;
+      } catch (err) {
+        console.error("[web-editor] Error while resetting story on backend", err);
+        if (typeof window !== "undefined") {
+          window.alert("Unexpected error while resetting story on the backend.");
+        }
+        return false;
+      }
+    },
+    [authUser?.id, storyTitleId],
+  );
+
   // Whenever the blocks change for the first time after mount and we
   // don't yet have a storyTitleId, create a real story in the Crowdly
   // database so the footer can show a true story ID. When editing an
@@ -979,8 +1038,11 @@ const App: React.FC = () => {
         <button
           type="button"
           className="topbar-btn"
-          onClick={() => resetToSample()}
-          title="Restore the sample story title/chapter/paragraph"
+          onClick={() => {
+            setIsResetDialogOpen(true);
+            setResetConfirmation("");
+          }}
+          title="Reset this story back to the original template (dangerous)"
         >
           Reset to sample
         </button>
@@ -1203,6 +1265,161 @@ const App: React.FC = () => {
           </button>
         </div>
       ) : null}
+
+      {isResetDialogOpen && (
+        <div
+          onClick={() => {
+            setIsResetDialogOpen(false);
+            setResetConfirmation("");
+          }}
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.55)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1200,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: "#fff",
+              borderRadius: 12,
+              padding: "24px 28px",
+              maxWidth: 520,
+              width: "100%",
+              boxSizing: "border-box",
+              boxShadow: "0 14px 40px rgba(0,0,0,0.35)",
+              color: "#111",
+            }}
+          >
+            <h2
+              style={{
+                margin: 0,
+                marginBottom: 12,
+                fontSize: 18,
+                fontWeight: 600,
+                color: "#b00020",
+              }}
+            >
+              Danger Zone: reset this story?
+            </h2>
+            <p
+              style={{
+                margin: 0,
+                marginBottom: 12,
+                fontSize: 14,
+                lineHeight: 1.5,
+              }}
+            >
+              This will delete your story and reset with the template content. This
+              operation is <strong>IRREVERSIBLE</strong>!
+            </p>
+            <p
+              style={{
+                margin: 0,
+                marginBottom: 8,
+                fontSize: 13,
+                lineHeight: 1.5,
+              }}
+            >
+              To confirm, please type the following sentence exactly (including
+              punctuation and capitalization):
+            </p>
+            <p
+              style={{
+                margin: 0,
+                marginBottom: 8,
+                fontSize: 12,
+                fontFamily: "monospace",
+                backgroundColor: "#f5f5f5",
+                padding: "6px 8px",
+                borderRadius: 6,
+              }}
+            >
+              {DANGER_CONFIRM_TEXT}
+            </p>
+            <input
+              type="text"
+              value={resetConfirmation}
+              onChange={(e) => setResetConfirmation(e.target.value)}
+              placeholder={DANGER_CONFIRM_TEXT}
+              style={{
+                width: "100%",
+                marginBottom: 12,
+                padding: "8px 10px",
+                borderRadius: 8,
+                border: "1px solid rgba(0,0,0,0.3)",
+                fontSize: 13,
+                boxSizing: "border-box",
+              }}
+            />
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                gap: 8,
+                marginTop: 4,
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setIsResetDialogOpen(false);
+                  setResetConfirmation("");
+                }}
+                style={{
+                  padding: "6px 12px",
+                  borderRadius: 999,
+                  border: "1px solid rgba(0,0,0,0.25)",
+                  backgroundColor: "#f5f5f5",
+                  fontSize: 13,
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={resetConfirmation !== DANGER_CONFIRM_TEXT}
+                onClick={async () => {
+                  if (resetConfirmation !== DANGER_CONFIRM_TEXT) return;
+
+                  // If this story already exists in the Crowdly backend,
+                  // reset the persisted content there as well so 8080 and
+                  // 5173 stay in sync.
+                  let ok = true;
+                  if (storyTitleId && authUser?.id) {
+                    ok = await resetStoryOnBackendToSample();
+                  }
+                  if (!ok) return;
+
+                  // Perform the existing local reset behavior.
+                  resetToSample();
+                  setIsResetDialogOpen(false);
+                  setResetConfirmation("");
+                }}
+                style={{
+                  padding: "6px 16px",
+                  borderRadius: 999,
+                  border: "1px solid #b00020",
+                  backgroundColor:
+                    resetConfirmation === DANGER_CONFIRM_TEXT ? "#b00020" : "#e3b6bf",
+                  color: "#fff",
+                  fontSize: 13,
+                  cursor:
+                    resetConfirmation === DANGER_CONFIRM_TEXT ? "pointer" : "default",
+                  opacity: resetConfirmation === DANGER_CONFIRM_TEXT ? 1 : 0.8,
+                }}
+              >
+                Reset the story
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
