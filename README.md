@@ -1,6 +1,6 @@
 # Welcome to Crowdly
 
-Crowd created entertainment entertainemnt platform - where YOUR eintertainment
+Crowd created entertainment entertainment platform - where YOUR entertainment
 (l)i(ve)s
 
 Crowdly – Multi creator / crowd created entertainment entertainment platform –
