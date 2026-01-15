@@ -24,9 +24,14 @@ type UndoEntry = {
 const STORAGE_KEY = "web-editor:blocks:v1";
 
 // In this standalone editor, talk directly to the Crowdly backend.
-// Prefer VITE_API_BASE_URL if provided; otherwise fall back to the
-// default local backend port used by the main app.
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000";
+// Prefer VITE_API_BASE_URL if provided; otherwise fall back to using
+// the current hostname on port 4000 so it works from both desktop and
+// mobile devices on the same LAN.
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL ??
+  (typeof window !== "undefined"
+    ? `${window.location.protocol}//${window.location.hostname}:4000`
+    : "http://localhost:4000");
 
 const TITLE_POOL = 3;
 const CHAPTER_POOL = 10;

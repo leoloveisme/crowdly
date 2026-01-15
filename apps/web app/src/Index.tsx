@@ -47,9 +47,14 @@ function pickRandom(list: string[], fallback: string): string {
 }
 
 // In this standalone editor, talk directly to the Crowdly backend.
-// Prefer VITE_API_BASE_URL if provided; otherwise fall back to the
-// default local backend port used by the main app.
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000";
+// Prefer VITE_API_BASE_URL if provided; otherwise fall back to using
+// the current hostname on port 4000 so it works from both desktop and
+// mobile devices on the same LAN.
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL ??
+  (typeof window !== "undefined"
+    ? `${window.location.protocol}//${window.location.hostname}:4000`
+    : "http://localhost:4000");
 
 async function createScreenplayFromTemplate(params: { title: string; userId: string; formatType?: string | null }) {
   const { title, userId, formatType } = params;

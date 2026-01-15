@@ -6104,7 +6104,8 @@ app.post('/stories/:storyTitleId/clone', async (req, res) => {
 });
 
 const port = Number(process.env.PORT) || 4000;
+const host = process.env.HOST || '0.0.0.0';
 
-app.listen(port, () => {
-  console.log(`Crowdly backend listening on http://localhost:${port}`);
+app.listen(port, host, () => {
+  console.log(`Crowdly backend listening on http://${host === '0.0.0.0' ? 'localhost' : host}:${port}`);
 });

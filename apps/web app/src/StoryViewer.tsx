@@ -2,7 +2,11 @@ import React, { useCallback, useEffect, useState } from "react";
 import "./app.css";
 import Header, { InterfaceLanguage } from "./Header";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4000";
+const API_BASE =
+  import.meta.env.VITE_API_BASE_URL ??
+  (typeof window !== "undefined"
+    ? `${window.location.protocol}//${window.location.hostname}:4000`
+    : "http://localhost:4000");
 
 type ChapterRow = {
   chapter_id: string;
