@@ -27,5 +27,5 @@ app which easily could be ported to Windows, MacOS and Linux. Apps for major
 OSes: Android and iOS are in planning.  // Currently we have MVP desktop app
 for Linux. 
 
-#crowdly #entertainment #crowd_created_eintertainment #crowdcreatedentertainment #entertainment_platform #entertainmentplatform
+#Crowdly #entertainment #crowd_created_eintertainment #crowdcreatedentertainment #entertainment_platform #entertainmentplatform
 
