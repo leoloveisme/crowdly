@@ -9,6 +9,7 @@ export default defineConfig(({ mode }) => ({
     // Listen on all IPv4 interfaces so mobile devices on the LAN can reach Vite
     host: "0.0.0.0",
     port: 8080,
+    allowedHosts: ['crowdly.platform'],
     watch: {
       // Avoid watching large legacy build artifacts to stay under OS file-watch limits
       // and noisy virtual environments (Python, etc.). This helps prevent

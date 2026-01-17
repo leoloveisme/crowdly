@@ -117,12 +117,14 @@ const Header: React.FC<HeaderProps> = ({
           <tbody>
             <tr>
               <td className="crowdly-header-cell" align="left">
+                <a href="http://crowdly.platform" target="_blank" style={{ textDecoration: "none" }}>
                 <img
                   src="/images/crowdly-app.png"
                   title="Crowdly logo"
                   alt="Crowdly logo"
                   className="crowdly-header-logo"
                 />
+                </a>
               </td>
               <td className="crowdly-header-cell" align="left">
                 <strong>
