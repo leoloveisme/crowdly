@@ -63,7 +63,7 @@ const CreativeSpacesModule: React.FC<CreativeSpacesProps> = ({
     return (
       <div className="border rounded-lg bg-white p-4 text-sm text-gray-500 flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <span className="font-medium">Creative space(s)</span>
+          <span className="font-medium">Space(s)</span>
           {onCreate && (
             <button
               type="button"
@@ -91,7 +91,7 @@ const CreativeSpacesModule: React.FC<CreativeSpacesProps> = ({
   return (
     <div className="border rounded-lg bg-white p-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold">Creative space(s)</h3>
+        <h3 className="text-sm font-semibold">Space(s)</h3>
         {onCreate && (
           <button
             type="button"

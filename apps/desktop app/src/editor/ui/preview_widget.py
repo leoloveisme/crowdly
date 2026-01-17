@@ -96,29 +96,11 @@ class PreviewWidget(QWidget):
         self._btn_strike.clicked.connect(self._toggle_strike)
         toolbar_layout.addWidget(self._btn_strike)
 
-        # Alignment: left / centre / right
-        self._btn_align_left = QToolButton(toolbar)
-        self._btn_align_left.setText("L")
-        self._btn_align_left.setToolTip("Align left")
-        self._btn_align_left.clicked.connect(self._align_left)
-        toolbar_layout.addWidget(self._btn_align_left)
-
-        self._btn_align_center = QToolButton(toolbar)
-        self._btn_align_center.setText("C")
-        self._btn_align_center.setToolTip("Align center")
-        self._btn_align_center.clicked.connect(self._align_center)
-        toolbar_layout.addWidget(self._btn_align_center)
-
-        self._btn_align_right = QToolButton(toolbar)
-        self._btn_align_right.setText("R")
-        self._btn_align_right.setToolTip("Align right")
-        self._btn_align_right.clicked.connect(self._align_right)
-        toolbar_layout.addWidget(self._btn_align_right)
-
         # Paragraph type selector (story/chapter structure).
         self._block_style = QComboBox(toolbar)
         self._block_style.addItems(
             [
+                "Text formatting",
                 "Story title",
                 "Chapter title",
                 "Paragraph",
@@ -131,7 +113,7 @@ class PreviewWidget(QWidget):
 
         # Font family drop-down (limited set for now).
         self._font_family = QComboBox(toolbar)
-        self._font_family.addItems(["Default", "Sans", "Serif", "Monospace"])
+        self._font_family.addItems(["Font", "Sans", "Serif", "Monospace"])
         self._font_family.currentIndexChanged.connect(self._apply_font_family)
         toolbar_layout.addWidget(self._font_family)
 
@@ -145,7 +127,7 @@ class PreviewWidget(QWidget):
 
         # Font color drop-down (basic palette).
         self._font_color = QComboBox(toolbar)
-        self._font_color.addItem("Default", None)
+        self._font_color.addItem("Color", None)
         self._font_color.addItem("Black", QColor("black"))
         self._font_color.addItem("Red", QColor("red"))
         self._font_color.addItem("Green", QColor("green"))
@@ -161,7 +143,7 @@ class PreviewWidget(QWidget):
         # Word/text wrap color drop-down (background highlight), using the
         # same palette as font color.
         self._wrap_color = QComboBox(toolbar)
-        self._wrap_color.addItem("Wrap: Default", None)
+        self._wrap_color.addItem("Text Wrap Color", None)
         self._wrap_color.addItem("Wrap: Black", QColor("black"))
         self._wrap_color.addItem("Wrap: Red", QColor("red"))
         self._wrap_color.addItem("Wrap: Green", QColor("green"))

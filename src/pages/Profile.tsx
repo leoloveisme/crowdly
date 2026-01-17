@@ -31,6 +31,7 @@ import {
   Settings,
   Edit, 
   X, 
+  Cloud,
   Check,
   Upload,
   PencilLine,
@@ -1069,8 +1070,9 @@ const Profile = () => {
 
         {/* Creative space(s) */}
         <div className="mb-8">
-          <h2 className="text-xl font-bold mb-2">
-            Creative space(s)
+          <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
+            <Cloud className="h-5 w-5 text-purple-600" />
+            Space(s)
           </h2>
           <CreativeSpacesModule
             spaces={creativeSpaces}

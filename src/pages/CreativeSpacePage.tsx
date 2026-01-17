@@ -247,115 +247,141 @@ const CreativeSpacePage: React.FC = () => {
     : [];
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-slate-50">
       <CrowdlyHeader />
-      <div className="container mx-auto px-4 pt-8 pb-16 flex-grow">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-2xl font-bold mb-1">{space.name}</h1>
-            <p className="text-xs text-gray-500">
-              space_id: {space.id} · visibility: {space.visibility || "private"} ·
-              {" "}
-              {space.published ? "published" : "unpublished"}
-            </p>
-            {space.path && (
-              <p className="text-xs text-gray-400 mt-1 truncate">local path: {space.path}</p>
-            )}
+      <div className="container mx-auto px-4 pt-8 pb-16 flex-grow max-w-5xl space-y-6">
+        <section className="bg-white/90 backdrop-blur border border-slate-200 rounded-2xl p-6 shadow-sm">
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+            <div className="min-w-0">
+              <h1 className="text-3xl font-semibold text-slate-900 break-words">{space.name}</h1>
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                <span className="font-medium">space_id:</span>
+                <span className="break-all">{space.id}</span>
+                <span className="text-slate-300">•</span>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[11px] ${
+                    space.visibility === "public"
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "bg-amber-50 text-amber-700"
+                  }`}
+                >
+                  {space.visibility === "public" ? "Public" : "Private"}
+                </span>
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[11px] ${
+                    space.published ? "bg-sky-50 text-sky-700" : "bg-slate-100 text-slate-600"
+                  }`}
+                >
+                  {space.published ? "Published" : "Unpublished"}
+                </span>
+              </div>
+              {space.path && (
+                <p className="mt-2 text-xs text-slate-400 truncate">local path: {space.path}</p>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {space && (
+                <Link
+                  to={`/new-story-template?spaceId=${space.id}`}
+                  className="text-xs text-blue-700 hover:underline"
+                >
+                  New story in this Space
+                </Link>
+              )}
+              <Button size="sm" onClick={handleCreateFolder} className="rounded-full px-3">
+                New folder
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Link to="/profile" className="text-xs text-purple-700 hover:underline">
-              Back to profile
-            </Link>
-            {space && (
-              <Link
-                to={`/new-story-template?spaceId=${space.id}`}
-                className="text-xs text-blue-700 hover:underline"
-              >
-                New story in this Space
-              </Link>
-            )}
-            <Button size="sm" onClick={handleCreateFolder}>
-              New folder
-            </Button>
-          </div>
-        </div>
+        </section>
 
-        <div className="mb-4 text-xs text-gray-600 flex items-center gap-1 flex-wrap">
-          <span className="font-semibold">Path:</span>
-          <button
-            type="button"
-            className={`hover:underline ${currentPath === "" ? "font-semibold" : ""}`}
-            onClick={() => handleBreadcrumbClick("")}
-          >
-            /{space.name}
-          </button>
-          {breadcrumbs.map((crumb, idx) => (
-            <React.Fragment key={crumb.path}>
-              <span>/</span>
-              <button
-                type="button"
-                className={`hover:underline ${idx === breadcrumbs.length - 1 ? "font-semibold" : ""}`}
-                onClick={() => handleBreadcrumbClick(crumb.path)}
-              >
-                {crumb.name}
-              </button>
-            </React.Fragment>
-          ))}
-        </div>
-
-        <div className="border rounded-lg bg-white">
-          <div className="flex items-center justify-between px-3 py-2 border-b text-xs font-semibold text-gray-600">
-            <div className="flex-1">Name</div>
-            <div className="w-24 text-right">Type</div>
-            <div className="w-40 text-right">Updated</div>
-            <div className="w-32 text-right">Actions</div>
+        <section className="bg-white border border-slate-200 rounded-2xl p-4 md:p-6 shadow-sm">
+          <div className="mb-4 text-xs text-slate-600 flex items-center gap-1 flex-wrap">
+            <span className="font-semibold">Path:</span>
+            <button
+              type="button"
+              className={`hover:underline ${currentPath === "" ? "font-semibold text-slate-900" : ""}`}
+              onClick={() => handleBreadcrumbClick("")}
+            >
+              /{space.name}
+            </button>
+            {breadcrumbs.map((crumb, idx) => (
+              <React.Fragment key={crumb.path}>
+                <span className="text-slate-300">/</span>
+                <button
+                  type="button"
+                  className={`hover:underline ${idx === breadcrumbs.length - 1 ? "font-semibold text-slate-900" : ""}`}
+                  onClick={() => handleBreadcrumbClick(crumb.path)}
+                >
+                  {crumb.name}
+                </button>
+              </React.Fragment>
+            ))}
           </div>
-          {itemsLoading ? (
-            <div className="px-3 py-4 text-sm text-gray-500">Loading items...</div>
-          ) : items.length === 0 ? (
-            <div className="px-3 py-4 text-sm text-gray-500">No items in this folder yet.</div>
-          ) : (
-            <ul className="divide-y text-sm">
-              {items.map((item) => (
-                <li key={item.id} className="flex items-center px-3 py-2 gap-2">
-                  <div className="flex-1 truncate">
-                    {item.kind === "folder" ? (
+
+          <div className="border border-slate-200 rounded-xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-2 bg-slate-50 text-xs font-semibold text-slate-600">
+              <div className="flex-1">Name</div>
+              <div className="w-24 text-right">Type</div>
+              <div className="w-40 text-right">Updated</div>
+              <div className="w-32 text-right">Actions</div>
+            </div>
+            {itemsLoading ? (
+              <div className="px-4 py-4 text-sm text-slate-500">Loading items...</div>
+            ) : items.length === 0 ? (
+              <div className="px-4 py-6 text-sm text-slate-500">
+                No items in this folder yet.
+              </div>
+            ) : (
+              <ul className="divide-y text-sm">
+                {items.map((item) => (
+                  <li
+                    key={item.id}
+                    className="flex items-center px-4 py-3 gap-2 hover:bg-slate-50 transition"
+                  >
+                    <div className="flex-1 min-w-0">
+                      {item.kind === "folder" ? (
+                        <button
+                          type="button"
+                          className="text-purple-700 hover:underline truncate font-medium"
+                          onClick={() => handleEnterFolder(item)}
+                        >
+                          {item.name}
+                        </button>
+                      ) : (
+                        <span className="truncate">{item.name}</span>
+                      )}
+                    </div>
+                    <div className="w-24 text-right text-[11px] text-slate-500">
+                      <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5">
+                        {item.kind}
+                      </span>
+                    </div>
+                    <div className="w-40 text-right text-xs text-slate-500">
+                      {item.updated_at ? new Date(item.updated_at).toLocaleString() : ""}
+                    </div>
+                    <div className="w-32 text-right flex justify-end gap-3 text-xs">
                       <button
                         type="button"
-                        className="text-purple-700 hover:underline truncate"
-                        onClick={() => handleEnterFolder(item)}
+                        className="text-slate-500 hover:text-slate-700"
+                        onClick={() => handleRenameItem(item)}
                       >
-                        {item.name}
+                        Rename
                       </button>
-                    ) : (
-                      <span className="truncate">{item.name}</span>
-                    )}
-                  </div>
-                  <div className="w-24 text-right text-xs text-gray-500">{item.kind}</div>
-                  <div className="w-40 text-right text-xs text-gray-500">
-                    {item.updated_at ? new Date(item.updated_at).toLocaleString() : ""}
-                  </div>
-                  <div className="w-32 text-right flex justify-end gap-2 text-xs">
-                    <button
-                      type="button"
-                      className="text-gray-500 hover:text-gray-700"
-                      onClick={() => handleRenameItem(item)}
-                    >
-                      Rename
-                    </button>
-                    <button
-                      type="button"
-                      className="text-red-600 hover:text-red-800"
-                      onClick={() => handleDeleteItem(item)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+                      <button
+                        type="button"
+                        className="text-red-600 hover:text-red-800"
+                        onClick={() => handleDeleteItem(item)}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </section>
       </div>
       <CrowdlyFooter />
     </div>

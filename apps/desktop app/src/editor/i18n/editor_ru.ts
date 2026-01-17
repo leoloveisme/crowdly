@@ -11,7 +11,10 @@
         <source>Previous</source>
         <translation>Предыдущий</translation>
     </message>
-
+    <message>
+        <source>Next</source>
+        <translation>Следующий</translation>
+    </message>
     <message>
         <source>Find:</source>
         <translation>Найти</translation>
@@ -20,10 +23,13 @@
         <source>Replace:</source>
         <translation>Заменить</translation>
     </message>
-
     <message>
-        <source>Next</source>
-        <translation>Следующий</translation>
+        <source>Sync current Space now</source>
+        <translation>Синхронизировать актуальное креативное пространство</translation>
+    </message>
+    <message>
+        <source>Pull updates for current Space</source>
+        <translation>Скачать обновления для актуального креативного пространства</translation>
     </message>
     <message>
         <source>Close</source>

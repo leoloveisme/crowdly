@@ -3,6 +3,8 @@ import ReactDOM from "react-dom/client";
 import Index from "./Index";
 import StoryTemplate from "./story template";
 import ScreenplayEditor from "./screenplay editor";
+import CreativeSpacePage from "./CreativeSpacePage";
+import "../index.css";
 
 const AppRoot: React.FC = () => {
   const path = window.location.pathname;
@@ -18,6 +20,12 @@ const AppRoot: React.FC = () => {
     // Standalone screenplay editor bound to the Crowdly backend by
     // screenplay_id so that 5173 and 8080 show the same content.
     return <ScreenplayEditor />;
+  }
+
+  if (/^\/creative_space\//.test(path)) {
+    // Single-creative-space view mirroring the platform's
+    // /creative_space/:id route, backed by the same backend data.
+    return <CreativeSpacePage />;
   }
 
   return <Index />;
