@@ -60,4 +60,5 @@ If a different test runner is introduced later, prefer mirroring its usage in `R
 ## How future Warp agents should work in this repo
 - Treat `editor.app.main()` as the integration point for new functionality and keep it thin by delegating to well-named helper modules.
 - When adding new modules, keep them under `src/editor/` and ensure imports remain relative (e.g. `from editor import ...` or `from .module import ...`).
+- In any multi-pane editor UI (Markdown editor, WYSIWYG preview, search panes, etc.), treat the pane whose text cursor currently has focus as the *active* pane and base save/export/format behaviour on that active pane.
 - If you introduce tests, colocate high-level integration tests under `tests/` and use `pytest` conventions so that `pytest` from the repo root “just works`.

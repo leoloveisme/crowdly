@@ -14,6 +14,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict
 from datetime import datetime
+import hashlib
 
 from PySide6.QtCore import Qt, QPoint, Signal, QTimer, QEvent
 from PySide6.QtGui import QAction
@@ -181,6 +182,10 @@ class IncludeContainerWidget(QWidget):
         self._loading_from_master = False
         # Track drag gestures that start from the header/toolbar area.
         self._drag_start_pos: QPoint | None = None
+        # Content hash from when this container was last loaded/synced from the master.
+        self._master_content_hash: str | None = None
+        # Filesystem mtime from when we last read the underlying file.
+        self._last_file_mtime: float | None = None
 
         # Debounced saver for editable containers so changes are written back
         # into the underlying file without excessive disk writes.
@@ -339,6 +344,14 @@ class IncludeContainerWidget(QWidget):
             # back to the original file.
             self._content.setPlainText(content or "")
             self._update_height()
+            
+            # Remember the content hash for change detection.
+            # We intentionally do NOT set _last_file_mtime here so that, when a
+            # master document is opened, we always compare the current on-disk
+            # file content to what was stored in the master. This allows us to
+            # detect and merge any external changes immediately on open.
+            self._master_content_hash = self._compute_content_hash(content or "")
+            self._last_file_mtime = None
         finally:
             self._loading_from_master = False
 
@@ -361,9 +374,114 @@ class IncludeContainerWidget(QWidget):
             self._title_edit.setText(path.name)
 
         self._update_height()
+        
+        # Update tracking state for change detection.
+        self._master_content_hash = self._compute_content_hash(text)
+        try:
+            self._last_file_mtime = path.stat().st_mtime
+        except Exception:
+            self._last_file_mtime = None
+        
         self.contentChanged.emit()
 
     # Internal helpers ---------------------------------------------------
+
+    def _compute_content_hash(self, content: str) -> str:
+        """Return a stable hash of *content* for change detection."""
+        try:
+            return hashlib.sha256(content.encode("utf-8")).hexdigest()
+        except Exception:
+            return ""
+
+    def check_and_merge_file_changes(self) -> bool:
+        """Check if the underlying file has changed and merge updates.
+        
+        Returns True if changes were detected and merged, False otherwise.
+        For editable containers, this performs a simple three-way merge:
+        - Base: content stored in master document
+        - Theirs: current file on disk
+        - Ours: current container content (potentially edited)
+        
+        For read-only containers, the file content always wins.
+        """
+        if self._file_path is None or not self._file_path.exists():
+            return False
+        
+        # Check if file has been modified since we last read it.
+        try:
+            current_mtime = self._file_path.stat().st_mtime
+        except Exception:
+            return False
+        
+        if self._last_file_mtime is not None and current_mtime <= self._last_file_mtime:
+            # File hasn't changed on disk.
+            return False
+        
+        # Read current file content.
+        try:
+            file_content = storage.read_text(self._file_path)
+        except Exception:
+            return False
+        
+        file_hash = self._compute_content_hash(file_content)
+        
+        # If file content matches what we already have in master, no update needed.
+        if file_hash == self._master_content_hash:
+            # Update mtime but content is the same.
+            self._last_file_mtime = current_mtime
+            return False
+        
+        # File has changed. For read-only containers, always take file content.
+        if not self._editable:
+            self._content.setPlainText(file_content)
+            self._master_content_hash = file_hash
+            self._last_file_mtime = current_mtime
+            self._update_height()
+            return True
+        
+        # For editable containers, perform a simple merge.
+        current_container = self._content.toPlainText()
+        container_hash = self._compute_content_hash(current_container)
+        
+        # If container hasn't been edited (matches master), take file content.
+        if container_hash == self._master_content_hash:
+            self._content.setPlainText(file_content)
+            self._master_content_hash = file_hash
+            self._last_file_mtime = current_mtime
+            self._update_height()
+            return True
+        
+        # Both container and file have changed - perform simple line-based merge.
+        base_content = self._content.toPlainText()  # What master had
+        merged = self._simple_merge(
+            base=base_content,
+            theirs=file_content,
+            ours=current_container,
+        )
+        
+        self._content.setPlainText(merged)
+        self._master_content_hash = self._compute_content_hash(merged)
+        self._last_file_mtime = current_mtime
+        self._update_height()
+        return True
+    
+    def _simple_merge(self, base: str, theirs: str, ours: str) -> str:
+        """Simple line-based merge similar to automerge/CRDT concepts.
+        
+        This is a basic implementation that appends both changes when
+        they diverge. A more sophisticated implementation could use
+        difflib.SequenceMatcher for better conflict resolution.
+        """
+        # For now, use a simple strategy: if base == ours, take theirs.
+        # If base == theirs, take ours. Otherwise append both.
+        if base == ours:
+            return theirs
+        if base == theirs:
+            return ours
+        
+        # Both changed - simple append strategy.
+        # In a real CRDT we'd use operational transformation.
+        return f"{ours}\n\n--- Changes from file on disk ---\n\n{theirs}"
 
     def _toggle_collapsed(self) -> None:
         self._collapsed = not self._collapsed
@@ -581,6 +699,8 @@ class MasterDocumentWindow(QMainWindow):
         if master_path is not None:
             try:
                 self._load_from_master_file(master_path)
+                # After loading, check if any referenced files have changed and merge.
+                self._check_and_merge_all_file_changes()
             except Exception:
                 # Best-effort only; failures here should not prevent the
                 # window from opening.
@@ -860,6 +980,33 @@ class MasterDocumentWindow(QMainWindow):
             pass
 
         self._dirty = False
+    
+    def _check_and_merge_all_file_changes(self) -> None:
+        """Check all containers for file changes and merge updates.
+        
+        This is called when opening a .master file to ensure the master
+        document reflects the latest state of all referenced files.
+        """
+        changes_detected = False
+        for row in range(self._include_list.count()):
+            item = self._include_list.item(row)
+            if item is None:
+                continue
+            widget = self._include_list.itemWidget(item)
+            if not isinstance(widget, IncludeContainerWidget):
+                continue
+            
+            try:
+                if widget.check_and_merge_file_changes():
+                    changes_detected = True
+            except Exception:
+                # Never let individual container failures affect others.
+                pass
+        
+        # If any changes were merged, mark the master document as dirty
+        # so it will be saved with the updated content.
+        if changes_detected:
+            self._mark_dirty()
 
     # Context menu --------------------------------------------------------
 

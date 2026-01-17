@@ -1538,8 +1538,10 @@ class MainWindow(QMainWindow):
         The request always contains both a Markdown representation and an HTML
         representation so that exporters can choose the most appropriate
         starting point. For `.story` and `.screenplay` documents we derive
-        HTML from their respective DSLs; for plain Markdown we reuse the
-        existing Markdown → HTML pipeline.
+        HTML from their respective DSLs; for plain Markdown we prefer the
+        WYSIWYG pane's rich-text HTML when it is the active pane so that
+        inline formatting such as colours and text wrapping are preserved
+        in PDF/EPUB exports.
         """
 
         raw_content = getattr(self._document, "content", "") or ""
@@ -1553,7 +1555,29 @@ class MainWindow(QMainWindow):
             html = screenplay_markup.dsl_to_html(raw_content)
         else:
             markdown = raw_content
-            html = render_html_from_markdown(markdown)
+
+            # Base HTML rendered from the Markdown/DSL content.
+            html_from_markdown = render_html_from_markdown(markdown)
+            html = html_from_markdown
+
+            # When the WYSIWYG pane is the active editing surface, prefer its
+            # high-fidelity HTML representation so that inline formatting such
+            # as colour, background highlights ("wrap"), and strikeout are
+            # preserved in exports.
+            try:
+                active = getattr(self, "_active_pane", "md") or "md"
+                last_from_preview = bool(getattr(self, "_last_change_from_preview", False))
+                if active == "wysiwyg" or last_from_preview:
+                    try:
+                        wysiwyg_html = self.preview.get_html()
+                    except Exception:
+                        wysiwyg_html = ""
+                    if (wysiwyg_html or "").strip():
+                        html = wysiwyg_html
+            except Exception:
+                # If anything goes wrong, fall back to the Markdown-derived HTML
+                # so that export continues to work.
+                html = html_from_markdown
 
         title = self._guess_document_title()
 

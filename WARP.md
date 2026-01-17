@@ -179,3 +179,4 @@ For changes within `desktop client/`, follow the more detailed guidance in `desk
 - For desktop client work:
   - Keep `editor.app.main()` thin and push UI behavior into `editor.ui.*` modules and persistence/logic into `editor.document`, `editor.storage`, and `editor.settings`.
   - Respect the existing autosave and project space abstractions when adding new file or library features.
+  - In multi-pane editor layouts (Markdown vs WYSIWYG, search, etc.), treat the pane whose text cursor currently has focus as the *active* pane; save/export/format decisions should be based on this active pane.
