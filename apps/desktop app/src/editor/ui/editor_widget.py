@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from PySide6.QtCore import Signal, Qt
 from PySide6.QtWidgets import QPlainTextEdit
+from PySide6.QtGui import QTextCursor
 
 
 class EditorWidget(QPlainTextEdit):
@@ -51,6 +52,71 @@ class EditorWidget(QPlainTextEdit):
         """Return the current editor content."""
 
         return self.toPlainText()
+
+    def get_cursor_state(self) -> dict:
+        """Return the current caret and scroll position.
+
+        The state dictionary is suitable for passing to ``restore_cursor_state``
+        to return to the same logical position later.
+        """
+
+        cursor = self.textCursor()
+        try:
+            vscroll = self.verticalScrollBar().value()
+        except Exception:
+            vscroll = 0
+
+        return {
+            "position": int(cursor.position()),
+            "anchor": int(cursor.anchor()),
+            "vscroll": int(vscroll),
+        }
+
+    def restore_cursor_state(self, state: dict | None) -> None:
+        """Restore caret and scroll position from *state*.
+
+        The method clamps positions to the current document length so it is
+        safe to use after modest content changes.
+        """
+
+        if not state:
+            return
+
+        try:
+            doc = self.document()
+        except Exception:
+            doc = None
+        if doc is None:
+            return
+
+        try:
+            max_pos = max(0, int(doc.characterCount()) - 1)
+        except Exception:
+            max_pos = 0
+
+        pos = int(state.get("position", 0))
+        anc = int(state.get("anchor", pos))
+        pos = max(0, min(pos, max_pos))
+        anc = max(0, min(anc, max_pos))
+
+        cursor = self.textCursor()
+        cursor.setPosition(anc)
+        if anc != pos:
+            cursor.setPosition(pos, QTextCursor.MoveMode.KeepAnchor)
+        else:
+            cursor.setPosition(pos, QTextCursor.MoveMode.MoveAnchor)
+
+        self.setTextCursor(cursor)
+        try:
+            self.ensureCursorVisible()
+        except Exception:
+            pass
+
+        try:
+            vscroll = int(state.get("vscroll", 0))
+            self.verticalScrollBar().setValue(vscroll)
+        except Exception:
+            pass
 
     # Internal slots ------------------------------------------------------
 

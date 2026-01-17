@@ -242,6 +242,68 @@ class PreviewWidget(QWidget):
 
         return self._editor.toHtml()
 
+    def get_cursor_state(self) -> dict:
+        """Return the current caret and scroll position inside the preview.
+
+        The result can be passed to :meth:`restore_cursor_state` to restore the
+        user's visual position after programmatic content updates.
+        """
+
+        cursor = self._editor.textCursor()
+        try:
+            vscroll = self._editor.verticalScrollBar().value()
+        except Exception:
+            vscroll = 0
+
+        return {
+            "position": int(cursor.position()),
+            "anchor": int(cursor.anchor()),
+            "vscroll": int(vscroll),
+        }
+
+    def restore_cursor_state(self, state: dict | None) -> None:
+        """Restore caret and scroll position previously captured.
+
+        Positions are clamped to the current document length so incremental
+        content changes remain safe.
+        """
+
+        if not state:
+            return
+
+        doc = self._editor.document()
+        if doc is None:
+            return
+
+        try:
+            max_pos = max(0, int(doc.characterCount()) - 1)
+        except Exception:
+            max_pos = 0
+
+        pos = int(state.get("position", 0))
+        anc = int(state.get("anchor", pos))
+        pos = max(0, min(pos, max_pos))
+        anc = max(0, min(anc, max_pos))
+
+        cursor = self._editor.textCursor()
+        cursor.setPosition(anc)
+        if anc != pos:
+            cursor.setPosition(pos, QTextCursor.MoveMode.KeepAnchor)
+        else:
+            cursor.setPosition(pos, QTextCursor.MoveMode.MoveAnchor)
+
+        self._editor.setTextCursor(cursor)
+        try:
+            self._editor.ensureCursorVisible()
+        except Exception:
+            pass
+
+        try:
+            vscroll = int(state.get("vscroll", 0))
+            self._editor.verticalScrollBar().setValue(vscroll)
+        except Exception:
+            pass
+
     # Story / screenplay DSL helpers --------------------------------------
 
     def build_story_dsl(self) -> str:

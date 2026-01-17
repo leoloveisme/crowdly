@@ -144,6 +144,9 @@ class MainWindow(QMainWindow):
         # Per-tab state (documents and their associated editor/preview widgets).
         self._tab_documents: list[Document] = []
         self._tab_widgets: list[tuple[EditorWidget, PreviewWidget]] = []
+        # Per-tab caret/scroll state for both panes; entries are dictionaries
+        # with optional "md" and "wysiwyg" keys.
+        self._tab_caret_states: list[dict[str, object]] = []
         self._current_tab_index: int = 0
 
         # Simple debounced autosave timer (milliseconds).
@@ -999,7 +1002,9 @@ class MainWindow(QMainWindow):
         """Handle text changes from the editor.
 
         Updates the in-memory document, refreshes the preview, and schedules
-        an autosave after a short delay.
+        an autosave after a short delay. When the preview is updated
+        programmatically, we preserve its caret/scroll state so that switching
+        between panes does not jump the cursor back to the top.
         """
 
         # If there is no configured Space / project space yet, warn once so
@@ -1017,7 +1022,13 @@ class MainWindow(QMainWindow):
         self._document.set_content(text)
         self._last_change_from_preview = False
 
+        preview_state = None
         if self.preview.isVisible():
+            try:
+                preview_state = self.preview.get_cursor_state()
+            except Exception:
+                preview_state = None
+
             if storage_format == "story_v1":
                 # Render DSL → HTML.
                 try:
@@ -1034,6 +1045,13 @@ class MainWindow(QMainWindow):
             else:
                 # Plain Markdown path (existing behaviour).
                 self.preview.set_markdown(text)
+
+            # Restore caret/scroll position so the preview pane does not jump.
+            if preview_state:
+                try:
+                    self.preview.restore_cursor_state(preview_state)
+                except Exception:
+                    pass
 
         # Restart autosave timer.
         if self._autosave_timer.isActive():
@@ -1100,11 +1118,25 @@ class MainWindow(QMainWindow):
         self._last_change_from_preview = True
 
         # Update the plain-text editor without triggering a feedback loop.
+        editor_state = None
+        try:
+            editor_state = self.editor.get_cursor_state()
+        except Exception:
+            editor_state = None
+
         old_state = self.editor.blockSignals(True)
         try:
             self.editor.setPlainText(canonical_text)
         finally:
             self.editor.blockSignals(old_state)
+
+        # Restore caret/scroll position in the Markdown pane so that switching
+        # back from WYSIWYG does not reset the cursor to the top.
+        if editor_state:
+            try:
+                self.editor.restore_cursor_state(editor_state)
+            except Exception:
+                pass
 
         # Restart autosave timer.
         if self._autosave_timer.isActive():
@@ -1114,7 +1146,11 @@ class MainWindow(QMainWindow):
         self._update_document_stats_label()
 
     def _create_tab_for_document(self, document: Document, title: str | None = None) -> int:
-        """Create a new tab for *document* and return its index."""
+        """Create a new tab for *document* and return its index.
+
+        The method initialises per-tab caret state so that cursor positions are
+        preserved when switching between tabs.
+        """
 
         # Each tab contains its own splitter with editor and preview widgets.
         splitter = QSplitter(Qt.Orientation.Horizontal, self._tab_widget)
@@ -1150,6 +1186,11 @@ class MainWindow(QMainWindow):
         # Ensure our parallel tab state lists stay aligned with the QTabWidget.
         self._tab_documents.insert(index, document)
         self._tab_widgets.insert(index, (editor, preview))
+        # Initialise caret state for this tab.
+        if len(self._tab_caret_states) <= index:
+            self._tab_caret_states.append({})
+        else:
+            self._tab_caret_states.insert(index, {})
 
         # If this is the very first tab, make its widgets the active ones.
         if self._tab_widget.count() == 1:
@@ -1213,6 +1254,8 @@ class MainWindow(QMainWindow):
         try:
             self._tab_documents.pop(index)
             self._tab_widgets.pop(index)
+            if 0 <= index < len(getattr(self, "_tab_caret_states", [])):
+                self._tab_caret_states.pop(index)
         except Exception:
             pass
 
@@ -1227,10 +1270,32 @@ class MainWindow(QMainWindow):
                 self._on_tab_changed(0)
 
     def _on_tab_changed(self, index: int) -> None:  # pragma: no cover - UI wiring
-        """Switch active editor/preview and document when the tab changes."""
+        """Switch active editor/preview and document when the tab changes.
+
+        In addition to updating the active document, this method preserves the
+        caret/scroll position for each tab so that switching between tabs does
+        not jump the cursor back to the top of the document.
+        """
 
         if index < 0 or index >= len(self._tab_widgets):
             return
+
+        # Persist caret state for the tab we are leaving, if any.
+        prev_index = getattr(self, "_current_tab_index", -1)
+        if 0 <= prev_index < len(self._tab_widgets) and 0 <= prev_index < len(self._tab_caret_states):
+            prev_editor, prev_preview = self._tab_widgets[prev_index]
+            state = self._tab_caret_states[prev_index]
+            if not isinstance(state, dict):
+                state = {}
+                self._tab_caret_states[prev_index] = state
+            try:
+                state["md"] = prev_editor.get_cursor_state()
+            except Exception:
+                state["md"] = None
+            try:
+                state["wysiwyg"] = prev_preview.get_cursor_state()
+            except Exception:
+                state["wysiwyg"] = None
 
         self._current_tab_index = index
 
@@ -1243,16 +1308,29 @@ class MainWindow(QMainWindow):
         # Make sure the UI reflects the new document's content and statistics.
         # We avoid emitting extra change signals by blocking them while
         # updating the editor programmatically.
-        old_state = self.editor.blockSignals(True)
+        old_block_state = self.editor.blockSignals(True)
         try:
             self.editor.setPlainText(self._document.content)
         finally:
-            self.editor.blockSignals(old_state)
+            self.editor.blockSignals(old_block_state)
 
         self.preview.set_markdown(self._document.content)
         self._update_document_stats_label()
         self._update_story_link_label()
         self._update_window_title()
+
+        # Restore caret state for the tab we just switched to, if available.
+        if 0 <= index < len(self._tab_caret_states):
+            state = self._tab_caret_states[index]
+            if isinstance(state, dict):
+                try:
+                    self.editor.restore_cursor_state(state.get("md"))  # type: ignore[arg-type]
+                except Exception:
+                    pass
+                try:
+                    self.preview.restore_cursor_state(state.get("wysiwyg"))  # type: ignore[arg-type]
+                except Exception:
+                    pass
 
         # Keep the pane visibility in sync with the global checkboxes.
         if hasattr(self, "_chk_md_editor"):
@@ -1281,7 +1359,8 @@ class MainWindow(QMainWindow):
 
         This is driven by the top-bar "WYSIWYG" checkbox. When hidden, the
         editor takes all horizontal space; when shown, the splitter layout is
-        restored automatically by Qt.
+        restored automatically by Qt. When the preview content is refreshed we
+        preserve its caret/scroll state so that the cursor does not jump.
         """
 
         self.preview.setVisible(visible)
@@ -1301,7 +1380,19 @@ class MainWindow(QMainWindow):
         # change came from the WYSIWYG pane itself, preserve its rich
         # formatting (including alignment) and do not overwrite.
         if visible and not self._last_change_from_preview:
+            prev_state = None
+            try:
+                prev_state = self.preview.get_cursor_state()
+            except Exception:
+                prev_state = None
+
             self.preview.set_markdown(self.editor.get_text())
+
+            if prev_state:
+                try:
+                    self.preview.restore_cursor_state(prev_state)
+                except Exception:
+                    pass
 
     def _generate_default_document_path(self) -> Path:
         """Return a default path for new documents in the project space.
