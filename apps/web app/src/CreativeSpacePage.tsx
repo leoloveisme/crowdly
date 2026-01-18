@@ -70,8 +70,10 @@ const CreativeSpacePage: React.FC = () => {
   const [itemsLoading, setItemsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [notAuthorized, setNotAuthorized] = useState<boolean>(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
 
   const isLoggedIn = !!authUser;
+  const isOwner = Boolean(authUser?.id && space && space.user_id === authUser.id);
   const username = authUser?.email || "Guest";
 
   useEffect(() => {
@@ -84,7 +86,14 @@ const CreativeSpacePage: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`${API_BASE}/creative-spaces/${encodeURIComponent(spaceId)}`);
+        const params = new URLSearchParams();
+        if (authUser?.id) {
+          params.set("userId", authUser.id);
+        }
+        const url = params.toString()
+          ? `${API_BASE}/creative-spaces/${encodeURIComponent(spaceId)}?${params.toString()}`
+          : `${API_BASE}/creative-spaces/${encodeURIComponent(spaceId)}`;
+        const res = await fetch(url);
         const body = await res.json().catch(() => ({}));
         if (!res.ok) {
           console.error("[CreativeSpacePage:web] Failed to load space", { status: res.status, body });
@@ -114,9 +123,13 @@ const CreativeSpacePage: React.FC = () => {
     try {
       const params = new URLSearchParams();
       if (path) params.set("path", path);
-      const res = await fetch(
-        `${API_BASE}/creative-spaces/${encodeURIComponent(spaceId)}/items?${params.toString()}`,
-      );
+      if (authUser?.id) {
+        params.set("userId", authUser.id);
+      }
+      const url = params.toString()
+        ? `${API_BASE}/creative-spaces/${encodeURIComponent(spaceId)}/items?${params.toString()}`
+        : `${API_BASE}/creative-spaces/${encodeURIComponent(spaceId)}/items`;
+      const res = await fetch(url);
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
         console.error("[CreativeSpacePage:web] Failed to load items", { status: res.status, body });
@@ -219,6 +232,61 @@ const CreativeSpacePage: React.FC = () => {
     }
   };
 
+  const createStoryInSpace = (kind: "story" | "screenplay") => {
+    if (!space) return;
+    if (typeof window === "undefined") return;
+    const base = `${window.location.protocol}//${window.location.hostname}:8080`;
+    const url = `${base}/new-story-template?type=${encodeURIComponent(kind)}&spaceId=${encodeURIComponent(
+      space.id,
+    )}`;
+    window.location.href = url;
+  };
+
+  const handleToggleVisibility = async () => {
+    if (!spaceId || !authUser?.id || !space) return;
+    const current = (space.visibility || "private").toLowerCase();
+    const next = current === "public" ? "private" : "public";
+    try {
+      const res = await fetch(`${API_BASE}/creative-spaces/${encodeURIComponent(spaceId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: authUser.id, visibility: next }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error("[CreativeSpacePage:web] Failed to toggle visibility", { status: res.status, body });
+        setError(body.error || "Failed to update visibility.");
+        return;
+      }
+      setSpace(body as CreativeSpace);
+    } catch (err) {
+      console.error("[CreativeSpacePage:web] Error toggling visibility", err);
+      setError("Failed to update visibility.");
+    }
+  };
+
+  const handleTogglePublished = async () => {
+    if (!spaceId || !authUser?.id || !space) return;
+    const next = !Boolean(space.published);
+    try {
+      const res = await fetch(`${API_BASE}/creative-spaces/${encodeURIComponent(spaceId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: authUser.id, published: next }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error("[CreativeSpacePage:web] Failed to toggle published", { status: res.status, body });
+        setError(body.error || "Failed to update publish state.");
+        return;
+      }
+      setSpace(body as CreativeSpace);
+    } catch (err) {
+      console.error("[CreativeSpacePage:web] Error toggling published", err);
+      setError("Failed to update publish state.");
+    }
+  };
+
   const handleLanguageChange = (lang: InterfaceLanguage) => {
     setInterfaceLanguage(lang);
   };
@@ -274,6 +342,14 @@ const CreativeSpacePage: React.FC = () => {
       {/* Match the main Crowdly creative space layout: centered container with
           horizontal padding and vertical spacing. */}
       <main className="container mx-auto px-4 pt-8 pb-16">
+        <div className="mb-4 text-xs text-gray-500">
+          <a
+            href={profileUrl}
+            className="text-blue-700 hover:underline"
+          >
+            ← Back to profile page
+          </a>
+        </div>
         {loading && (
           <div className="border rounded-lg bg-white p-4 text-sm text-gray-500">Loading creative space...</div>
         )}
@@ -316,12 +392,61 @@ const CreativeSpacePage: React.FC = () => {
                   <p className="text-xs text-gray-400 mt-1 truncate">local path: {space.path}</p>
                 )}
               </div>
-              <div className="flex items-center gap-2">
-                {newStoryUrl && (
-                  <a href={newStoryUrl} className="text-xs text-blue-700 hover:underline">
+            <div className="flex items-center gap-2 relative">
+              {isOwner && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleToggleVisibility}
+                    className="px-3 py-1 rounded-full border text-xs hover:bg-gray-50"
+                  >
+                    {space.visibility === "public" ? "Make private" : "Make public"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleTogglePublished}
+                    className="px-3 py-1 rounded-full border text-xs hover:bg-gray-50"
+                  >
+                    {space.published ? "Unpublish" : "Publish"}
+                  </button>
+                </>
+              )}
+              {space && (
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateDialog((open) => !open)}
+                    className="text-xs text-blue-700 hover:underline"
+                  >
                     New story in this Space
-                  </a>
-                )}
+                  </button>
+                  {showCreateDialog && (
+                    <div className="absolute right-0 mt-1 w-56 rounded border bg-white shadow-lg text-xs z-20">
+                      <div className="px-3 py-2 border-b font-semibold">What would you like to create?</div>
+                      <button
+                        type="button"
+                        className="w-full px-3 py-2 text-left hover:bg-gray-50"
+                        onClick={() => {
+                          setShowCreateDialog(false);
+                          createStoryInSpace("story");
+                        }}
+                      >
+                        Regular story (novel)
+                      </button>
+                      <button
+                        type="button"
+                        className="w-full px-3 py-2 text-left hover:bg-gray-50"
+                        onClick={() => {
+                          setShowCreateDialog(false);
+                          createStoryInSpace("screenplay");
+                        }}
+                      >
+                        Screenplay story
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
                 <button
                   type="button"
                   onClick={handleCreateFolder}

@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import CrowdlyHeader from "@/components/CrowdlyHeader";
 import CrowdlyFooter from "@/components/CrowdlyFooter";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 const API_BASE = import.meta.env.PROD
   ? (import.meta.env.VITE_API_BASE_URL ?? "")
@@ -40,6 +41,7 @@ interface CreativeSpaceItem {
 const CreativeSpacePage: React.FC = () => {
   const { spaceId } = useParams<{ spaceId: string }>();
   const { user: authUser } = useAuth();
+  const navigate = useNavigate();
 
   const [space, setSpace] = useState<CreativeSpace | null>(null);
   const [currentPath, setCurrentPath] = useState<string>("");
@@ -48,6 +50,9 @@ const CreativeSpacePage: React.FC = () => {
   const [itemsLoading, setItemsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [notAuthorized, setNotAuthorized] = useState<boolean>(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+
+  const isOwner = Boolean(authUser?.id && space && space.user_id === authUser.id);
 
   useEffect(() => {
     const loadSpace = async () => {
@@ -55,7 +60,14 @@ const CreativeSpacePage: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}`);
+        const params = new URLSearchParams();
+        if (authUser?.id) {
+          params.set("userId", authUser.id);
+        }
+        const url = params.toString()
+          ? `${API_BASE}/creative-spaces/${spaceId}?${params.toString()}`
+          : `${API_BASE}/creative-spaces/${spaceId}`;
+        const res = await fetch(url);
         const body = await res.json().catch(() => ({}));
         if (!res.ok) {
           console.error("[CreativeSpacePage] Failed to load space", { status: res.status, body });
@@ -85,7 +97,13 @@ const CreativeSpacePage: React.FC = () => {
     try {
       const params = new URLSearchParams();
       if (path) params.set("path", path);
-      const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/items?${params.toString()}`);
+      if (authUser?.id) {
+        params.set("userId", authUser.id);
+      }
+      const url = params.toString()
+        ? `${API_BASE}/creative-spaces/${spaceId}/items?${params.toString()}`
+        : `${API_BASE}/creative-spaces/${spaceId}/items`;
+      const res = await fetch(url);
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
         console.error("[CreativeSpacePage] Failed to load items", { status: res.status, body });
@@ -189,6 +207,51 @@ const CreativeSpacePage: React.FC = () => {
     }
   };
 
+  const handleToggleVisibility = async () => {
+    if (!spaceId || !authUser?.id || !space) return;
+    const current = (space.visibility || "private").toLowerCase();
+    const next = current === "public" ? "private" : "public";
+    try {
+      const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: authUser.id, visibility: next }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error("[CreativeSpacePage] Failed to toggle visibility", { status: res.status, body });
+        setError(body.error || "Failed to update visibility.");
+        return;
+      }
+      setSpace(body as CreativeSpace);
+    } catch (err) {
+      console.error("[CreativeSpacePage] Error toggling visibility", err);
+      setError("Failed to update visibility.");
+    }
+  };
+
+  const handleTogglePublished = async () => {
+    if (!spaceId || !authUser?.id || !space) return;
+    const next = !Boolean(space.published);
+    try {
+      const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: authUser.id, published: next }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error("[CreativeSpacePage] Failed to toggle published", { status: res.status, body });
+        setError(body.error || "Failed to update publish state.");
+        return;
+      }
+      setSpace(body as CreativeSpace);
+    } catch (err) {
+      console.error("[CreativeSpacePage] Error toggling published", err);
+      setError("Failed to update publish state.");
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -250,6 +313,11 @@ const CreativeSpacePage: React.FC = () => {
     <div className="min-h-screen flex flex-col bg-slate-50">
       <CrowdlyHeader />
       <div className="container mx-auto px-4 pt-8 pb-16 flex-grow max-w-5xl space-y-6">
+        <div className="text-xs mb-2">
+          <Link to="/profile" className="text-blue-700 hover:underline">
+            ← Back to profile page
+          </Link>
+        </div>
         <section className="bg-white/90 backdrop-blur border border-slate-200 rounded-2xl p-6 shadow-sm">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
             <div className="min-w-0">
@@ -279,14 +347,65 @@ const CreativeSpacePage: React.FC = () => {
                 <p className="mt-2 text-xs text-slate-400 truncate">local path: {space.path}</p>
               )}
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 justify-end">
+              {isOwner && (
+                <>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleToggleVisibility}
+                    className="rounded-full px-3 text-xs"
+                  >
+                    {space.visibility === "public" ? "Make private" : "Make public"}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleTogglePublished}
+                    className="rounded-full px-3 text-xs"
+                  >
+                    {space.published ? "Unpublish" : "Publish"}
+                  </Button>
+                </>
+              )}
               {space && (
-                <Link
-                  to={`/new-story-template?spaceId=${space.id}`}
-                  className="text-xs text-blue-700 hover:underline"
-                >
-                  New story in this Space
-                </Link>
+                <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+                  <DialogTrigger asChild>
+                    <button
+                      type="button"
+                      className="text-xs text-blue-700 hover:underline"
+                    >
+                      New story in this Space
+                    </button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>What would you like to create in this Space?</DialogTitle>
+                    </DialogHeader>
+                    <div className="mt-4 flex flex-col gap-3 text-sm">
+                      <button
+                        type="button"
+                        className="w-full px-4 py-2 rounded border bg-white hover:bg-slate-50 text-left"
+                        onClick={() => {
+                          setCreateDialogOpen(false);
+                          navigate(`/new-story-template?type=story&spaceId=${space.id}`);
+                        }}
+                      >
+                        Regular story (novel)
+                      </button>
+                      <button
+                        type="button"
+                        className="w-full px-4 py-2 rounded border bg-white hover:bg-slate-50 text-left"
+                        onClick={() => {
+                          setCreateDialogOpen(false);
+                          navigate(`/new-story-template?type=screenplay&spaceId=${space.id}`);
+                        }}
+                      >
+                        Screenplay story
+                      </button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
               )}
               <Button size="sm" onClick={handleCreateFolder} className="rounded-full px-3">
                 New folder
