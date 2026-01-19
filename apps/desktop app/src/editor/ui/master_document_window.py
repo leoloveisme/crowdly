@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (
     QListWidgetItem,
     QMainWindow,
     QMenu,
+    QMessageBox,
     QPlainTextEdit,
     QSizePolicy,
     QToolButton,
@@ -172,6 +173,10 @@ class IncludeContainerWidget(QWidget):
     sizeChanged = Signal()
     contentChanged = Signal()
     filePathNeeded = Signal(object)
+    editInMainRequested = Signal(object)
+    renameRequested = Signal(object)
+    cloneFileRequested = Signal(object)
+    cloneContainerRequested = Signal(object)
 
     def __init__(self, editable: bool, parent: object | None = None) -> None:
         super().__init__(parent)
@@ -239,6 +244,49 @@ class IncludeContainerWidget(QWidget):
         self._type_label.setText(self.tr("Editable") if self._editable else self.tr("Read-only"))
         header_layout.addWidget(self._type_label)
 
+        # Action buttons available for both editable and read-only containers.
+        self._btn_edit_in_main = QToolButton(header)
+        self._btn_edit_in_main.setText(self.tr("Edit in main"))
+        self._btn_edit_in_main.setToolTip(
+            self.tr("Edit this chapter in the main window")
+        )
+        self._btn_edit_in_main.clicked.connect(
+            lambda: self.editInMainRequested.emit(self)
+        )
+        header_layout.addWidget(self._btn_edit_in_main)
+
+        self._btn_rename_file = QToolButton(header)
+        self._btn_rename_file.setText(self.tr("Rename"))
+        self._btn_rename_file.setToolTip(
+            self.tr("Rename the underlying chapter file using the file explorer")
+        )
+        self._btn_rename_file.clicked.connect(
+            lambda: self.renameRequested.emit(self)
+        )
+        header_layout.addWidget(self._btn_rename_file)
+
+        self._btn_clone_file = QToolButton(header)
+        self._btn_clone_file.setText(self.tr("Clone file"))
+        self._btn_clone_file.setToolTip(
+            self.tr("Create a copy of the underlying chapter file")
+        )
+        self._btn_clone_file.clicked.connect(
+            lambda: self.cloneFileRequested.emit(self)
+        )
+        header_layout.addWidget(self._btn_clone_file)
+
+        self._btn_clone_container = QToolButton(header)
+        self._btn_clone_container.setText(self.tr("Clone container"))
+        self._btn_clone_container.setToolTip(
+            self.tr(
+                "Create a copy of the chapter file and a new include container below this one"
+            )
+        )
+        self._btn_clone_container.clicked.connect(
+            lambda: self.cloneContainerRequested.emit(self)
+        )
+        header_layout.addWidget(self._btn_clone_container)
+
         self._btn_delete = QToolButton(header)
         self._btn_delete.setText("✕")
         self._btn_delete.setToolTip(self.tr("Remove this include from the master document"))
@@ -253,6 +301,10 @@ class IncludeContainerWidget(QWidget):
             self._btn_collapse,
             self._title_edit,
             self._type_label,
+            self._btn_edit_in_main,
+            self._btn_rename_file,
+            self._btn_clone_file,
+            self._btn_clone_container,
             self._btn_delete,
         ]
         for src in self._drag_sources:
@@ -681,6 +733,7 @@ class MasterDocumentWindow(QMainWindow):
 
         self._include_list: QListWidget
         self._container_items: Dict[IncludeContainerWidget, QListWidgetItem] = {}
+        self._explorer: FileExplorerWidget | None = None
 
         # Path to the backing `.master` file and simple dirty flag.
         self._master_path: Path | None = master_path
@@ -748,9 +801,25 @@ class MasterDocumentWindow(QMainWindow):
 
         # Dockable file explorer.
         explorer = FileExplorerWidget(self._project_space, parent=self)
+        self._explorer = explorer
         self._explorer_dock = QDockWidget(self.tr("File explorer"), self)
         self._explorer_dock.setObjectName("master_document_file_explorer")
         self._explorer_dock.setWidget(explorer)
+
+        # Keep include containers in sync when files are renamed via the
+        # explorer. QFileSystemModel emits a fileRenamed signal that we can
+        # use to update any bound container paths so that subsequent master
+        # autosaves write the new filenames.
+        try:
+            model = explorer.model()
+            # QFileSystemModel exposes fileRenamed in Qt, but the exact
+            # attribute name can vary between bindings; guard accordingly.
+            file_renamed = getattr(model, "fileRenamed", None)
+            if callable(file_renamed):
+                file_renamed.connect(self._on_explorer_file_renamed)  # type: ignore[arg-type]
+        except Exception:
+            # Never let model wiring failures break the master document UI.
+            pass
         self._explorer_dock.setAllowedAreas(
             Qt.DockWidgetArea.LeftDockWidgetArea
             | Qt.DockWidgetArea.RightDockWidgetArea
@@ -788,6 +857,10 @@ class MasterDocumentWindow(QMainWindow):
         widget.sizeChanged.connect(self._on_container_size_changed)
         widget.contentChanged.connect(self._on_container_modified)
         widget.filePathNeeded.connect(self._on_container_file_path_needed)
+        widget.editInMainRequested.connect(self._on_container_edit_in_main_requested)
+        widget.renameRequested.connect(self._on_container_rename_requested)
+        widget.cloneFileRequested.connect(self._on_container_clone_file_requested)
+        widget.cloneContainerRequested.connect(self._on_container_clone_container_requested)
 
         # Ensure all rows span the full work area, including this new one.
         try:
@@ -968,6 +1041,10 @@ class MasterDocumentWindow(QMainWindow):
             widget.sizeChanged.connect(self._on_container_size_changed)
             widget.contentChanged.connect(self._on_container_modified)
             widget.filePathNeeded.connect(self._on_container_file_path_needed)
+            widget.editInMainRequested.connect(self._on_container_edit_in_main_requested)
+            widget.renameRequested.connect(self._on_container_rename_requested)
+            widget.cloneFileRequested.connect(self._on_container_clone_file_requested)
+            widget.cloneContainerRequested.connect(self._on_container_clone_container_requested)
 
             # Initialise widget state without triggering autosave or
             # write-back into the underlying files.
@@ -1007,6 +1084,367 @@ class MasterDocumentWindow(QMainWindow):
         # so it will be saved with the updated content.
         if changes_detected:
             self._mark_dirty()
+
+    # Explorer / external file events ------------------------------------
+
+    def _on_explorer_file_renamed(self, path: str, old_name: str, new_name: str) -> None:
+        """Update containers when a file is renamed via the explorer.
+
+        *path* is the directory containing the renamed entry; *old_name* and
+        *new_name* are the base filenames. We only adjust containers whose
+        bound ``file_path`` exactly matches the old full path so that master
+        serialisation writes the new filename on the next autosave.
+        """
+
+        try:
+            base_dir = Path(path)
+        except Exception:
+            return
+
+        old_path = base_dir / old_name
+        new_path = base_dir / new_name
+
+        updated = False
+        for widget, _item in list(self._container_items.items()):
+            try:
+                current = widget.file_path
+            except Exception:
+                continue
+            if current is None:
+                continue
+
+            try:
+                same = current.resolve() == old_path.resolve()
+            except Exception:
+                same = current == old_path
+
+            if not same:
+                continue
+
+            try:
+                widget.set_bound_path(new_path)
+            except Exception:
+                widget._file_path = new_path  # type: ignore[attr-defined]
+
+            updated = True
+
+        if updated:
+            self._mark_dirty()
+
+    # Container action handlers -------------------------------------------
+
+    def _ensure_container_file_path(self, widget: IncludeContainerWidget) -> Path | None:
+        """Ensure *widget* has a concrete file path, creating one if needed.
+
+        For editable containers we mirror the behaviour used when typing in a
+        container without a backing file: a new Markdown file is created inside
+        the current project space. For read-only containers we do not create
+        new files and instead return ``None`` when there is no bound path.
+        """
+
+        path = widget.file_path
+        if path is not None:
+            return path
+
+        if not getattr(widget, "_editable", False):
+            return None
+
+        self._on_container_file_path_needed(widget)
+        return widget.file_path
+
+    def _flush_container_to_file(self, widget: IncludeContainerWidget) -> None:
+        """Best-effort: flush the container's current content to disk."""
+
+        try:
+            if getattr(widget, "_editable", False):
+                # Access the internal helper used by the debounced timer so we
+                # do not wait for the next timeout before opening in the main
+                # window or cloning the file.
+                flush = getattr(widget, "_flush_to_file", None)
+                if callable(flush):
+                    flush()
+        except Exception:
+            return
+
+    def _on_container_edit_in_main_requested(self, widget: IncludeContainerWidget) -> None:
+        """Open the container's chapter file for editing in the main window."""
+
+        path = self._ensure_container_file_path(widget)
+        if path is None:
+            QMessageBox.information(
+                self,
+                self.tr("Edit chapter"),
+                self.tr("This include is not bound to a file yet."),
+            )
+            return
+
+        # Ensure the latest content is on disk before handing it to the main
+        # window so that both editors see the same text.
+        self._flush_container_to_file(widget)
+
+        # Try to reuse an existing MainWindow; otherwise create a new one.
+        from PySide6.QtWidgets import QApplication  # local import
+
+        app = QApplication.instance()
+        if app is None:
+            return
+
+        main_window = None
+        try:
+            from .main_window import MainWindow  # local import to avoid cycles
+
+            for w in app.topLevelWidgets():
+                if isinstance(w, MainWindow):
+                    main_window = w
+                    break
+        except Exception:
+            main_window = None
+
+        if main_window is None:
+            try:
+                from .main_window import MainWindow  # type: ignore[no-redef]
+
+                main_window = MainWindow(self._settings, parent=None)
+                main_window.show()
+
+                try:
+                    main_window.raise_()
+                    main_window.activateWindow()
+                except Exception:
+                    pass
+
+                extra = getattr(app, "_extra_windows", None)
+                if not isinstance(extra, list):
+                    extra = []
+                    setattr(app, "_extra_windows", extra)
+                extra.append(main_window)
+            except Exception:
+                return
+
+        try:
+            # Delegate to the main window's existing open logic so all
+            # project-space mapping and metadata behaviour is preserved.
+            open_from_path = getattr(main_window, "_load_document_from_path", None)
+            if callable(open_from_path):
+                open_from_path(path)
+        except Exception:
+            return
+
+        try:
+            main_window.raise_()
+            main_window.activateWindow()
+        except Exception:
+            pass
+
+    def _on_container_rename_requested(self, widget: IncludeContainerWidget) -> None:
+        """Show the chapter file in the explorer and start inline rename."""
+
+        path = self._ensure_container_file_path(widget)
+        if path is None:
+            QMessageBox.information(
+                self,
+                self.tr("Rename chapter file"),
+                self.tr("This include is not bound to a file yet."),
+            )
+            return
+
+        explorer = self._explorer
+        if explorer is None:
+            return
+
+        try:
+            model = explorer.model()
+            index = model.index(str(path))
+            if not index.isValid():
+                return
+
+            # Allow renaming and focus the item so the user can edit the name.
+            try:
+                model.setReadOnly(False)
+            except Exception:
+                pass
+
+            explorer.setCurrentIndex(index)
+            explorer.scrollTo(index, QAbstractItemView.ScrollHint.PositionAtCenter)
+            explorer.setFocus(Qt.FocusReason.OtherFocusReason)
+            explorer.edit(index)
+        except Exception:
+            return
+
+    def _build_clone_path(self, source: Path) -> Path:
+        """Return a filesystem path for a cloned chapter file.
+
+        The clone is created in the same directory as *source* using the
+        naming pattern ``"<stem> copy<suffix>"`` with a numeric suffix when
+        needed to avoid overwriting existing files.
+        """
+
+        directory = source.parent
+        stem = source.stem
+        suffix = source.suffix or ""
+
+        candidate = directory / f"{stem} copy{suffix}"
+        index = 2
+        try:
+            while candidate.exists():
+                candidate = directory / f"{stem} copy {index}{suffix}"
+                index += 1
+        except Exception:
+            # If existence checks fail for any reason, keep the last candidate
+            # and let the write call surface any error.
+            pass
+        return candidate
+
+    def _on_container_clone_file_requested(self, widget: IncludeContainerWidget) -> None:
+        """Create a cloned copy of the underlying chapter file on disk."""
+
+        path = self._ensure_container_file_path(widget)
+        if path is None:
+            QMessageBox.information(
+                self,
+                self.tr("Clone file"),
+                self.tr("This include is not bound to a file yet."),
+            )
+            return
+
+        self._flush_container_to_file(widget)
+
+        clone_path = self._build_clone_path(path)
+
+        try:
+            # Use the container's current content as the source so the clone
+            # reflects what the user sees, even if autosave has not fired yet.
+            content = ""
+            try:
+                content = widget._content.toPlainText()  # type: ignore[attr-defined]
+            except Exception:
+                try:
+                    content = storage.read_text(path)
+                except Exception:
+                    content = ""
+
+            storage.write_text(clone_path, content)
+        except Exception:
+            QMessageBox.warning(
+                self,
+                self.tr("Clone file"),
+                self.tr("The file could not be cloned."),
+            )
+            return
+
+        QMessageBox.information(
+            self,
+            self.tr("Clone file"),
+            self.tr("The file was cloned."),
+        )
+
+        # Optionally focus the new file in the explorer for discoverability.
+        explorer = self._explorer
+        if explorer is not None:
+            try:
+                model = explorer.model()
+                index = model.index(str(clone_path))
+                if index.isValid():
+                    explorer.setCurrentIndex(index)
+                    explorer.scrollTo(index, QAbstractItemView.ScrollHint.PositionAtCenter)
+            except Exception:
+                pass
+
+    def _on_container_clone_container_requested(self, widget: IncludeContainerWidget) -> None:
+        """Clone both the chapter file and the include container below it."""
+
+        path = self._ensure_container_file_path(widget)
+        if path is None:
+            QMessageBox.information(
+                self,
+                self.tr("Clone container"),
+                self.tr("This include is not bound to a file yet."),
+            )
+            return
+
+        self._flush_container_to_file(widget)
+
+        clone_path = self._build_clone_path(path)
+
+        try:
+            content = ""
+            try:
+                content = widget._content.toPlainText()  # type: ignore[attr-defined]
+            except Exception:
+                try:
+                    content = storage.read_text(path)
+                except Exception:
+                    content = ""
+
+            storage.write_text(clone_path, content)
+        except Exception:
+            QMessageBox.warning(
+                self,
+                self.tr("Clone container"),
+                self.tr("The container could not be cloned."),
+            )
+            return
+
+        # Create a new include container immediately below the original.
+        original_item = self._container_items.get(widget)
+        if original_item is None:
+            return
+
+        original_row = self._include_list.row(original_item)
+        if original_row < 0:
+            return
+
+        cloned_widget = IncludeContainerWidget(getattr(widget, "_editable", False), parent=self._include_list)
+        cloned_item = QListWidgetItem(self._include_list)
+
+        # Height hint mirrors existing containers; width is stretched globally.
+        hint = cloned_widget.sizeHint()
+        cloned_item.setSizeHint(hint)
+        cloned_item.setFlags(
+            cloned_item.flags()
+            | Qt.ItemFlag.ItemIsDragEnabled
+            | Qt.ItemFlag.ItemIsDropEnabled
+        )
+
+        insert_row = original_row + 1
+        self._include_list.insertItem(insert_row, cloned_item)
+        self._include_list.setItemWidget(cloned_item, cloned_widget)
+
+        self._container_items[cloned_widget] = cloned_item
+
+        cloned_widget.deleteRequested.connect(self._on_container_delete_requested)
+        cloned_widget.sizeChanged.connect(self._on_container_size_changed)
+        cloned_widget.contentChanged.connect(self._on_container_modified)
+        cloned_widget.filePathNeeded.connect(self._on_container_file_path_needed)
+        cloned_widget.editInMainRequested.connect(self._on_container_edit_in_main_requested)
+        cloned_widget.renameRequested.connect(self._on_container_rename_requested)
+        cloned_widget.cloneFileRequested.connect(self._on_container_clone_file_requested)
+        cloned_widget.cloneContainerRequested.connect(self._on_container_clone_container_requested)
+
+        try:
+            # Bind to the cloned file and populate content/title.
+            cloned_widget.set_bound_path(clone_path)
+            # Preserve the original title where possible.
+            try:
+                cloned_widget._title_edit.setText(widget._title_edit.text())  # type: ignore[attr-defined]
+            except Exception:
+                pass
+            # Use the already-fetched content so we do not re-read from disk.
+            try:
+                cloned_widget._content.setPlainText(content)  # type: ignore[attr-defined]
+            except Exception:
+                pass
+            # Update internal sizing hints.
+            cloned_widget._update_height()  # type: ignore[attr-defined]
+        except Exception:
+            pass
+
+        try:
+            self._include_list._update_item_widths()  # type: ignore[attr-defined]
+        except Exception:
+            pass
+
+        self._mark_dirty()
 
     # Context menu --------------------------------------------------------
 
