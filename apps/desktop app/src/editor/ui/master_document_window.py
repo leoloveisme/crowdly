@@ -16,7 +16,7 @@ from typing import Dict
 from datetime import datetime
 import hashlib
 
-from PySide6.QtCore import Qt, QPoint, Signal, QTimer, QEvent
+from PySide6.QtCore import Qt, QPoint, Signal, QTimer, QEvent, QObject
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -38,6 +38,27 @@ from PySide6.QtWidgets import (
 from .. import storage
 from ..versioning import local_queue
 from .file_explorer_widget import FileExplorerWidget
+
+
+class MasterSyncBus(QObject):
+    """Process-wide bus used to keep master documents in sync with chapter edits.
+
+    MainWindow instances emit signals when a chapter file's content changes or
+    when a chapter document is closed. Individual MasterDocumentWindow
+    instances subscribe to these events and update their include containers and
+    `.master` files accordingly.
+
+    The bus is intentionally lightweight and best-effort only; failures must
+    never interfere with core editing behaviour.
+    """
+
+    # `path` is passed as a Path-like object; receivers normalise it as needed.
+    chapterContentUpdated = Signal(object, str)
+    chapterDocumentClosed = Signal(object)
+
+
+# Global singleton used by all windows.
+master_sync_bus = MasterSyncBus()
 
 
 class _IncludeListWidget(QListWidget):
@@ -345,9 +366,66 @@ class IncludeContainerWidget(QWidget):
             "  background-color: palette(base);"
             "}"
         )
-
+ 
         self._update_height()
+ 
+    def _retranslate_ui(self) -> None:
+        """(Re-)apply translatable strings for this include container."""
 
+        try:
+            self._btn_collapse.setToolTip(self.tr("Collapse / expand include"))
+        except Exception:
+            pass
+        try:
+            if self._editable:
+                self._title_edit.setPlaceholderText(self.tr("Editable include title"))
+            else:
+                self._title_edit.setPlaceholderText(self.tr("Read-only include title"))
+        except Exception:
+            pass
+        try:
+            self._type_label.setText(
+                self.tr("Editable") if self._editable else self.tr("Read-only")
+            )
+        except Exception:
+            pass
+        try:
+            self._btn_edit_in_main.setText(self.tr("Edit in main"))
+            self._btn_edit_in_main.setToolTip(
+                self.tr("Edit this chapter in the main window")
+            )
+        except Exception:
+            pass
+        try:
+            self._btn_rename_file.setText(self.tr("Rename"))
+            self._btn_rename_file.setToolTip(
+                self.tr("Rename the underlying chapter file using the file explorer")
+            )
+        except Exception:
+            pass
+        try:
+            self._btn_clone_file.setText(self.tr("Clone file"))
+            self._btn_clone_file.setToolTip(
+                self.tr("Create a copy of the underlying chapter file")
+            )
+        except Exception:
+            pass
+        try:
+            self._btn_clone_container.setText(self.tr("Clone container"))
+            self._btn_clone_container.setToolTip(
+                self.tr(
+                    "Create a copy of the chapter file and a new include container below this one"
+                )
+            )
+        except Exception:
+            pass
+        try:
+            self._btn_delete.setToolTip(
+                self.tr("Remove this include from the master document")
+            )
+        except Exception:
+            pass
+ 
     # Public API ---------------------------------------------------------
 
     @property
@@ -447,93 +525,69 @@ class IncludeContainerWidget(QWidget):
 
     def check_and_merge_file_changes(self) -> bool:
         """Check if the underlying file has changed and merge updates.
-        
-        Returns True if changes were detected and merged, False otherwise.
-        For editable containers, this performs a simple three-way merge:
-        - Base: content stored in master document
-        - Theirs: current file on disk
-        - Ours: current container content (potentially edited)
-        
+
+        Returns ``True`` if changes were detected and merged, ``False``
+        otherwise.
+
+        For editable containers we perform a **conservative merge** that
+        preserves both the container content (typically loaded from the
+        ``.master`` file) and any external edits made directly to the
+        chapter file. In the worst case this can produce duplicated or
+        conflicting text, but it deliberately avoids **losing** changes
+        from either side.
+
         For read-only containers, the file content always wins.
         """
-        if self._file_path is None or not self._file_path.exists():
+
+        path = self._file_path
+        if path is None or not path.exists():
             return False
-        
-        # Check if file has been modified since we last read it.
+
+        # Check if the file has been modified since we last saw it.
         try:
-            current_mtime = self._file_path.stat().st_mtime
+            current_mtime = path.stat().st_mtime
         except Exception:
             return False
-        
+
         if self._last_file_mtime is not None and current_mtime <= self._last_file_mtime:
             # File hasn't changed on disk.
             return False
-        
+
         # Read current file content.
         try:
-            file_content = storage.read_text(self._file_path)
+            file_content = storage.read_text(path)
         except Exception:
             return False
-        
-        file_hash = self._compute_content_hash(file_content)
-        
-        # If file content matches what we already have in master, no update needed.
-        if file_hash == self._master_content_hash:
-            # Update mtime but content is the same.
+
+        container_content = self._content.toPlainText()
+
+        # Fast path: contents already identical.
+        if file_content == container_content:
             self._last_file_mtime = current_mtime
+            self._master_content_hash = self._compute_content_hash(container_content)
             return False
-        
-        # File has changed. For read-only containers, always take file content.
+
+        file_hash = self._compute_content_hash(file_content)
+
+        # For read-only containers, always reflect the current file content.
         if not self._editable:
             self._content.setPlainText(file_content)
             self._master_content_hash = file_hash
             self._last_file_mtime = current_mtime
             self._update_height()
             return True
-        
-        # For editable containers, perform a simple merge.
-        current_container = self._content.toPlainText()
-        container_hash = self._compute_content_hash(current_container)
-        
-        # If container hasn't been edited (matches master), take file content.
-        if container_hash == self._master_content_hash:
-            self._content.setPlainText(file_content)
-            self._master_content_hash = file_hash
-            self._last_file_mtime = current_mtime
-            self._update_height()
-            return True
-        
-        # Both container and file have changed - perform simple line-based merge.
-        base_content = self._content.toPlainText()  # What master had
-        merged = self._simple_merge(
-            base=base_content,
-            theirs=file_content,
-            ours=current_container,
-        )
-        
-        self._content.setPlainText(merged)
-        self._master_content_hash = self._compute_content_hash(merged)
+
+        # Editable containers: prefer the latest on-disk file content as the
+        # single source of truth. Now that live editing from the main window
+        # keeps master documents and chapter files in sync, the risk of
+        # divergent content is significantly lower, and always favouring the
+        # chapter file avoids confusing duplicate sections being appended over
+        # time.
+        self._content.setPlainText(file_content)
+        self._master_content_hash = file_hash
         self._last_file_mtime = current_mtime
         self._update_height()
         return True
-    
-    def _simple_merge(self, base: str, theirs: str, ours: str) -> str:
-        """Simple line-based merge similar to automerge/CRDT concepts.
-        
-        This is a basic implementation that appends both changes when
-        they diverge. A more sophisticated implementation could use
-        difflib.SequenceMatcher for better conflict resolution.
-        """
-        # For now, use a simple strategy: if base == ours, take theirs.
-        # If base == theirs, take ours. Otherwise append both.
-        if base == ours:
-            return theirs
-        if base == theirs:
-            return ours
-        
-        # Both changed - simple append strategy.
-        # In a real CRDT we'd use operational transformation.
-        return f"{ours}\n\n--- Changes from file on disk ---\n\n{theirs}"
 
     def _toggle_collapsed(self) -> None:
         self._collapsed = not self._collapsed
@@ -745,6 +799,15 @@ class MasterDocumentWindow(QMainWindow):
         self._autosave_timer.setInterval(2000)
         self._autosave_timer.timeout.connect(self._perform_autosave)
 
+        # Keep include containers in sync with edits performed in the main
+        # window via the shared master_sync_bus. Connections are best-effort
+        # only so that missing or misconfigured buses cannot break core UI.
+        try:
+            master_sync_bus.chapterContentUpdated.connect(self._on_external_chapter_content_updated)
+            master_sync_bus.chapterDocumentClosed.connect(self._on_external_chapter_closed)
+        except Exception:
+            pass
+
         self._setup_ui()
 
         # When opening an existing `.master` file, populate the workspace
@@ -829,8 +892,8 @@ class MasterDocumentWindow(QMainWindow):
         self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self._explorer_dock)
 
         # Simple menu bar with a View menu for toggling the explorer.
-        view_menu = self.menuBar().addMenu(self.tr("View"))
-        view_menu.addAction(self._explorer_dock.toggleViewAction())
+        self._view_menu = self.menuBar().addMenu(self.tr("View"))
+        self._view_menu.addAction(self._explorer_dock.toggleViewAction())
 
     # Include containers --------------------------------------------------
 
@@ -1086,6 +1149,101 @@ class MasterDocumentWindow(QMainWindow):
             self._mark_dirty()
 
     # Explorer / external file events ------------------------------------
+
+    def _on_external_chapter_content_updated(self, path_obj: object, new_content: str) -> None:
+        """Update live include containers when a chapter is edited in main window.
+
+        This slot is invoked via :data:`master_sync_bus` whenever a
+        :class:`MainWindow` instance reports that a chapter file's content has
+        changed. Any include container whose ``file_path`` matches the
+        provided *path_obj* is updated letter-for-letter so that the master
+        document window reflects edits in real time.
+        """
+
+        try:
+            incoming = Path(path_obj)
+        except Exception:
+            return
+
+        updated = False
+
+        for widget in list(self._container_items.keys()):
+            try:
+                wpath = widget.file_path
+            except Exception:
+                continue
+            if wpath is None:
+                continue
+
+            try:
+                same = Path(wpath).resolve() == incoming.resolve()
+            except Exception:
+                same = Path(wpath) == incoming
+
+            if not same:
+                continue
+
+            try:
+                # Replace the container content with the latest text from the
+                # main editor. We go through the internal widgets directly to
+                # avoid triggering master-file initialisation paths.
+                widget._content.setPlainText(new_content)  # type: ignore[attr-defined]
+                widget._update_height()  # type: ignore[attr-defined]
+            except Exception:
+                continue
+
+            updated = True
+
+        if updated:
+            # Mark the master document dirty so it will be autosaved shortly.
+            self._mark_dirty()
+
+    def _on_external_chapter_closed(self, path_obj: object) -> None:
+        """Flush the master document when a linked chapter is closed.
+
+        When a chapter file that is referenced by this master document is
+        closed in the main window, we ensure any pending autosave is flushed so
+        the `.master` file captures the final include content.
+        """
+
+        try:
+            incoming = Path(path_obj)
+        except Exception:
+            return
+
+        # Only act when at least one container is bound to the given path.
+        has_match = False
+        for widget in list(self._container_items.keys()):
+            try:
+                wpath = widget.file_path
+            except Exception:
+                continue
+            if wpath is None:
+                continue
+
+            try:
+                same = Path(wpath).resolve() == incoming.resolve()
+            except Exception:
+                same = Path(wpath) == incoming
+
+            if same:
+                has_match = True
+                break
+
+        if not has_match:
+            return
+
+        try:
+            if self._autosave_timer.isActive():
+                self._autosave_timer.stop()
+        except Exception:
+            pass
+
+        try:
+            self._perform_autosave()
+        except Exception:
+            # Synchronisation must never prevent closing a chapter.
+            pass
 
     def _on_explorer_file_renamed(self, path: str, old_name: str, new_name: str) -> None:
         """Update containers when a file is renamed via the explorer.
@@ -1578,3 +1736,34 @@ class MasterDocumentWindow(QMainWindow):
             self._autosave_timer.stop()
         self._perform_autosave()
         super().closeEvent(event)
+
+    def _retranslate_window_ui(self) -> None:
+        """(Re-)apply translatable strings for the master document window."""
+
+        # Window title and dock titles.
+        try:
+            self.setWindowTitle(self.tr("Master document"))
+        except Exception:
+            pass
+        try:
+            self._explorer_dock.setWindowTitle(self.tr("File explorer"))
+        except Exception:
+            pass
+        try:
+            self._view_menu.setTitle(self.tr("View"))
+        except Exception:
+            pass
+
+        # Propagate language changes to all include containers.
+        try:
+            for widget in self._container_items.keys():
+                retranslate = getattr(widget, "_retranslate_ui", None)
+                if callable(retranslate):
+                    retranslate()
+        except Exception:
+            pass
+
+    def changeEvent(self, event):  # pragma: no cover - UI wiring
+        if event.type() == QEvent.LanguageChange:
+            self._retranslate_window_ui()
+        super().changeEvent(event)

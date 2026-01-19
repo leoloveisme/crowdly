@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Optional
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QEvent
 from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
@@ -76,7 +76,8 @@ class AuthDialog(QDialog):
 
         # User name field.
         self._login_username = QLineEdit(widget)
-        form.addRow(QLabel(self.tr("User name"), widget), self._login_username)
+        self._login_username_label = QLabel(self.tr("User name"), widget)
+        form.addRow(self._login_username_label, self._login_username)
 
         # Password field + eye toggle.
         pwd_widget = QWidget(widget)
@@ -94,21 +95,21 @@ class AuthDialog(QDialog):
         pwd_layout.addWidget(self._login_password)
         pwd_layout.addWidget(self._toggle_password_btn)
 
-        form.addRow(QLabel(self.tr("Password"), widget), pwd_widget)
+        self._login_password_label = QLabel(self.tr("Password"), widget)
+        form.addRow(self._login_password_label, pwd_widget)
 
         return widget
 
     def _create_register_tab(self) -> QDialog:
         widget = QDialog(self)
         layout = QVBoxLayout(widget)
-        layout.addWidget(
-            QLabel(
-                self.tr(
-                    "Registration is not implemented yet. Please use an existing account."
-                ),
-                widget,
-            )
+        self._register_info_label = QLabel(
+            self.tr(
+                "Registration is not implemented yet. Please use an existing account."
+            ),
+            widget,
         )
+        layout.addWidget(self._register_info_label)
         layout.addStretch(1)
         return widget
 
@@ -181,3 +182,53 @@ class AuthDialog(QDialog):
             self.tr("You are now logged in as: {username}").format(username=self._username_value),
         )
         self.accept()
+
+    def _retranslate_ui(self) -> None:
+        """(Re-)apply all translatable strings for the current language."""
+
+        # Window title and tabs.
+        self.setWindowTitle(self.tr("Login"))
+        try:
+            self._tabs.setTabText(0, self.tr("Login"))
+            self._tabs.setTabText(1, self.tr("Register"))
+        except Exception:
+            pass
+
+        # Buttons.
+        try:
+            ok_btn = self._buttons.button(QDialogButtonBox.Ok)
+            if ok_btn is not None:
+                ok_btn.setText(self.tr("Login"))
+        except Exception:
+            pass
+
+        # Login tab labels.
+        try:
+            self._login_username_label.setText(self.tr("User name"))
+        except Exception:
+            pass
+        try:
+            self._login_password_label.setText(self.tr("Password"))
+        except Exception:
+            pass
+
+        # Register tab info.
+        try:
+            self._register_info_label.setText(
+                self.tr(
+                    "Registration is not implemented yet. Please use an existing account."
+                )
+            )
+        except Exception:
+            pass
+
+        # Password toggle text based on current state.
+        try:
+            self._on_toggle_password_visibility(self._toggle_password_btn.isChecked())
+        except Exception:
+            pass
+
+    def changeEvent(self, event):  # pragma: no cover - UI wiring
+        if event.type() == QEvent.LanguageChange:
+            self._retranslate_ui()
+        super().changeEvent(event)

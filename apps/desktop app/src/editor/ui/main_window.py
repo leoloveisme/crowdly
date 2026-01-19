@@ -60,7 +60,7 @@ from ..format import story_markup, screenplay_markup
 from .editor_widget import EditorWidget
 from .preview_widget import PreviewWidget
 from .compare_revisions import CompareRevisionsWindow
-from .master_document_window import MasterDocumentWindow
+from .master_document_window import MasterDocumentWindow, master_sync_bus
 
 
 class MainWindow(QMainWindow):
@@ -162,6 +162,14 @@ class MainWindow(QMainWindow):
         # Inline search/replace state.
         self._search_text: str = ""
         self._replace_text: str = ""
+
+        # Shared bus for synchronising chapter edits with MasterDocumentWindow
+        # instances. This is best-effort only and treated as optional so that
+        # older builds without master-document support continue to work.
+        try:
+            self._master_sync_bus = master_sync_bus
+        except Exception:
+            self._master_sync_bus = None
 
         self._setup_central_widgets()
         self._retranslate_ui()
@@ -692,6 +700,58 @@ class MainWindow(QMainWindow):
 
         return True
 
+    def _broadcast_document_content_update(self) -> None:
+        """Notify any master document windows that the current file changed.
+
+        This is a best-effort helper; when no MasterDocumentWindow is
+        interested in the current path the call is effectively a no-op.
+        """
+
+        bus = getattr(self, "_master_sync_bus", None)
+        if bus is None:
+            return
+
+        # Only sync documents that have a concrete on-disk path; pure
+        # in-memory drafts are not part of any master document.
+        path = self._get_current_document_path()
+        if path is None:
+            return
+
+        try:
+            text = getattr(self._document, "content", "") or ""
+        except Exception:
+            text = ""
+
+        try:
+            bus.chapterContentUpdated.emit(path, text)
+        except Exception:
+            # Synchronisation must never interfere with core editing.
+            pass
+
+    def _broadcast_document_closed(self, document: Document | None) -> None:
+        """Notify master document windows that *document* has been closed.
+
+        Only documents with a concrete filesystem path are announced so that
+        master documents referencing those chapters can immediately flush
+        their own autosave timers.
+        """
+
+        bus = getattr(self, "_master_sync_bus", None)
+        if bus is None:
+            return
+        if not isinstance(document, Document):
+            return
+
+        path = getattr(document, "path", None)
+        if not isinstance(path, Path):
+            return
+
+        try:
+            bus.chapterDocumentClosed.emit(path)
+        except Exception:
+            # Again, this must never prevent windows or tabs from closing.
+            pass
+
     def _write_backup_to_home(self, document: Document) -> None:
         """Best-effort: write the document content to ``~/*.bupx``.
 
@@ -1022,6 +1082,9 @@ class MainWindow(QMainWindow):
         self._document.set_content(text)
         self._last_change_from_preview = False
 
+        # Keep any master document window in sync while the user types.
+        self._broadcast_document_content_update()
+
         preview_state = None
         if self.preview.isVisible():
             try:
@@ -1116,6 +1179,9 @@ class MainWindow(QMainWindow):
             canonical_text = text
 
         self._last_change_from_preview = True
+
+        # Keep any master document window in sync while editing via WYSIWYG.
+        self._broadcast_document_content_update()
 
         # Update the plain-text editor without triggering a feedback loop.
         editor_state = None
@@ -1232,6 +1298,23 @@ class MainWindow(QMainWindow):
             doc = None
         if not self._confirm_preserve_input_for_document(doc if isinstance(doc, Document) else None):
             return
+
+        # If the tab being closed is the active one, flush any pending autosave
+        # immediately so that the chapter file reflects the latest changes.
+        if index == getattr(self, "_current_tab_index", -1):
+            try:
+                if self._autosave_timer.isActive():
+                    self._autosave_timer.stop()
+                self._perform_autosave()
+            except Exception:
+                pass
+
+        # Let master document windows know that this chapter is no longer open
+        # in this main window instance.
+        try:
+            self._broadcast_document_closed(doc if isinstance(doc, Document) else None)
+        except Exception:
+            pass
 
         # Special case: closing the only tab should behave like starting a new
         # document rather than removing the tab entirely.
@@ -1789,6 +1872,23 @@ class MainWindow(QMainWindow):
                 return
         except Exception:
             # Never prevent the window from closing due to prompt failures.
+            pass
+
+        # Flush any pending autosave so the current document is written before
+        # the window and its tabs disappear.
+        try:
+            if self._autosave_timer.isActive():
+                self._autosave_timer.stop()
+            self._perform_autosave()
+        except Exception:
+            pass
+
+        # Notify master document windows that any chapter files open in this
+        # window are now closed.
+        try:
+            for doc in list(getattr(self, "_tab_documents", [])):
+                self._broadcast_document_closed(doc if isinstance(doc, Document) else None)
+        except Exception:
             pass
 
         try:

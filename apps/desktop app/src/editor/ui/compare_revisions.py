@@ -19,7 +19,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Sequence
 
-from PySide6.QtCore import Qt, QRectF, QSize
+from PySide6.QtCore import Qt, QRectF, QSize, QEvent
 from PySide6.QtGui import QIcon, QPixmap, QPainter, QPen, QColor, QBrush
 from PySide6.QtWidgets import (
     QButtonGroup,
@@ -323,6 +323,9 @@ class CompareRevisionsWindow(QMainWindow):
 
         self.setCentralWidget(central)
 
+        # Apply current language strings (also refreshed on LanguageChange).
+        self._retranslate_ui()
+
     # Utility ---------------------------------------------------------------
 
     def _checked_indices(self) -> list[int]:
@@ -609,14 +612,87 @@ class CompareRevisionsWindow(QMainWindow):
                 left = vsplit(hsplit(editors[0], editors[1]), editors[3])
                 return hsplit(left, editors[2])
 
-            if idx == 18:
+        if idx == 18:
                 # 1 and 2 stacked on the left; 3 and 4 tall on the right.
                 left = vsplit(editors[0], editors[1])
                 right = vsplit(editors[2], editors[3])
                 return hsplit(left, right)
-
+ 
         return None
 
+    def _retranslate_ui(self) -> None:
+        """(Re-)apply translatable strings for the current language."""
+
+        # Window title.
+        self.setWindowTitle(self.tr("Compare revisions"))
+
+        # Left panel title.
+        try:
+            self._title_label.setText(
+                self.tr("Revisions for: {name}").format(name=self._document_path.name)
+            )
+        except Exception:
+            pass
+
+        # Info label text based on selection count.
+        try:
+            count = len(self._checked_indices())
+            if count < 2:
+                self._info_label.setText(
+                    self.tr("Select 2–4 revisions to enable comparison.")
+                )
+            elif count > 4:
+                self._info_label.setText(
+                    self.tr("You can compare up to 4 revisions at once.")
+                )
+            else:
+                self._info_label.setText(
+                    self.tr("{count} revisions selected.").format(count=count)
+                )
+        except Exception:
+            pass
+
+        # Compare button.
+        try:
+            self._compare_button.setText(self.tr("Compare selected"))
+        except Exception:
+            pass
+
+        # Toolbar label.
+        try:
+            self._toolbar_label.setText(self.tr("Layout:"))
+        except Exception:
+            pass
+
+        # Revision list item labels.
+        try:
+            for row in range(self._revision_list.count()):
+                item = self._revision_list.item(row)
+                if item is None:
+                    continue
+                idx = item.data(Qt.ItemDataRole.UserRole)
+                if not isinstance(idx, int) or not (0 <= idx < len(self._snapshots)):
+                    continue
+                snap = self._snapshots[idx]
+                label = self.tr("Revision {index}").format(index=snap.index + 1)
+                if snap.saved_at:
+                    label = f"{label} – {snap.saved_at}"
+                item.setText(label)
+        except Exception:
+            pass
+
+        # Layout button tooltips.
+        for i, btn in enumerate(getattr(self, "_layout_buttons", [])):
+            try:
+                btn.setToolTip(self.tr("Layout {index}").format(index=i + 1))
+            except Exception:
+                continue
+
+    def changeEvent(self, event):  # pragma: no cover - UI wiring
+        if event.type() == QEvent.LanguageChange:
+            self._retranslate_ui()
+        super().changeEvent(event)
+ 
     def _create_layout_icon(self, geometry: Sequence[tuple[int, int, int, int]]) -> QIcon:
         """Return a small icon visualising the tile geometry.
 
