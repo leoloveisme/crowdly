@@ -225,7 +225,7 @@
     </message>
     <message>
         <source>Import from file...</source>
-        <translation >Импорт из файла...</translation>
+        <translation >из файла...</translation>
     </message>
     <message>
         <source>Synchronisation with</source>

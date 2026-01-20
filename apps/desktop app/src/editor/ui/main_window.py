@@ -897,6 +897,15 @@ class MainWindow(QMainWindow):
         # "Add" entry is always present.
         self._action_spaces_add = menu.addAction(self.tr("Add"), self._spaces_add)
 
+        # Global "Remove" entry to clear the current project space setting.
+        # This mirrors the behaviour of the "Clear project space setting"
+        # action under the Settings menu so that the same operation is
+        # reachable directly from the Spaces menu.
+        self._action_spaces_clear = menu.addAction(
+            self.tr("Remove"),
+            self._clear_project_space,
+        )
+
         spaces = getattr(self, "_spaces", None) or []
         if not spaces:
             return
@@ -2073,6 +2082,8 @@ class MainWindow(QMainWindow):
             self._language_menu.setTitle(self.tr("Change interface language"))
         if hasattr(self, "_action_spaces_add"):
             self._action_spaces_add.setText(self.tr("Add"))
+        if hasattr(self, "_action_spaces_clear"):
+            self._action_spaces_clear.setText(self.tr("Remove"))
         if hasattr(self, "_action_login_logout"):
             if self._logged_in:
                 self._action_login_logout.setText(self.tr("Logout"))
