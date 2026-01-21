@@ -1406,7 +1406,10 @@ class MainWindow(QMainWindow):
         finally:
             self.editor.blockSignals(old_block_state)
 
-        self.preview.set_markdown(self._document.content)
+        # Refresh the WYSIWYG pane according to the document's storage format
+        # so that `.story` / `.screenplay` tabs render via DSL  html instead
+        # of showing raw tags as Markdown.
+        self._refresh_preview_from_document(source="document")
         self._update_document_stats_label()
         self._update_story_link_label()
         self._update_window_title()
@@ -1446,6 +1449,51 @@ class MainWindow(QMainWindow):
         if pane in ("md", "wysiwyg"):
             self._active_pane = pane
 
+    def _refresh_preview_from_document(self, *, source: str = "document") -> None:
+        """Update the preview pane to match the current document.
+
+        For `.story` / `.screenplay` documents the preview is always driven
+        from the DSL so that switching tabs or toggling visibility never shows
+        raw tags. For plain Markdown we preserve the existing behaviour of
+        feeding the preview from either the document body or the editor text.
+        """
+
+        try:
+            storage_format = getattr(self._document, "storage_format", "markdown") or "markdown"
+        except Exception:
+            storage_format = "markdown"
+
+        if storage_format == "story_v1":
+            try:
+                text = getattr(self._document, "content", "") or ""
+            except Exception:
+                text = ""
+            try:
+                html = story_markup.dsl_to_html(text)
+            except Exception:
+                html = ""
+            self.preview.set_html(html)
+        elif storage_format == "screenplay_v1":
+            try:
+                text = getattr(self._document, "content", "") or ""
+            except Exception:
+                text = ""
+            try:
+                html = screenplay_markup.dsl_to_html(text)
+            except Exception:
+                html = ""
+            self.preview.set_html(html)
+        else:
+            # Plain Markdown or unknown formats: keep the original behaviour.
+            if source == "editor":
+                try:
+                    text = self.editor.get_text()
+                except Exception:
+                    text = getattr(self._document, "content", "") or ""
+            else:
+                text = getattr(self._document, "content", "") or ""
+            self.preview.set_markdown(text)
+
     def _set_preview_visible(self, visible: bool) -> None:  # pragma: no cover - UI wiring
         """Show or hide the preview pane without affecting the editor.
 
@@ -1478,7 +1526,7 @@ class MainWindow(QMainWindow):
             except Exception:
                 prev_state = None
 
-            self.preview.set_markdown(self.editor.get_text())
+            self._refresh_preview_from_document(source="editor")
 
             if prev_state:
                 try:

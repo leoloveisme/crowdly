@@ -640,25 +640,37 @@ class PreviewWidget(QWidget):
         """Apply a block-level style.
 
         Indices correspond to the combobox items:
-        - 0: Story title (H1)
-        - 1: Chapter title (H2)
-        - 2: Paragraph
-        - 3: Branch paragraph (placeholder for now; treated like paragraph)
-        - 4: Text
+        - 0: Text formatting (no structural change; use other controls)
+        - 1: Story title (H1)
+        - 2: Chapter title (H2)
+        - 3: Paragraph
+        - 4: Branch paragraph (currently treated like paragraph)
+        - 5: Text (generic body text; treated like paragraph)
         """
+
+        # "Text formatting" is a neutral placeholder entry; it should not
+        # implicitly change the block structure. This lets the user combine the
+        # other toolbar controls (alignment, colors, etc.) without resetting the
+        # current heading level.
+        if index == 0:
+            return
 
         cursor: QTextCursor = self._editor.textCursor()
         block_fmt = cursor.blockFormat()
         char_fmt = cursor.charFormat()
 
-        if index == 0:  # Story title
+        if index == 1:  # Story title
             block_fmt.setHeadingLevel(1)
+            block_fmt.setAlignment(Qt.AlignmentFlag.AlignHCenter)
             char_fmt.setFontWeight(QFont.Weight.Bold)
-        elif index == 1:  # Chapter title
+        elif index == 2:  # Chapter title
             block_fmt.setHeadingLevel(2)
+            block_fmt.setAlignment(Qt.AlignmentFlag.AlignLeft)
             char_fmt.setFontWeight(QFont.Weight.Bold)
         else:
+            # Paragraph / Branch paragraph / Text
             block_fmt.setHeadingLevel(0)
+            block_fmt.setAlignment(Qt.AlignmentFlag.AlignLeft)
             char_fmt.setFontWeight(QFont.Weight.Normal)
 
         cursor.mergeBlockFormat(block_fmt)
