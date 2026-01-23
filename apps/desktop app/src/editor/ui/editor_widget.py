@@ -137,11 +137,25 @@ class EditorWidget(QPlainTextEdit):
     # Zoom handling -------------------------------------------------------
 
     def wheelEvent(self, event) -> None:  # pragma: no cover - UI wiring
-        """Support Ctrl+wheel zooming while preserving normal scrolling."""
+        """Support Ctrl+wheel zooming while preserving normal scrolling.
+
+        On some platforms or pointing devices ``angleDelta().y()`` may be
+        reported as ``0`` even when the wheel or trackpad is scrolled, while
+        ``pixelDelta().y()`` carries the actual movement. To keep zooming
+        reliable we fall back to ``pixelDelta`` when needed and defer to the
+        base implementation when no usable delta is available.
+        """
 
         if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
             delta = event.angleDelta().y()
             if delta == 0:
+                # Fallback for high-resolution / trackpad-style scrolling.
+                delta = event.pixelDelta().y()
+
+            if delta == 0:
+                # No usable delta; let the base implementation handle it so that
+                # scrolling still works instead of swallowing the event.
+                super().wheelEvent(event)
                 return
 
             step = 1 if delta > 0 else -1

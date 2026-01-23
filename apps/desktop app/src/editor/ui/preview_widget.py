@@ -810,11 +810,22 @@ class PreviewWidget(QWidget):
 
         When Ctrl is held, the mouse wheel zooms the rich-text view instead of
         scrolling. The zoom range is clamped to avoid extreme sizes.
+
+        Some touchpads / high-resolution wheels report vertical motion only via
+        ``pixelDelta().y()``; in that case we fall back to it so that zooming
+        works consistently in both directions.
         """
 
         if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
             delta = event.angleDelta().y()
             if delta == 0:
+                # Fallback for devices that only populate pixelDelta.
+                delta = event.pixelDelta().y()
+
+            if delta == 0:
+                # No usable delta; let the underlying QTextEdit handle the event
+                # so normal scrolling still works.
+                super().wheelEvent(event)
                 return
 
             step = 1 if delta > 0 else -1
