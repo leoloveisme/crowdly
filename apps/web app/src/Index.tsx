@@ -496,14 +496,31 @@ const Index: React.FC = () => {
             </div>
             <div style={{ fontSize: 11, color: "#666" }}>
               Accepted formats:
-              <br />
-              \u0000b7 Story or screenplay ID: <code>055b3e41-4f7d-490f-9b29-128b908c3552</code>
-              <br />
-              \u0000b7 Crowdly URL: <code>http://localhost:8080/story/&lt;id&gt;</code> or
-              <code> http://localhost:8080/screenplay/&lt;id&gt;</code>
-              <br />
-              \u0000b7 Web app URL: <code>http://localhost:5173/story/&lt;id&gt;</code> or
-              <code> http://localhost:5173/screenplay/&lt;id&gt;</code>
+              <ul style={{ margin: "4px 0 0", paddingLeft: "18px" }}>
+                <li>
+                  Story or screenplay ID:
+                  {" "}
+                  <code>055b3e41-4f7d-490f-9b29-128b908c3552</code>
+                </li>
+                <li>
+                  Crowdly URL:
+                  {" "}
+                  <code>http://localhost:8080/story/&lt;id&gt;</code>
+                  {" "}
+                  or
+                  {" "}
+                  <code>http://localhost:8080/screenplay/&lt;id&gt;</code>
+                </li>
+                <li>
+                  Web app URL:
+                  {" "}
+                  <code>http://localhost:5173/story/&lt;id&gt;</code>
+                  {" "}
+                  or
+                  {" "}
+                  <code>http://localhost:5173/screenplay/&lt;id&gt;</code>
+                </li>
+              </ul>
             </div>
           </div>
         </div>
