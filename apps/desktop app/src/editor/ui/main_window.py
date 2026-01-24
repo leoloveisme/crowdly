@@ -2054,6 +2054,10 @@ class MainWindow(QMainWindow):
             self._action_new_story.setText(self.tr("Story"))
         if hasattr(self, "_master_document_menu"):
             self._master_document_menu.setTitle(self.tr("Master document"))
+        if hasattr(self, "_action_open_master_document"):
+            self._action_open_master_document.setText(
+                self.tr("Open master document window")
+            )
         if hasattr(self, "_action_new_tab"):
             self._action_new_tab.setText(self.tr("Tab"))
         if hasattr(self, "_action_new_window"):
@@ -2062,6 +2066,10 @@ class MainWindow(QMainWindow):
             self._open_menu.setTitle(self.tr("Open"))
         if hasattr(self, "_file_open_menu"):
             self._file_open_menu.setTitle(self.tr("File"))
+        if hasattr(self, "_master_open_menu"):
+            self._master_open_menu.setTitle(self.tr("Master document"))
+        if hasattr(self, "_action_open_master_file"):
+            self._action_open_master_file.setText(self.tr("From file..."))
         if hasattr(self, "_action_open_story_web"):
             self._action_open_story_web.setText(self.tr("Story on the web"))
         if hasattr(self, "_action_open_file_current_tab"):
@@ -2196,6 +2204,8 @@ class MainWindow(QMainWindow):
         labels_by_code = {
             "en": self.tr("English"),
             "ru": self.tr("Russian"),
+            "pt": self.tr("Portuguese"),
+            "kr": self.tr("Korean"),
             "ar": self.tr("Arabic"),
             "zh-Hans": self.tr("Chinese (Simplified)"),
             "zh-Hant": self.tr("Chinese (Traditional)"),
