@@ -41,12 +41,18 @@ from .file_explorer_widget import FileExplorerWidget
 
 
 class MasterSyncBus(QObject):
-    """Process-wide bus used to keep master documents in sync with chapter edits.
+    """Process-wide bus used to keep master documents and chapters in sync.
 
-    MainWindow instances emit signals when a chapter file's content changes or
-    when a chapter document is closed. Individual MasterDocumentWindow
+    MainWindow instances emit :attr:`chapterContentUpdated` and
+    :attr:`chapterDocumentClosed` when a chapter file's content changes or when
+    a chapter document is closed. Individual :class:`MasterDocumentWindow`
     instances subscribe to these events and update their include containers and
-    `.master` files accordingly.
+    ``.master`` files accordingly.
+
+    Editable include containers inside a :class:`MasterDocumentWindow` emit
+    :attr:`includeContentUpdated` when their content changes so that any
+    :class:`MainWindow` currently editing the same chapter file can refresh its
+    in-memory document and views in real time.
 
     The bus is intentionally lightweight and best-effort only; failures must
     never interfere with core editing behaviour.
@@ -55,6 +61,9 @@ class MasterSyncBus(QObject):
     # `path` is passed as a Path-like object; receivers normalise it as needed.
     chapterContentUpdated = Signal(object, str)
     chapterDocumentClosed = Signal(object)
+    # Emitted when an editable include container's content changes. `path`
+    # identifies the underlying chapter file; `text` is the full new content.
+    includeContentUpdated = Signal(object, str)
 
 
 # Global singleton used by all windows.
@@ -206,6 +215,11 @@ class IncludeContainerWidget(QWidget):
         self._file_path: Path | None = None
         self._collapsed = False
         self._loading_from_master = False
+        # True while content is being updated in response to a change that
+        # originated from the main editor window. This prevents feedback loops
+        # where programmatic updates would otherwise be treated as fresh user
+        # edits and re-broadcast back to the main window.
+        self._syncing_from_main = False
         # Track drag gestures that start from the header/toolbar area.
         self._drag_start_pos: QPoint | None = None
         # Content hash from when this container was last loaded/synced from the master.
@@ -602,6 +616,13 @@ class IncludeContainerWidget(QWidget):
             self._update_height()
             return
 
+        # Ignore updates that originate from the main window via the
+        # MasterSyncBus. In that direction the main editor is the canonical
+        # source of truth and we only need to refresh the visual height.
+        if getattr(self, "_syncing_from_main", False):
+            self._update_height()
+            return
+
         # Only respond to user edits; read-only widgets will not emit textChanged.
         self._update_height()
 
@@ -621,6 +642,20 @@ class IncludeContainerWidget(QWidget):
 
         # Notify the owning master document that content has changed.
         self.contentChanged.emit()
+
+        # When this editable container is bound to a concrete chapter file,
+        # broadcast the updated content via the shared MasterSyncBus so that
+        # any main editor window currently editing the same file can refresh
+        # its in-memory document and views.
+        try:
+            if self._editable and self._file_path is not None:
+                master_sync_bus.includeContentUpdated.emit(
+                    self._file_path,
+                    self._content.toPlainText(),
+                )
+        except Exception:
+            # Synchronisation must never interfere with core editing.
+            pass
 
     def _update_height(self) -> None:
         # Approximate auto-height behaviour by setting a minimum height based
@@ -1183,12 +1218,31 @@ class MasterDocumentWindow(QMainWindow):
             if not same:
                 continue
 
+            # If the container already shows the same text, avoid resetting its
+            # caret/scroll position by reapplying the content.
+            try:
+                existing = widget._content.toPlainText()  # type: ignore[attr-defined]
+                if existing == new_content:
+                    continue
+            except Exception:
+                existing = None
+
             try:
                 # Replace the container content with the latest text from the
                 # main editor. We go through the internal widgets directly to
                 # avoid triggering master-file initialisation paths.
-                widget._content.setPlainText(new_content)  # type: ignore[attr-defined]
-                widget._update_height()  # type: ignore[attr-defined]
+                try:
+                    widget._syncing_from_main = True  # type: ignore[attr-defined]
+                except Exception:
+                    pass
+                try:
+                    widget._content.setPlainText(new_content)  # type: ignore[attr-defined]
+                    widget._update_height()  # type: ignore[attr-defined]
+                finally:
+                    try:
+                        widget._syncing_from_main = False  # type: ignore[attr-defined]
+                    except Exception:
+                        pass
             except Exception:
                 continue
 

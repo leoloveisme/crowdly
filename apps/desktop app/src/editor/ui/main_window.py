@@ -170,6 +170,16 @@ class MainWindow(QMainWindow):
             self._master_sync_bus = master_sync_bus
         except Exception:
             self._master_sync_bus = None
+        else:
+            # Listen for live edits performed inside editable include containers
+            # so that the corresponding chapter stays in sync when it is also
+            # open in this main window. Connections are best-effort only.
+            try:
+                self._master_sync_bus.includeContentUpdated.connect(
+                    self._on_include_content_updated
+                )
+            except Exception:
+                pass
 
         self._setup_central_widgets()
         self._retranslate_ui()
@@ -724,6 +734,42 @@ class MainWindow(QMainWindow):
 
         try:
             bus.chapterContentUpdated.emit(path, text)
+        except Exception:
+            # Synchronisation must never interfere with core editing.
+            pass
+
+    def _on_include_content_updated(self, path_obj: object, new_content: str) -> None:
+        """Refresh the active document when edited in a MasterDocumentWindow.
+
+        This slot is invoked via :data:`master_sync_bus.includeContentUpdated`
+        whenever an editable include container writes new text for a chapter
+        file. When the current document path matches *path_obj*, we treat the
+        update as if it were typed directly into the Markdown pane so that all
+        existing autosave, preview and master-document broadcast logic apply.
+        """
+
+        try:
+            incoming = Path(path_obj)
+        except Exception:
+            return
+
+        path = self._get_current_document_path()
+        if path is None:
+            return
+
+        try:
+            same = path.resolve() == incoming.resolve()
+        except Exception:
+            same = path == incoming
+
+        if not same:
+            return
+
+        try:
+            # Delegate to the existing editor-change handler so that document
+            # state, master-document broadcasts, autosave and preview renders
+            # all stay consistent.
+            self._on_editor_text_changed(new_content)
         except Exception:
             # Synchronisation must never interfere with core editing.
             pass
