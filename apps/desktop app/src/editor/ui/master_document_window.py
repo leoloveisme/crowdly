@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Dict
 from datetime import datetime
 import hashlib
+import difflib
 
 from PySide6.QtCore import Qt, QPoint, Signal, QTimer, QEvent, QObject
 from PySide6.QtGui import QAction
@@ -224,6 +225,11 @@ class IncludeContainerWidget(QWidget):
         self._drag_start_pos: QPoint | None = None
         # Content hash from when this container was last loaded/synced from the master.
         self._master_content_hash: str | None = None
+        # Snapshot of the content from the last master/chapter sync, used as a
+        # best-effort base for diff/merge operations. When unavailable we fall
+        # back to a conservative two-way merge that never discards text from
+        # either side.
+        self._master_base_content: str | None = None
         # Filesystem mtime from when we last read the underlying file.
         self._last_file_mtime: float | None = None
 
@@ -489,12 +495,15 @@ class IncludeContainerWidget(QWidget):
             self._content.setPlainText(content or "")
             self._update_height()
             
-            # Remember the content hash for change detection.
-            # We intentionally do NOT set _last_file_mtime here so that, when a
-            # master document is opened, we always compare the current on-disk
-            # file content to what was stored in the master. This allows us to
-            # detect and merge any external changes immediately on open.
-            self._master_content_hash = self._compute_content_hash(content or "")
+            # Remember the content hash and baseline content for change
+            # detection and merging. We intentionally do NOT set
+            # _last_file_mtime here so that, when a master document is opened,
+            # we always compare the current on-disk file content to what was
+            # stored in the master. This allows us to detect and merge any
+            # external changes immediately on open.
+            baseline = content or ""
+            self._master_base_content = baseline
+            self._master_content_hash = self._compute_content_hash(baseline)
             self._last_file_mtime = None
         finally:
             self._loading_from_master = False
@@ -519,7 +528,8 @@ class IncludeContainerWidget(QWidget):
 
         self._update_height()
         
-        # Update tracking state for change detection.
+        # Update tracking state for change detection and future merges.
+        self._master_base_content = text
         self._master_content_hash = self._compute_content_hash(text)
         try:
             self._last_file_mtime = path.stat().st_mtime
@@ -537,18 +547,68 @@ class IncludeContainerWidget(QWidget):
         except Exception:
             return ""
 
+    def _two_way_merge_text(self, master_text: str, file_text: str) -> str:
+        """Best-effort, conflict-free merge of two text versions.
+
+        The algorithm operates line-by-line using :mod:`difflib` and never
+        discards text from either side. In conflicting regions where both
+        versions changed the same area, it keeps the master lines followed by
+        the file lines. This is intentionally conservative: it may produce
+        duplicated or slightly redundant text, but it avoids silently losing
+        edits.
+        """
+
+        if master_text == file_text:
+            return master_text
+
+        if not master_text:
+            return file_text
+        if not file_text:
+            return master_text
+
+        master_lines = master_text.splitlines()
+        file_lines = file_text.splitlines()
+
+        merged: list[str] = []
+        try:
+            matcher = difflib.SequenceMatcher(a=master_lines, b=file_lines)
+            for tag, alo, ahi, blo, bhi in matcher.get_opcodes():
+                if tag == "equal":
+                    merged.extend(master_lines[alo:ahi])
+                elif tag == "replace":
+                    seg_a = master_lines[alo:ahi]
+                    seg_b = file_lines[blo:bhi]
+                    merged.extend(seg_a)
+                    if seg_b != seg_a:
+                        merged.extend(seg_b)
+                elif tag == "delete":
+                    # Lines only present in the master side are preserved so
+                    # that external deletions on the chapter file cannot
+                    # silently drop content from the master.
+                    merged.extend(master_lines[alo:ahi])
+                elif tag == "insert":
+                    # Lines only present in the chapter file are appended in
+                    # the position indicated by the diff.
+                    merged.extend(file_lines[blo:bhi])
+        except Exception:
+            # If anything goes wrong with the structured merge, fall back to
+            # a simple concatenation that still preserves both versions.
+            merged = master_lines + [""] + file_lines
+
+        return "\n".join(merged)
+
     def check_and_merge_file_changes(self) -> bool:
         """Check if the underlying file has changed and merge updates.
 
         Returns ``True`` if changes were detected and merged, ``False``
         otherwise.
 
-        For editable containers we perform a **conservative merge** that
-        preserves both the container content (typically loaded from the
-        ``.master`` file) and any external edits made directly to the
-        chapter file. In the worst case this can produce duplicated or
-        conflicting text, but it deliberately avoids **losing** changes
-        from either side.
+        For editable containers we perform a **conflict-free, diff-based
+        merge** that preserves both the container content (typically loaded
+        from the ``.master`` file) and any external edits made directly to
+        the chapter file. In the worst case this can produce duplicated or
+        slightly redundant text, but it deliberately avoids **losing**
+        changes from either side.
 
         For read-only containers, the file content always wins.
         """
@@ -586,20 +646,45 @@ class IncludeContainerWidget(QWidget):
         # For read-only containers, always reflect the current file content.
         if not self._editable:
             self._content.setPlainText(file_content)
+            self._master_base_content = file_content
             self._master_content_hash = file_hash
             self._last_file_mtime = current_mtime
             self._update_height()
             return True
 
-        # Editable containers: prefer the latest on-disk file content as the
-        # single source of truth. Now that live editing from the main window
-        # keeps master documents and chapter files in sync, the risk of
-        # divergent content is significantly lower, and always favouring the
-        # chapter file avoids confusing duplicate sections being appended over
-        # time.
-        self._content.setPlainText(file_content)
-        self._master_content_hash = file_hash
-        self._last_file_mtime = current_mtime
+        # Editable containers: perform a conservative, conflict-free merge of
+        # the master/container content and the on-disk chapter content. We
+        # currently use a two-way line-based merge that never drops text from
+        # either side; future versions may take advantage of
+        # ``_master_base_content`` to implement a full three-way merge when a
+        # stable common ancestor is available.
+        try:
+            merged_content = self._two_way_merge_text(container_content, file_content)
+        except Exception:
+            # If anything goes wrong during merging, fall back to concatenation
+            # so that neither version is lost.
+            merged_content = container_content + "\n" + file_content
+
+        # Update both the container and the underlying file so that the
+        # chapter and master representations converge on the merged version.
+        self._content.setPlainText(merged_content)
+        try:
+            storage.write_text(path, merged_content)
+        except Exception:
+            # Best-effort only; if we cannot write back to disk we still keep
+            # the merged content in the container so the master document
+            # reflects all known changes.
+            pass
+
+        # Refresh tracking state to treat the merged content as the new base
+        # for future change detection and merges.
+        self._master_base_content = merged_content
+        self._master_content_hash = self._compute_content_hash(merged_content)
+        try:
+            self._last_file_mtime = path.stat().st_mtime
+        except Exception:
+            self._last_file_mtime = current_mtime
+
         self._update_height()
         return True
 
