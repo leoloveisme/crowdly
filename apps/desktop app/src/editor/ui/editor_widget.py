@@ -6,7 +6,7 @@ behaviour (document loading/saving) is handled by the main window.
 
 from __future__ import annotations
 
-from PySide6.QtCore import Signal, Qt
+from PySide6.QtCore import Signal, Qt, QEvent
 from PySide6.QtWidgets import QPlainTextEdit
 from PySide6.QtGui import QTextCursor
 
@@ -28,9 +28,37 @@ class EditorWidget(QPlainTextEdit):
         # Track zoom level so that we can keep zooming within a sensible range.
         self._zoom_level = 0
 
+        # Ensure we see wheel events even when they are delivered to the
+        # internal viewport widget. This keeps Ctrl+wheel zooming reliable
+        # across all tabs.
+        try:
+            self.viewport().installEventFilter(self)
+        except Exception:
+            # Best-effort only; normal behaviour still works without the filter.
+            pass
+
         # Use a monospaced font by default; the exact font will be chosen by Qt
         # based on platform defaults.
         self.textChanged.connect(self._on_text_changed)
+
+    def eventFilter(self, obj, event):
+        """Route Ctrl+wheel events from the viewport through ``wheelEvent``.
+
+        QAbstractScrollArea delivers wheel events to its internal viewport
+        widget. Installing an event filter here ensures our custom zoom
+        handling runs consistently for every tab.
+        """
+
+        try:
+            if obj is self.viewport() and event.type() == QEvent.Type.Wheel:
+                if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+                    self.wheelEvent(event)
+                    return True
+        except Exception:
+            # Never interfere with normal event delivery if anything goes wrong.
+            return False
+
+        return super().eventFilter(obj, event)
 
     # Public API -----------------------------------------------------------
 

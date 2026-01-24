@@ -7,7 +7,7 @@ source editor.
 
 from __future__ import annotations
 
-from PySide6.QtCore import Signal, Qt
+from PySide6.QtCore import Signal, Qt, QEvent
 from PySide6.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -179,6 +179,14 @@ class PreviewWidget(QWidget):
         # Forward focus from the wrapper widget to the internal editor so
         # callers can treat the preview as a focusable text widget.
         self.setFocusProxy(self._editor)
+
+        # Ensure Ctrl+wheel events delivered to the internal QTextEdit viewport
+        # still drive our custom zoom logic, even when multiple tabs are open.
+        try:
+            self._editor.viewport().installEventFilter(self)
+        except Exception:
+            # Best-effort only; the preview remains functional without this.
+            pass
 
         # Track zoom level for Ctrl+wheel zooming.
         self._zoom_level = 0
@@ -570,6 +578,29 @@ class PreviewWidget(QWidget):
         return "\n".join(lines).rstrip() + "\n"
 
     # Text-widget compatibility layer -------------------------------------
+
+    def eventFilter(self, obj, event):
+        """Route Ctrl+wheel from the inner QTextEdit viewport to ``wheelEvent``.
+
+        This keeps zoom behaviour consistent regardless of which tab or
+        internal widget currently holds the wheel focus.
+        """
+
+        try:
+            viewport = self._editor.viewport()
+        except Exception:
+            viewport = None
+
+        try:
+            if viewport is not None and obj is viewport and event.type() == QEvent.Type.Wheel:
+                if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+                    self.wheelEvent(event)
+                    return True
+        except Exception:
+            # Never let event filtering break basic scrolling/interaction.
+            return False
+
+        return super().eventFilter(obj, event)
 
     def focusInEvent(self, event) -> None:  # pragma: no cover - UI wiring
         """Emit a pane-focused signal when the preview gains focus."""
