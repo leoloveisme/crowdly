@@ -232,11 +232,25 @@ class PreviewWidget(QWidget):
 
         This is used for `.story` / `.screenplay` documents where the
         WYSIWYG pane is driven by a DSL → HTML mapping instead of Markdown.
+
+        To keep Ctrl+wheel zooming consistent for these formats as well,
+        we strip any explicit ``font-size: ...`` declarations from the
+        incoming HTML, just like :meth:`set_markdown` does. Inline
+        ``font-size`` rules can otherwise cause Qt's zoom behaviour to
+        affect only some blocks (e.g. headings) and leave paragraph text
+        visually unchanged.
         """
 
         self._updating_from_source = True
         try:
-            self._editor.setHtml(html or "")
+            cleaned = html or ""
+            cleaned = re.sub(
+                r"font-size:\s*[^;\"']+;?",
+                "",
+                cleaned,
+                flags=re.IGNORECASE,
+            )
+            self._editor.setHtml(cleaned)
         finally:
             self._updating_from_source = False
 
