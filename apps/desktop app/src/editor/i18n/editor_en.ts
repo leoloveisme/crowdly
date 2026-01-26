@@ -28,6 +28,10 @@
         <translation >Create new directory</translation>
     </message>
     <message>
+        <source>Create master document</source>
+        <translation >Create master document</translation>
+    </message>
+    <message>
         <source>Open</source>
         <translation >Open</translation>
     </message>

@@ -217,9 +217,6 @@ class MainWindow(QMainWindow):
         # later iterations (e.g. New, Open, Settings, Toggle distraction-free).
         new_menu = menu.addMenu(self.tr("New"))
         self._new_menu = new_menu
-        self._action_new_document = new_menu.addAction(
-            self.tr("New document"), self._new_document
-        )
         self._action_new_directory = new_menu.addAction(
             self.tr("New directory"), self._new_directory
         )
@@ -228,10 +225,8 @@ class MainWindow(QMainWindow):
             self.tr("Story"), self._new_story_from_template
         )
         # Master Document workspace entry point.
-        master_document_menu = new_menu.addMenu(self.tr("Master document"))
-        self._master_document_menu = master_document_menu
-        self._action_open_master_document = master_document_menu.addAction(
-            self.tr("Open master document window"),
+        self._action_open_master_document = new_menu.addAction(
+            self.tr("Create master document"),
             self._open_master_document_window,
         )
         # Workspace creation helpers.
@@ -2162,7 +2157,7 @@ class MainWindow(QMainWindow):
             self._master_document_menu.setTitle(self.tr("Master document"))
         if hasattr(self, "_action_open_master_document"):
             self._action_open_master_document.setText(
-                self.tr("Open master document window")
+                self.tr("Create master document")
             )
         if hasattr(self, "_action_new_tab"):
             self._action_new_tab.setText(self.tr("Tab"))

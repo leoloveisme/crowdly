@@ -76,6 +76,10 @@
         <translation >из файла</translation>
     </message>
     <message>
+        <source>Create master document</source>
+        <translation >Создать мастер документ</translation>
+    </message>
+    <message>
         <source>Open master document window</source>
         <translation >Откпыть окно создания мастер документа</translation>
     </message>
