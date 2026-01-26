@@ -147,6 +147,10 @@ class MainWindow(QMainWindow):
         # Per-tab caret/scroll state for both panes; entries are dictionaries
         # with optional "md" and "wysiwyg" keys.
         self._tab_caret_states: list[dict[str, object]] = []
+        # Per-tab pane visibility state so each tab can independently choose
+        # between Markdown-only, WYSIWYG-only, or both panes visible.
+        # Each entry is a dict with boolean "md" and "wysiwyg" keys.
+        self._tab_pane_visibility: list[dict[str, bool]] = []
         self._current_tab_index: int = 0
 
         # Simple debounced autosave timer (milliseconds).
@@ -1313,23 +1317,48 @@ class MainWindow(QMainWindow):
         else:
             self._tab_caret_states.insert(index, {})
 
-        # If this is the very first tab, make its widgets the active ones.
+        # Initialise per-tab pane visibility, defaulting from the current
+        # top-bar checkboxes when available so new tabs inherit the user's
+        # current preference.
+        md_visible = True
+        wysiwyg_visible = True
+        if hasattr(self, "_chk_md_editor"):
+            try:
+                md_visible = bool(self._chk_md_editor.isChecked())
+            except Exception:
+                md_visible = True
+        if hasattr(self, "_chk_wysiwyg"):
+            try:
+                wysiwyg_visible = bool(self._chk_wysiwyg.isChecked())
+            except Exception:
+                wysiwyg_visible = True
+
+        # Never allow both panes to be hidden; prefer keeping the Markdown
+        # editor visible as a safe default.
+        if not md_visible and not wysiwyg_visible:
+            md_visible = True
+
+        pane_state = {"md": md_visible, "wysiwyg": wysiwyg_visible}
+        if len(self._tab_pane_visibility) <= index:
+            self._tab_pane_visibility.append(pane_state)
+        else:
+            self._tab_pane_visibility.insert(index, pane_state)
+
+        # If this is the very first tab, make its widgets the active ones and
+        # apply the initial pane visibility immediately.
         if self._tab_widget.count() == 1:
             self.editor = editor
             self.preview = preview
             self._current_tab_index = 0
 
-            # Ensure pane visibility matches the global checkboxes.
-            if hasattr(self, "_chk_md_editor"):
-                try:
-                    self.editor.setVisible(self._chk_md_editor.isChecked())
-                except Exception:
-                    self.editor.setVisible(True)
-            if hasattr(self, "_chk_wysiwyg"):
-                try:
-                    self._set_preview_visible(self._chk_wysiwyg.isChecked())
-                except Exception:
-                    self._set_preview_visible(True)
+            try:
+                self.editor.setVisible(md_visible)
+            except Exception:
+                self.editor.setVisible(True)
+            try:
+                self._set_preview_visible(wysiwyg_visible)
+            except Exception:
+                self._set_preview_visible(True)
 
         return index
 
@@ -1394,6 +1423,8 @@ class MainWindow(QMainWindow):
             self._tab_widgets.pop(index)
             if 0 <= index < len(getattr(self, "_tab_caret_states", [])):
                 self._tab_caret_states.pop(index)
+            if 0 <= index < len(getattr(self, "_tab_pane_visibility", [])):
+                self._tab_pane_visibility.pop(index)
         except Exception:
             pass
 
@@ -1473,17 +1504,43 @@ class MainWindow(QMainWindow):
                 except Exception:
                     pass
 
-        # Keep the pane visibility in sync with the global checkboxes.
+        # Apply per-tab pane visibility so each tab can independently choose
+        # between Markdown-only, WYSIWYG-only, or both panes visible.
+        md_visible = True
+        wysiwyg_visible = True
+        if 0 <= index < len(self._tab_pane_visibility):
+            state = self._tab_pane_visibility[index] or {}
+            md_visible = bool(state.get("md", True))
+            wysiwyg_visible = bool(state.get("wysiwyg", True))
+
+        # Never allow both panes to be hidden; prefer keeping the Markdown
+        # editor visible as a safe default.
+        if not md_visible and not wysiwyg_visible:
+            md_visible = True
+
+        try:
+            self.editor.setVisible(md_visible)
+        except Exception:
+            self.editor.setVisible(True)
+
+        try:
+            self._set_preview_visible(wysiwyg_visible)
+        except Exception:
+            self._set_preview_visible(True)
+
+        # Keep the top-bar checkboxes in sync with the active tab's state
+        # without re-triggering the visibility handlers.
         if hasattr(self, "_chk_md_editor"):
             try:
-                self.editor.setVisible(self._chk_md_editor.isChecked())
+                self._chk_md_editor.blockSignals(True)
+                self._chk_md_editor.setChecked(md_visible)
             except Exception:
-                self.editor.setVisible(True)
-        if hasattr(self, "_chk_wysiwyg"):
-            try:
-                self._set_preview_visible(self._chk_wysiwyg.isChecked())
-            except Exception:
-                self._set_preview_visible(True)
+                pass
+            finally:
+                try:
+                    self._chk_md_editor.blockSignals(False)
+                except Exception:
+                    pass
 
     def _on_pane_focused(self, pane: str) -> None:  # pragma: no cover - UI wiring
         """Remember which pane ("md" or "wysiwyg") is currently active.
@@ -3982,6 +4039,14 @@ class MainWindow(QMainWindow):
 
         self.editor.setVisible(checked)
 
+        # Persist pane visibility for the active tab so each tab can have its
+        # own combination of visible panes.
+        index = getattr(self, "_current_tab_index", -1)
+        if 0 <= index < len(getattr(self, "_tab_pane_visibility", [])):
+            state = self._tab_pane_visibility[index] or {}
+            state["md"] = bool(checked)
+            self._tab_pane_visibility[index] = state
+
     def _on_wysiwyg_checkbox_toggled(self, checked: bool) -> None:  # pragma: no cover - UI wiring
         """Show or hide the WYSIWYG preview pane via the top-bar checkbox.
 
@@ -4007,6 +4072,14 @@ class MainWindow(QMainWindow):
             return
 
         self._set_preview_visible(checked)
+
+        # Persist pane visibility for the active tab so each tab can have its
+        # own combination of visible panes.
+        index = getattr(self, "_current_tab_index", -1)
+        if 0 <= index < len(getattr(self, "_tab_pane_visibility", [])):
+            state = self._tab_pane_visibility[index] or {}
+            state["wysiwyg"] = bool(checked)
+            self._tab_pane_visibility[index] = state
 
     def _show_find_dialog(self) -> None:  # pragma: no cover - UI wiring
         """Show the inline search bar configured for Find-only operations."""
