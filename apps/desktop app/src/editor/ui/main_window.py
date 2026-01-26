@@ -502,8 +502,16 @@ class MainWindow(QMainWindow):
         # splitter so multiple documents can be open at once.
         self._tab_widget = QTabWidget(container)
 
-        # Use a custom tab bar that supports inline renaming.
+        # Use a custom tab bar that supports inline renaming and tab
+        # reordering via drag-and-drop, similar to typical text editors.
         rename_tab_bar = _RenamableTabBar(self._tab_widget)
+        rename_tab_bar.setMovable(True)
+        try:
+            rename_tab_bar.tabMoved.connect(self._on_tab_moved)
+        except Exception:
+            # Best-effort only; if the signal is unavailable we still keep
+            # inline renaming and non-movable tabs.
+            pass
         self._tab_widget.setTabBar(rename_tab_bar)
 
         self._tab_widget.setTabsClosable(True)
@@ -1361,6 +1369,47 @@ class MainWindow(QMainWindow):
                 self._set_preview_visible(True)
 
         return index
+
+    def _on_tab_moved(self, from_index: int, to_index: int) -> None:  # pragma: no cover - UI wiring
+        """Keep internal per-tab state aligned when the user reorders tabs.
+
+        The QTabWidget and its QTabBar handle the visual movement of tabs;
+        this slot mirrors the same reordering in our parallel lists:
+        ``_tab_documents``, ``_tab_widgets``, ``_tab_caret_states`` and
+        ``_tab_pane_visibility`` so that subsequent operations continue to
+        address the correct tab data.
+        """
+
+        try:
+            if from_index == to_index:
+                return
+
+            def _move(lst):
+                if not isinstance(lst, list):
+                    return
+                if from_index < 0 or from_index >= len(lst):
+                    return
+                if to_index < 0 or to_index >= len(lst):
+                    return
+                item = lst.pop(from_index)
+                lst.insert(to_index, item)
+
+            _move(self._tab_documents)
+            _move(self._tab_widgets)
+            _move(self._tab_caret_states)
+            _move(self._tab_pane_visibility)
+
+            # Refresh the cached current index so that it matches the widget.
+            try:
+                current = self._tab_widget.currentIndex()
+                if isinstance(current, int) and current >= 0:
+                    self._current_tab_index = current
+            except Exception:
+                pass
+        except Exception:
+            # Reordering is best-effort; inconsistencies here must not break
+            # the main editor behaviour.
+            return
 
     def _on_tab_close_requested(self, index: int) -> None:  # pragma: no cover - UI wiring
         """Handle requests to close a tab via its 'x' button.
