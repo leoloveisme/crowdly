@@ -116,12 +116,30 @@ const EditableText: React.FC<EditableTextProps> = ({
 
   // If not admin or not in editing mode, just render the content
   if (!isAdmin || !isEditingEnabled) {
+    const isSimpleChild = typeof children === "string";
+
+    // For simple text children, prefer saved content, then local text, then original children
+    if (isSimpleChild) {
+      return (
+        <Component 
+          className={className} 
+          dir={isRTL ? "rtl" : "ltr"}
+        >
+          {elementData?.content || localContent || children}
+        </Component>
+      );
+    }
+
+    // For complex children (e.g., containing links or other markup),
+    // keep the original React structure so links render correctly.
+    // If there is saved plain-text content for this id, prefer it;
+    // otherwise fall back to the original children.
     return (
       <Component 
         className={className} 
         dir={isRTL ? "rtl" : "ltr"}
       >
-        {elementData?.content || localContent || children}
+        {elementData?.content ?? children}
       </Component>
     );
   }

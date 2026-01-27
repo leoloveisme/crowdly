@@ -57,6 +57,19 @@ const CrowdlyFooter = () => {
             </div>
             <div>
               <h3 className="font-semibold text-lg text-indigo-800 dark:text-indigo-100 mb-4">
+                <EditableText id="footer-navigation-title">C(o-c)reate with us</EditableText>
+              </h3>
+              <ul className="space-y-2">
+                <li><Link to="/software" className="text-gray-600 hover:text-pink-600 transition">
+                  <EditableText id="footer-software">Apps and software</EditableText>
+                </Link></li>
+                <li><a href="https://github.com/leoloveisme/crowdly" className="text-gray-600 hover:text-pink-600 transition">
+                  <EditableText id="footer-github">Crowdly on Github</EditableText>
+                </a></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg text-indigo-800 dark:text-indigo-100 mb-4">
                 <EditableText id="footer-community-title">Community</EditableText>
               </h3>
               <ul className="space-y-2">

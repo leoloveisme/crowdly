@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Eye, Menu, X, LogOut, Bell, MessageSquare, User, Users, Heart, Gift, Settings, HelpCircle } from "lucide-react";
+import { SearchBox } from "@/modules/search";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Popover,
@@ -113,16 +114,7 @@ const CrowdlyHeader = () => {
           {/* Center area: Search & language */}
           <div className="flex-1 flex justify-center items-center gap-4">
             <div className="relative hidden md:block">
-              <Input 
-                type="text" 
-                placeholder="Search" 
-                className="w-56 md:w-64 pl-10 bg-white/80 dark:bg-gray-900/60 border-none shadow-inner rounded-xl"
-              />
-              <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                <svg className="w-4 h-4 text-indigo-400" aria-hidden="true" fill="none" viewBox="0 0 20 20">
-                  <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
-                </svg>
-              </div>
+              <SearchBox placeholder="Search" />
             </div>
             <div className="hidden md:block">
               <Select value={currentLanguage} onValueChange={handleLanguageChange}>

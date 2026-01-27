@@ -1080,6 +1080,152 @@ app.get('/locales', async (_req, res) => {
 // Profile endpoints (local Postgres-backed user profiles)
 // ---------------------------------------------------------------------------
 
+// Universal search across stories, screenplays, and users. For regular users
+// only public + published content is included; when includePrivate=true is
+// passed (used by platform admins), non-public rows are also searched.
+app.get('/search', async (req, res) => {
+  const rawQuery = typeof req.query.q === 'string' ? req.query.q : '';
+  const q = rawQuery.trim();
+
+  if (!q) {
+    return res.json({ results: [] });
+  }
+
+  const rawLimit = req.query.limit ? parseInt(String(req.query.limit), 10) : 10;
+  const limit = Number.isFinite(rawLimit) && rawLimit > 0 && rawLimit <= 100 ? rawLimit : 10;
+
+  const includePrivateRaw = String(req.query.includePrivate ?? '').toLowerCase();
+  const includePrivate = includePrivateRaw === 'true' || includePrivateRaw === '1';
+
+  // Basic distribution of per-category limits. The overall results array is
+  // not strictly capped at `limit`, but this keeps individual queries small
+  // while still returning a healthy mix of types.
+  const storyLimit = Math.max(Math.floor(limit * 0.5), 5);
+  const screenplayLimit = Math.max(Math.floor(limit * 0.3), 3);
+  const userLimit = Math.max(limit - storyLimit - screenplayLimit, 3);
+
+  const pattern = `%${q}%`;
+
+  const storyVisibilityFilter = includePrivate
+    ? ''
+    : " AND st.visibility = 'public' AND st.published = true";
+
+  const screenplayVisibilityFilter = includePrivate
+    ? ''
+    : " AND st.visibility = 'public' AND st.published = true";
+
+  try {
+    const storyPromise = pool.query(
+      `SELECT
+         st.story_title_id,
+         st.title AS story_title,
+         s.chapter_id,
+         s.chapter_title,
+         s.created_at,
+         LEFT(COALESCE(s.paragraphs[1]::text, ''), 200) AS snippet
+       FROM story_title st
+       JOIN stories s ON s.story_title_id = st.story_title_id
+       WHERE (st.title ILIKE $1 OR s.chapter_title ILIKE $1 OR s.paragraphs::text ILIKE $1)
+       ${storyVisibilityFilter}
+       ORDER BY s.created_at DESC
+       LIMIT $2`,
+      [pattern, storyLimit],
+    );
+
+    const screenplayPromise = pool.query(
+      `SELECT
+         st.screenplay_id,
+         st.title,
+         st.created_at,
+         COALESCE(MIN(ss.slugline), '') AS slugline
+       FROM screenplay_title st
+       LEFT JOIN screenplay_scene ss ON ss.screenplay_id = st.screenplay_id
+       WHERE (st.title ILIKE $1 OR ss.slugline ILIKE $1)
+       ${screenplayVisibilityFilter}
+       GROUP BY st.screenplay_id, st.title, st.created_at
+       ORDER BY st.created_at DESC
+       LIMIT $2`,
+      [pattern, screenplayLimit],
+    );
+
+    const userPromise = pool.query(
+      `SELECT
+         u.id,
+         u.email,
+         p.username,
+         p.first_name,
+         p.last_name,
+         p.nickname
+       FROM local_users u
+       LEFT JOIN profiles p ON p.id = u.id
+       WHERE (
+         COALESCE(p.username, '') ILIKE $1 OR
+         COALESCE(p.nickname, '') ILIKE $1 OR
+         u.email ILIKE $1 OR
+         COALESCE(p.first_name, '') ILIKE $1 OR
+         COALESCE(p.last_name, '') ILIKE $1
+       )
+       ORDER BY COALESCE(p.username, p.nickname, u.email) ASC
+       LIMIT $2`,
+      [pattern, userLimit],
+    );
+
+    const [storyRows, screenplayRows, userRows] = await Promise.all([
+      storyPromise,
+      screenplayPromise,
+      userPromise,
+    ]);
+
+    const results = [];
+
+    for (const row of storyRows.rows) {
+      results.push({
+        id: `story:${row.story_title_id}:${row.chapter_id}`,
+        type: 'story',
+        title: row.story_title || 'Untitled Story',
+        subtitle: row.chapter_title || null,
+        snippet: row.snippet || null,
+        url: `/story/${row.story_title_id}`,
+        created_at: row.created_at,
+      });
+    }
+
+    for (const row of screenplayRows.rows) {
+      results.push({
+        id: `screenplay:${row.screenplay_id}`,
+        type: 'screenplay',
+        title: row.title || 'Untitled Screenplay',
+        subtitle: row.slugline || null,
+        snippet: row.slugline || null,
+        url: `/screenplay/${row.screenplay_id}`,
+        created_at: row.created_at,
+      });
+    }
+
+    for (const row of userRows.rows) {
+      const fullName = [row.first_name, row.last_name].filter(Boolean).join(' ') || null;
+      const displayName = row.username || row.nickname || row.email || 'User';
+      const slugSource = row.username || row.nickname || row.email || row.id;
+      const profileUrlSafe = encodeURIComponent(String(slugSource));
+
+      results.push({
+        id: `user:${row.id}`,
+        type: 'user',
+        title: displayName,
+        subtitle: fullName,
+        snippet: row.email || null,
+        url: `/${profileUrlSafe}`,
+        created_at: null,
+      });
+    }
+
+    return res.json({ results });
+  } catch (err) {
+    console.error('[GET /search] failed:', err);
+    return res.status(500).json({ error: 'Failed to run search' });
+  }
+});
+
 // Lightweight user search for interaction widgets (e.g. selecting users for
 // per-container visibility lists). This searches local_users joined with
 // profiles and supports simple pagination.

@@ -498,7 +498,15 @@ const Index = () => {
             <div className="rounded-xl shadow bg-gradient-to-r from-pink-50 via-white to-indigo-50 dark:bg-gradient-to-br dark:from-indigo-900/80 dark:to-pink-900/60 mb-5 px-4 py-5 relative animate-fade-in">
               <h2 className="text-xl font-semibold mb-1 flex items-center gap-1">
                 <Heart className="text-pink-500" size={20} />
-                <EditableText id="main-subtitle">Favorites</EditableText>
+                {isAdmin ? (
+                  <EditableText id="main-subtitle">Favorites</EditableText>
+                ) : (
+                  <Link to="/favorites" className="hover:underline text-inherit">
+                    <EditableText id="main-subtitle" as="span">
+                      Favorites
+                    </EditableText>
+                  </Link>
+                )}
               </h2>
               <p className="text-sm text-gray-600 dark:text-gray-300 max-w-2xl">
                 <EditableText id="favoriteStoriesDescriptionText">
@@ -515,9 +523,17 @@ const Index = () => {
             <span className="flex-grow h-0.5 bg-gradient-to-r from-pink-400/50 to-indigo-400/10 rounded"></span>
             <span className="text-lg text-gray-600 dark:text-gray-300 font-semibold shrink-0 animate-fade-in">
               <BookOpen className="inline-block mr-1 text-indigo-500" size={22} />
-              <EditableText id="StoriesToLiveToExperience">
-                Story(-ies) to live / to experience
-              </EditableText>
+              {isAdmin ? (
+                <EditableText id="StoriesToLiveToExperience">
+                  Story(-ies) to live / to experience
+                </EditableText>
+              ) : (
+                <Link to="/story-to-live" className="hover:underline text-inherit">
+                  <EditableText id="StoriesToLiveToExperience" as="span">
+                    Story(-ies) to live / to experience
+                  </EditableText>
+                </Link>
+              )}
             </span>
             <span className="flex-grow h-0.5 bg-gradient-to-l from-pink-400/50 to-indigo-400/10 rounded"></span>
           </div>
@@ -529,7 +545,15 @@ const Index = () => {
               <CardHeader className="bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/30 rounded-t-xl px-4 py-2">
                 <CardTitle className="flex items-center gap-1 text-lg font-semibold">
                   <Clock className="text-cyan-600" size={18} />
-                  <EditableText id="newestStories">Newest Stories</EditableText>
+                  {isAdmin ? (
+                    <EditableText id="newestStories">Newest Stories</EditableText>
+                  ) : (
+                    <Link to="/newest_stories" className="hover:underline text-inherit">
+                      <EditableText id="newestStories" as="span">
+                        Newest Stories
+                      </EditableText>
+                    </Link>
+                  )}
                 </CardTitle>
                 <CardDescription className="text-xs mt-0.5">Recently added stories</CardDescription>
               </CardHeader>
@@ -557,12 +581,20 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            {/* Newest Screnplays */}
+            {/* Newest Screenplays */}
             <Card className="mb-5 overflow-hidden hover-scale shadow animate-fade-in">
               <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/18 rounded-t-xl px-4 py-2">
                 <CardTitle className="flex items-center gap-1 text-lg font-semibold">
                   <Flame className="text-amber-600" size={18} />
-                  <EditableText id="mostPopularStories">Newest Screnplays</EditableText>
+                  {isAdmin ? (
+                    <EditableText id="newestScreenplays">Newest Screenplays</EditableText>
+                  ) : (
+                    <Link to="/newest_screenplays" className="hover:underline text-inherit">
+                      <EditableText id="newestScreenplays" as="span">
+                        Newest Screenplays
+                      </EditableText>
+                    </Link>
+                  )}
                 </CardTitle>
                 <CardDescription className="text-xs mt-0.5">Newest Screnplays to be discovered and loved by the community</CardDescription>
               </CardHeader>
@@ -775,9 +807,17 @@ const Index = () => {
             <span className="flex-grow h-0.5 bg-gradient-to-r from-purple-400/60 to-sky-300/10 rounded"></span>
             <span className="text-lg text-purple-700 dark:text-purple-100 font-semibold shrink-0 animate-fade-in">
               <Bookmark className="inline-block mr-1 text-purple-500" size={22} />
-              <EditableText id="LivingTheStories">
-                Living / Experiencing the story(-ies)
-              </EditableText>
+              {isAdmin ? (
+                <EditableText id="LivingTheStories">
+                  Living / Experiencing the story(-ies)
+                </EditableText>
+              ) : (
+                <Link to="/living_stories" className="hover:underline text-inherit">
+                  <EditableText id="LivingTheStories" as="span">
+                    Living / Experiencing the story(-ies)
+                  </EditableText>
+                </Link>
+              )}
             </span>
             <span className="flex-grow h-0.5 bg-gradient-to-l from-purple-400/60 to-sky-300/10 rounded"></span>
           </div>
@@ -802,9 +842,17 @@ const Index = () => {
             <span className="flex-grow h-0.5 bg-gradient-to-r from-teal-400/60 to-sky-300/10 rounded"></span>
             <span className="text-lg text-teal-700 dark:text-teal-100 font-semibold shrink-0 animate-fade-in">
               <BookOpen className="inline-block mr-1 text-teal-500" size={22} />
-              <EditableText id="LivedThoseStories">
-                Lived / Experienced those story(-ies)
-              </EditableText>
+              {isAdmin ? (
+                <EditableText id="LivedThoseStories">
+                  Lived / Experienced those story(-ies)
+                </EditableText>
+              ) : (
+                <Link to="/lived_stories" className="hover:underline text-inherit">
+                  <EditableText id="LivedThoseStories" as="span">
+                    Lived / Experienced those story(-ies)
+                  </EditableText>
+                </Link>
+              )}
             </span>
             <span className="flex-grow h-0.5 bg-gradient-to-l from-teal-400/60 to-sky-300/10 rounded"></span>
           </div>

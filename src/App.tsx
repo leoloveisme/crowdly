@@ -15,6 +15,7 @@ import StoryToLiveToExperience from "./pages/StoryToLiveToExperience";
 import Profile from "./pages/Profile";
 import Sitemap from "./pages/Sitemap";
 import Lounge from "./pages/Lounge";
+import CrowdlySoftware from "./pages/CrowdlySoftware";
 import AboutUs from "./pages/AboutUs";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -26,6 +27,12 @@ import PublicProfile from "./pages/PublicProfile";
 import CreativeSpacePage from "./pages/CreativeSpacePage";
 import StoryDetails from "./pages/StoryDetails";
 import StoriesSpacesMigration from "./pages/StoriesSpacesMigration";
+import FavoritesOutput from "./pages/FavoritesOutput";
+import NewestStoriesOutput from "./pages/NewestStoriesOutput";
+import LivingStoriesOutput from "./pages/LivingStoriesOutput";
+import LivedStoriesOutput from "./pages/LivedStoriesOutput";
+import NewestScreenplaysOutput from "./pages/NewestScreenplaysOutput";
+import SearchPage from "./pages/Search";
 
 const queryClient = new QueryClient();
 
@@ -48,17 +55,24 @@ const App = () => {
                 <Route path="/story-to-live" element={<StoryToLiveToExperience />} />   
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/sitemap" element={<Sitemap />} />
+                <Route path="/software" element={<CrowdlySoftware />} />
                 <Route path="/about-us" element={<AboutUs />} />
                 <Route path="/lounge" element={<Lounge />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
                 <Route path="/stories/spaces-migration" element={<StoriesSpacesMigration />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                <Route path="/search" element={<SearchPage />} />
                 <Route path="/story/:story_id" element={<Story />} />
                 <Route path="/story/:story_id/chapter/:chapter_id" element={<Story />} />
                 <Route path="/story/:story_id/details" element={<StoryDetails />} />
                 <Route path="/screenplay/:screenplay_id" element={<Screenplay />} />
                 <Route path="/creative_space/:spaceId" element={<CreativeSpacePage />} />
+                <Route path="/favorites" element={<FavoritesOutput />} />
+                <Route path="/newest_stories" element={<NewestStoriesOutput />} />
+                <Route path="/newest_screenplays" element={<NewestScreenplaysOutput />} />
+                <Route path="/living_stories" element={<LivingStoriesOutput />} />
+                <Route path="/lived_stories" element={<LivedStoriesOutput />} />
                 {/* Public user page, e.g. /leolove */}
                 <Route path="/:username" element={<PublicProfile />} />
                 <Route path="*" element={<NotFound />} />
