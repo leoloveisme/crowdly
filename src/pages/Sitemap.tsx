@@ -30,7 +30,7 @@ const Sitemap = () => {
       
       <div className="container mx-auto py-8 flex-grow">
         <h1 className="text-3xl font-bold mb-8 text-center">
-          <EditableText id="sitemap-title">Site Map</EditableText>
+          <EditableText id="sitemap-title">Site map</EditableText>
         </h1>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -98,16 +98,6 @@ const Sitemap = () => {
               </Link>
               
               <Link 
-                to="/story-for-consumers" 
-                className="block p-2 hover:bg-gray-100 rounded-md transition-colors"
-                onClick={() => setShowPopover(false)}
-              >
-                <EditableText id="story-for-consumers">
-                  Story for consumers
-                </EditableText>
-              </Link>
-              
-              <Link 
                 to="/story-to-live" 
                 className="block p-2 hover:bg-gray-100 rounded-md transition-colors"
                 onClick={() => setShowPopover(false)}
@@ -142,7 +132,7 @@ const Sitemap = () => {
             </h2>
             <div className="space-y-2">
                 <EditableText id="sitemap">
-                  Sitemap - This page
+                  Sitemap - current page
                 </EditableText>
             </div>
             <div className="space-y-2">
@@ -151,6 +141,23 @@ const Sitemap = () => {
               >
                 <EditableText id="lounge">
                   Lounge
+                </EditableText>
+              </Link>
+            </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h2 className="text-xl font-semibold mb-4">
+              <EditableText id="about-section">C(o-c)reate with us</EditableText>
+            </h2>
+            <div className="space-y-2">
+              <Link 
+                to="/software" 
+                className="block p-2 hover:bg-gray-100 rounded-md transition-colors"
+                onClick={() => setShowPopover(false)}
+              >
+                <EditableText id="about-us-link">
+                  Crowdly Software
                 </EditableText>
               </Link>
             </div>
