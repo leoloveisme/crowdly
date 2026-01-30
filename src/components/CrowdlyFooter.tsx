@@ -98,8 +98,8 @@ const CrowdlyFooter = () => {
                 <li><a href="#" className="text-gray-600 hover:text-pink-600 transition">
                   <EditableText id="footer-instagram">Instagram</EditableText>
                 </a></li>
-                <li><a href="#" className="text-gray-600 hover:text-pink-600 transition">
-                  <EditableText id="footer-twitter">Twitter</EditableText>
+                <li><a href="https://x.com/CrowdlyE43743" title="Crowdly on X" target="_blank"  className="text-gray-600 hover:text-pink-600 transition">
+                  <EditableText id="footer-twitter">X</EditableText>
                 </a></li>
                 <li><a href="#" className="text-gray-600 hover:text-pink-600 transition">
                   <EditableText id="footer-discord">Discord</EditableText>
@@ -107,7 +107,7 @@ const CrowdlyFooter = () => {
                 <li><a href="#" className="text-gray-600 hover:text-pink-600 transition">
                   <EditableText id="footer-linkedin">LinkedIn</EditableText>
                 </a></li>
-                <li><a href="#" className="text-gray-600 hover:text-pink-600 transition">
+                <li><a href="https://www.youtube.com/@Crowdly.Entertainment" title="Crowdly channel on YouTube" target="_blank" className="text-gray-600 hover:text-pink-600 transition">
                   <EditableText id="footer-youtube">YouTube</EditableText>
                 </a></li>
               </ul>

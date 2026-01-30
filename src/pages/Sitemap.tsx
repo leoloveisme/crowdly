@@ -148,7 +148,7 @@ const Sitemap = () => {
 
           <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-xl font-semibold mb-4">
-              <EditableText id="about-section">C(o-c)reate with us</EditableText>
+              <EditableText id="co-create-section">C(o-c)reate with us</EditableText>
             </h2>
             <div className="space-y-2">
               <Link 
