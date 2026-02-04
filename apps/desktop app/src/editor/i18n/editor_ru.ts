@@ -224,6 +224,30 @@
         <translation >в odt</translation>
     </message>
     <message>
+        <source>as FDX</source>
+        <translation >в FDX</translation>
+    </message>
+    <message>
+        <source>as FOUNTAIN</source>
+        <translation >в FOUNTAIN</translation>
+    </message>
+    <message>
+        <source>Save as</source>
+        <translation >Сохранить как</translation>
+    </message>
+    <message>
+        <source>as .md file</source>
+        <translation >.md файл</translation>
+    </message>
+    <message>
+        <source>as .story file</source>
+        <translation >.story файл</translation>
+    </message>
+    <message>
+        <source>as .screenplay file</source>
+        <translation >.screenplay файл</translation>
+    </message>
+    <message>
         <source>Import</source>
         <translation >Импорт</translation>
     </message>

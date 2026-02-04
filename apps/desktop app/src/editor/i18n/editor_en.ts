@@ -132,6 +132,30 @@
         <translation >as odt</translation>
     </message>
     <message>
+        <source>as FDX</source>
+        <translation >as FDX</translation>
+    </message>
+    <message>
+        <source>as FOUNTAIN</source>
+        <translation >as FOUNTAIN</translation>
+    </message>
+    <message>
+        <source>Save as</source>
+        <translation >Save as</translation>
+    </message>
+    <message>
+        <source>as .md file</source>
+        <translation >.md file</translation>
+    </message>
+    <message>
+        <source>as .story file</source>
+        <translation >.story file</translation>
+    </message>
+    <message>
+        <source>as .screenplay file</source>
+        <translation >.screenplay file</translation>
+    </message>
+    <message>
         <source>Import</source>
         <translation >Import</translation>
     </message>

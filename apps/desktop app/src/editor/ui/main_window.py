@@ -7,6 +7,7 @@ layered on top of this layout.
 
 from __future__ import annotations
 
+import uuid
 from pathlib import Path
 from datetime import datetime
 
@@ -301,6 +302,19 @@ class MainWindow(QMainWindow):
         )
         self._action_export_fountain = export_menu.addAction(
             self.tr("as FOUNTAIN"), self._export_as_fountain
+        )
+
+        # Save as menu: save the current document in different formats.
+        save_as_menu = menu.addMenu(self.tr("Save as"))
+        self._save_as_menu = save_as_menu
+        self._action_save_as_md = save_as_menu.addAction(
+            self.tr("as .md file"), self._save_as_md
+        )
+        self._action_save_as_story = save_as_menu.addAction(
+            self.tr("as .story file"), self._save_as_story
+        )
+        self._action_save_as_screenplay = save_as_menu.addAction(
+            self.tr("as .screenplay file"), self._save_as_screenplay
         )
 
         settings_menu = menu.addMenu(self.tr("Settings"))
@@ -2241,6 +2255,10 @@ class MainWindow(QMainWindow):
         if hasattr(self, "_action_sync_web"):
             self._action_sync_web.setText(self.tr("web platform"))
             self._action_sync_web.setChecked(self._sync_web_platform)
+        if hasattr(self, "_action_sync_current_space"):
+            self._action_sync_current_space.setText(self.tr("Sync current Space now"))
+        if hasattr(self, "_action_pull_current_space"):
+            self._action_pull_current_space.setText(self.tr("Pull updates for current Space"))
         if hasattr(self, "_online_storage_menu"):
             self._online_storage_menu.setTitle(self.tr("online storage"))
         if hasattr(self, "_action_sync_dropbox"):
@@ -2273,6 +2291,14 @@ class MainWindow(QMainWindow):
             self._action_export_fdx.setText(self.tr("as FDX"))
         if hasattr(self, "_action_export_fountain"):
             self._action_export_fountain.setText(self.tr("as FOUNTAIN"))
+        if hasattr(self, "_save_as_menu"):
+            self._save_as_menu.setTitle(self.tr("Save as"))
+        if hasattr(self, "_action_save_as_md"):
+            self._action_save_as_md.setText(self.tr("as .md file"))
+        if hasattr(self, "_action_save_as_story"):
+            self._action_save_as_story.setText(self.tr("as .story file"))
+        if hasattr(self, "_action_save_as_screenplay"):
+            self._action_save_as_screenplay.setText(self.tr("as .screenplay file"))
         if hasattr(self, "_action_choose_project_space"):
             self._action_choose_project_space.setText(
                 self.tr("Create or choose your project space")
@@ -2326,6 +2352,10 @@ class MainWindow(QMainWindow):
             self._preview_toggle.setToolTip(
                 self.tr("Show or hide the preview pane")
             )
+        if hasattr(self, "_chk_md_editor"):
+            self._chk_md_editor.setText(self.tr("Markdown (MD) / HTML"))
+        if hasattr(self, "_chk_wysiwyg"):
+            self._chk_wysiwyg.setText(self.tr("WYSIWYG"))
 
     def _compute_document_stats(self) -> tuple[int, int, int]:
         """Return (words, paragraphs, chapters) for the current document.
@@ -3201,6 +3231,383 @@ class MainWindow(QMainWindow):
             self.tr("Export as Fountain"),
             self.tr("Fountain files (*.fountain);;All files (*)"),
         )
+
+    # ------------------------------------------------------------------
+    # Save as helpers
+    # ------------------------------------------------------------------
+
+    def _is_path_inside_space(self, target_path: Path) -> bool:
+        """Return True if *target_path* is inside the current project space."""
+
+        if self._project_space_path is None:
+            return False
+
+        try:
+            space_resolved = self._project_space_path.resolve()
+            target_resolved = target_path.resolve()
+            return str(target_resolved).startswith(str(space_resolved) + "/") or target_resolved == space_resolved
+        except Exception:
+            return False
+
+    def _show_outside_space_dialog(self, file_type: str) -> str:
+        """Show a dialog when saving .story/.screenplay outside the current Space.
+
+        Returns:
+            "yes" - save outside space, reset space to None
+            "cancel" - abort the operation
+            "set_space" - user wants to set/create new space at target location
+        """
+
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle(self.tr("Save outside Space"))
+        msg_box.setText(
+            self.tr(
+                "You're about to save the {file_type} file outside of a creative Space. "
+                "Do you really want to do that?"
+            ).format(file_type=file_type)
+        )
+
+        yes_btn = msg_box.addButton(self.tr("Yes"), QMessageBox.ButtonRole.AcceptRole)
+        cancel_btn = msg_box.addButton(self.tr("Cancel"), QMessageBox.ButtonRole.RejectRole)
+        set_space_btn = msg_box.addButton(
+            self.tr("Set | Create new Space"), QMessageBox.ButtonRole.ActionRole
+        )
+
+        msg_box.exec()
+
+        clicked = msg_box.clickedButton()
+        if clicked == yes_btn:
+            return "yes"
+        elif clicked == set_space_btn:
+            return "set_space"
+        else:
+            return "cancel"
+
+    def _save_as_md(self) -> None:  # pragma: no cover - UI wiring
+        """Save the current document as a .md file.
+
+        Creates a copy at a new location. If saved outside the current Space,
+        the Space is reset to None and future changes are saved to the new path.
+        """
+
+        content = getattr(self._document, "content", "") or ""
+        if not content.strip():
+            QMessageBox.information(
+                self,
+                self.tr("Save as"),
+                self.tr("The current document is empty; there is nothing to save."),
+            )
+            return
+
+        # Suggest a default filename
+        title = self._guess_document_title() or "untitled"
+        default_name = f"{self._suggest_export_basename(title)}.md"
+
+        start_dir = str(self._project_space_path) if self._project_space_path else ""
+        if start_dir:
+            initial = str(Path(start_dir) / default_name)
+        else:
+            initial = default_name
+
+        path_str, _ = QFileDialog.getSaveFileName(
+            self,
+            self.tr("Save as Markdown"),
+            initial,
+            self.tr("Markdown files (*.md);;All files (*)"),
+        )
+        if not path_str:
+            return
+
+        target_path = Path(path_str)
+        if target_path.suffix.lower() != ".md":
+            target_path = target_path.with_suffix(".md")
+
+        # Check if outside current Space
+        if not self._is_path_inside_space(target_path):
+            # For .md files, simply reset the Space to None without asking
+            if self._project_space_path is not None:
+                self._project_space_path = None
+                self._settings.project_space = None
+                save_settings(self._settings)
+                self._update_project_space_status()
+                self._rebuild_spaces_menu()
+
+        try:
+            # Save via the Document model so metadata and dirty flags stay consistent.
+            self._document.storage_format = "markdown"
+            self._document.kind = "generic"
+            self._document.save(target_path)
+            self._document.is_dirty = False
+
+            self._update_window_title()
+            self._update_story_link_label()
+
+            bar = self.statusBar()
+            if bar is not None:
+                bar.showMessage(
+                    self.tr("Saved document to: {path}").format(path=target_path),
+                    5000,
+                )
+        except Exception:
+            import traceback
+            traceback.print_exc()
+            QMessageBox.critical(
+                self,
+                self.tr("Save failed"),
+                self.tr("An unexpected error occurred while saving the document."),
+            )
+
+    def _save_as_story(self) -> None:  # pragma: no cover - UI wiring
+        """Save the current document as a .story file.
+
+        Creates a new story id and associates it with the newly created file.
+        If saved outside the current Space, shows a confirmation dialog.
+        """
+
+        content = getattr(self._document, "content", "") or ""
+        if not content.strip():
+            QMessageBox.information(
+                self,
+                self.tr("Save as"),
+                self.tr("The current document is empty; there is nothing to save."),
+            )
+            return
+
+        # Suggest a default filename
+        title = self._guess_document_title() or "untitled"
+        default_name = f"{self._suggest_export_basename(title)}.story"
+
+        start_dir = str(self._project_space_path) if self._project_space_path else ""
+        if start_dir:
+            initial = str(Path(start_dir) / default_name)
+        else:
+            initial = default_name
+
+        path_str, _ = QFileDialog.getSaveFileName(
+            self,
+            self.tr("Save as Story"),
+            initial,
+            self.tr("Story files (*.story);;All files (*)"),
+        )
+        if not path_str:
+            return
+
+        target_path = Path(path_str)
+        if target_path.suffix.lower() != ".story":
+            target_path = target_path.with_suffix(".story")
+
+        # Check if outside current Space (or none set at all)
+        if not self._is_path_inside_space(target_path):
+            result = self._show_outside_space_dialog("story")
+            if result == "cancel":
+                return
+            elif result == "yes":
+                # Reset Space to None
+                self._project_space_path = None
+                self._settings.project_space = None
+                save_settings(self._settings)
+                self._update_project_space_status()
+                self._rebuild_spaces_menu()
+            elif result == "set_space":
+                # Set the target directory as the new Space
+                new_space = target_path.parent
+                self._ensure_space_registered(new_space)
+                self._project_space_path = new_space
+                self._settings.project_space = new_space
+                save_settings(self._settings)
+                self._update_project_space_status()
+                self._rebuild_spaces_menu()
+
+        try:
+            # Generate a new story_id
+            new_story_id = str(uuid.uuid4())
+
+            # Convert content to story DSL if not already
+            storage_format = getattr(self._document, "storage_format", "markdown") or "markdown"
+            if storage_format != "story_v1":
+                # Convert markdown to story DSL
+                try:
+                    dsl_content = story_markup.markdown_to_dsl(content)
+                except Exception:
+                    dsl_content = content
+            else:
+                dsl_content = content
+
+            # Write the file
+            storage.write_text(target_path, dsl_content)
+
+            # Set the story metadata
+            file_metadata.set_attr(target_path, file_metadata.FIELD_STORY_ID, new_story_id)
+            file_metadata.set_attr(target_path, file_metadata.FIELD_BODY_FORMAT, "story_v1")
+            file_metadata.set_attr(target_path, file_metadata.FIELD_CREATION_DATE, file_metadata.now_human())
+            file_metadata.touch_change_date(target_path)
+
+            # Update the current document
+            self._document.path = target_path
+            self._document.content = dsl_content
+            self._document.storage_format = "story_v1"
+            self._document.kind = "story"
+            self._document.is_dirty = False
+
+            # Update the editor with the new content
+            old_state = self.editor.blockSignals(True)
+            try:
+                self.editor.setPlainText(dsl_content)
+            finally:
+                self.editor.blockSignals(old_state)
+
+            # Refresh preview
+            try:
+                html = story_markup.dsl_to_html(dsl_content)
+                self.preview.set_html(html)
+            except Exception:
+                self.preview.set_markdown(dsl_content)
+
+            self._update_window_title()
+            self._update_story_link_label()
+
+            bar = self.statusBar()
+            if bar is not None:
+                bar.showMessage(
+                    self.tr("Saved story to: {path} (Story ID: {id})").format(
+                        path=target_path, id=new_story_id
+                    ),
+                    5000,
+                )
+        except Exception:
+            import traceback
+            traceback.print_exc()
+            QMessageBox.critical(
+                self,
+                self.tr("Save failed"),
+                self.tr("An unexpected error occurred while saving the story."),
+            )
+
+    def _save_as_screenplay(self) -> None:  # pragma: no cover - UI wiring
+        """Save the current document as a .screenplay file.
+
+        Creates a new screenplay id and associates it with the newly created file.
+        If saved outside the current Space, shows a confirmation dialog.
+        """
+
+        content = getattr(self._document, "content", "") or ""
+        if not content.strip():
+            QMessageBox.information(
+                self,
+                self.tr("Save as"),
+                self.tr("The current document is empty; there is nothing to save."),
+            )
+            return
+
+        # Suggest a default filename
+        title = self._guess_document_title() or "untitled"
+        default_name = f"{self._suggest_export_basename(title)}.screenplay"
+
+        start_dir = str(self._project_space_path) if self._project_space_path else ""
+        if start_dir:
+            initial = str(Path(start_dir) / default_name)
+        else:
+            initial = default_name
+
+        path_str, _ = QFileDialog.getSaveFileName(
+            self,
+            self.tr("Save as Screenplay"),
+            initial,
+            self.tr("Screenplay files (*.screenplay);;All files (*)"),
+        )
+        if not path_str:
+            return
+
+        target_path = Path(path_str)
+        if target_path.suffix.lower() != ".screenplay":
+            target_path = target_path.with_suffix(".screenplay")
+
+        # Check if outside current Space (or none set at all)
+        if not self._is_path_inside_space(target_path):
+            result = self._show_outside_space_dialog("screenplay")
+            if result == "cancel":
+                return
+            elif result == "yes":
+                # Reset Space to None
+                self._project_space_path = None
+                self._settings.project_space = None
+                save_settings(self._settings)
+                self._update_project_space_status()
+                self._rebuild_spaces_menu()
+            elif result == "set_space":
+                # Set the target directory as the new Space
+                new_space = target_path.parent
+                self._ensure_space_registered(new_space)
+                self._project_space_path = new_space
+                self._settings.project_space = new_space
+                save_settings(self._settings)
+                self._update_project_space_status()
+                self._rebuild_spaces_menu()
+
+        try:
+            # Generate a new screenplay_id
+            new_screenplay_id = str(uuid.uuid4())
+
+            # Convert content to screenplay DSL if not already
+            storage_format = getattr(self._document, "storage_format", "markdown") or "markdown"
+            if storage_format != "screenplay_v1":
+                # Convert markdown to screenplay DSL
+                try:
+                    dsl_content = screenplay_markup.markdown_to_dsl(content)
+                except Exception:
+                    dsl_content = content
+            else:
+                dsl_content = content
+
+            # Write the file
+            storage.write_text(target_path, dsl_content)
+
+            # Set the screenplay metadata
+            file_metadata.set_attr(target_path, "screenplay_id", new_screenplay_id)
+            file_metadata.set_attr(target_path, file_metadata.FIELD_BODY_FORMAT, "screenplay_v1")
+            file_metadata.set_attr(target_path, file_metadata.FIELD_CREATION_DATE, file_metadata.now_human())
+            file_metadata.touch_change_date(target_path)
+
+            # Update the current document
+            self._document.path = target_path
+            self._document.content = dsl_content
+            self._document.storage_format = "screenplay_v1"
+            self._document.kind = "screenplay"
+            self._document.is_dirty = False
+
+            # Update the editor with the new content
+            old_state = self.editor.blockSignals(True)
+            try:
+                self.editor.setPlainText(dsl_content)
+            finally:
+                self.editor.blockSignals(old_state)
+
+            # Refresh preview
+            try:
+                html = screenplay_markup.dsl_to_html(dsl_content)
+                self.preview.set_html(html)
+            except Exception:
+                self.preview.set_markdown(dsl_content)
+
+            self._update_window_title()
+            self._update_story_link_label()
+
+            bar = self.statusBar()
+            if bar is not None:
+                bar.showMessage(
+                    self.tr("Saved screenplay to: {path} (Screenplay ID: {id})").format(
+                        path=target_path, id=new_screenplay_id
+                    ),
+                    5000,
+                )
+        except Exception:
+            import traceback
+            traceback.print_exc()
+            QMessageBox.critical(
+                self,
+                self.tr("Save failed"),
+                self.tr("An unexpected error occurred while saving the screenplay."),
+            )
 
     def _import_from_file(self) -> None:  # pragma: no cover - UI wiring
         """Import content from an external file into the current document.
