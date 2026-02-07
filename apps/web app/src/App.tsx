@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./app.css";
 import Header, { InterfaceLanguage } from "./Header";
+import { ImportPopup, ExportPopup } from "../modules/import-export";
 
 type BlockKind = "title" | "chapter" | "paragraph";
 
@@ -138,6 +139,58 @@ function pickRandom(list: string[], fallback: string): string {
   return list[idx] ?? fallback;
 }
 
+function blocksToHtml(blocks: Block[]): string {
+  const visible = blocks
+    .filter((b) => b.visible)
+    .slice()
+    .sort((a, b) => a.order - b.order);
+
+  const parts: string[] = [];
+  for (const b of visible) {
+    if (b.kind === "title") {
+      parts.push(`<h1>${b.html}</h1>`);
+    } else if (b.kind === "chapter") {
+      parts.push(`<h2>${b.html}</h2>`);
+    } else {
+      parts.push(`<p>${b.html}</p>`);
+    }
+  }
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Crowdly Export</title></head>
+<body>
+${parts.join("\n")}
+</body>
+</html>`;
+}
+
+function blocksToText(blocks: Block[]): string {
+  const visible = blocks
+    .filter((b) => b.visible)
+    .slice()
+    .sort((a, b) => a.order - b.order);
+
+  const lines: string[] = [];
+  for (const b of visible) {
+    // Strip HTML tags to get plain text.
+    const tmp = document.createElement("div");
+    tmp.innerHTML = b.html;
+    const text = tmp.textContent || tmp.innerText || "";
+    if (b.kind === "title") {
+      lines.push(text.toUpperCase());
+      lines.push("");
+    } else if (b.kind === "chapter") {
+      lines.push("");
+      lines.push(text);
+      lines.push("");
+    } else {
+      lines.push(text);
+    }
+  }
+  return lines.join("\n");
+}
+
 const App: React.FC = () => {
   const [interfaceLanguage, setInterfaceLanguage] = useState<InterfaceLanguage>("english");
 
@@ -199,6 +252,9 @@ const App: React.FC = () => {
 
   const longPressTimerRef = useRef<number | null>(null);
   const longPressTargetRef = useRef<HTMLElement | null>(null);
+
+  const [showImportPopup, setShowImportPopup] = useState(false);
+  const [showExportPopup, setShowExportPopup] = useState(false);
 
   const getHtmlFromDom = useCallback((blockId: string) => {
     return document.getElementById(elementId(blockId))?.innerHTML ?? "";
@@ -620,6 +676,17 @@ const App: React.FC = () => {
     window.location.href = "/";
   };
 
+  const getContentHtml = useCallback(() => {
+    const snapshot = snapshotBlocksFromDom(blocks);
+    return blocksToHtml(snapshot);
+  }, [blocks, snapshotBlocksFromDom]);
+
+  const getTitle = useCallback(() => {
+    const snapshot = snapshotBlocksFromDom(blocks);
+    const titleBlock = snapshot.find((b) => b.kind === "title" && b.visible);
+    return titleBlock ? titleBlock.html.replace(/<[^>]*>/g, "").trim() : "Untitled";
+  }, [blocks, snapshotBlocksFromDom]);
+
   // Render all blocks (including hidden) so Aloha can bootstrap them once.
   return (
     <div className="page">
@@ -633,6 +700,13 @@ const App: React.FC = () => {
         onLoginClick={openAuthFromHeader}
         onLogoutClick={handleLogoutFromHeader}
         onRegisterClick={openAuthFromHeader}
+        onCreateClick={() => {
+          // Navigate to the landing page which has the create popup
+          window.location.href = "/";
+        }}
+        onImportClick={() => setShowImportPopup(true)}
+        onExportClick={() => setShowExportPopup(true)}
+        isExportEnabled={hasVisibleContent}
       />
 
       <div className="topbar" onPointerDown={(e) => e.stopPropagation()}>
@@ -846,6 +920,18 @@ const App: React.FC = () => {
           </button>
         </div>
       ) : null}
+
+      <ImportPopup
+        open={showImportPopup}
+        onClose={() => setShowImportPopup(false)}
+      />
+      <ExportPopup
+        open={showExportPopup}
+        onClose={() => setShowExportPopup(false)}
+        getContentHtml={getContentHtml}
+        getTitle={getTitle}
+        contentType="story"
+      />
     </div>
   );
 };

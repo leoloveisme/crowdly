@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Loader2, Users, Clock, GitBranch, BookOpen, Heart } from "lucide-react";
+import { Loader2, Users, Clock, GitBranch, BookOpen, Heart, Download } from "lucide-react";
 import CrowdlyHeader from "@/components/CrowdlyHeader";
 import CrowdlyFooter from "@/components/CrowdlyFooter";
 import EditableText from "@/components/EditableText";
@@ -13,6 +13,7 @@ import StoryContentTypeSelector from "@/components/StoryContentTypeSelector";
 import StoryBranchList from "@/components/StoryBranchList";
 import ContributionsModule, { ContributionRow } from "@/modules/contributions";
 import InteractionsWidget from "@/modules/InteractionsWidget";
+import { ExportDialog } from "@/modules/import-export";
 
 // Use same-origin API base in development; dev server proxies to backend.
 // In production, VITE_API_BASE_URL can point at the deployed API.
@@ -225,6 +226,9 @@ const Story = () => {
   // Story-level favorite state (for Index favorites container)
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
+
+  // Export dialog state
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
   // Minimal inline "add chapter" UI in contribute mode
   const [addChapterMode, setAddChapterMode] = useState(false);
@@ -1242,6 +1246,25 @@ const Story = () => {
     markLiving();
   }, [user?.id, story?.story_title_id]);
 
+  // --- Export helpers (must be above early returns to satisfy React hooks rules) ---
+  const getStoryContentHtml = useCallback((): string => {
+    if (!story || chapters.length === 0) return "";
+    let html = `<h1>${story.title}</h1>\n`;
+    for (const ch of chapters) {
+      html += `<h2>${ch.chapter_title}</h2>\n`;
+      if (Array.isArray(ch.paragraphs)) {
+        for (const p of ch.paragraphs) {
+          html += `<p>${p}</p>\n`;
+        }
+      }
+    }
+    return html;
+  }, [story, chapters]);
+
+  const getStoryTitle = useCallback((): string => {
+    return story?.title || "Untitled Story";
+  }, [story]);
+
   if (loading) {
     return (
       <div className="flex flex-col min-h-screen">
@@ -1741,6 +1764,17 @@ const Story = () => {
                     className="ml-2 inline-flex items-center px-2 py-1 rounded-full border border-dashed border-teal-300 text-[11px] text-teal-700 hover:bg-teal-50"
                   >
                     Mark as finished
+                  </button>
+                )}
+                {user && (
+                  <button
+                    type="button"
+                    onClick={() => setExportDialogOpen(true)}
+                    title="Export this story"
+                    className="ml-2 inline-flex items-center px-2 py-1 rounded-full border border-dashed border-indigo-300 text-[11px] text-indigo-700 hover:bg-indigo-50"
+                  >
+                    <Download className="h-3 w-3 mr-1" />
+                    Export
                   </button>
                 )}
               </div>
@@ -2356,6 +2390,16 @@ const Story = () => {
         {activeTab === "branches" && <BranchesSection storyId={story.story_title_id} />}
       </main>
       <CrowdlyFooter />
+
+      {/* Export Dialog */}
+      <ExportDialog
+        open={exportDialogOpen}
+        onOpenChange={setExportDialogOpen}
+        getContentHtml={getStoryContentHtml}
+        getTitle={getStoryTitle}
+        contentType="story"
+        contentId={story.story_title_id}
+      />
     </div>
   );
 };

@@ -30,6 +30,10 @@ export interface HeaderProps {
   onLoginClick: () => void;
   onLogoutClick: () => void;
   onRegisterClick: () => void;
+  onCreateClick?: () => void;
+  onImportClick?: () => void;
+  onExportClick?: () => void;
+  isExportEnabled?: boolean;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -42,6 +46,10 @@ const Header: React.FC<HeaderProps> = ({
   onLoginClick,
   onLogoutClick,
   onRegisterClick,
+  onCreateClick,
+  onImportClick,
+  onExportClick,
+  isExportEnabled = false,
 }) => {
   const handleLanguageChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     onLanguageChange(event.target.value as InterfaceLanguage);
@@ -109,298 +117,232 @@ const Header: React.FC<HeaderProps> = ({
     void loadSpaces();
   }, [isSpacesOpen]);
 
+  const languageSelect = (
+    <div className="crowdly-header-language">
+      <select
+        name="interface_language"
+        value={language}
+        onChange={handleLanguageChange}
+      >
+        <option value="english">English</option>
+        <option value="russian">Russian</option>
+        <option value="chinese_simpl">Chinese simpl</option>
+        <option value="chinese_trad">Chinese trad</option>
+        <option value="portuguese">Portuguese</option>
+        <option value="arabic">Arabic</option>
+        <option value="korean">Korean</option>
+        <option value="japanese">Japanese</option>
+      </select>
+    </div>
+  );
+
   return (
     <header className="crowdly-header" onPointerDown={(e) => e.stopPropagation()}>
-      {/* Desktop and landscape layout: table-based */}
-      <div className="crowdly-header-desktop">
-        <table width="100%">
-          <tbody>
-            <tr>
-              <td className="crowdly-header-cell" align="left">
-                <a href="http://crowdly.platform" target="_blank" style={{ textDecoration: "none" }}>
-                <img
-                  src="/images/crowdly-app.png"
-                  title="Crowdly logo"
-                  alt="Crowdly logo"
-                  className="crowdly-header-logo"
-                />
-                </a>
-              </td>
-              <td className="crowdly-header-cell" align="left">
-                <strong>
-                  <a href="/" style={{ color: "inherit", textDecoration: "none" }}>
-                    Crowdly web app
-                  </a>
-                </strong>
-              </td>
-              <td className="crowdly-header-cell" align="center">
-                Path: Space | directory | file name
-              </td>
-              <td className="crowdly-header-cell" align="right">
-                <select
-                  name="interface_language"
-                  id="language"
-                  value={language}
-                  onChange={handleLanguageChange}
-                >
-                  <option value="english">English</option>
-                  <option value="russian">Russian</option>
-                  <option value="chinese_simpl">Chinese simpl</option>
-                  <option value="chinese_trad">Chinese trad</option>
-                  <option value="portuguese">Portuguese</option>
-                  <option value="arabic">Arabic</option>
-                  <option value="korean">Korean</option>
-                  <option value="japanese">Japanese</option>
-                </select>
-              </td>
-              <td className="crowdly-header-cell" align="right">
-                {greetingLine}
-              </td>
-              <td className="crowdly-header-cell" align="right">
+      <div className="crowdly-header-bar">
+        <div className="crowdly-header-inner">
+          {/* Logo & title */}
+          <div className="crowdly-header-logo-area">
+            <a
+              href="http://crowdly.platform"
+              target="_blank"
+              className="crowdly-header-logo-box"
+              rel="noreferrer"
+            >
+              <img
+                src="/images/crowdly-app.png"
+                title="Crowdly logo"
+                alt="Crowdly logo"
+                className="crowdly-header-logo"
+              />
+            </a>
+            <span className="crowdly-header-title">
+              <a href="/">Crowdly web app</a>
+            </span>
+          </div>
+
+          {/* Desktop-only: center area with path and language */}
+          <div className="crowdly-header-center crowdly-header-desktop-items">
+            <span className="crowdly-header-path">
+              Space | directory | file name
+            </span>
+            {languageSelect}
+          </div>
+
+          {/* Desktop-only: greeting + auth */}
+          <div className="crowdly-header-right">
+            <div className="crowdly-header-desktop-items">
+              <span className="crowdly-header-greeting">{greetingLine}</span>
+              <div className="crowdly-header-auth-links">
                 {isLoggedIn ? (
-                  <>
-                    <a
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        onLogoutClick();
-                      }}
-                    >
-                      Log out
-                    </a>
-                  </>
+                  <button type="button" onClick={onLogoutClick}>
+                    Log out
+                  </button>
                 ) : (
                   <>
-                    <a
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        onLoginClick();
-                      }}
-                    >
+                    <button type="button" onClick={onLoginClick}>
                       Login
-                    </a>{" "}
-                    |{" "}
-                    <a
-                      href="#"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        onRegisterClick();
-                      }}
-                    >
+                    </button>
+                    <span className="auth-separator">|</span>
+                    <button type="button" onClick={onRegisterClick}>
                       Register
-                    </a>
+                    </button>
                   </>
                 )}
-              </td>
-              <td className="crowdly-header-cell" align="right">
-                <button
-                  type="button"
-                  aria-label="Open menu"
-                  className="crowdly-header-burger"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setIsMenuOpen(true);
-                  }}
-                >
-                  <span />
-                  <span />
-                  <span />
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+              </div>
+            </div>
 
-      {/* Mobile portrait layout: div-based */}
-      <div className="crowdly-header-mobile">
-        <div className="crowdly-header-mobile-row crowdly-header-mobile-row-top">
-          <img
-            src=""
-            title="Crowdly logo"
-            alt="Crowdly logo"
-            className="crowdly-header-logo"
-          />
-          <strong>
-            <a href="/" style={{ color: "inherit", textDecoration: "none" }}>
-              Crowdly web app
-            </a>
-          </strong>
-          <button
-            type="button"
-            aria-label="Open menu"
-            className="crowdly-header-burger"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setIsMenuOpen(true);
-            }}
-          >
-            <span />
-            <span />
-            <span />
-          </button>
-        </div>
-        <div className="crowdly-header-mobile-row crowdly-header-mobile-row-path">
-          Path: Space | directory | file name
-        </div>
-        <div className="crowdly-header-mobile-row crowdly-header-mobile-row-bottom">
-          <div className="crowdly-header-mobile-language-and-greeting">
-            <select
-              name="interface_language"
-              id="language-mobile"
-              value={language}
-              onChange={handleLanguageChange}
-            >
-              <option value="english">English</option>
-              <option value="russian">Russian</option>
-              <option value="chinese_simpl">Chinese simpl</option>
-              <option value="chinese_trad">Chinese trad</option>
-              <option value="portuguese">Portuguese</option>
-              <option value="arabic">Arabic</option>
-              <option value="korean">Korean</option>
-              <option value="japanese">Japanese</option>
-            </select>
-
-            {greetingLine}{" "}
-            {isLoggedIn ? (
-              <a
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  onLogoutClick();
-                }}
-              >
-                Log out
-              </a>
-            ) : (
-              <>
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    onLoginClick();
-                  }}
-                >
-                  Login
-                </a>{" "}
-                |{" "}
-                <a
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    onRegisterClick();
-                  }}
-                >
-                  Register
-                </a>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Global header burger menu */}
-      {isMenuOpen && (
-        <div
-          onClick={() => {
-            setIsMenuOpen(false);
-          }}
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.45)",
-            display: "flex",
-            justifyContent: "flex-end",
-            alignItems: "flex-start",
-            zIndex: 1500,
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              marginTop: 56,
-              marginRight: 12,
-              backgroundColor: "#ffffff",
-              borderRadius: 12,
-              padding: "12px 16px",
-              minWidth: 180,
-              boxShadow: "0 12px 30px rgba(0,0,0,0.25)",
-              fontSize: 13,
-            }}
-          >
+            {/* Burger button – always visible */}
             <button
               type="button"
+              aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+              className="crowdly-header-burger"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsMenuOpen((prev) => !prev);
+              }}
+            >
+              <div className={`crowdly-burger-icon ${isMenuOpen ? "is-open" : ""}`}>
+                <span />
+                <span />
+                <span />
+              </div>
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile panel (visible at <=768px when menu is open) */}
+        {isMenuOpen && (
+          <div className="crowdly-mobile-panel crowdly-header-mobile-only">
+            {languageSelect}
+            <div className="crowdly-header-greeting">{greetingLine}</div>
+            <div className="crowdly-header-auth-links">
+              {isLoggedIn ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    onLogoutClick();
+                  }}
+                >
+                  Log out
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      onLoginClick();
+                    }}
+                  >
+                    Login
+                  </button>
+                  <span className="auth-separator">|</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      onRegisterClick();
+                    }}
+                  >
+                    Register
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Dropdown menu (burger) */}
+      {isMenuOpen && (
+        <>
+          <div
+            className="crowdly-menu-overlay"
+            onClick={() => setIsMenuOpen(false)}
+          />
+          <div
+            className="crowdly-menu-dropdown"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {onCreateClick && (
+              <button
+                type="button"
+                className="crowdly-menu-item"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  onCreateClick();
+                }}
+              >
+                Create
+              </button>
+            )}
+            {onImportClick && (
+              <button
+                type="button"
+                className="crowdly-menu-item"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  onImportClick();
+                }}
+              >
+                Import
+              </button>
+            )}
+            {onExportClick && (
+              <button
+                type="button"
+                className={`crowdly-menu-item ${!isExportEnabled ? "disabled" : ""}`}
+                onClick={() => {
+                  if (!isExportEnabled) return;
+                  setIsMenuOpen(false);
+                  onExportClick();
+                }}
+                title={
+                  isExportEnabled
+                    ? "Export current story or screenplay"
+                    : "Export is only available on a story or screenplay page"
+                }
+              >
+                Export{!isExportEnabled ? " (open a story first)" : ""}
+              </button>
+            )}
+
+            {(onCreateClick || onImportClick || onExportClick) && (
+              <hr className="crowdly-menu-separator" />
+            )}
+
+            <button
+              type="button"
+              className="crowdly-menu-item"
               onClick={() => {
                 setIsMenuOpen(false);
                 setIsSpacesOpen(true);
-              }}
-              style={{
-                display: "block",
-                width: "100%",
-                padding: "6px 4px",
-                textAlign: "left",
-                border: "none",
-                background: "transparent",
-                cursor: "pointer",
               }}
             >
               Space(s)
             </button>
           </div>
-        </div>
+        </>
       )}
 
-      {/* Spaces popup using CreativeSpacesModule */}
+      {/* Spaces popup */}
       {isSpacesOpen && (
         <div
-          onClick={() => {
-            setIsSpacesOpen(false);
-          }}
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.55)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1550,
-          }}
+          className="crowdly-spaces-overlay"
+          onClick={() => setIsSpacesOpen(false)}
         >
           <div
+            className="crowdly-spaces-card"
             onClick={(e) => e.stopPropagation()}
-            style={{
-              maxWidth: 520,
-              width: "100%",
-              margin: 12,
-              backgroundColor: "#ffffff",
-              borderRadius: 12,
-              padding: 16,
-              boxSizing: "border-box",
-              boxShadow: "0 16px 40px rgba(0,0,0,0.35)",
-            }}
           >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: 8,
-              }}
-            >
-              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Space(s)</h2>
+            <div className="crowdly-spaces-header">
+              <h2>Space(s)</h2>
               <button
                 type="button"
+                className="crowdly-spaces-close"
                 onClick={() => setIsSpacesOpen(false)}
-                style={{
-                  border: "none",
-                  background: "transparent",
-                  cursor: "pointer",
-                  fontSize: 18,
-                  lineHeight: 1,
-                }}
               >
                 ×
               </button>

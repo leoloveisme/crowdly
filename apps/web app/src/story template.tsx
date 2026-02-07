@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./app.css";
 import Header, { InterfaceLanguage } from "./Header";
+import { ImportPopup, ExportPopup } from "../modules/import-export";
 
 type BlockKind = "title" | "chapter" | "paragraph";
 
@@ -148,6 +149,20 @@ function pickRandom(list: string[], fallback: string): string {
   return list[idx] ?? fallback;
 }
 
+function blocksToHtml(blocks: Block[]): string {
+  const visible = blocks
+    .filter((b) => b.visible)
+    .slice()
+    .sort((a, b) => a.order - b.order);
+  const parts: string[] = [];
+  for (const b of visible) {
+    if (b.kind === "title") parts.push(`<h1>${b.html}</h1>`);
+    else if (b.kind === "chapter") parts.push(`<h2>${b.html}</h2>`);
+    else parts.push(`<p>${b.html}</p>`);
+  }
+  return parts.join("\n");
+}
+
 const App: React.FC = () => {
   const [interfaceLanguage, setInterfaceLanguage] = useState<InterfaceLanguage>("english");
 
@@ -232,6 +247,8 @@ const App: React.FC = () => {
 
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [resetConfirmation, setResetConfirmation] = useState("");
+  const [showImportPopup, setShowImportPopup] = useState(false);
+  const [showExportPopup, setShowExportPopup] = useState(false);
 
   const DANGER_CONFIRM_TEXT =
     "Yes, I want to reset the story. I'm aware that I will lose ALL content from this story.";
@@ -1024,6 +1041,17 @@ const App: React.FC = () => {
     window.location.href = "/";
   };
 
+  const getContentHtml = useCallback(() => {
+    const snapshot = snapshotBlocksFromDom(blocks);
+    return blocksToHtml(snapshot);
+  }, [blocks, snapshotBlocksFromDom]);
+
+  const getTitle = useCallback(() => {
+    const snapshot = snapshotBlocksFromDom(blocks);
+    const titleBlock = snapshot.find((b) => b.kind === "title" && b.visible);
+    return titleBlock ? titleBlock.html.replace(/<[^>]*>/g, "").trim() : "Untitled";
+  }, [blocks, snapshotBlocksFromDom]);
+
   // Render all blocks (including hidden) so Aloha can bootstrap them once.
   return (
     <div className="page">
@@ -1037,6 +1065,12 @@ const App: React.FC = () => {
         onLoginClick={openAuthFromHeader}
         onLogoutClick={handleLogoutFromHeader}
         onRegisterClick={openAuthFromHeader}
+        onCreateClick={() => {
+          window.location.href = "/";
+        }}
+        onImportClick={() => setShowImportPopup(true)}
+        onExportClick={() => setShowExportPopup(true)}
+        isExportEnabled={hasVisibleContent}
       />
 
       <div className="topbar" onPointerDown={(e) => e.stopPropagation()}>
@@ -1425,6 +1459,19 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
+
+      <ImportPopup
+        open={showImportPopup}
+        onClose={() => setShowImportPopup(false)}
+      />
+      <ExportPopup
+        open={showExportPopup}
+        onClose={() => setShowExportPopup(false)}
+        getContentHtml={getContentHtml}
+        getTitle={getTitle}
+        contentType="story"
+        contentId={storyTitleId ?? undefined}
+      />
     </div>
   );
 };

@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Heart } from "lucide-react";
+import { Heart, Download } from "lucide-react";
 import InteractionsWidget from "@/modules/InteractionsWidget";
+import { ExportDialog } from "@/modules/import-export";
 
 // Use same-origin API base in development; dev server proxies to backend.
 // In production, VITE_API_BASE_URL can point at the deployed API.
@@ -82,6 +83,7 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
 
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
   const canEdit = !!user;
 
@@ -775,6 +777,38 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
     blocksByScene.set(key, arr);
   }
 
+  // --- Export helpers ---
+  const getScreenplayContentHtml = useCallback((): string => {
+    if (!screenplayId || scenes.length === 0) return "";
+    let html = `<h1>${title}</h1>\n`;
+    for (const scene of scenes) {
+      html += `<h2>${scene.slugline || "UNTITLED SCENE"}</h2>\n`;
+      const sceneBlocks = blocks.filter((b) => b.scene_id === scene.scene_id);
+      sceneBlocks.sort((a, b) => a.block_index - b.block_index);
+      for (const block of sceneBlocks) {
+        const typeLabel = BLOCK_TYPE_LABELS.find((t) => t.value === block.block_type)?.label || block.block_type;
+        if (block.block_type === "scene_heading") {
+          html += `<h3>${block.text}</h3>\n`;
+        } else if (block.block_type === "character") {
+          html += `<p><strong>${block.text}</strong></p>\n`;
+        } else if (block.block_type === "dialogue") {
+          html += `<p style="margin-left:2em">${block.text}</p>\n`;
+        } else if (block.block_type === "parenthetical") {
+          html += `<p style="margin-left:2em"><em>${block.text}</em></p>\n`;
+        } else if (block.block_type === "transition") {
+          html += `<p style="text-align:right"><strong>${block.text}</strong></p>\n`;
+        } else {
+          html += `<p>${block.text}</p>\n`;
+        }
+      }
+    }
+    return html;
+  }, [screenplayId, title, scenes, blocks]);
+
+  const getScreenplayTitle = useCallback((): string => {
+    return title || "Untitled Screenplay";
+  }, [title]);
+
   if (!user) {
     return (
       <div className="border rounded-lg bg-white p-4 text-sm text-gray-600">
@@ -831,6 +865,17 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
                   className="inline-flex items-center px-2 py-1 rounded-full border border-dashed border-teal-300 text-[11px] text-teal-700 hover:bg-teal-50 ml-2"
                 >
                   Mark as finished
+                </button>
+              )}
+              {user && screenplayId && (
+                <button
+                  type="button"
+                  onClick={() => setExportDialogOpen(true)}
+                  title="Export this screenplay"
+                  className="inline-flex items-center px-2 py-1 rounded-full border border-dashed border-indigo-300 text-[11px] text-indigo-700 hover:bg-indigo-50 ml-2"
+                >
+                  <Download className="h-3 w-3 mr-1" />
+                  Export
                 </button>
               )}
             </div>
@@ -1026,6 +1071,18 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
             </div>
           )}
         </div>
+      )}
+
+      {/* Export Dialog */}
+      {screenplayId && (
+        <ExportDialog
+          open={exportDialogOpen}
+          onOpenChange={setExportDialogOpen}
+          getContentHtml={getScreenplayContentHtml}
+          getTitle={getScreenplayTitle}
+          contentType="screenplay"
+          contentId={screenplayId}
+        />
       )}
     </div>
   );

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Header, { InterfaceLanguage } from "./Header";
+import { ImportPopup, ExportPopup } from "../modules/import-export";
 
 // In this standalone editor, talk directly to the Crowdly backend.
 // Prefer VITE_API_BASE_URL if provided; otherwise fall back to using
@@ -142,6 +143,8 @@ const ScreenplayEditor: React.FC = () => {
   const [activeEditableId, setActiveEditableId] = useState<string | null>(null);
   const longPressTimerRef = useRef<number | null>(null);
   const longPressTargetRef = useRef<HTMLElement | null>(null);
+  const [showImportPopup, setShowImportPopup] = useState(false);
+  const [showExportPopup, setShowExportPopup] = useState(false);
 
   const isLoggedIn = !!authUser;
   const username = authUser?.email || "username";
@@ -293,6 +296,35 @@ const ScreenplayEditor: React.FC = () => {
     },
     [canEdit],
   );
+
+  const getContentHtml = useCallback(() => {
+    const parts: string[] = [];
+    if (title) parts.push(`<h1>${title}</h1>`);
+    const sortedScenes = [...scenes].sort((a, b) => a.scene_index - b.scene_index);
+    for (const scene of sortedScenes) {
+      parts.push(`<h2>${scene.slugline || "Scene"}</h2>`);
+      const sceneBlocks = blocks
+        .filter((b) => b.scene_id === scene.scene_id)
+        .sort((a, b) => a.block_index - b.block_index);
+      for (const block of sceneBlocks) {
+        const text = stripHtml(block.text);
+        if (block.block_type === "character") {
+          parts.push(`<p><strong>${text}</strong></p>`);
+        } else if (block.block_type === "dialogue") {
+          parts.push(`<p><em>${text}</em></p>`);
+        } else if (block.block_type === "parenthetical") {
+          parts.push(`<p>(${text})</p>`);
+        } else {
+          parts.push(`<p>${text}</p>`);
+        }
+      }
+    }
+    return parts.join("\n");
+  }, [title, scenes, blocks]);
+
+  const getTitle = useCallback(() => {
+    return title || "Untitled Screenplay";
+  }, [title]);
 
   const openAuthFromHeader = () => {
     // For now, route back to the landing page where the auth popup lives.
@@ -750,6 +782,10 @@ const ScreenplayEditor: React.FC = () => {
           onLoginClick={openAuthFromHeader}
           onLogoutClick={handleLogoutFromHeader}
           onRegisterClick={openAuthFromHeader}
+          onCreateClick={() => { window.location.href = "/"; }}
+          onImportClick={() => setShowImportPopup(true)}
+          onExportClick={() => {}}
+          isExportEnabled={false}
         />
         <div className="empty-state">
           <p>Screenplay not found.</p>
@@ -777,6 +813,10 @@ const ScreenplayEditor: React.FC = () => {
         onLoginClick={openAuthFromHeader}
         onLogoutClick={handleLogoutFromHeader}
         onRegisterClick={openAuthFromHeader}
+        onCreateClick={() => { window.location.href = "/"; }}
+        onImportClick={() => setShowImportPopup(true)}
+        onExportClick={() => setShowExportPopup(true)}
+        isExportEnabled={scenes.length > 0}
       />
 
       <main className="flex-1 p-4">
@@ -974,6 +1014,19 @@ const ScreenplayEditor: React.FC = () => {
           )}
         </div>
       </main>
+
+      <ImportPopup
+        open={showImportPopup}
+        onClose={() => setShowImportPopup(false)}
+      />
+      <ExportPopup
+        open={showExportPopup}
+        onClose={() => setShowExportPopup(false)}
+        getContentHtml={getContentHtml}
+        getTitle={getTitle}
+        contentType="screenplay"
+        contentId={screenplayId ?? undefined}
+      />
     </div>
   );
 };
