@@ -467,6 +467,34 @@ Details: {error}</source>
         <source>Genre updated.</source>
         <translation >Жанр обновлён.</translation>
     </message>
+    <message>
+        <source>Session control</source>
+        <translation>Управление сессией</translation>
+    </message>
+    <message>
+        <source>Here you can decide how the session control for closing of the app should work.</source>
+        <translation>Здесь вы можете выбрать, как должно работать управление сессией при закрытии приложения.</translation>
+    </message>
+    <message>
+        <source>The app will:</source>
+        <translation>Приложение будет:</translation>
+    </message>
+    <message>
+        <source>Close all its tabs and clear creative / project Space</source>
+        <translation>Закрыть все вкладки и очистить креативное пространство / проект</translation>
+    </message>
+    <message>
+        <source>Keep the current session (saves all the opened tabs and windows, and the Space remains set)</source>
+        <translation>Сохранить текущую сессию (сохраняет все открытые вкладки и окна, креативное пространство остаётся установленным)</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>Сохранить</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Отмена</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>

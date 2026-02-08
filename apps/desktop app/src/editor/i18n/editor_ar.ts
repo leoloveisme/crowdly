@@ -371,5 +371,33 @@ Details: {error}</translation>
       <source>Genre updated.</source>
       <translation>Genre updated.</translation>
     </message>
+    <message>
+      <source>Session control</source>
+      <translation>التحكم بالجلسة</translation>
+    </message>
+    <message>
+      <source>Here you can decide how the session control for closing of the app should work.</source>
+      <translation>هنا يمكنك تحديد كيفية عمل التحكم بالجلسة عند إغلاق التطبيق.</translation>
+    </message>
+    <message>
+      <source>The app will:</source>
+      <translation>سيقوم التطبيق بـ:</translation>
+    </message>
+    <message>
+      <source>Close all its tabs and clear creative / project Space</source>
+      <translation>إغلاق جميع علامات التبويب ومسح المساحة الإبداعية / مساحة المشروع</translation>
+    </message>
+    <message>
+      <source>Keep the current session (saves all the opened tabs and windows, and the Space remains set)</source>
+      <translation>الاحتفاظ بالجلسة الحالية (يحفظ جميع علامات التبويب والنوافذ المفتوحة، وتبقى المساحة محددة)</translation>
+    </message>
+    <message>
+      <source>Save</source>
+      <translation>حفظ</translation>
+    </message>
+    <message>
+      <source>Cancel</source>
+      <translation>إلغاء</translation>
+    </message>
   </context>
 </TS>

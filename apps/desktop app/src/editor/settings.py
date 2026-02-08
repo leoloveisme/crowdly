@@ -49,6 +49,22 @@ class Settings:
     # multi-device scenarios.
     space_sync_state: dict[str, dict[str, str]] = field(default_factory=dict)
 
+    # Session control behaviour when the application closes.
+    # "close_all"    – close all tabs and clear the creative / project space
+    #                  (default).
+    # "keep_session" – keep the current session (tabs, space) as-is so they
+    #                  are restored on the next launch.
+    session_control: str = "close_all"
+
+    # Paths of files that were open in tabs when the application last closed
+    # with ``session_control == "keep_session"``.  Each entry is a filesystem
+    # path (stored as a string in JSON).  The list order matches the tab order.
+    session_open_tabs: list[str] = field(default_factory=list)
+
+    # Index of the tab that was active when the session was saved, so the same
+    # tab can be focused on restore.
+    session_active_tab: int = 0
+
 
 def _get_config_dir() -> Path:
     """Return the directory where configuration files are stored."""
@@ -114,6 +130,21 @@ def load_settings() -> Settings:
                     cleaned[k2] = v2
             space_sync_state[key] = cleaned
 
+    session_control = raw.get("session_control", "close_all")
+    if session_control not in ("close_all", "keep_session"):
+        session_control = "close_all"
+
+    raw_tabs = raw.get("session_open_tabs") or []
+    session_open_tabs: list[str] = []
+    if isinstance(raw_tabs, list):
+        for entry in raw_tabs:
+            if isinstance(entry, str) and entry:
+                session_open_tabs.append(entry)
+
+    session_active_tab = raw.get("session_active_tab", 0)
+    if not isinstance(session_active_tab, int) or session_active_tab < 0:
+        session_active_tab = 0
+
     settings = Settings(
         project_space=project_space,
         spaces=spaces,
@@ -121,6 +152,9 @@ def load_settings() -> Settings:
         crowdly_base_url=crowdly_base_url,
         device_id=device_id,
         space_sync_state=space_sync_state,
+        session_control=session_control,
+        session_open_tabs=session_open_tabs,
+        session_active_tab=session_active_tab,
     )
 
     # Ensure device_id is persisted for older configs.

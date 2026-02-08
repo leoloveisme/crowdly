@@ -12,12 +12,14 @@ from pathlib import Path
 from datetime import datetime
 
 from PySide6.QtWidgets import (
+    QButtonGroup,
     QFileDialog,
     QHBoxLayout,
     QLabel,
     QMainWindow,
     QMenu,
     QMessageBox,
+    QRadioButton,
     QSplitter,
     QStatusBar,
     QToolButton,
@@ -406,6 +408,10 @@ class MainWindow(QMainWindow):
             self._language_actions[code] = action
 
         self._update_language_actions()
+
+        self._action_session_control = settings_menu.addAction(
+            self.tr("Session control"), self._show_session_control_dialog
+        )
 
         # "View" menu removed; pane visibility is now controlled via
         # checkboxes in the top bar.
@@ -2108,6 +2114,35 @@ class MainWindow(QMainWindow):
                 self._broadcast_document_closed(doc if isinstance(doc, Document) else None)
         except Exception:
             pass
+
+        # Session control: when set to "close_all" (the default), clear all
+        # tabs and the creative / project space so the next launch starts
+        # fresh.  When set to "keep_session" the open tab paths are persisted
+        # so they can be restored on the next launch.
+        session_mode = getattr(self._settings, "session_control", "close_all")
+        if session_mode == "close_all":
+            try:
+                self._project_space_path = None
+                self._settings.project_space = None
+                self._settings.session_open_tabs = []
+                self._settings.session_active_tab = 0
+                save_settings(self._settings)
+            except Exception:
+                pass
+        else:
+            # "keep_session" – persist every open tab that has a saved file so
+            # they can be re-opened on the next launch.
+            try:
+                tab_paths: list[str] = []
+                for doc in self._tab_documents:
+                    p = getattr(doc, "path", None)
+                    if isinstance(p, Path) and p.is_file():
+                        tab_paths.append(str(p))
+                self._settings.session_open_tabs = tab_paths
+                self._settings.session_active_tab = self._current_tab_index
+                save_settings(self._settings)
+            except Exception:
+                pass
 
         try:
             app = QCoreApplication.instance()
@@ -5627,6 +5662,78 @@ class MainWindow(QMainWindow):
         self._settings.project_space = None
         save_settings(self._settings)
         self._update_project_space_status()
+
+    def _show_session_control_dialog(self) -> None:  # pragma: no cover - UI wiring
+        """Open a dialog that lets the user choose session-close behaviour."""
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle(self.tr("Session control"))
+        dialog.setMinimumWidth(480)
+
+        layout = QVBoxLayout(dialog)
+
+        description = QLabel(
+            self.tr(
+                "Here you can decide how the session control for closing of "
+                "the app should work."
+            )
+        )
+        description.setWordWrap(True)
+        layout.addWidget(description)
+
+        label = QLabel(self.tr("The app will:"))
+        layout.addWidget(label)
+
+        radio_close_all = QRadioButton(
+            self.tr(
+                "Close all its tabs and clear creative / project Space"
+            )
+        )
+        radio_keep_session = QRadioButton(
+            self.tr(
+                "Keep the current session (saves all the opened tabs and "
+                "windows, and the Space remains set)"
+            )
+        )
+
+        button_group = QButtonGroup(dialog)
+        button_group.addButton(radio_close_all)
+        button_group.addButton(radio_keep_session)
+
+        current = getattr(self._settings, "session_control", "close_all")
+        if current == "keep_session":
+            radio_keep_session.setChecked(True)
+        else:
+            radio_close_all.setChecked(True)
+
+        layout.addWidget(radio_close_all)
+        layout.addWidget(radio_keep_session)
+
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        save_button = QPushButton(self.tr("Save"))
+        cancel_button = QPushButton(self.tr("Cancel"))
+        button_layout.addWidget(save_button)
+        button_layout.addWidget(cancel_button)
+        layout.addLayout(button_layout)
+
+        def _on_save() -> None:
+            if radio_keep_session.isChecked():
+                self._settings.session_control = "keep_session"
+            else:
+                self._settings.session_control = "close_all"
+                # Clear any stale session-restore data when switching to
+                # "close_all" so the next launch does not unexpectedly
+                # reopen old tabs.
+                self._settings.session_open_tabs = []
+                self._settings.session_active_tab = 0
+            save_settings(self._settings)
+            dialog.accept()
+
+        save_button.clicked.connect(_on_save)
+        cancel_button.clicked.connect(dialog.reject)
+
+        dialog.exec()
 
     def _get_current_document_path(self) -> Path | None:
         """Return the current document path, if it exists on disk."""

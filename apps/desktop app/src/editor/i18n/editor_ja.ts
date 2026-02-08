@@ -371,5 +371,33 @@ Details: {error}</translation>
       <source>Genre updated.</source>
       <translation>Genre updated.</translation>
     </message>
+    <message>
+      <source>Session control</source>
+      <translation>セッション管理</translation>
+    </message>
+    <message>
+      <source>Here you can decide how the session control for closing of the app should work.</source>
+      <translation>アプリケーション終了時のセッション管理の動作を設定できます。</translation>
+    </message>
+    <message>
+      <source>The app will:</source>
+      <translation>アプリケーションの動作：</translation>
+    </message>
+    <message>
+      <source>Close all its tabs and clear creative / project Space</source>
+      <translation>すべてのタブを閉じ、クリエイティブスペース/プロジェクトスペースをクリアする</translation>
+    </message>
+    <message>
+      <source>Keep the current session (saves all the opened tabs and windows, and the Space remains set)</source>
+      <translation>現在のセッションを保持する（開いているすべてのタブとウィンドウを保存し、スペースの設定を維持する）</translation>
+    </message>
+    <message>
+      <source>Save</source>
+      <translation>保存</translation>
+    </message>
+    <message>
+      <source>Cancel</source>
+      <translation>キャンセル</translation>
+    </message>
   </context>
 </TS>

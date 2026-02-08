@@ -64,11 +64,25 @@ def main(argv: list[str] | None = None) -> None:
     # If file paths were provided on the command line (e.g. when the editor is
     # invoked as the handler for .md files), open them now so that the initial
     # window reflects the requested documents.
-    try:
-        window._open_paths_from_cli(argv)  # type: ignore[attr-defined]
-    except Exception:
-        # Never allow argument handling to prevent the UI from starting.
-        pass
+    # Otherwise, if the session was saved with "keep_session", restore the
+    # previously open tabs.
+    if argv:
+        try:
+            window._open_paths_from_cli(argv)  # type: ignore[attr-defined]
+        except Exception:
+            # Never allow argument handling to prevent the UI from starting.
+            pass
+    elif getattr(app_settings, "session_control", "close_all") == "keep_session":
+        try:
+            saved_tabs = getattr(app_settings, "session_open_tabs", []) or []
+            if saved_tabs:
+                window._open_paths_from_cli(saved_tabs)  # type: ignore[attr-defined]
+                # Restore the active tab that was focused when the session was saved.
+                active = getattr(app_settings, "session_active_tab", 0)
+                if isinstance(active, int) and 0 <= active < len(saved_tabs):
+                    window._tab_widget.setCurrentIndex(active)  # type: ignore[attr-defined]
+        except Exception:
+            pass
 
     window.show()
 

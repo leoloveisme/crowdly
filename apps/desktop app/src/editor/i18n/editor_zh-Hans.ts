@@ -371,5 +371,33 @@ Details: {error}</translation>
       <source>Genre updated.</source>
       <translation>Genre updated.</translation>
     </message>
+    <message>
+      <source>Session control</source>
+      <translation>会话控制</translation>
+    </message>
+    <message>
+      <source>Here you can decide how the session control for closing of the app should work.</source>
+      <translation>您可以在此设置关闭应用程序时的会话控制方式。</translation>
+    </message>
+    <message>
+      <source>The app will:</source>
+      <translation>应用程序将：</translation>
+    </message>
+    <message>
+      <source>Close all its tabs and clear creative / project Space</source>
+      <translation>关闭所有标签页并清除创作空间/项目空间</translation>
+    </message>
+    <message>
+      <source>Keep the current session (saves all the opened tabs and windows, and the Space remains set)</source>
+      <translation>保留当前会话（保存所有已打开的标签页和窗口，空间设置保持不变）</translation>
+    </message>
+    <message>
+      <source>Save</source>
+      <translation>保存</translation>
+    </message>
+    <message>
+      <source>Cancel</source>
+      <translation>取消</translation>
+    </message>
   </context>
 </TS>

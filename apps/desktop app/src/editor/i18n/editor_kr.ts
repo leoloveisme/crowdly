@@ -371,5 +371,33 @@ Details: {error}</translation>
       <source>Genre updated.</source>
       <translation>Genre updated.</translation>
     </message>
+    <message>
+      <source>Session control</source>
+      <translation>세션 관리</translation>
+    </message>
+    <message>
+      <source>Here you can decide how the session control for closing of the app should work.</source>
+      <translation>앱 종료 시 세션 관리 방식을 설정할 수 있습니다.</translation>
+    </message>
+    <message>
+      <source>The app will:</source>
+      <translation>앱 동작:</translation>
+    </message>
+    <message>
+      <source>Close all its tabs and clear creative / project Space</source>
+      <translation>모든 탭을 닫고 크리에이티브/프로젝트 스페이스 초기화</translation>
+    </message>
+    <message>
+      <source>Keep the current session (saves all the opened tabs and windows, and the Space remains set)</source>
+      <translation>현재 세션 유지 (열려 있는 모든 탭과 창을 저장하고 스페이스 설정을 유지)</translation>
+    </message>
+    <message>
+      <source>Save</source>
+      <translation>저장</translation>
+    </message>
+    <message>
+      <source>Cancel</source>
+      <translation>취소</translation>
+    </message>
   </context>
 </TS>

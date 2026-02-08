@@ -371,5 +371,33 @@ Details: {error}</translation>
       <source>Genre updated.</source>
       <translation>Genre updated.</translation>
     </message>
+    <message>
+      <source>Session control</source>
+      <translation>Controlo de sessão</translation>
+    </message>
+    <message>
+      <source>Here you can decide how the session control for closing of the app should work.</source>
+      <translation>Aqui pode decidir como o controlo de sessão deve funcionar ao fechar a aplicação.</translation>
+    </message>
+    <message>
+      <source>The app will:</source>
+      <translation>A aplicação irá:</translation>
+    </message>
+    <message>
+      <source>Close all its tabs and clear creative / project Space</source>
+      <translation>Fechar todos os separadores e limpar o espaço criativo / espaço de projeto</translation>
+    </message>
+    <message>
+      <source>Keep the current session (saves all the opened tabs and windows, and the Space remains set)</source>
+      <translation>Manter a sessão atual (guarda todos os separadores e janelas abertos, e o espaço permanece definido)</translation>
+    </message>
+    <message>
+      <source>Save</source>
+      <translation>Guardar</translation>
+    </message>
+    <message>
+      <source>Cancel</source>
+      <translation>Cancelar</translation>
+    </message>
   </context>
 </TS>

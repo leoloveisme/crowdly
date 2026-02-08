@@ -403,6 +403,34 @@ Details: {error}</translation>
         <source>The document could not be saved. The operation has been cancelled.</source>
         <translation >The document could not be saved. The operation has been cancelled.</translation>
     </message>
+    <message>
+        <source>Session control</source>
+        <translation>Session control</translation>
+    </message>
+    <message>
+        <source>Here you can decide how the session control for closing of the app should work.</source>
+        <translation>Here you can decide how the session control for closing of the app should work.</translation>
+    </message>
+    <message>
+        <source>The app will:</source>
+        <translation>The app will:</translation>
+    </message>
+    <message>
+        <source>Close all its tabs and clear creative / project Space</source>
+        <translation>Close all its tabs and clear creative / project Space</translation>
+    </message>
+    <message>
+        <source>Keep the current session (saves all the opened tabs and windows, and the Space remains set)</source>
+        <translation>Keep the current session (saves all the opened tabs and windows, and the Space remains set)</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>Save</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Cancel</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>
