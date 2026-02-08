@@ -1261,6 +1261,20 @@ const Story = () => {
     return html;
   }, [story, chapters]);
 
+  const getStoryContentMarkdown = useCallback((): string => {
+    if (!story || chapters.length === 0) return "";
+    let md = `# ${story.title}\n\n`;
+    for (const ch of chapters) {
+      md += `## ${ch.chapter_title}\n\n`;
+      if (Array.isArray(ch.paragraphs)) {
+        for (const p of ch.paragraphs) {
+          md += `${p}\n\n`;
+        }
+      }
+    }
+    return md;
+  }, [story, chapters]);
+
   const getStoryTitle = useCallback((): string => {
     return story?.title || "Untitled Story";
   }, [story]);
@@ -2396,6 +2410,7 @@ const Story = () => {
         open={exportDialogOpen}
         onOpenChange={setExportDialogOpen}
         getContentHtml={getStoryContentHtml}
+        getContentMarkdown={getStoryContentMarkdown}
         getTitle={getStoryTitle}
         contentType="story"
         contentId={story.story_title_id}

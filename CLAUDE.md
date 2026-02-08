@@ -88,3 +88,12 @@ PORT=4000
 **Backend**: Node.js (ES Modules), Express, PostgreSQL (pg), bcryptjs, CORS
 
 **Desktop**: Python 3.10+, PySide6 (Qt), psycopg2, python-docx, pdfminer, ebooklib
+
+## Desktop App — Mandatory Checklist for Menu Changes
+
+Whenever you add, rename, or modify a menu item or action in the desktop app (`apps/desktop app/`), you **must** also:
+
+1. **Update `_retranslate_ui()`** in `main_window.py` — add a `setText()` / `setTitle()` call for the new or changed action/menu so the text is refreshed when the user switches language at runtime.
+2. **Update ALL `.ts` translation files** in `src/editor/i18n/` — add the corresponding `<message>` entry with the source string and a proper translation for every language file (`editor_en.ts`, `editor_ru.ts`, `editor_ar.ts`, `editor_zh-Hans.ts`, `editor_zh-Hant.ts`, `editor_ja.ts`, `editor_kr.ts`, `editor_pt.ts`).
+
+Skipping either step causes partial/broken translations at runtime. Treat this as a mandatory part of any menu change, not a separate task.

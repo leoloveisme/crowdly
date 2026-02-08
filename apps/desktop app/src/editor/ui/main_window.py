@@ -2353,6 +2353,8 @@ class MainWindow(QMainWindow):
                 self._action_login_logout.setText(self.tr("Logout"))
             else:
                 self._action_login_logout.setText(self.tr("Login"))
+        if hasattr(self, "_action_session_control"):
+            self._action_session_control.setText(self.tr("Session control"))
         if hasattr(self, "_action_quit"):
             self._action_quit.setText(self.tr("Quit"))
 

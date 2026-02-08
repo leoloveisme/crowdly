@@ -681,6 +681,23 @@ const App: React.FC = () => {
     return blocksToHtml(snapshot);
   }, [blocks, snapshotBlocksFromDom]);
 
+  const getContentMarkdown = useCallback(() => {
+    const snapshot = snapshotBlocksFromDom(blocks);
+    const visible = snapshot
+      .filter((b) => b.visible)
+      .slice()
+      .sort((a, b) => a.order - b.order);
+    const parts: string[] = [];
+    for (const b of visible) {
+      const text = b.html.replace(/<[^>]*>/g, "").trim();
+      if (!text) continue;
+      if (b.kind === "title") parts.push(`# ${text}\n`);
+      else if (b.kind === "chapter") parts.push(`## ${text}\n`);
+      else parts.push(`${text}\n`);
+    }
+    return parts.join("\n");
+  }, [blocks, snapshotBlocksFromDom]);
+
   const getTitle = useCallback(() => {
     const snapshot = snapshotBlocksFromDom(blocks);
     const titleBlock = snapshot.find((b) => b.kind === "title" && b.visible);
@@ -929,6 +946,7 @@ const App: React.FC = () => {
         open={showExportPopup}
         onClose={() => setShowExportPopup(false)}
         getContentHtml={getContentHtml}
+        getContentMarkdown={getContentMarkdown}
         getTitle={getTitle}
         contentType="story"
       />

@@ -322,6 +322,42 @@ const ScreenplayEditor: React.FC = () => {
     return parts.join("\n");
   }, [title, scenes, blocks]);
 
+  const getContentMarkdown = useCallback(() => {
+    if (!screenplayId || scenes.length === 0) return "";
+    let md = `# ${title}\n\n`;
+    const sortedScenes = [...scenes].sort((a, b) => a.scene_index - b.scene_index);
+    for (const scene of sortedScenes) {
+      md += `## ${scene.slugline || "UNTITLED SCENE"}\n\n`;
+      const sceneBlocks = blocks
+        .filter((b) => b.scene_id === scene.scene_id)
+        .sort((a, b) => a.block_index - b.block_index);
+      for (const block of sceneBlocks) {
+        const text = stripHtml(block.text);
+        switch (block.block_type) {
+          case "scene_heading":
+            md += `## ${text}\n\n`;
+            break;
+          case "character":
+            md += `${text.toUpperCase()}\n`;
+            break;
+          case "dialogue":
+            md += `${text}\n\n`;
+            break;
+          case "parenthetical":
+            md += `(${text.replace(/^\(|\)$/g, "")})\n`;
+            break;
+          case "transition":
+            md += `${text.toUpperCase()}\n\n`;
+            break;
+          default: // action, shot, general
+            md += `${text}\n\n`;
+            break;
+        }
+      }
+    }
+    return md;
+  }, [screenplayId, title, scenes, blocks]);
+
   const getTitle = useCallback(() => {
     return title || "Untitled Screenplay";
   }, [title]);
@@ -1023,6 +1059,7 @@ const ScreenplayEditor: React.FC = () => {
         open={showExportPopup}
         onClose={() => setShowExportPopup(false)}
         getContentHtml={getContentHtml}
+        getContentMarkdown={getContentMarkdown}
         getTitle={getTitle}
         contentType="screenplay"
         contentId={screenplayId ?? undefined}

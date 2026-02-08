@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { CreativeSpace } from "./spaces";
+import { exportAndDownload, type ExportFormatType } from "./export-formats";
+import { importFile, ALL_IMPORT_EXTENSIONS, IMPORT_ACCEPT } from "./import-formats";
 
 // ---------------------------------------------------------------------------
 // API base – same pattern used across the web app
@@ -269,6 +271,118 @@ function parseForScreenplay(text: string, isHtml: boolean): {
   };
 }
 
+// ---------------------------------------------------------------------------
+// Markdown parsers for imported content
+// ---------------------------------------------------------------------------
+
+/** Convert markdown into { title, chapters } for story import. */
+function parseMarkdownAsStory(markdown: string): {
+  title: string;
+  chapters: Array<{ chapterTitle: string; paragraphs: string[] }>;
+} {
+  const lines = markdown.split("\n");
+  let title = "";
+  const chapters: Array<{ chapterTitle: string; paragraphs: string[] }> = [];
+  let currentChapter: { chapterTitle: string; paragraphs: string[] } | null = null;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const h1 = trimmed.match(/^#\s+(.+)$/);
+    if (h1) {
+      if (!title) { title = h1[1]; continue; }
+      currentChapter = { chapterTitle: h1[1], paragraphs: [] };
+      chapters.push(currentChapter);
+      continue;
+    }
+    const h2 = trimmed.match(/^##\s+(.+)$/);
+    if (h2) {
+      currentChapter = { chapterTitle: h2[1], paragraphs: [] };
+      chapters.push(currentChapter);
+      continue;
+    }
+    const hN = trimmed.match(/^#{3,}\s+(.+)$/);
+    if (hN) {
+      currentChapter = { chapterTitle: hN[1], paragraphs: [] };
+      chapters.push(currentChapter);
+      continue;
+    }
+    const plain = trimmed
+      .replace(/\*\*\*(.+?)\*\*\*/g, "$1")
+      .replace(/\*\*(.+?)\*\*/g, "$1")
+      .replace(/\*(.+?)\*/g, "$1")
+      .replace(/___(.+?)___/g, "$1")
+      .replace(/__(.+?)__/g, "$1")
+      .replace(/_(.+?)_/g, "$1")
+      .replace(/~~(.+?)~~/g, "$1")
+      .replace(/`(.+?)`/g, "$1");
+    if (!plain) continue;
+    if (!currentChapter) {
+      currentChapter = { chapterTitle: "Chapter 1", paragraphs: [] };
+      chapters.push(currentChapter);
+    }
+    currentChapter.paragraphs.push(plain);
+  }
+
+  if (!title) title = "Imported Story";
+  if (chapters.length === 0) {
+    chapters.push({ chapterTitle: "Chapter 1", paragraphs: ["(empty)"] });
+  }
+  return { title, chapters };
+}
+
+/** Convert markdown into { title, scenes } for screenplay import. */
+function parseMarkdownAsScreenplay(markdown: string): {
+  title: string;
+  scenes: Array<{
+    slugline: string;
+    blocks: Array<{ block_type: string; text: string }>;
+  }>;
+} {
+  const lines = markdown.split("\n");
+  let title = "";
+  const scenes: Array<{
+    slugline: string;
+    blocks: Array<{ block_type: string; text: string }>;
+  }> = [];
+  let currentScene: (typeof scenes)[0] | null = null;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const h1 = trimmed.match(/^#\s+(.+)$/);
+    if (h1) { if (!title) title = h1[1]; continue; }
+    const h2 = trimmed.match(/^##\s+(.+)$/);
+    if (h2) {
+      currentScene = { slugline: h2[1], blocks: [] };
+      scenes.push(currentScene);
+      continue;
+    }
+    if (!currentScene) {
+      currentScene = { slugline: "INT. LOCATION - DAY", blocks: [] };
+      scenes.push(currentScene);
+    }
+    const bold = trimmed.match(/^\*\*(.+?)\*\*$/);
+    if (bold) { currentScene.blocks.push({ block_type: "character", text: bold[1] }); continue; }
+    const italic = trimmed.match(/^\*\((.+?)\)\*$/);
+    if (italic) { currentScene.blocks.push({ block_type: "parenthetical", text: `(${italic[1]})` }); continue; }
+    const trans = trimmed.match(/^\*(.+?)\*$/);
+    if (trans && /TO:$/i.test(trans[1])) { currentScene.blocks.push({ block_type: "transition", text: trans[1] }); continue; }
+    const plain = trimmed
+      .replace(/\*\*(.+?)\*\*/g, "$1")
+      .replace(/\*(.+?)\*/g, "$1")
+      .replace(/__(.+?)__/g, "$1")
+      .replace(/_(.+?)_/g, "$1");
+    currentScene.blocks.push({ block_type: "action", text: plain });
+  }
+
+  if (!title) title = "Imported Screenplay";
+  if (scenes.length === 0) {
+    scenes.push({ slugline: "INT. LOCATION - DAY", blocks: [{ block_type: "action", text: "(empty)" }] });
+  }
+  return { title, scenes };
+}
+
 // ===========================================================================
 // IMPORT POPUP
 // ===========================================================================
@@ -320,8 +434,8 @@ export const ImportPopup: React.FC<ImportPopupProps> = ({ open, onClose }) => {
       }
 
       const ext = file.name.split(".").pop()?.toLowerCase() || "";
-      if (!["txt", "html", "htm"].includes(ext)) {
-        setError("Unsupported file format. Please use .txt or .html files.");
+      if (!ALL_IMPORT_EXTENSIONS.includes(ext)) {
+        setError("Unsupported file format. Supported: " + ALL_IMPORT_EXTENSIONS.join(", "));
         return;
       }
 
@@ -329,25 +443,48 @@ export const ImportPopup: React.FC<ImportPopupProps> = ({ open, onClose }) => {
       setImporting(true);
 
       try {
-        const text = await file.text();
-        if (!text.trim()) {
-          setError("The file appears to be empty.");
-          setImporting(false);
-          return;
+        const isHtml = ext === "html" || ext === "htm";
+        const isTxt = ext === "txt";
+        const isLegacyFormat = isHtml || isTxt;
+
+        let storyParsed: { title: string; chapters: Array<{ chapterTitle: string; paragraphs: string[] }> } | null = null;
+        let screenplayParsed: { title: string; scenes: Array<{ slugline: string; blocks: Array<{ block_type: string; text: string }> }> } | null = null;
+
+        if (isLegacyFormat) {
+          const text = await file.text();
+          if (!text.trim()) {
+            setError("The file appears to be empty.");
+            setImporting(false);
+            return;
+          }
+          if (importKind === "story") {
+            storyParsed = isHtml ? parseHtmlFile(text) : parseTxtFile(text);
+          } else {
+            screenplayParsed = parseForScreenplay(text, isHtml);
+          }
+        } else {
+          // New formats: PDF, DOCX, EPUB, ODT, FDX, Fountain
+          const importResult = await importFile(file);
+          if (!importResult.success || !importResult.content) {
+            setError(importResult.error || "Failed to parse the file.");
+            setImporting(false);
+            return;
+          }
+          const markdown = importResult.content;
+          if (importKind === "story") {
+            storyParsed = parseMarkdownAsStory(markdown);
+          } else {
+            screenplayParsed = parseMarkdownAsScreenplay(markdown);
+          }
         }
 
-        const isHtml = ext === "html" || ext === "htm";
-
-        if (importKind === "story") {
-          const parsed = isHtml ? parseHtmlFile(text) : parseTxtFile(text);
-
-          // Create the story with the first chapter via backend
-          const firstChapter = parsed.chapters[0];
+        if (importKind === "story" && storyParsed) {
+          const firstChapter = storyParsed.chapters[0];
           const res = await fetch(`${API_BASE}/stories/template`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              title: parsed.title,
+              title: storyParsed.title,
               chapterTitle: firstChapter.chapterTitle,
               paragraphs: firstChapter.paragraphs,
               userId: user.id,
@@ -367,9 +504,8 @@ export const ImportPopup: React.FC<ImportPopupProps> = ({ open, onClose }) => {
           const result = await res.json();
           const storyTitleId = result.storyTitleId;
 
-          // If there are additional chapters, create them too
-          for (let i = 1; i < parsed.chapters.length; i++) {
-            const ch = parsed.chapters[i];
+          for (let i = 1; i < storyParsed.chapters.length; i++) {
+            const ch = storyParsed.chapters[i];
             try {
               await fetch(`${API_BASE}/chapters`, {
                 method: "POST",
@@ -386,18 +522,13 @@ export const ImportPopup: React.FC<ImportPopupProps> = ({ open, onClose }) => {
             }
           }
 
-          // Navigate to the new story
           window.location.href = `/story/${encodeURIComponent(storyTitleId)}`;
-        } else {
-          // Screenplay import
-          const parsed = parseForScreenplay(text, isHtml);
-
-          // Create screenplay on backend
+        } else if (importKind === "screenplay" && screenplayParsed) {
           const res = await fetch(`${API_BASE}/screenplays/template`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              title: parsed.title,
+              title: screenplayParsed.title,
               formatType: "feature_film",
               userId: user.id,
             }),
@@ -416,7 +547,44 @@ export const ImportPopup: React.FC<ImportPopupProps> = ({ open, onClose }) => {
           const result = await res.json();
           const screenplayId = result.screenplayId;
 
-          // Navigate to the new screenplay
+          // Create scenes and blocks
+          for (let i = 0; i < screenplayParsed.scenes.length; i++) {
+            const scene = screenplayParsed.scenes[i];
+            try {
+              const sceneRes = await fetch(`${API_BASE}/screenplays/${screenplayId}/scenes`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  slugline: scene.slugline,
+                  sceneIndex: i + 1,
+                }),
+              });
+              if (sceneRes.ok) {
+                const sceneResult = await sceneRes.json();
+                const sceneId = sceneResult.scene_id ?? sceneResult.sceneId;
+                for (let j = 0; j < scene.blocks.length; j++) {
+                  const block = scene.blocks[j];
+                  try {
+                    await fetch(`${API_BASE}/screenplays/${screenplayId}/blocks`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        sceneId,
+                        blockType: block.block_type,
+                        text: block.text,
+                        blockIndex: j + 1,
+                      }),
+                    });
+                  } catch {
+                    // Best effort for blocks
+                  }
+                }
+              }
+            } catch {
+              // Best effort for scenes
+            }
+          }
+
           window.location.href = `/screenplay/${encodeURIComponent(screenplayId)}`;
         }
       } catch (err) {
@@ -492,7 +660,7 @@ export const ImportPopup: React.FC<ImportPopupProps> = ({ open, onClose }) => {
             </p>
             <p style={descStyle}>
               Select a file to import. A new {importKind} will be created with the
-              imported content. Supported formats: .txt, .html
+              imported content. Supported formats: TXT, HTML, PDF, DOCX, EPUB, ODT{importKind === "screenplay" ? ", FDX, Fountain" : ""}
             </p>
 
             {importing ? (
@@ -519,11 +687,15 @@ export const ImportPopup: React.FC<ImportPopupProps> = ({ open, onClose }) => {
                 <div style={{ fontSize: 13, color: "#555" }}>
                   Drag and drop a file here, or click to browse
                 </div>
-                <div style={{ fontSize: 11, color: "#999", marginTop: 6 }}>.txt, .html</div>
+                <div style={{ fontSize: 11, color: "#999", marginTop: 6 }}>
+                  {importKind === "screenplay"
+                    ? ".txt, .html, .pdf, .docx, .epub, .odt, .fdx, .fountain"
+                    : ".txt, .html, .pdf, .docx, .epub, .odt"}
+                </div>
                 <input
                   ref={fileRef}
                   type="file"
-                  accept=".txt,.html,.htm"
+                  accept={IMPORT_ACCEPT}
                   style={{ display: "none" }}
                   onChange={handleFileInput}
                 />
@@ -567,6 +739,8 @@ interface ExportPopupProps {
   onClose: () => void;
   /** Called to get the current document content as HTML string. */
   getContentHtml: () => string;
+  /** Called to get the current document content as markdown for format exporters. */
+  getContentMarkdown?: () => string;
   /** Called to get a suggested filename. */
   getTitle: () => string;
   /** "story" or "screenplay" – used for labelling. */
@@ -579,6 +753,7 @@ export const ExportPopup: React.FC<ExportPopupProps> = ({
   open,
   onClose,
   getContentHtml,
+  getContentMarkdown,
   getTitle,
   contentType = "story",
   contentId,
@@ -590,6 +765,8 @@ export const ExportPopup: React.FC<ExportPopupProps> = ({
   const [newSpaceName, setNewSpaceName] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   // Reset on open
   useEffect(() => {
@@ -598,8 +775,36 @@ export const ExportPopup: React.FC<ExportPopupProps> = ({
       setSaveError(null);
       setSaving(false);
       setNewSpaceName("");
+      setIsExporting(false);
+      setExportError(null);
     }
   }, [open]);
+
+  // --------------- Export to format (PDF, DOCX, etc.) ---------------
+  const handleExportFormat = useCallback(
+    async (format: ExportFormatType) => {
+      if (!getContentMarkdown) return;
+      const markdown = getContentMarkdown();
+      if (!markdown) return;
+      const title = getTitle() || "crowdly-export";
+      setIsExporting(true);
+      setExportError(null);
+      try {
+        const result = await exportAndDownload(markdown, format, { title });
+        if (result.success) {
+          onClose();
+        } else {
+          setExportError(result.error || "Export failed.");
+        }
+      } catch (err) {
+        console.error("[ExportPopup] format export error:", err);
+        setExportError("An unexpected error occurred during export.");
+      } finally {
+        setIsExporting(false);
+      }
+    },
+    [getContentMarkdown, getTitle, onClose]
+  );
 
   const loadSpaces = useCallback(async () => {
     const user = getUserFromStorage();
@@ -818,7 +1023,76 @@ export const ExportPopup: React.FC<ExportPopupProps> = ({
               >
                 Plain Text (simple text without formatting)
               </button>
+
+              {getContentMarkdown && (
+                <>
+                  <div style={{ fontSize: 11, color: "#999", textTransform: "uppercase", letterSpacing: 1, marginTop: 8 }}>
+                    Document Formats
+                  </div>
+                  <button
+                    type="button"
+                    style={{ ...optionBtnStyle, opacity: isExporting ? 0.6 : 1, cursor: isExporting ? "default" : "pointer" }}
+                    disabled={isExporting}
+                    onClick={() => handleExportFormat("pdf")}
+                  >
+                    {isExporting ? "Exporting..." : "PDF"}
+                  </button>
+                  <button
+                    type="button"
+                    style={{ ...optionBtnStyle, opacity: isExporting ? 0.6 : 1, cursor: isExporting ? "default" : "pointer" }}
+                    disabled={isExporting}
+                    onClick={() => handleExportFormat("docx")}
+                  >
+                    {isExporting ? "Exporting..." : "DOCX (Word)"}
+                  </button>
+                  <button
+                    type="button"
+                    style={{ ...optionBtnStyle, opacity: isExporting ? 0.6 : 1, cursor: isExporting ? "default" : "pointer" }}
+                    disabled={isExporting}
+                    onClick={() => handleExportFormat("epub")}
+                  >
+                    {isExporting ? "Exporting..." : "EPUB (e-book)"}
+                  </button>
+                  <button
+                    type="button"
+                    style={{ ...optionBtnStyle, opacity: isExporting ? 0.6 : 1, cursor: isExporting ? "default" : "pointer" }}
+                    disabled={isExporting}
+                    onClick={() => handleExportFormat("odt")}
+                  >
+                    {isExporting ? "Exporting..." : "ODT (OpenDocument)"}
+                  </button>
+
+                  {contentType === "screenplay" && (
+                    <>
+                      <div style={{ fontSize: 11, color: "#999", textTransform: "uppercase", letterSpacing: 1, marginTop: 8 }}>
+                        Screenplay Formats
+                      </div>
+                      <button
+                        type="button"
+                        style={{ ...optionBtnStyle, opacity: isExporting ? 0.6 : 1, cursor: isExporting ? "default" : "pointer" }}
+                        disabled={isExporting}
+                        onClick={() => handleExportFormat("fdx")}
+                      >
+                        {isExporting ? "Exporting..." : "FDX (Final Draft)"}
+                      </button>
+                      <button
+                        type="button"
+                        style={{ ...optionBtnStyle, opacity: isExporting ? 0.6 : 1, cursor: isExporting ? "default" : "pointer" }}
+                        disabled={isExporting}
+                        onClick={() => handleExportFormat("fountain")}
+                      >
+                        {isExporting ? "Exporting..." : "Fountain"}
+                      </button>
+                    </>
+                  )}
+                </>
+              )}
             </div>
+
+            {exportError && (
+              <div style={{ marginTop: 10, color: "#b00020", fontSize: 13 }}>{exportError}</div>
+            )}
+
             <div style={{ textAlign: "center", display: "flex", gap: 8, justifyContent: "center" }}>
               <button
                 type="button"

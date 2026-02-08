@@ -9,6 +9,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useExport } from "@/hooks/useExport";
+import { ExportFormat } from "@/types/import-export";
+import { importDocument } from "@/lib/import";
 
 // ---------------------------------------------------------------------------
 // API base – same pattern used across the platform
@@ -186,6 +189,122 @@ function parseForScreenplay(text: string, isHtml: boolean): {
   };
 }
 
+/** Convert markdown into { title, chapters } for story import. */
+function parseMarkdownAsStory(markdown: string): {
+  title: string;
+  chapters: Array<{ chapterTitle: string; paragraphs: string[] }>;
+} {
+  const lines = markdown.split("\n");
+  let title = "";
+  const chapters: Array<{ chapterTitle: string; paragraphs: string[] }> = [];
+  let currentChapter: { chapterTitle: string; paragraphs: string[] } | null = null;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const h1 = trimmed.match(/^#\s+(.+)$/);
+    if (h1) {
+      if (!title) { title = h1[1]; continue; }
+      currentChapter = { chapterTitle: h1[1], paragraphs: [] };
+      chapters.push(currentChapter);
+      continue;
+    }
+    const h2 = trimmed.match(/^##\s+(.+)$/);
+    if (h2) {
+      currentChapter = { chapterTitle: h2[1], paragraphs: [] };
+      chapters.push(currentChapter);
+      continue;
+    }
+    // Skip other headings as chapter titles
+    const hN = trimmed.match(/^#{3,}\s+(.+)$/);
+    if (hN) {
+      currentChapter = { chapterTitle: hN[1], paragraphs: [] };
+      chapters.push(currentChapter);
+      continue;
+    }
+    // Strip markdown formatting for paragraph text
+    const plain = trimmed
+      .replace(/\*\*\*(.+?)\*\*\*/g, "$1")
+      .replace(/\*\*(.+?)\*\*/g, "$1")
+      .replace(/\*(.+?)\*/g, "$1")
+      .replace(/___(.+?)___/g, "$1")
+      .replace(/__(.+?)__/g, "$1")
+      .replace(/_(.+?)_/g, "$1")
+      .replace(/~~(.+?)~~/g, "$1")
+      .replace(/`(.+?)`/g, "$1");
+    if (!plain) continue;
+    if (!currentChapter) {
+      currentChapter = { chapterTitle: "Chapter 1", paragraphs: [] };
+      chapters.push(currentChapter);
+    }
+    currentChapter.paragraphs.push(plain);
+  }
+
+  if (!title) title = "Imported Story";
+  if (chapters.length === 0) {
+    chapters.push({ chapterTitle: "Chapter 1", paragraphs: ["(empty)"] });
+  }
+  return { title, chapters };
+}
+
+/** Convert markdown into { title, scenes } for screenplay import. */
+function parseMarkdownAsScreenplay(markdown: string): {
+  title: string;
+  scenes: Array<{
+    slugline: string;
+    blocks: Array<{ block_type: string; text: string }>;
+  }>;
+} {
+  const lines = markdown.split("\n");
+  let title = "";
+  const scenes: Array<{
+    slugline: string;
+    blocks: Array<{ block_type: string; text: string }>;
+  }> = [];
+  let currentScene: (typeof scenes)[0] | null = null;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    const h1 = trimmed.match(/^#\s+(.+)$/);
+    if (h1) { if (!title) title = h1[1]; continue; }
+    const h2 = trimmed.match(/^##\s+(.+)$/);
+    if (h2) {
+      currentScene = { slugline: h2[1], blocks: [] };
+      scenes.push(currentScene);
+      continue;
+    }
+    if (!currentScene) {
+      currentScene = { slugline: "INT. LOCATION - DAY", blocks: [] };
+      scenes.push(currentScene);
+    }
+    // Detect block type from markdown formatting
+    const bold = trimmed.match(/^\*\*(.+?)\*\*$/);
+    if (bold) { currentScene.blocks.push({ block_type: "character", text: bold[1] }); continue; }
+    const italic = trimmed.match(/^\*\((.+?)\)\*$/);
+    if (italic) { currentScene.blocks.push({ block_type: "parenthetical", text: `(${italic[1]})` }); continue; }
+    const trans = trimmed.match(/^\*(.+?)\*$/);
+    if (trans && /TO:$/i.test(trans[1])) { currentScene.blocks.push({ block_type: "transition", text: trans[1] }); continue; }
+    // Plain text
+    const plain = trimmed
+      .replace(/\*\*(.+?)\*\*/g, "$1")
+      .replace(/\*(.+?)\*/g, "$1")
+      .replace(/__(.+?)__/g, "$1")
+      .replace(/_(.+?)_/g, "$1");
+    currentScene.blocks.push({ block_type: "action", text: plain });
+  }
+
+  if (!title) title = "Imported Screenplay";
+  if (scenes.length === 0) {
+    scenes.push({ slugline: "INT. LOCATION - DAY", blocks: [{ block_type: "action", text: "(empty)" }] });
+  }
+  return { title, scenes };
+}
+
+/** Supported import file extensions. */
+const IMPORT_ACCEPT = ".txt,.html,.htm,.pdf,.docx,.epub,.odt,.fdx,.fountain";
+const IMPORT_FORMAT_EXTENSIONS = ["txt", "html", "htm", "pdf", "docx", "epub", "odt", "fdx", "fountain"];
+
 // ===========================================================================
 // IMPORT DIALOG (Platform version using shadcn/ui)
 // ===========================================================================
@@ -244,8 +363,8 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onOpenChange }
       }
 
       const ext = file.name.split(".").pop()?.toLowerCase() || "";
-      if (!["txt", "html", "htm"].includes(ext)) {
-        setError("Unsupported file format. Please use .txt or .html files.");
+      if (!IMPORT_FORMAT_EXTENSIONS.includes(ext)) {
+        setError("Unsupported file format. Supported: " + IMPORT_FORMAT_EXTENSIONS.join(", "));
         return;
       }
 
@@ -253,23 +372,50 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onOpenChange }
       setImporting(true);
 
       try {
-        const text = await file.text();
-        if (!text.trim()) {
-          setError("The file appears to be empty.");
-          setImporting(false);
-          return;
+        const isHtml = ext === "html" || ext === "htm";
+        const isTxt = ext === "txt";
+        const isLegacyFormat = isHtml || isTxt;
+
+        // For new formats, use the importDocument library to get markdown
+        let storyParsed: { title: string; chapters: Array<{ chapterTitle: string; paragraphs: string[] }> } | null = null;
+        let screenplayParsed: { title: string; scenes: Array<{ slugline: string; blocks: Array<{ block_type: string; text: string }> }> } | null = null;
+
+        if (isLegacyFormat) {
+          // Legacy path: read file as text
+          const text = await file.text();
+          if (!text.trim()) {
+            setError("The file appears to be empty.");
+            setImporting(false);
+            return;
+          }
+          if (importKind === "story") {
+            storyParsed = isHtml ? parseHtmlFile(text) : parseTxtFile(text);
+          } else {
+            screenplayParsed = parseForScreenplay(text, isHtml);
+          }
+        } else {
+          // New formats: PDF, DOCX, EPUB, ODT, FDX, Fountain
+          const importResult = await importDocument(file);
+          if (!importResult.success || !importResult.document?.content) {
+            setError(importResult.error || "Failed to parse the file.");
+            setImporting(false);
+            return;
+          }
+          const markdown = importResult.document.content;
+          if (importKind === "story") {
+            storyParsed = parseMarkdownAsStory(markdown);
+          } else {
+            screenplayParsed = parseMarkdownAsScreenplay(markdown);
+          }
         }
 
-        const isHtml = ext === "html" || ext === "htm";
-
-        if (importKind === "story") {
-          const parsed = isHtml ? parseHtmlFile(text) : parseTxtFile(text);
-          const firstChapter = parsed.chapters[0];
+        if (importKind === "story" && storyParsed) {
+          const firstChapter = storyParsed.chapters[0];
           const res = await fetch(`${API_BASE}/stories/template`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              title: parsed.title,
+              title: storyParsed.title,
               chapterTitle: firstChapter.chapterTitle,
               paragraphs: firstChapter.paragraphs,
               userId,
@@ -290,8 +436,8 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onOpenChange }
           const storyTitleId = result.storyTitleId;
 
           // Create additional chapters
-          for (let i = 1; i < parsed.chapters.length; i++) {
-            const ch = parsed.chapters[i];
+          for (let i = 1; i < storyParsed.chapters.length; i++) {
+            const ch = storyParsed.chapters[i];
             try {
               await fetch(`${API_BASE}/chapters`, {
                 method: "POST",
@@ -310,14 +456,12 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onOpenChange }
 
           onOpenChange(false);
           navigate(`/story/${encodeURIComponent(storyTitleId)}`);
-        } else {
-          // Screenplay import
-          const parsed = parseForScreenplay(text, isHtml);
+        } else if (importKind === "screenplay" && screenplayParsed) {
           const res = await fetch(`${API_BASE}/screenplays/template`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              title: parsed.title,
+              title: screenplayParsed.title,
               formatType: "feature_film",
               userId,
             }),
@@ -335,6 +479,44 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onOpenChange }
 
           const result = await res.json();
           const screenplayId = result.screenplayId;
+
+          // Create scenes and blocks
+          for (let i = 0; i < screenplayParsed.scenes.length; i++) {
+            const scene = screenplayParsed.scenes[i];
+            try {
+              const sceneRes = await fetch(`${API_BASE}/screenplays/${screenplayId}/scenes`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  slugline: scene.slugline,
+                  sceneIndex: i + 1,
+                }),
+              });
+              if (sceneRes.ok) {
+                const sceneResult = await sceneRes.json();
+                const sceneId = sceneResult.scene_id ?? sceneResult.sceneId;
+                for (let j = 0; j < scene.blocks.length; j++) {
+                  const block = scene.blocks[j];
+                  try {
+                    await fetch(`${API_BASE}/screenplays/${screenplayId}/blocks`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        sceneId,
+                        blockType: block.block_type,
+                        text: block.text,
+                        blockIndex: j + 1,
+                      }),
+                    });
+                  } catch {
+                    // Best effort for blocks
+                  }
+                }
+              }
+            } catch {
+              // Best effort for scenes
+            }
+          }
 
           onOpenChange(false);
           navigate(`/screenplay/${encodeURIComponent(screenplayId)}`);
@@ -407,7 +589,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onOpenChange }
             </DialogHeader>
             <p className="text-sm text-gray-500 mb-4">
               Select a file to import. A new {importKind} will be created with the
-              imported content. Supported formats: .txt, .html
+              imported content. Supported formats: TXT, HTML, PDF, DOCX, EPUB, ODT{importKind === "screenplay" ? ", FDX, Fountain" : ""}
             </p>
 
             {importing ? (
@@ -438,11 +620,15 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onOpenChange }
                 <div className="text-sm text-gray-600">
                   Drag and drop a file here, or click to browse
                 </div>
-                <div className="text-xs text-gray-400 mt-1">.txt, .html</div>
+                <div className="text-xs text-gray-400 mt-1">
+                  {importKind === "screenplay"
+                    ? ".txt, .html, .pdf, .docx, .epub, .odt, .fdx, .fountain"
+                    : ".txt, .html, .pdf, .docx, .epub, .odt"}
+                </div>
                 <input
                   ref={fileRef}
                   type="file"
-                  accept=".txt,.html,.htm"
+                  accept={IMPORT_ACCEPT}
                   className="hidden"
                   onChange={handleFileInput}
                 />
@@ -496,6 +682,8 @@ interface ExportDialogProps {
   onOpenChange: (open: boolean) => void;
   /** Called to get the current document content as HTML string. */
   getContentHtml: () => string;
+  /** Called to get the current document content as markdown for format exporters. */
+  getContentMarkdown?: () => string;
   /** Called to get a suggested filename. */
   getTitle: () => string;
   /** "story" or "screenplay" – used for labelling. */
@@ -508,6 +696,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
   open,
   onOpenChange,
   getContentHtml,
+  getContentMarkdown,
   getTitle,
   contentType = "story",
 }) => {
@@ -519,6 +708,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
   const [newSpaceName, setNewSpaceName] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const { isExporting, error: exportError, exportDocument, reset: resetExport } = useExport();
 
   // Reset on open
   useEffect(() => {
@@ -527,10 +717,26 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
       setSaveError(null);
       setSaving(false);
       setNewSpaceName("");
+      resetExport();
     }
   }, [open]);
 
   const userId = user ? ((user as any).id ?? (user as any).user_id) : null;
+
+  // --------------- Export to format (PDF, DOCX, etc.) ---------------
+  const handleExportFormat = useCallback(
+    async (format: ExportFormat) => {
+      if (!getContentMarkdown) return;
+      const markdown = getContentMarkdown();
+      if (!markdown) return;
+      const title = getTitle() || "crowdly-export";
+      const success = await exportDocument(markdown, format, { title });
+      if (success) {
+        onOpenChange(false);
+      }
+    },
+    [getContentMarkdown, getTitle, exportDocument, onOpenChange]
+  );
 
   const loadSpaces = useCallback(async () => {
     if (!userId) {
@@ -736,7 +942,76 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
               >
                 Plain Text (simple text without formatting)
               </Button>
+
+              {getContentMarkdown && (
+                <>
+                  <div className="text-xs text-gray-400 uppercase tracking-wide mt-2">
+                    Document Formats
+                  </div>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    disabled={isExporting}
+                    onClick={() => handleExportFormat(ExportFormat.PDF)}
+                  >
+                    {isExporting ? "Exporting..." : "PDF"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    disabled={isExporting}
+                    onClick={() => handleExportFormat(ExportFormat.DOCX)}
+                  >
+                    {isExporting ? "Exporting..." : "DOCX (Word)"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    disabled={isExporting}
+                    onClick={() => handleExportFormat(ExportFormat.EPUB)}
+                  >
+                    {isExporting ? "Exporting..." : "EPUB (e-book)"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    disabled={isExporting}
+                    onClick={() => handleExportFormat(ExportFormat.ODT)}
+                  >
+                    {isExporting ? "Exporting..." : "ODT (OpenDocument)"}
+                  </Button>
+
+                  {contentType === "screenplay" && (
+                    <>
+                      <div className="text-xs text-gray-400 uppercase tracking-wide mt-2">
+                        Screenplay Formats
+                      </div>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start"
+                        disabled={isExporting}
+                        onClick={() => handleExportFormat(ExportFormat.FDX)}
+                      >
+                        {isExporting ? "Exporting..." : "FDX (Final Draft)"}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start"
+                        disabled={isExporting}
+                        onClick={() => handleExportFormat(ExportFormat.FOUNTAIN)}
+                      >
+                        {isExporting ? "Exporting..." : "Fountain"}
+                      </Button>
+                    </>
+                  )}
+                </>
+              )}
             </div>
+
+            {exportError && (
+              <div className="mt-2 text-sm text-red-600">{exportError}</div>
+            )}
+
             <div className="flex justify-center gap-2 mt-4">
               <Button
                 variant="outline"

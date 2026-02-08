@@ -61,4 +61,8 @@ If a different test runner is introduced later, prefer mirroring its usage in `R
 - Treat `editor.app.main()` as the integration point for new functionality and keep it thin by delegating to well-named helper modules.
 - When adding new modules, keep them under `src/editor/` and ensure imports remain relative (e.g. `from editor import ...` or `from .module import ...`).
 - In any multi-pane editor UI (Markdown editor, WYSIWYG preview, search panes, etc.), treat the pane whose text cursor currently has focus as the *active* pane and base save/export/format behaviour on that active pane.
-- If you introduce tests, colocate high-level integration tests under `tests/` and use `pytest` conventions so that `pytest` from the repo root “just works`.
+- If you introduce tests, colocate high-level integration tests under `tests/` and use `pytest` conventions so that `pytest` from the repo root "just works`.
+- **Mandatory checklist for menu changes**: Whenever you add, rename, or modify a menu item or action, you **must** also:
+  1. **Update `_retranslate_ui()`** in `main_window.py` — add a `setText()` / `setTitle()` call for the new or changed action/menu so the text is refreshed when the user switches language at runtime.
+  2. **Update ALL `.ts` translation files** in `src/editor/i18n/` — add the corresponding `<message>` entry with the source string and a proper translation for every language file (`editor_en.ts`, `editor_ru.ts`, `editor_ar.ts`, `editor_zh-Hans.ts`, `editor_zh-Hant.ts`, `editor_ja.ts`, `editor_kr.ts`, `editor_pt.ts`).
+  Skipping either step causes partial/broken translations at runtime. Treat this as a mandatory part of any menu change, not a separate task.

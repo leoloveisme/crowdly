@@ -805,6 +805,39 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
     return html;
   }, [screenplayId, title, scenes, blocks]);
 
+  const getScreenplayContentMarkdown = useCallback((): string => {
+    if (!screenplayId || scenes.length === 0) return "";
+    let md = `# ${title}\n\n`;
+    for (const scene of scenes) {
+      md += `## ${scene.slugline || "UNTITLED SCENE"}\n\n`;
+      const sceneBlocks = blocks.filter((b) => b.scene_id === scene.scene_id);
+      sceneBlocks.sort((a, b) => a.block_index - b.block_index);
+      for (const block of sceneBlocks) {
+        switch (block.block_type) {
+          case "scene_heading":
+            md += `## ${block.text}\n\n`;
+            break;
+          case "character":
+            md += `${block.text.toUpperCase()}\n`;
+            break;
+          case "dialogue":
+            md += `${block.text}\n\n`;
+            break;
+          case "parenthetical":
+            md += `(${block.text.replace(/^\(|\)$/g, "")})\n`;
+            break;
+          case "transition":
+            md += `${block.text.toUpperCase()}\n\n`;
+            break;
+          default: // action, shot, general
+            md += `${block.text}\n\n`;
+            break;
+        }
+      }
+    }
+    return md;
+  }, [screenplayId, title, scenes, blocks]);
+
   const getScreenplayTitle = useCallback((): string => {
     return title || "Untitled Screenplay";
   }, [title]);
@@ -1079,6 +1112,7 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
           open={exportDialogOpen}
           onOpenChange={setExportDialogOpen}
           getContentHtml={getScreenplayContentHtml}
+          getContentMarkdown={getScreenplayContentMarkdown}
           getTitle={getScreenplayTitle}
           contentType="screenplay"
           contentId={screenplayId}

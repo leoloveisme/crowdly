@@ -170,6 +170,15 @@ The `desktop client/` directory is a separate Python package (`distraction-free-
 
 For changes within `desktop client/`, follow the more detailed guidance in `desktop client/WARP.md` and treat `editor.app.main()` as the integration point.
 
+### Desktop app — Mandatory checklist for menu changes
+
+Whenever you add, rename, or modify a menu item or action in the desktop app, you **must** also:
+
+1. **Update `_retranslate_ui()`** in `main_window.py` — add a `setText()` / `setTitle()` call for the new or changed action/menu so the text is refreshed when the user switches language at runtime.
+2. **Update ALL `.ts` translation files** in `src/editor/i18n/` — add the corresponding `<message>` entry with the source string and a proper translation for every language file (`editor_en.ts`, `editor_ru.ts`, `editor_ar.ts`, `editor_zh-Hans.ts`, `editor_zh-Hant.ts`, `editor_ja.ts`, `editor_kr.ts`, `editor_pt.ts`).
+
+Skipping either step causes partial/broken translations at runtime. Treat this as a mandatory part of any menu change, not a separate task.
+
 ## How Warp agents should work in this repo
 - Distinguish between the **web app** (root-level Vite/React project) and the **desktop editor** (`desktop client/` Python project); keep changes scoped to the correct subproject.
 - For frontend work:
