@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { randomUUID } from 'crypto';
 import { pool } from './db.js';
 import { loginWithEmailPassword, registerWithEmailPassword, changePassword, deleteAccountWithPassword } from './auth.js';
+import { sendInvitationEmail, sendApplicationConfirmationEmail, sendApplicationToInvitationEmail } from './email.js';
 
 dotenv.config();
 
@@ -902,6 +903,50 @@ async function ensureScreenplayAccessRow(screenplayId, userId, role = 'contribut
   }
 }
 
+// Alpha invitation & application tables
+async function ensureAlphaInvitationsTable() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS alpha_invitations (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        invitation_code text UNIQUE NOT NULL,
+        first_name text NOT NULL,
+        last_name text NOT NULL,
+        email text NOT NULL UNIQUE,
+        invited_by uuid REFERENCES local_users(id) ON DELETE SET NULL,
+        invited_at timestamptz NOT NULL DEFAULT now(),
+        joined_at timestamptz,
+        status text NOT NULL DEFAULT 'pending',
+        created_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    console.log('[init] ensured alpha_invitations table exists');
+  } catch (err) {
+    console.error('[init] failed to ensure alpha_invitations table:', err);
+  }
+}
+
+async function ensureAlphaApplicationsTable() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS alpha_applications (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        first_name text NOT NULL,
+        last_name text NOT NULL,
+        email text NOT NULL,
+        motivation_letter text,
+        status text NOT NULL DEFAULT 'pending',
+        created_at timestamptz NOT NULL DEFAULT now(),
+        processed_at timestamptz,
+        processed_by uuid REFERENCES local_users(id) ON DELETE SET NULL
+      )
+    `);
+    console.log('[init] ensured alpha_applications table exists');
+  } catch (err) {
+    console.error('[init] failed to ensure alpha_applications table:', err);
+  }
+}
+
 // Fire and forget; if this fails we log but do not crash the server
 ensurePgcryptoExtension().catch((err) => {
   console.error('[init] ensurePgcryptoExtension unhandled error:', err);
@@ -968,6 +1013,12 @@ ensureStoryCreativeSpaceColumnsAndAttachments().catch((err) => {
 });
 ensureStorySpacesTable().catch((err) => {
   console.error('[init] ensureStorySpacesTable unhandled error:', err);
+});
+ensureAlphaInvitationsTable().catch((err) => {
+  console.error('[init] ensureAlphaInvitationsTable unhandled error:', err);
+});
+ensureAlphaApplicationsTable().catch((err) => {
+  console.error('[init] ensureAlphaApplicationsTable unhandled error:', err);
 });
 
 app.get('/health', async (_req, res) => {
@@ -1053,6 +1104,17 @@ app.post('/auth/register', async (req, res) => {
 
   try {
     const registered = await registerWithEmailPassword(email, password);
+
+    // Void alpha invitation on successful registration
+    try {
+      await pool.query(
+        `UPDATE alpha_invitations SET status = 'joined', joined_at = now() WHERE email = $1 AND status = 'pending'`,
+        [email]
+      );
+    } catch (invErr) {
+      console.error('[auth/register] failed to void alpha invitation:', invErr);
+    }
+
     res.status(201).json(registered);
   } catch (err) {
     console.error('[auth/register] failed:', err);
@@ -6331,6 +6393,232 @@ app.post('/stories/:storyTitleId/clone', async (req, res) => {
     res.status(500).json({ error: 'Failed to clone story' });
   } finally {
     client.release();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Alpha Invitations & Applications endpoints
+// ---------------------------------------------------------------------------
+
+// Helper: check if user has platform_admin role
+async function isAdmin(userId) {
+  if (!userId) return false;
+  try {
+    const { rows } = await pool.query(
+      "SELECT role FROM user_roles WHERE user_id = $1 AND role = 'platform_admin'",
+      [userId]
+    );
+    return rows.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+// POST /admin/invitations — create invitation & send email (admin-only)
+app.post('/admin/invitations', async (req, res) => {
+  const { userId, firstName, lastName, email } = req.body ?? {};
+  if (!userId || !firstName || !lastName || !email) {
+    return res.status(400).json({ error: 'userId, firstName, lastName, and email are required' });
+  }
+  if (!(await isAdmin(userId))) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  try {
+    const invitationCode = `inv-${randomUUID()}`;
+    const { rows } = await pool.query(
+      `INSERT INTO alpha_invitations (invitation_code, first_name, last_name, email, invited_by)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [invitationCode, firstName, lastName, email, userId]
+    );
+    // Fire-and-forget email
+    sendInvitationEmail(email, firstName, invitationCode);
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error('[POST /admin/invitations] failed:', err);
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'An invitation for this email already exists' });
+    }
+    res.status(500).json({ error: 'Failed to create invitation' });
+  }
+});
+
+// GET /admin/invitations — list invitations with sort/pagination
+app.get('/admin/invitations', async (req, res) => {
+  const { userId, sortBy, sortOrder, limit, offset } = req.query;
+  if (!(await isAdmin(userId))) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  try {
+    const allowedSort = ['first_name', 'last_name', 'email', 'invited_at', 'joined_at', 'status'];
+    const col = allowedSort.includes(sortBy) ? sortBy : 'invited_at';
+    const dir = sortOrder === 'asc' ? 'ASC' : 'DESC';
+    const lim = Math.min(Number(limit) || 50, 1000);
+    const off = Number(offset) || 0;
+
+    const { rows } = await pool.query(
+      `SELECT * FROM alpha_invitations ORDER BY ${col} ${dir} LIMIT $1 OFFSET $2`,
+      [lim, off]
+    );
+    const { rows: countRows } = await pool.query('SELECT count(*)::int AS total FROM alpha_invitations');
+    res.json({ invitations: rows, total: countRows[0].total });
+  } catch (err) {
+    console.error('[GET /admin/invitations] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch invitations' });
+  }
+});
+
+// DELETE /admin/invitations/:id — revoke & delete
+app.delete('/admin/invitations/:id', async (req, res) => {
+  const { userId } = req.body ?? {};
+  if (!(await isAdmin(userId))) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  try {
+    const { rowCount } = await pool.query('DELETE FROM alpha_invitations WHERE id = $1', [req.params.id]);
+    if (rowCount === 0) {
+      return res.status(404).json({ error: 'Invitation not found' });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[DELETE /admin/invitations/:id] failed:', err);
+    res.status(500).json({ error: 'Failed to delete invitation' });
+  }
+});
+
+// GET /admin/applications — list applications
+app.get('/admin/applications', async (req, res) => {
+  const { userId } = req.query;
+  if (!(await isAdmin(userId))) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  try {
+    const { rows } = await pool.query('SELECT * FROM alpha_applications ORDER BY created_at DESC');
+    res.json({ applications: rows });
+  } catch (err) {
+    console.error('[GET /admin/applications] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch applications' });
+  }
+});
+
+// POST /admin/applications/:id/invite — convert application to invitation
+app.post('/admin/applications/:id/invite', async (req, res) => {
+  const { userId } = req.body ?? {};
+  if (!(await isAdmin(userId))) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  try {
+    // Get the application
+    const { rows: appRows } = await pool.query('SELECT * FROM alpha_applications WHERE id = $1', [req.params.id]);
+    if (appRows.length === 0) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+    const application = appRows[0];
+
+    // Create invitation from application
+    const invitationCode = `inv-${randomUUID()}`;
+    const { rows: invRows } = await pool.query(
+      `INSERT INTO alpha_invitations (invitation_code, first_name, last_name, email, invited_by)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [invitationCode, application.first_name, application.last_name, application.email, userId]
+    );
+
+    // Update application status
+    await pool.query(
+      `UPDATE alpha_applications SET status = 'invited', processed_at = now(), processed_by = $1 WHERE id = $2`,
+      [userId, req.params.id]
+    );
+
+    // Fire-and-forget email
+    sendApplicationToInvitationEmail(application.email, application.first_name, invitationCode);
+
+    res.status(201).json(invRows[0]);
+  } catch (err) {
+    console.error('[POST /admin/applications/:id/invite] failed:', err);
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'An invitation for this email already exists' });
+    }
+    res.status(500).json({ error: 'Failed to convert application to invitation' });
+  }
+});
+
+// DELETE /admin/applications/:id — delete application
+app.delete('/admin/applications/:id', async (req, res) => {
+  const { userId } = req.body ?? {};
+  if (!(await isAdmin(userId))) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  try {
+    const { rowCount } = await pool.query('DELETE FROM alpha_applications WHERE id = $1', [req.params.id]);
+    if (rowCount === 0) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[DELETE /admin/applications/:id] failed:', err);
+    res.status(500).json({ error: 'Failed to delete application' });
+  }
+});
+
+// POST /alpha/validate — validate invitation code + email (public)
+app.post('/alpha/validate', async (req, res) => {
+  const { code, email } = req.body ?? {};
+  if (!code || !email) {
+    return res.status(400).json({ error: 'Invitation code and email are required' });
+  }
+  try {
+    const { rows } = await pool.query(
+      `SELECT * FROM alpha_invitations WHERE invitation_code = $1 AND email = $2 AND status = 'pending'`,
+      [code, email]
+    );
+    if (rows.length === 0) {
+      return res.status(401).json({ valid: false, error: 'Invalid invitation code or email' });
+    }
+    res.json({ valid: true, firstName: rows[0].first_name });
+  } catch (err) {
+    console.error('[POST /alpha/validate] failed:', err);
+    res.status(500).json({ error: 'Failed to validate invitation' });
+  }
+});
+
+// POST /alpha/apply — submit application (public)
+app.post('/alpha/apply', async (req, res) => {
+  const { firstName, lastName, email, motivationLetter } = req.body ?? {};
+  if (!firstName || !lastName || !email) {
+    return res.status(400).json({ error: 'First name, last name, and email are required' });
+  }
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO alpha_applications (first_name, last_name, email, motivation_letter)
+       VALUES ($1, $2, $3, $4)
+       RETURNING *`,
+      [firstName, lastName, email, motivationLetter || null]
+    );
+    // Fire-and-forget email
+    sendApplicationConfirmationEmail(email, firstName);
+    res.status(201).json({ success: true, application: rows[0] });
+  } catch (err) {
+    console.error('[POST /alpha/apply] failed:', err);
+    res.status(500).json({ error: 'Failed to submit application' });
+  }
+});
+
+// GET /alpha/check-access — check alpha access status
+app.get('/alpha/check-access', async (req, res) => {
+  const { code, email } = req.query;
+  if (!code || !email) {
+    return res.status(400).json({ hasAccess: false });
+  }
+  try {
+    const { rows } = await pool.query(
+      `SELECT * FROM alpha_invitations WHERE invitation_code = $1 AND email = $2 AND status = 'pending'`,
+      [code, email]
+    );
+    res.json({ hasAccess: rows.length > 0 });
+  } catch (err) {
+    console.error('[GET /alpha/check-access] failed:', err);
+    res.status(500).json({ hasAccess: false });
   }
 });
 

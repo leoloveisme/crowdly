@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict xIWCiG6qvH2SW8ldXLWIyx7hotUFxkiRfslvMueH2SzKFyw7DZ25ImPG32SudCa
+\restrict kTkdeLm5e0EFNLeh2UuVtNARKl2xwOSgHnSs2NcdbOlybire0YHROLN2Hq4MFaP
 
 -- Dumped from database version 16.11 (Ubuntu 16.11-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.11 (Ubuntu 16.11-0ubuntu0.24.04.1)
@@ -106,6 +106,45 @@ ALTER TYPE public.visibility_type OWNER TO lad;
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
+
+--
+-- Name: alpha_applications; Type: TABLE; Schema: public; Owner: lad
+--
+
+CREATE TABLE public.alpha_applications (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    first_name text NOT NULL,
+    last_name text NOT NULL,
+    email text NOT NULL,
+    motivation_letter text,
+    status text DEFAULT 'pending'::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    processed_at timestamp with time zone,
+    processed_by uuid
+);
+
+
+ALTER TABLE public.alpha_applications OWNER TO lad;
+
+--
+-- Name: alpha_invitations; Type: TABLE; Schema: public; Owner: lad
+--
+
+CREATE TABLE public.alpha_invitations (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    invitation_code text NOT NULL,
+    first_name text NOT NULL,
+    last_name text NOT NULL,
+    email text NOT NULL,
+    invited_by uuid,
+    invited_at timestamp with time zone DEFAULT now() NOT NULL,
+    joined_at timestamp with time zone,
+    status text DEFAULT 'pending'::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.alpha_invitations OWNER TO lad;
 
 --
 -- Name: authors; Type: TABLE; Schema: public; Owner: lad
@@ -844,6 +883,23 @@ ALTER TABLE public.user_story_status OWNER TO lad;
 --
 
 ALTER TABLE ONLY public.crdt_changes ALTER COLUMN id SET DEFAULT nextval('public.crdt_changes_id_seq'::regclass);
+
+
+--
+-- Data for Name: alpha_applications; Type: TABLE DATA; Schema: public; Owner: lad
+--
+
+COPY public.alpha_applications (id, first_name, last_name, email, motivation_letter, status, created_at, processed_at, processed_by) FROM stdin;
+\.
+
+
+--
+-- Data for Name: alpha_invitations; Type: TABLE DATA; Schema: public; Owner: lad
+--
+
+COPY public.alpha_invitations (id, invitation_code, first_name, last_name, email, invited_by, invited_at, joined_at, status, created_at) FROM stdin;
+b9214906-1d3d-4591-a0db-5bcc30de628f	inv-da4227f5-084e-4543-a26e-ac93159d1925	Leo	Force	4leo@leoloveis.me	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-11 21:13:09.575952+01	2026-02-11 21:17:26.392644+01	joined	2026-02-11 21:13:09.575952+01
+\.
 
 
 --
@@ -2255,6 +2311,7 @@ COPY public.local_users (id, email, password_hash, created_at) FROM stdin;
 cad23ca1-121d-448f-8947-ddd5048ecb15	test@example.com	$2a$10$Q4Zg8NV5Lmvj1ECgFN9YJuw3ko453tXTjnMeE.FuidL7Nd0gnNr.G	2025-12-10 14:12:09.978783+01
 aef37573-600e-4442-9ae1-63a05799d9a0	leolove@example.com	$2a$10$wPM5JRiWxBRBZUnbnh4naukM3rAUYflyweAjhnAITafxcloZCE0Fq	2025-12-10 14:12:41.462047+01
 6fe20d11-0118-43b4-8439-ecd9738c8226	leoforce@example.com	$2a$10$rfTAI06f19zt531DHrBmpusN35/v1qchiULzuKn6ixgm9jHd/39Ca	2026-01-13 16:34:34.837794+01
+4b0fde23-9891-4c9a-80a0-f41646476bb0	4leo@leoloveis.me	$2a$10$KT28kRB.wNB2jXHI.AJasOJk15mH9.PSdiJcoqwg3P/4mZ.D5sTuG	2026-02-11 21:17:26.377337+01
 \.
 
 
@@ -2263,19 +2320,19 @@ aef37573-600e-4442-9ae1-63a05799d9a0	leolove@example.com	$2a$10$wPM5JRiWxBRBZUnb
 --
 
 COPY public.locales (code, english_name, native_name, direction, enabled, created_at, updated_at) FROM stdin;
-en	English	English	ltr	t	2026-01-09 17:06:24.947739+01	2026-02-07 22:22:21.432736+01
-ru	Russian	Русский	ltr	t	2026-01-09 17:06:24.953415+01	2026-02-07 22:22:21.437601+01
-pt	Portuguese	Português	ltr	t	2026-01-09 17:06:24.956627+01	2026-02-07 22:22:21.44201+01
-kr	Korean	한국어	ltr	t	2026-01-09 17:06:24.959807+01	2026-02-07 22:22:21.445818+01
-ar	Arabic	العربية	rtl	t	2026-01-09 17:06:24.961686+01	2026-02-07 22:22:21.448864+01
-zh-Hans	Chinese (Simplified)	简体中文	ltr	t	2026-01-09 17:06:24.965034+01	2026-02-07 22:22:21.450241+01
-zh-Hant	Chinese (Traditional)	繁體中文	ltr	t	2026-01-09 17:06:24.967524+01	2026-02-07 22:22:21.451878+01
-ja	Japanese	日本語	ltr	t	2026-01-09 17:06:24.969897+01	2026-02-07 22:22:21.453405+01
-fr	French	Français	ltr	t	2026-01-09 17:06:24.972028+01	2026-02-07 22:22:21.454951+01
-es	Spanish	Español	ltr	t	2026-01-09 17:06:24.974189+01	2026-02-07 22:22:21.456451+01
-de	German	Deutsch	ltr	t	2026-01-09 17:06:24.978093+01	2026-02-07 22:22:21.457803+01
-zh	Chinese (unspecified script)	中文	ltr	t	2026-01-09 17:06:24.98017+01	2026-02-07 22:22:21.4591+01
-hi	Hindi	हिन्दी	ltr	t	2026-01-09 17:06:24.98167+01	2026-02-07 22:22:21.460476+01
+en	English	English	ltr	t	2026-01-09 17:06:24.947739+01	2026-02-11 21:12:26.651526+01
+ru	Russian	Русский	ltr	t	2026-01-09 17:06:24.953415+01	2026-02-11 21:12:26.658744+01
+pt	Portuguese	Português	ltr	t	2026-01-09 17:06:24.956627+01	2026-02-11 21:12:26.664037+01
+kr	Korean	한국어	ltr	t	2026-01-09 17:06:24.959807+01	2026-02-11 21:12:26.669007+01
+ar	Arabic	العربية	rtl	t	2026-01-09 17:06:24.961686+01	2026-02-11 21:12:26.671368+01
+zh-Hans	Chinese (Simplified)	简体中文	ltr	t	2026-01-09 17:06:24.965034+01	2026-02-11 21:12:26.672958+01
+zh-Hant	Chinese (Traditional)	繁體中文	ltr	t	2026-01-09 17:06:24.967524+01	2026-02-11 21:12:26.674478+01
+ja	Japanese	日本語	ltr	t	2026-01-09 17:06:24.969897+01	2026-02-11 21:12:26.675781+01
+fr	French	Français	ltr	t	2026-01-09 17:06:24.972028+01	2026-02-11 21:12:26.677614+01
+es	Spanish	Español	ltr	t	2026-01-09 17:06:24.974189+01	2026-02-11 21:12:26.679838+01
+de	German	Deutsch	ltr	t	2026-01-09 17:06:24.978093+01	2026-02-11 21:12:26.681507+01
+zh	Chinese (unspecified script)	中文	ltr	t	2026-01-09 17:06:24.98017+01	2026-02-11 21:12:26.682921+01
+hi	Hindi	हिन्दी	ltr	t	2026-01-09 17:06:24.98167+01	2026-02-11 21:12:26.684258+01
 \.
 
 
@@ -2886,6 +2943,7 @@ f6dfca32-f9cb-4913-859b-638b0a080d48	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	platfo
 518af929-6626-4b53-bbf9-c98b0af36be3	cad23ca1-121d-448f-8947-ddd5048ecb15	consumer
 585c2d43-cd6b-4d2b-a97c-c950219ca0af	aef37573-600e-4442-9ae1-63a05799d9a0	consumer
 c07a7e7a-45ee-4a4a-965e-b796347342af	6fe20d11-0118-43b4-8439-ecd9738c8226	consumer
+aadae97e-73bd-469d-9197-a5e20d79c5ef	4b0fde23-9891-4c9a-80a0-f41646476bb0	consumer
 \.
 
 
@@ -3017,6 +3075,21 @@ fc5d5c6d-ef7d-499b-88d3-86bdcb233d5d	aef37573-600e-4442-9ae1-63a05799d9a0	story	
 f27c6dd8-2a75-4159-895a-f2d2e9f47716	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-07 22:25:40.79074+01	2026-02-07 22:25:40.79074+01
 4c25d18b-b954-4f80-abcc-4e34b41afbf4	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-07 22:27:50.150602+01	2026-02-07 22:27:50.150602+01
 65a6a979-1883-43c6-bd20-df66a7a73f30	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-07 22:28:07.614799+01	2026-02-07 22:28:07.614799+01
+506bd362-9895-426a-bf1f-80013cbdebe9	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-08 12:12:54.309874+01	2026-02-08 12:12:54.309874+01
+736e6922-02e6-4710-bc77-c2e1a9187a33	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-08 12:55:42.560702+01	2026-02-08 12:55:42.560702+01
+c340aa37-300d-4e10-8cf3-294655523426	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-08 12:56:10.882839+01	2026-02-08 12:56:10.882839+01
+cd387ce9-3c49-4405-b341-c8ab31d8deee	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-08 12:56:14.789356+01	2026-02-08 12:56:14.789356+01
+32937ad2-ae0c-4ca1-af0d-c3f8a7ec1096	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-08 12:57:39.882173+01	2026-02-08 12:57:39.882173+01
+82a95262-8211-4ce0-a8c7-d3ab6ba88bf9	aef37573-600e-4442-9ae1-63a05799d9a0	screenplay	\N	055b3e41-4f7d-490f-9b29-128b908c3552	f	t	f	2026-02-08 12:58:25.668866+01	2026-02-08 12:58:25.668866+01
+e5f8ae2d-093d-4070-a121-a6d144824266	aef37573-600e-4442-9ae1-63a05799d9a0	screenplay	\N	055b3e41-4f7d-490f-9b29-128b908c3552	f	t	f	2026-02-08 14:14:00.622973+01	2026-02-08 14:14:00.622973+01
+d5f2ccd1-f070-4145-b48d-465f1a1b2fe0	aef37573-600e-4442-9ae1-63a05799d9a0	screenplay	\N	055b3e41-4f7d-490f-9b29-128b908c3552	f	t	f	2026-02-08 14:14:08.835629+01	2026-02-08 14:14:08.835629+01
+9d0fd037-3f7f-4698-af7c-8cec948695ee	aef37573-600e-4442-9ae1-63a05799d9a0	screenplay	\N	055b3e41-4f7d-490f-9b29-128b908c3552	f	t	f	2026-02-08 14:14:16.306129+01	2026-02-08 14:14:16.306129+01
+7cf3dee7-e8a2-4cbd-a5f4-f2fd45ceacd3	aef37573-600e-4442-9ae1-63a05799d9a0	screenplay	\N	055b3e41-4f7d-490f-9b29-128b908c3552	f	t	f	2026-02-08 14:14:20.398665+01	2026-02-08 14:14:20.398665+01
+0f1cbc85-385b-4d4d-a22a-090d62edee53	aef37573-600e-4442-9ae1-63a05799d9a0	screenplay	\N	055b3e41-4f7d-490f-9b29-128b908c3552	f	t	f	2026-02-08 14:14:45.474616+01	2026-02-08 14:14:45.474616+01
+8c53cefc-69f7-4e37-9a4d-c4e8b245564d	aef37573-600e-4442-9ae1-63a05799d9a0	screenplay	\N	055b3e41-4f7d-490f-9b29-128b908c3552	f	t	f	2026-02-08 14:14:54.270687+01	2026-02-08 14:14:54.270687+01
+8b3dd037-cbbf-4cd5-bb7d-e44fd045ec7c	aef37573-600e-4442-9ae1-63a05799d9a0	screenplay	\N	055b3e41-4f7d-490f-9b29-128b908c3552	f	t	f	2026-02-08 14:27:43.992448+01	2026-02-08 14:27:43.992448+01
+2a7fe0b3-5b9e-4e3a-84b2-3f53e885b03c	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	story	7b4cb567-de6c-4728-92d7-56a529c9970f	\N	f	t	f	2026-02-11 19:17:26.942426+01	2026-02-11 19:17:26.942426+01
+6bad5b67-6ae1-46e2-9d0a-494dce9e5327	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	story	7b4cb567-de6c-4728-92d7-56a529c9970f	\N	f	t	f	2026-02-11 21:02:47.302847+01	2026-02-11 21:02:47.302847+01
 \.
 
 
@@ -3025,6 +3098,38 @@ f27c6dd8-2a75-4159-895a-f2d2e9f47716	aef37573-600e-4442-9ae1-63a05799d9a0	story	
 --
 
 SELECT pg_catalog.setval('public.crdt_changes_id_seq', 1, false);
+
+
+--
+-- Name: alpha_applications alpha_applications_pkey; Type: CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.alpha_applications
+    ADD CONSTRAINT alpha_applications_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: alpha_invitations alpha_invitations_email_key; Type: CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.alpha_invitations
+    ADD CONSTRAINT alpha_invitations_email_key UNIQUE (email);
+
+
+--
+-- Name: alpha_invitations alpha_invitations_invitation_code_key; Type: CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.alpha_invitations
+    ADD CONSTRAINT alpha_invitations_invitation_code_key UNIQUE (invitation_code);
+
+
+--
+-- Name: alpha_invitations alpha_invitations_pkey; Type: CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.alpha_invitations
+    ADD CONSTRAINT alpha_invitations_pkey PRIMARY KEY (id);
 
 
 --
@@ -3575,6 +3680,22 @@ CREATE INDEX user_story_status_user_idx ON public.user_story_status USING btree 
 
 
 --
+-- Name: alpha_applications alpha_applications_processed_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.alpha_applications
+    ADD CONSTRAINT alpha_applications_processed_by_fkey FOREIGN KEY (processed_by) REFERENCES public.local_users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: alpha_invitations alpha_invitations_invited_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.alpha_invitations
+    ADD CONSTRAINT alpha_invitations_invited_by_fkey FOREIGN KEY (invited_by) REFERENCES public.local_users(id) ON DELETE SET NULL;
+
+
+--
 -- Name: authors authors_author_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lad
 --
 
@@ -3986,5 +4107,5 @@ ALTER TABLE ONLY public.story_title_revisions
 -- PostgreSQL database dump complete
 --
 
-\unrestrict xIWCiG6qvH2SW8ldXLWIyx7hotUFxkiRfslvMueH2SzKFyw7DZ25ImPG32SudCa
+\unrestrict kTkdeLm5e0EFNLeh2UuVtNARKl2xwOSgHnSs2NcdbOlybire0YHROLN2Hq4MFaP
 

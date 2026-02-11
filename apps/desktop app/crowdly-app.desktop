@@ -1,7 +1,9 @@
+#!/usr/bin/env xdg-open
 [Desktop Entry]
 Name=Crowdly desktop app
 Comment=Distraction-free WYSIWYG Markdown/HTML app for Crowdly entertainment platform
 Exec=/opt/crowdly/crowdly-app %F
+Icon=/opt/crowdly/crowdly.png
 Terminal=false
 Type=Application
 Categories=Office;TextEditor;

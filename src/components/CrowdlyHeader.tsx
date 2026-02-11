@@ -1,9 +1,10 @@
 
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import crowdlyLogo from "@/components/images/crowdly.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Eye, Menu, X, LogOut, Bell, MessageSquare, User, Users, Heart, Gift, Settings, HelpCircle } from "lucide-react";
+import { Eye, Menu, X, LogOut, Bell, MessageSquare, User, Users, Heart, Gift, Settings, HelpCircle, UserPlus } from "lucide-react";
 import { SearchBox } from "@/modules/search";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -38,7 +39,7 @@ const CrowdlyHeader = () => {
   const [notificationCount, setNotificationCount] = useState(3);
   const [messageCount, setMessageCount] = useState(5);
 
-  const { user, signIn, signOut } = useAuth();
+  const { user, signIn, signOut, hasRole } = useAuth();
   const { currentLanguage, setCurrentLanguage } = useEditableContent();
 
   const toggleMenu = () => {
@@ -100,9 +101,7 @@ const CrowdlyHeader = () => {
           {/* Logo/Title */}
           <div className="flex items-center gap-4">
             <Link to="/" className="group bg-white/80 dark:bg-slate-900/50 p-3 md:p-5 rounded-2xl shadow flex items-center justify-center border border-indigo-100 dark:border-indigo-900 hover:scale-105 transition">
-              <div className="text-2xl md:text-3xl font-bold bg-gradient-to-tr from-indigo-500 via-pink-500 to-violet-500 text-transparent bg-clip-text group-hover:brightness-125 transition">
-                LOGO
-              </div>
+              <img src={crowdlyLogo} alt="Crowdly" className="h-8 md:h-10 w-auto object-contain" />
             </Link>
             <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-900 via-pink-800 to-indigo-400 bg-clip-text text-transparent hidden md:block px-2">
               <EditableText id="header-title">
@@ -207,6 +206,13 @@ const CrowdlyHeader = () => {
                       </DropdownMenuGroup>
                       <DropdownMenuSeparator />
                       <DropdownMenuGroup>
+                        {hasRole("platform_admin") && (
+                          <DropdownMenuItem asChild>
+                            <Link to="/admin/invite-users" className="cursor-pointer flex items-center">
+                              <UserPlus className="mr-2 h-4 w-4" /> Invite Users
+                            </Link>
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem asChild>
                           <Link to="/account-administration" className="cursor-pointer flex items-center">
                             <Settings className="mr-2 h-4 w-4" /> Account settings
@@ -303,6 +309,11 @@ const CrowdlyHeader = () => {
                   <div className="flex items-center py-2">
                     <Gift className="h-4 w-4 mr-2" /> Friends' recommendations
                   </div>
+                  {hasRole("platform_admin") && (
+                    <Link to="/admin/invite-users" className="flex items-center py-2 text-indigo-900 hover:underline">
+                      <UserPlus className="h-4 w-4 mr-2" /> Invite Users
+                    </Link>
+                  )}
                   <div className="flex items-center py-2">
                     <Settings className="h-4 w-4 mr-2" /> Account settings
                   </div>

@@ -87,6 +87,26 @@ export default defineConfig(({ mode }) => ({
         target: "http://localhost:4000",
         changeOrigin: true,
       },
+      "/admin/invitations": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/admin/applications": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/alpha/validate": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/alpha/apply": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/alpha/check-access": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
     },
   },
   plugins: [
