@@ -350,13 +350,10 @@ const Index = () => {
                 <span className="bg-gradient-to-r from-pink-400 via-indigo-500 to-blue-700 bg-clip-text text-transparent">
                   Crowdly
                 </span>
-                <span className="text-lg md:text-xl font-normal text-gray-600 dark:text-gray-300 pl-2">
-                  <EditableText id="platform-slogan">Crowd-created stories that branch & grow—Experience, Create, Collaborate.</EditableText>
-                </span>
               </h1>
               <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mb-7 animate-fade-in">
                 <EditableText id="main-hero-description">
-                  Discover, create, and live amazing branching stories—rich in text, audio, and video—collaboratively built by the crowd, for the world. Versioned, multilingual, and unlimited.
+Crowd-created stories that branch and grow — discover, experience, create, collaborate, and live amazing branching narratives rich in text, audio, and video, collectively crafted for the world — versioned, multilingual, and unlimited.
                 </EditableText>
               </p>
           {/* Create New Story Link - Now for EVERYONE, different link depending on logged in */}
