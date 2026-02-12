@@ -1,6 +1,7 @@
 
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import crowdlyLogo from "@/components/images/crowdly.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Eye, Menu, X, LogOut, Bell, MessageSquare, User, Users, Heart, Gift, Settings, HelpCircle } from "lucide-react";
@@ -100,9 +101,7 @@ const CrowdlyHeader = () => {
           {/* Logo/Title */}
           <div className="flex items-center gap-4">
             <Link to="/" className="group bg-white/80 dark:bg-slate-900/50 p-3 md:p-5 rounded-2xl shadow flex items-center justify-center border border-indigo-100 dark:border-indigo-900 hover:scale-105 transition">
-              <div className="text-2xl md:text-3xl font-bold bg-gradient-to-tr from-indigo-500 via-pink-500 to-violet-500 text-transparent bg-clip-text group-hover:brightness-125 transition">
-                LOGO
-              </div>
+              <img src={crowdlyLogo} alt="Crowdly" className="h-8 md:h-10 w-auto object-contain" />
             </Link>
             <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-900 via-pink-800 to-indigo-400 bg-clip-text text-transparent hidden md:block px-2">
               <EditableText id="header-title">
