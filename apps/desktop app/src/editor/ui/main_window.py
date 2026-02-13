@@ -321,14 +321,6 @@ class MainWindow(QMainWindow):
 
         settings_menu = menu.addMenu(self.tr("Settings"))
         self._settings_menu = settings_menu
-        self._action_choose_project_space = settings_menu.addAction(
-            self.tr("Create or choose your project space"),
-            self._choose_project_space,
-        )
-        self._action_clear_project_space = settings_menu.addAction(
-            self.tr("Clear project space setting"),
-            self._clear_project_space,
-        )
 
         sync_menu = settings_menu.addMenu(self.tr("Synchronisation with"))
         self._sync_menu = sync_menu
@@ -337,22 +329,6 @@ class MainWindow(QMainWindow):
             self.tr("web platform"), self._toggle_sync_web_platform
         )
         self._action_sync_web.setCheckable(True)
-
-        # One-off manual sync of the current project space to the web
-        # platform. This is an alpha feature focused on pushing a snapshot
-        # of local folders/files into the user's default creative space.
-        self._action_sync_current_space = sync_menu.addAction(
-            self.tr("Sync current Space now"), self._sync_current_space_to_web
-        )
-
-        # Manual pull of changes made on the Crowdly web platform back into
-        # the current project-space directory. This operates on the folder /
-        # file *structure* (creating missing folders/files locally) and is
-        # intentionally conservative about overwriting or deleting existing
-        # local files.
-        self._action_pull_current_space = sync_menu.addAction(
-            self.tr("Pull updates for current Space"), self._pull_current_space_from_web
-        )
 
         online_storage_menu = sync_menu.addMenu(self.tr("online storage"))
         self._online_storage_menu = online_storage_menu
@@ -434,10 +410,6 @@ class MainWindow(QMainWindow):
         self._action_set_story_genre = story_settings_menu.addAction(
             self.tr("Add genre"),
             self._set_or_clear_story_genre,
-        )
-        self._action_refresh_story_from_web = story_settings_menu.addAction(
-            self.tr("Refresh from web"),
-            self._refresh_story_from_web,
         )
         self._action_compare_revisions = story_settings_menu.addAction(
             self.tr("Compare revisions"),

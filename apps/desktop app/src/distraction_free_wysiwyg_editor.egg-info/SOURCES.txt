@@ -50,6 +50,7 @@ src/editor/ui/create_story_dialog.py
 src/editor/ui/crowdly_login_dialog.py
 src/editor/ui/editor_widget.py
 src/editor/ui/file_explorer_widget.py
+src/editor/ui/main_window copy.py
 src/editor/ui/main_window.py
 src/editor/ui/master_document_window.py
 src/editor/ui/open_story_dialog.py
