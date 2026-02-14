@@ -40,6 +40,7 @@ import {
   X,
 } from "lucide-react";
 import CreateUser from "@/modules/create a user";
+import GroupsManager from "@/modules/groups";
 
 const API_BASE = import.meta.env.PROD
   ? (import.meta.env.VITE_API_BASE_URL ?? "")
@@ -334,6 +335,9 @@ const PlatformAdmin = () => {
             <TabsTrigger value="settings" className="flex items-center gap-2">
               <Settings className="h-4 w-4" /> Platform Settings
             </TabsTrigger>
+            <TabsTrigger value="groups" className="flex items-center gap-2">
+              <Users className="h-4 w-4" /> Groups
+            </TabsTrigger>
             <TabsTrigger value="analytics" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" /> Analytics
             </TabsTrigger>
@@ -536,6 +540,19 @@ const PlatformAdmin = () => {
                   <p className="text-lg font-medium">Platform settings coming soon</p>
                   <p className="text-sm mt-1">This section will allow you to configure platform-wide options.</p>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Groups Tab */}
+          <TabsContent value="groups">
+            <Card>
+              <CardHeader>
+                <CardTitle>Groups Management</CardTitle>
+                <CardDescription>Create and manage platform-wide groups that all users can use for access control.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {user?.id && <GroupsManager userId={user.id} showPlatformGroups />}
               </CardContent>
             </Card>
           </TabsContent>

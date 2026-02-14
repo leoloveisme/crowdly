@@ -14,6 +14,7 @@ import StoryBranchList from "@/components/StoryBranchList";
 import ContributionsModule, { ContributionRow } from "@/modules/contributions";
 import InteractionsWidget from "@/modules/InteractionsWidget";
 import { ExportDialog } from "@/modules/import-export";
+import UserGroupPicker from "@/modules/user-group-picker";
 
 // Use same-origin API base in development; dev server proxies to backend.
 // In production, VITE_API_BASE_URL can point at the deployed API.
@@ -161,6 +162,11 @@ const Story = () => {
     creator_id?: string;
     visibility?: string;
     published?: boolean;
+    completion_status?: string;
+    clone_policy?: string;
+    export_policy?: string;
+    can_clone?: boolean;
+    can_export?: boolean;
   } | null>(null);
 
   // Helper: count "words" in a paragraph in a way that ignores
@@ -229,6 +235,10 @@ const Story = () => {
 
   // Export dialog state
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+
+  // Access rules picker state
+  const [accessPickerOpen, setAccessPickerOpen] = useState(false);
+  const [accessPickerRuleType, setAccessPickerRuleType] = useState<"view" | "clone" | "export">("view");
 
   // Minimal inline "add chapter" UI in contribute mode
   const [addChapterMode, setAddChapterMode] = useState(false);
@@ -1465,9 +1475,11 @@ const Story = () => {
     }
   };
 
-  const toggleVisibility = async () => {
+  const cycleVisibility = async () => {
     if (!story) return;
-    const nextVisibility = story.visibility === 'private' ? 'public' : 'private';
+    const current = story.visibility ?? 'public';
+    const nextMap: Record<string, string> = { public: 'unlisted', unlisted: 'private', private: 'public' };
+    const nextVisibility = nextMap[current] ?? 'public';
     try {
       const res = await fetch(`${API_BASE}/story-titles/${story.story_title_id}/settings`, {
         method: "PATCH",
@@ -1481,9 +1493,65 @@ const Story = () => {
       }
       setStory(body);
       toast({ title: "Visibility updated", description: `Story is now ${nextVisibility}.` });
+      // If set to unlisted, open user/group picker for view rules
+      if (nextVisibility === 'unlisted') {
+        setAccessPickerRuleType("view");
+        setAccessPickerOpen(true);
+      }
     } catch (err) {
       console.error('Failed to toggle visibility', err);
       toast({ title: "Error", description: "Failed to update visibility", variant: "destructive" });
+    }
+  };
+
+  const updateStorySetting = async (field: string, value: string | boolean) => {
+    if (!story) return;
+    try {
+      const res = await fetch(`${API_BASE}/story-titles/${story.story_title_id}/settings`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: value }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast({ title: "Error", description: body.error || `Failed to update ${field}`, variant: "destructive" });
+        return;
+      }
+      setStory(body);
+    } catch (err) {
+      console.error(`Failed to update ${field}`, err);
+      toast({ title: "Error", description: `Failed to update ${field}`, variant: "destructive" });
+    }
+  };
+
+  const toggleCompletionStatus = () => {
+    if (!story) return;
+    const next = (story.completion_status ?? 'draft') === 'draft' ? 'completed' : 'draft';
+    updateStorySetting('completion_status', next);
+    toast({ title: next === 'completed' ? "Marked as completed" : "Marked as draft" });
+  };
+
+  const cycleClonePolicy = () => {
+    if (!story) return;
+    const current = story.clone_policy ?? 'anyone';
+    const nextMap: Record<string, string> = { anyone: 'restricted', restricted: 'none', none: 'anyone' };
+    const next = nextMap[current] ?? 'anyone';
+    updateStorySetting('clone_policy', next);
+    if (next === 'restricted') {
+      setAccessPickerRuleType("clone");
+      setAccessPickerOpen(true);
+    }
+  };
+
+  const cycleExportPolicy = () => {
+    if (!story) return;
+    const current = story.export_policy ?? 'anyone';
+    const nextMap: Record<string, string> = { anyone: 'restricted', restricted: 'none', none: 'anyone' };
+    const next = nextMap[current] ?? 'anyone';
+    updateStorySetting('export_policy', next);
+    if (next === 'restricted') {
+      setAccessPickerRuleType("export");
+      setAccessPickerOpen(true);
     }
   };
 
@@ -1760,10 +1828,12 @@ const Story = () => {
                     className={`px-2 py-1 rounded-full text-xs ${
                       story.visibility === 'private'
                         ? 'bg-yellow-100 text-yellow-800'
+                        : story.visibility === 'unlisted'
+                        ? 'bg-blue-100 text-blue-800'
                         : 'bg-green-100 text-green-800'
                     }`}
                   >
-                    {story.visibility === 'private' ? 'Private' : 'Public'}
+                    {story.visibility === 'private' ? 'Private' : story.visibility === 'unlisted' ? 'Unlisted' : 'Public'}
                   </span>
                 )}
                 {story.published === false && (
@@ -1771,6 +1841,15 @@ const Story = () => {
                     Unpublished
                   </span>
                 )}
+                <span
+                  className={`px-2 py-1 rounded-full text-xs ${
+                    (story.completion_status ?? 'draft') === 'completed'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-orange-100 text-orange-800'
+                  }`}
+                >
+                  {(story.completion_status ?? 'draft') === 'completed' ? 'Completed' : 'Draft'}
+                </span>
                 {user && (
                   <button
                     type="button"
@@ -1780,7 +1859,17 @@ const Story = () => {
                     Mark as finished
                   </button>
                 )}
-                {user && (
+                {user && (story.can_clone !== false) && (
+                  <button
+                    type="button"
+                    onClick={handleCloneStory}
+                    title="Clone this story"
+                    className="ml-2 inline-flex items-center px-2 py-1 rounded-full border border-dashed border-gray-300 text-[11px] text-gray-700 hover:bg-gray-50"
+                  >
+                    Clone
+                  </button>
+                )}
+                {user && (story.can_export !== false) && (
                   <button
                     type="button"
                     onClick={() => setExportDialogOpen(true)}
@@ -1946,17 +2035,62 @@ const Story = () => {
                         {isOwner && (
                           <>
                             <button
-                              onClick={toggleVisibility}
+                              onClick={cycleVisibility}
                               className="px-2 py-1 rounded border hover:bg-gray-50 border-gray-300"
+                              title="Cycle: Public → Unlisted → Private"
                             >
-                              {story.visibility === 'private' ? 'Make public' : 'Make private'}
+                              {story.visibility === 'private' ? 'Private' : story.visibility === 'unlisted' ? 'Unlisted' : 'Public'}
                             </button>
+                            {story.visibility === 'unlisted' && (
+                              <button
+                                onClick={() => { setAccessPickerRuleType("view"); setAccessPickerOpen(true); }}
+                                className="px-2 py-1 rounded border hover:bg-gray-50 border-blue-300 text-blue-700"
+                              >
+                                Viewers
+                              </button>
+                            )}
                             <button
                               onClick={togglePublished}
                               className="px-2 py-1 rounded border hover:bg-gray-50 border-gray-300"
                             >
                               {story.published === false ? 'Publish' : 'Unpublish'}
                             </button>
+                            <button
+                              onClick={toggleCompletionStatus}
+                              className="px-2 py-1 rounded border hover:bg-gray-50 border-gray-300"
+                            >
+                              {(story.completion_status ?? 'draft') === 'draft' ? 'Mark completed' : 'Mark draft'}
+                            </button>
+                            <button
+                              onClick={cycleClonePolicy}
+                              className="px-2 py-1 rounded border hover:bg-gray-50 border-gray-300"
+                              title="Cycle: Cloneable → Restricted → Not cloneable"
+                            >
+                              Clone: {story.clone_policy === 'none' ? 'Off' : story.clone_policy === 'restricted' ? 'Restricted' : 'On'}
+                            </button>
+                            {story.clone_policy === 'restricted' && (
+                              <button
+                                onClick={() => { setAccessPickerRuleType("clone"); setAccessPickerOpen(true); }}
+                                className="px-2 py-1 rounded border hover:bg-gray-50 border-blue-300 text-blue-700"
+                              >
+                                Cloners
+                              </button>
+                            )}
+                            <button
+                              onClick={cycleExportPolicy}
+                              className="px-2 py-1 rounded border hover:bg-gray-50 border-gray-300"
+                              title="Cycle: Exportable → Restricted → Not exportable"
+                            >
+                              Export: {story.export_policy === 'none' ? 'Off' : story.export_policy === 'restricted' ? 'Restricted' : 'On'}
+                            </button>
+                            {story.export_policy === 'restricted' && (
+                              <button
+                                onClick={() => { setAccessPickerRuleType("export"); setAccessPickerOpen(true); }}
+                                className="px-2 py-1 rounded border hover:bg-gray-50 border-blue-300 text-blue-700"
+                              >
+                                Exporters
+                              </button>
+                            )}
                           </>
                         )}
                         {canDeleteStory && (
@@ -2414,6 +2548,14 @@ const Story = () => {
         getTitle={getStoryTitle}
         contentType="story"
         contentId={story.story_title_id}
+      />
+
+      {/* User/Group Access Picker */}
+      <UserGroupPicker
+        storyTitleId={story.story_title_id}
+        ruleType={accessPickerRuleType}
+        open={accessPickerOpen}
+        onClose={() => setAccessPickerOpen(false)}
       />
     </div>
   );

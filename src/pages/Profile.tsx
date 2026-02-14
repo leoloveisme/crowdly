@@ -74,6 +74,7 @@ import FavoriteStories from "@/modules/favorite stories";
 import LivingExperiencingStories from "@/modules/living-experiencing stories";
 import LivedExperiencedStories from "@/modules/lived-experienced stories";
 import UserInteractionsWidget from "@/modules/UserInteractionsWidget";
+import GroupsManager from "@/modules/groups";
 
 // Use same-origin API base in development; dev server proxies to backend.
 // In production, VITE_API_BASE_URL can point at the deployed API.
@@ -1715,6 +1716,16 @@ const Profile = () => {
         </div>
 
  
+        {/* My Groups Section - Only shown when not in preview mode */}
+        {!previewMode && authUser?.id && (
+          <div className="mb-12">
+            <h1 className="text-4xl font-bold mb-6 text-[#1A1F2C]">
+              <EditableText id="my-groups">My Groups</EditableText>
+            </h1>
+            <GroupsManager userId={authUser.id} />
+          </div>
+        )}
+
         {/* Stats & Activity Section - Only shown when not in preview mode */}
         {!previewMode && (
           <div className="mb-12 space-y-6">

@@ -67,6 +67,10 @@ export default defineConfig(({ mode }) => ({
         target: "http://localhost:4000",
         changeOrigin: true,
       },
+      "/groups": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
       "/creative-spaces": {
         target: "http://localhost:4000",
         changeOrigin: true,

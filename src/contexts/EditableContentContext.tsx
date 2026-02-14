@@ -101,6 +101,16 @@ export const EditableContentProvider: React.FC<{ children: ReactNode }> = ({ chi
   const toggleEditingMode = () => {
     if (!isAdmin) return;
 
+    // Prevent enabling editing mode for English (source language)
+    if (!isEditingEnabled && currentLanguage === "English") {
+      toast({
+        title: "English is protected",
+        description: "English is the source language and cannot be edited. Switch to another language first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsEditingEnabled(prev => !prev);
 
     // Exit all editing states when disabling editing mode
@@ -124,6 +134,8 @@ export const EditableContentProvider: React.FC<{ children: ReactNode }> = ({ chi
 
   const startEditing = (elementId: string, content: string, original: string) => {
     if (!isAdmin || !isEditingEnabled) return;
+    // English is the source language — block editing to prevent accidental changes
+    if (currentLanguage === "English") return;
 
     setContents(prev => ({
       ...prev,

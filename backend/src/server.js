@@ -120,6 +120,65 @@ async function ensureParagraphBranchesTable() {
   }
 }
 
+// Story control columns: completion status, clone/export policies
+async function ensureStoryControlColumns() {
+  try {
+    await pool.query("ALTER TABLE story_title ADD COLUMN IF NOT EXISTS completion_status text NOT NULL DEFAULT 'draft'");
+    await pool.query("ALTER TABLE story_title ADD COLUMN IF NOT EXISTS clone_policy text NOT NULL DEFAULT 'anyone'");
+    await pool.query("ALTER TABLE story_title ADD COLUMN IF NOT EXISTS export_policy text NOT NULL DEFAULT 'anyone'");
+    console.log('[init] ensured story_title control columns exist');
+  } catch (err) {
+    console.error('[init] failed to ensure story_title control columns:', err);
+  }
+}
+
+async function ensureGroupsTables() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS user_groups (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        name text NOT NULL,
+        owner_id uuid NOT NULL REFERENCES local_users(id) ON DELETE CASCADE,
+        is_platform_group boolean NOT NULL DEFAULT false,
+        created_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS user_group_members (
+        group_id uuid NOT NULL REFERENCES user_groups(id) ON DELETE CASCADE,
+        user_id uuid NOT NULL REFERENCES local_users(id) ON DELETE CASCADE,
+        added_at timestamptz NOT NULL DEFAULT now(),
+        PRIMARY KEY (group_id, user_id)
+      )
+    `);
+    console.log('[init] ensured user_groups and user_group_members tables exist');
+  } catch (err) {
+    console.error('[init] failed to ensure groups tables:', err);
+  }
+}
+
+async function ensureStoryAccessRulesTable() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS story_access_rules (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        story_title_id uuid NOT NULL REFERENCES story_title(story_title_id) ON DELETE CASCADE,
+        rule_type text NOT NULL,
+        grantee_user_id uuid REFERENCES local_users(id) ON DELETE CASCADE,
+        grantee_group_id uuid REFERENCES user_groups(id) ON DELETE CASCADE,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT valid_grantee CHECK (
+          (grantee_user_id IS NOT NULL AND grantee_group_id IS NULL) OR
+          (grantee_user_id IS NULL AND grantee_group_id IS NOT NULL)
+        )
+      )
+    `);
+    console.log('[init] ensured story_access_rules table exists');
+  } catch (err) {
+    console.error('[init] failed to ensure story_access_rules table:', err);
+  }
+}
+
 // Additional profile metadata columns
 async function ensureProfilesRealNicknameColumn() {
   try {
@@ -1018,6 +1077,15 @@ ensureStoryTitleGenreAndTagsColumns().catch((err) => {
 ensureStoryTitleUpdatedAtColumn().catch((err) => {
   console.error('[init] ensureStoryTitleUpdatedAtColumn unhandled error:', err);
 });
+ensureStoryControlColumns().catch((err) => {
+  console.error('[init] ensureStoryControlColumns unhandled error:', err);
+});
+ensureGroupsTables().catch((err) => {
+  console.error('[init] ensureGroupsTables unhandled error:', err);
+});
+ensureStoryAccessRulesTable().catch((err) => {
+  console.error('[init] ensureStoryAccessRulesTable unhandled error:', err);
+});
 ensureAuthorsTable().catch((err) => {
   console.error('[init] ensureAuthorsTable unhandled error:', err);
 });
@@ -1118,6 +1186,11 @@ app.put('/interface-translations', async (req, res) => {
   }
   if (!page_path || !element_id || !content) {
     return res.status(400).json({ error: 'page_path, element_id, and content are required' });
+  }
+  // Safeguard: English is the source language and must not be overwritten by translators
+  const lang = language || 'English';
+  if (lang === 'English') {
+    return res.status(403).json({ error: 'English is the source language and cannot be modified through the translation interface.' });
   }
   try {
     const lang = language || 'English';
@@ -2613,8 +2686,93 @@ app.get('/story-titles/:storyTitleId', async (req, res) => {
 
     const payload = { ...story, attachments };
 
-    if (visibility !== 'private') {
+    // Compute can_clone and can_export for the requesting user
+    let can_clone = true;
+    let can_export = true;
+    const storyClonePolicy = story.clone_policy ?? 'anyone';
+    const storyExportPolicy = story.export_policy ?? 'anyone';
+    const isCreatorOrAccess = userId && (story.creator_id === userId || await (async () => {
+      try {
+        const acc = await pool.query('SELECT 1 FROM story_access WHERE story_title_id = $1 AND user_id = $2 LIMIT 1', [storyTitleId, userId]);
+        return acc.rows.length > 0;
+      } catch { return false; }
+    })());
+
+    if (storyClonePolicy === 'none') {
+      can_clone = !!isCreatorOrAccess;
+    } else if (storyClonePolicy === 'restricted') {
+      if (isCreatorOrAccess) {
+        can_clone = true;
+      } else if (userId) {
+        try {
+          const ruleCheck = await pool.query(
+            `SELECT 1 FROM story_access_rules WHERE story_title_id = $1 AND rule_type = 'clone'
+             AND (grantee_user_id = $2 OR grantee_group_id IN (SELECT group_id FROM user_group_members WHERE user_id = $2))
+             LIMIT 1`,
+            [storyTitleId, userId],
+          );
+          can_clone = ruleCheck.rows.length > 0;
+        } catch { can_clone = false; }
+      } else {
+        can_clone = false;
+      }
+    }
+
+    if (storyExportPolicy === 'none') {
+      can_export = !!isCreatorOrAccess;
+    } else if (storyExportPolicy === 'restricted') {
+      if (isCreatorOrAccess) {
+        can_export = true;
+      } else if (userId) {
+        try {
+          const ruleCheck = await pool.query(
+            `SELECT 1 FROM story_access_rules WHERE story_title_id = $1 AND rule_type = 'export'
+             AND (grantee_user_id = $2 OR grantee_group_id IN (SELECT group_id FROM user_group_members WHERE user_id = $2))
+             LIMIT 1`,
+            [storyTitleId, userId],
+          );
+          can_export = ruleCheck.rows.length > 0;
+        } catch { can_export = false; }
+      } else {
+        can_export = false;
+      }
+    }
+
+    payload.can_clone = can_clone;
+    payload.can_export = can_export;
+
+    if (visibility === 'public') {
       return res.json(payload);
+    }
+
+    if (visibility === 'unlisted') {
+      // Creator always has access
+      if (userId && story.creator_id === userId) {
+        return res.json(payload);
+      }
+      // Check story_access table
+      if (userId) {
+        try {
+          const access = await pool.query(
+            'SELECT 1 FROM story_access WHERE story_title_id = $1 AND user_id = $2 LIMIT 1',
+            [storyTitleId, userId],
+          );
+          if (access.rows.length > 0) return res.json(payload);
+        } catch {}
+        // Check story_access_rules for view
+        try {
+          const ruleCheck = await pool.query(
+            `SELECT 1 FROM story_access_rules WHERE story_title_id = $1 AND rule_type = 'view'
+             AND (grantee_user_id = $2 OR grantee_group_id IN (SELECT group_id FROM user_group_members WHERE user_id = $2))
+             LIMIT 1`,
+            [storyTitleId, userId],
+          );
+          if (ruleCheck.rows.length > 0) return res.json(payload);
+        } catch {}
+      }
+      return res.status(403).json({
+        error: 'This story is unlisted. You need an invitation from the owner to view it.',
+      });
     }
 
     // Private story: enforce access
@@ -6117,16 +6275,19 @@ app.patch('/story-titles/:storyTitleId', async (req, res) => {
 // Update story visibility / published flags (no revision)
 app.patch('/story-titles/:storyTitleId/settings', async (req, res) => {
   const { storyTitleId } = req.params;
-  const { visibility, published, genre, tags } = req.body ?? {};
+  const { visibility, published, genre, tags, completion_status, clone_policy, export_policy } = req.body ?? {};
 
   if (
     visibility === undefined &&
     published === undefined &&
     genre === undefined &&
-    tags === undefined
+    tags === undefined &&
+    completion_status === undefined &&
+    clone_policy === undefined &&
+    export_policy === undefined
   ) {
     return res.status(400).json({
-      error: 'At least one of visibility, published, genre, or tags must be provided',
+      error: 'At least one of visibility, published, genre, tags, completion_status, clone_policy, or export_policy must be provided',
     });
   }
 
@@ -6149,6 +6310,18 @@ app.patch('/story-titles/:storyTitleId/settings', async (req, res) => {
   if (tags !== undefined) {
     fields.push(`tags = $${idx++}`);
     values.push(Array.isArray(tags) ? tags : null);
+  }
+  if (completion_status !== undefined) {
+    fields.push(`completion_status = $${idx++}`);
+    values.push(completion_status);
+  }
+  if (clone_policy !== undefined) {
+    fields.push(`clone_policy = $${idx++}`);
+    values.push(clone_policy);
+  }
+  if (export_policy !== undefined) {
+    fields.push(`export_policy = $${idx++}`);
+    values.push(export_policy);
   }
   values.push(storyTitleId);
 
@@ -6474,6 +6647,210 @@ app.post('/story-titles/:storyTitleId/sync-desktop', async (req, res) => {
   }
 });
 
+// Search users by name or email (for user/group picker)
+app.get('/users/search', async (req, res) => {
+  const { q, excludeUserId } = req.query;
+  if (!q || String(q).trim().length < 1) {
+    return res.json([]);
+  }
+  const term = `%${String(q).trim()}%`;
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, email, first_name, last_name FROM local_users
+       WHERE (email ILIKE $1 OR first_name ILIKE $1 OR last_name ILIKE $1)
+       ${excludeUserId ? 'AND id != $2' : ''}
+       ORDER BY email LIMIT 20`,
+      excludeUserId ? [term, excludeUserId] : [term],
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('[GET /users/search] failed:', err);
+    res.status(500).json({ error: 'Failed to search users' });
+  }
+});
+
+// List groups: user's own groups + all platform groups
+app.get('/groups', async (req, res) => {
+  const { userId } = req.query;
+  if (!userId) return res.status(400).json({ error: 'userId is required' });
+  try {
+    const { rows } = await pool.query(
+      `SELECT g.*, (SELECT count(*) FROM user_group_members m WHERE m.group_id = g.id)::int AS member_count
+       FROM user_groups g
+       WHERE g.owner_id = $1 OR g.is_platform_group = true
+       ORDER BY g.created_at DESC`,
+      [userId],
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('[GET /groups] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch groups' });
+  }
+});
+
+// Create a group
+app.post('/groups', async (req, res) => {
+  const { userId, name, isPlatformGroup } = req.body ?? {};
+  if (!userId || !name) return res.status(400).json({ error: 'userId and name are required' });
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO user_groups (name, owner_id, is_platform_group) VALUES ($1, $2, $3) RETURNING *`,
+      [name.trim(), userId, !!isPlatformGroup],
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error('[POST /groups] failed:', err);
+    res.status(500).json({ error: 'Failed to create group' });
+  }
+});
+
+// Delete a group
+app.delete('/groups/:id', async (req, res) => {
+  const { id } = req.params;
+  const { userId } = req.query;
+  if (!userId) return res.status(400).json({ error: 'userId is required' });
+  try {
+    // Only owner or platform admin can delete
+    const admin = await isAdmin(userId);
+    const { rowCount } = await pool.query(
+      admin
+        ? 'DELETE FROM user_groups WHERE id = $1'
+        : 'DELETE FROM user_groups WHERE id = $1 AND owner_id = $2',
+      admin ? [id] : [id, userId],
+    );
+    if (rowCount === 0) return res.status(404).json({ error: 'Group not found or not authorized' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[DELETE /groups/:id] failed:', err);
+    res.status(500).json({ error: 'Failed to delete group' });
+  }
+});
+
+// List members of a group
+app.get('/groups/:id/members', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { rows } = await pool.query(
+      `SELECT u.id, u.email, u.first_name, u.last_name, m.added_at
+       FROM user_group_members m
+       JOIN local_users u ON u.id = m.user_id
+       WHERE m.group_id = $1
+       ORDER BY m.added_at`,
+      [id],
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('[GET /groups/:id/members] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch group members' });
+  }
+});
+
+// Add a member to a group
+app.post('/groups/:id/members', async (req, res) => {
+  const { id } = req.params;
+  const { memberId } = req.body ?? {};
+  if (!memberId) return res.status(400).json({ error: 'memberId is required' });
+  try {
+    await pool.query(
+      `INSERT INTO user_group_members (group_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+      [id, memberId],
+    );
+    res.status(201).json({ success: true });
+  } catch (err) {
+    console.error('[POST /groups/:id/members] failed:', err);
+    res.status(500).json({ error: 'Failed to add member' });
+  }
+});
+
+// Remove a member from a group
+app.delete('/groups/:id/members/:memberId', async (req, res) => {
+  const { id, memberId } = req.params;
+  try {
+    await pool.query(
+      'DELETE FROM user_group_members WHERE group_id = $1 AND user_id = $2',
+      [id, memberId],
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[DELETE /groups/:id/members/:memberId] failed:', err);
+    res.status(500).json({ error: 'Failed to remove member' });
+  }
+});
+
+// List access rules for a story
+app.get('/stories/:storyTitleId/access-rules', async (req, res) => {
+  const { storyTitleId } = req.params;
+  try {
+    const { rows } = await pool.query(
+      `SELECT r.*,
+              u.email AS user_email, u.first_name AS user_first_name, u.last_name AS user_last_name,
+              g.name AS group_name
+       FROM story_access_rules r
+       LEFT JOIN local_users u ON u.id = r.grantee_user_id
+       LEFT JOIN user_groups g ON g.id = r.grantee_group_id
+       WHERE r.story_title_id = $1
+       ORDER BY r.rule_type, r.created_at`,
+      [storyTitleId],
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('[GET /stories/:storyTitleId/access-rules] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch access rules' });
+  }
+});
+
+// Replace all access rules for a given rule_type
+app.put('/stories/:storyTitleId/access-rules', async (req, res) => {
+  const { storyTitleId } = req.params;
+  const { ruleType, grants } = req.body ?? {};
+  if (!ruleType || !Array.isArray(grants)) {
+    return res.status(400).json({ error: 'ruleType and grants[] are required' });
+  }
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    // Delete existing rules of this type
+    await client.query(
+      'DELETE FROM story_access_rules WHERE story_title_id = $1 AND rule_type = $2',
+      [storyTitleId, ruleType],
+    );
+    // Insert new ones
+    for (const g of grants) {
+      if (g.userId) {
+        await client.query(
+          'INSERT INTO story_access_rules (story_title_id, rule_type, grantee_user_id) VALUES ($1, $2, $3)',
+          [storyTitleId, ruleType, g.userId],
+        );
+      } else if (g.groupId) {
+        await client.query(
+          'INSERT INTO story_access_rules (story_title_id, rule_type, grantee_group_id) VALUES ($1, $2, $3)',
+          [storyTitleId, ruleType, g.groupId],
+        );
+      }
+    }
+    await client.query('COMMIT');
+    // Return updated rules
+    const { rows } = await pool.query(
+      `SELECT r.*,
+              u.email AS user_email, u.first_name AS user_first_name, u.last_name AS user_last_name,
+              g.name AS group_name
+       FROM story_access_rules r
+       LEFT JOIN local_users u ON u.id = r.grantee_user_id
+       LEFT JOIN user_groups g ON g.id = r.grantee_group_id
+       WHERE r.story_title_id = $1 AND r.rule_type = $2
+       ORDER BY r.created_at`,
+      [storyTitleId, ruleType],
+    );
+    res.json(rows);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('[PUT /stories/:storyTitleId/access-rules] failed:', err);
+    res.status(500).json({ error: 'Failed to update access rules' });
+  } finally {
+    client.release();
+  }
+});
+
 // Clone a story (title + chapters) for the requesting user
 app.post('/stories/:storyTitleId/clone', async (req, res) => {
   const { storyTitleId } = req.params;
@@ -6488,7 +6865,7 @@ app.post('/stories/:storyTitleId/clone', async (req, res) => {
     await client.query('BEGIN');
 
     const sourceTitleRes = await client.query(
-      'SELECT story_title_id, title, visibility, published, creative_space_id FROM story_title WHERE story_title_id = $1',
+      'SELECT story_title_id, title, visibility, published, creative_space_id, clone_policy, creator_id FROM story_title WHERE story_title_id = $1',
       [storyTitleId],
     );
     if (sourceTitleRes.rows.length === 0) {
@@ -6496,6 +6873,36 @@ app.post('/stories/:storyTitleId/clone', async (req, res) => {
       return res.status(404).json({ error: 'Source story not found' });
     }
     const src = sourceTitleRes.rows[0];
+
+    // Enforce clone policy
+    const clonePolicy = src.clone_policy ?? 'anyone';
+    const isCloneOwnerOrAccess = src.creator_id === userId || await (async () => {
+      try {
+        const acc = await client.query('SELECT 1 FROM story_access WHERE story_title_id = $1 AND user_id = $2 LIMIT 1', [storyTitleId, userId]);
+        return acc.rows.length > 0;
+      } catch { return false; }
+    })();
+
+    if (clonePolicy === 'none' && !isCloneOwnerOrAccess) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'This story does not allow cloning.' });
+    }
+    if (clonePolicy === 'restricted' && !isCloneOwnerOrAccess) {
+      try {
+        const ruleCheck = await client.query(
+          `SELECT 1 FROM story_access_rules WHERE story_title_id = $1 AND rule_type = 'clone'
+           AND (grantee_user_id = $2 OR grantee_group_id IN (SELECT group_id FROM user_group_members WHERE user_id = $2))
+           LIMIT 1`,
+          [storyTitleId, userId],
+        );
+        if (ruleCheck.rows.length === 0) {
+          await client.query('ROLLBACK');
+          return res.status(403).json({ error: 'You do not have permission to clone this story.' });
+        }
+      } catch (ruleErr) {
+        console.error('[POST /stories/:storyTitleId/clone] rule check failed:', ruleErr);
+      }
+    }
 
     // Decide which Space (if any) the cloned story should belong to.
     let newCreativeSpaceId = src.creative_space_id || null;
