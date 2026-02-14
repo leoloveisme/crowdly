@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import crowdlyLogo from "@/components/images/crowdly.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Eye, Menu, X, LogOut, Bell, MessageSquare, User, Users, Heart, Gift, Settings, HelpCircle, UserPlus } from "lucide-react";
+import { Eye, Menu, X, LogOut, Bell, MessageSquare, User, Users, Heart, Gift, Settings, HelpCircle, UserPlus, Shield, FolderOpen, LifeBuoy } from "lucide-react";
 import { SearchBox } from "@/modules/search";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -208,8 +208,27 @@ const CrowdlyHeader = () => {
                       <DropdownMenuGroup>
                         {hasRole("platform_admin") && (
                           <DropdownMenuItem asChild>
+                            <Link to="/platform-admin" className="cursor-pointer flex items-center">
+                              <Shield className="mr-2 h-4 w-4" /> Platform Admin
+                            </Link>
+                          </DropdownMenuItem>
+                        )}
+                        {hasRole("platform_admin") && (
+                          <DropdownMenuItem asChild>
                             <Link to="/admin/invite-users" className="cursor-pointer flex items-center">
                               <UserPlus className="mr-2 h-4 w-4" /> Invite Users
+                            </Link>
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem asChild>
+                          <Link to="/admin" className="cursor-pointer flex items-center">
+                            <FolderOpen className="mr-2 h-4 w-4" /> My Content
+                          </Link>
+                        </DropdownMenuItem>
+                        {hasRole("platform_supporter") && (
+                          <DropdownMenuItem asChild>
+                            <Link to="/support" className="cursor-pointer flex items-center">
+                              <LifeBuoy className="mr-2 h-4 w-4" /> Support Dashboard
                             </Link>
                           </DropdownMenuItem>
                         )}
@@ -310,13 +329,26 @@ const CrowdlyHeader = () => {
                     <Gift className="h-4 w-4 mr-2" /> Friends' recommendations
                   </div>
                   {hasRole("platform_admin") && (
+                    <Link to="/platform-admin" className="flex items-center py-2 text-indigo-900 hover:underline">
+                      <Shield className="h-4 w-4 mr-2" /> Platform Admin
+                    </Link>
+                  )}
+                  {hasRole("platform_admin") && (
                     <Link to="/admin/invite-users" className="flex items-center py-2 text-indigo-900 hover:underline">
                       <UserPlus className="h-4 w-4 mr-2" /> Invite Users
                     </Link>
                   )}
-                  <div className="flex items-center py-2">
+                  <Link to="/admin" className="flex items-center py-2 text-indigo-900 hover:underline">
+                    <FolderOpen className="h-4 w-4 mr-2" /> My Content
+                  </Link>
+                  {hasRole("platform_supporter") && (
+                    <Link to="/support" className="flex items-center py-2 text-indigo-900 hover:underline">
+                      <LifeBuoy className="h-4 w-4 mr-2" /> Support Dashboard
+                    </Link>
+                  )}
+                  <Link to="/account-administration" className="flex items-center py-2 text-indigo-900 hover:underline">
                     <Settings className="h-4 w-4 mr-2" /> Account settings
-                  </div>
+                  </Link>
                   <div className="flex items-center py-2">
                     <HelpCircle className="h-4 w-4 mr-2" /> Help
                   </div>

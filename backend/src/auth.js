@@ -57,7 +57,7 @@ export async function registerWithEmailPassword(email, password) {
  */
 export async function loginWithEmailPassword(email, password) {
   const { rows } = await pool.query(
-    'SELECT id, email, password_hash FROM local_users WHERE email = $1',
+    'SELECT id, email, password_hash, is_banned FROM local_users WHERE email = $1',
     [email]
   );
 
@@ -66,6 +66,10 @@ export async function loginWithEmailPassword(email, password) {
   }
 
   const user = rows[0];
+
+  if (user.is_banned) {
+    throw new Error('Your account has been suspended');
+  }
 
   const ok = await bcrypt.compare(password, user.password_hash);
   if (!ok) {

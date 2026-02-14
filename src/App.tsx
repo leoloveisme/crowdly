@@ -36,6 +36,9 @@ import NewestScreenplaysOutput from "./pages/NewestScreenplaysOutput";
 import SearchPage from "./pages/Search";
 import AlphaGate from "./pages/AlphaGate";
 import InviteUsers from "./pages/InviteUsers";
+import PlatformAdmin from "./pages/PlatformAdmin";
+import Admin from "./pages/Admin";
+import Support from "./pages/Support";
 
 const queryClient = new QueryClient();
 
@@ -87,6 +90,9 @@ const App = () => {
                   <Route path="/login" element={<AlphaGuard><Login /></AlphaGuard>} />
                   <Route path="/register" element={<AlphaGuard><Register /></AlphaGuard>} />
                   <Route path="/stories/spaces-migration" element={<AlphaGuard><StoriesSpacesMigration /></AlphaGuard>} />
+                  <Route path="/platform-admin" element={<AlphaGuard><PlatformAdmin /></AlphaGuard>} />
+                  <Route path="/admin" element={<AlphaGuard><Admin /></AlphaGuard>} />
+                  <Route path="/support" element={<AlphaGuard><Support /></AlphaGuard>} />
                   <Route path="/admin/invite-users" element={<AlphaGuard><InviteUsers /></AlphaGuard>} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="/search" element={<AlphaGuard><SearchPage /></AlphaGuard>} />

@@ -947,6 +947,60 @@ async function ensureAlphaApplicationsTable() {
   }
 }
 
+async function ensureUserBannedColumn() {
+  try {
+    await pool.query(
+      "ALTER TABLE local_users ADD COLUMN IF NOT EXISTS is_banned boolean NOT NULL DEFAULT false"
+    );
+    console.log('[init] ensured local_users.is_banned column exists');
+  } catch (err) {
+    console.error('[init] failed to ensure local_users.is_banned column:', err);
+  }
+}
+
+async function ensureAdminMessagesTable() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS admin_messages (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        sender_id uuid NOT NULL REFERENCES local_users(id) ON DELETE CASCADE,
+        recipient_id uuid NOT NULL REFERENCES local_users(id) ON DELETE CASCADE,
+        subject text NOT NULL DEFAULT '',
+        body text NOT NULL DEFAULT '',
+        created_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    console.log('[init] ensured admin_messages table exists');
+  } catch (err) {
+    console.error('[init] failed to ensure admin_messages table:', err);
+  }
+}
+
+async function ensureInterfaceTranslationsTable() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS interface_translations (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        page_path text NOT NULL,
+        element_id text NOT NULL,
+        language text NOT NULL DEFAULT 'English',
+        content text NOT NULL,
+        original_content text,
+        updated_by uuid REFERENCES local_users(id) ON DELETE SET NULL,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    await pool.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS interface_translations_unique_idx
+      ON interface_translations (page_path, element_id, language)
+    `);
+    console.log('[init] ensured interface_translations table exists');
+  } catch (err) {
+    console.error('[init] failed to ensure interface_translations table:', err);
+  }
+}
+
 // Fire and forget; if this fails we log but do not crash the server
 ensurePgcryptoExtension().catch((err) => {
   console.error('[init] ensurePgcryptoExtension unhandled error:', err);
@@ -1019,6 +1073,69 @@ ensureAlphaInvitationsTable().catch((err) => {
 });
 ensureAlphaApplicationsTable().catch((err) => {
   console.error('[init] ensureAlphaApplicationsTable unhandled error:', err);
+});
+ensureUserBannedColumn().catch((err) => {
+  console.error('[init] ensureUserBannedColumn unhandled error:', err);
+});
+ensureAdminMessagesTable().catch((err) => {
+  console.error('[init] ensureAdminMessagesTable unhandled error:', err);
+});
+ensureInterfaceTranslationsTable().catch((err) => {
+  console.error('[init] ensureInterfaceTranslationsTable unhandled error:', err);
+});
+
+// ---------------------------------------------------------------------------
+// Interface Translations endpoints
+// ---------------------------------------------------------------------------
+
+// GET /interface-translations — fetch translations for a page + language
+app.get('/interface-translations', async (req, res) => {
+  const { page_path, language } = req.query;
+  if (!page_path) {
+    return res.status(400).json({ error: 'page_path is required' });
+  }
+  try {
+    const lang = language || 'English';
+    const { rows } = await pool.query(
+      `SELECT element_id, content, original_content
+       FROM interface_translations
+       WHERE page_path = $1 AND language = $2`,
+      [page_path, lang]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('[GET /interface-translations] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch translations' });
+  }
+});
+
+// PUT /interface-translations — upsert a single translation (admin-only)
+app.put('/interface-translations', async (req, res) => {
+  const { userId, page_path, element_id, language, content, original_content } = req.body ?? {};
+  if (!(await isAdmin(userId))) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  if (!page_path || !element_id || !content) {
+    return res.status(400).json({ error: 'page_path, element_id, and content are required' });
+  }
+  try {
+    const lang = language || 'English';
+    const { rows } = await pool.query(
+      `INSERT INTO interface_translations (page_path, element_id, language, content, original_content, updated_by, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, now())
+       ON CONFLICT (page_path, element_id, language)
+       DO UPDATE SET content = EXCLUDED.content,
+                     original_content = COALESCE(EXCLUDED.original_content, interface_translations.original_content),
+                     updated_by = EXCLUDED.updated_by,
+                     updated_at = now()
+       RETURNING *`,
+      [page_path, element_id, lang, content, original_content || null, userId || null]
+    );
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('[PUT /interface-translations] failed:', err);
+    res.status(500).json({ error: 'Failed to save translation' });
+  }
 });
 
 app.get('/health', async (_req, res) => {
@@ -3306,6 +3423,77 @@ app.get('/users/:userId/screenplays', async (req, res) => {
   } catch (err) {
     console.error('[GET /users/:userId/screenplays] failed:', err);
     res.status(500).json({ error: 'Failed to fetch user screenplays' });
+  }
+});
+
+// GET /users/:userId/comments — list all comments made by a user
+app.get('/users/:userId/comments', async (req, res) => {
+  const { userId } = req.params;
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+  try {
+    const { rows } = await pool.query(
+      `SELECT
+         c.id,
+         c.body,
+         c.created_at,
+         c.story_title_id,
+         c.chapter_id,
+         c.paragraph_index,
+         c.screenplay_id,
+         c.screenplay_scene_id,
+         c.parent_comment_id,
+         st.title AS story_title,
+         s.chapter_title,
+         spt.title AS screenplay_title
+       FROM comments c
+       LEFT JOIN story_title st ON st.story_title_id = c.story_title_id
+       LEFT JOIN stories s ON s.chapter_id = c.chapter_id
+       LEFT JOIN screenplay_title spt ON spt.screenplay_id = c.screenplay_id
+       WHERE c.user_id = $1
+       ORDER BY c.created_at DESC
+       LIMIT 500`,
+      [userId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('[GET /users/:userId/comments] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch user comments' });
+  }
+});
+
+// GET /users/:userId/branches — list all paragraph branches by a user
+app.get('/users/:userId/branches', async (req, res) => {
+  const { userId } = req.params;
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+  try {
+    const { rows } = await pool.query(
+      `SELECT
+         pb.id,
+         pb.chapter_id,
+         pb.parent_paragraph_index,
+         pb.parent_paragraph_text,
+         pb.branch_text,
+         pb.language,
+         pb.created_at,
+         s.story_title_id,
+         s.chapter_title,
+         st.title AS story_title
+       FROM paragraph_branches pb
+       JOIN stories s ON s.chapter_id = pb.chapter_id
+       LEFT JOIN story_title st ON st.story_title_id = s.story_title_id
+       WHERE pb.user_id = $1
+       ORDER BY pb.created_at DESC
+       LIMIT 500`,
+      [userId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('[GET /users/:userId/branches] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch user branches' });
   }
 });
 
@@ -6558,6 +6746,255 @@ app.delete('/admin/applications/:id', async (req, res) => {
   } catch (err) {
     console.error('[DELETE /admin/applications/:id] failed:', err);
     res.status(500).json({ error: 'Failed to delete application' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Admin User Management endpoints
+// ---------------------------------------------------------------------------
+
+// GET /admin/users — list users with pagination, sorting, search
+app.get('/admin/users', async (req, res) => {
+  const { userId, sortBy, sortOrder, limit, offset, search } = req.query;
+  if (!(await isAdmin(userId))) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  try {
+    const allowedSort = ['first_name', 'last_name', 'email', 'username'];
+    const col = allowedSort.includes(sortBy) ? sortBy : 'email';
+    const dir = sortOrder === 'desc' ? 'DESC' : 'ASC';
+
+    // limit=0 means "all"
+    const rawLimit = Number(limit);
+    const useAll = rawLimit === 0;
+    const lim = useAll ? null : (Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : 20);
+    const off = Number(offset) || 0;
+
+    const searchPattern = search ? `%${search}%` : null;
+
+    const sortColumn = col === 'email' ? 'u.email'
+      : col === 'username' ? "COALESCE(p.username, '')"
+      : col === 'first_name' ? "COALESCE(p.first_name, '')"
+      : "COALESCE(p.last_name, '')";
+
+    let whereClause = '';
+    const params = [];
+    if (searchPattern) {
+      params.push(searchPattern);
+      whereClause = `WHERE (
+        u.email ILIKE $1 OR
+        COALESCE(p.first_name, '') ILIKE $1 OR
+        COALESCE(p.last_name, '') ILIKE $1 OR
+        COALESCE(p.username, '') ILIKE $1
+      )`;
+    }
+
+    const countQuery = `
+      SELECT count(*)::int AS total
+      FROM local_users u
+      LEFT JOIN profiles p ON p.id = u.id
+      ${whereClause}
+    `;
+    const { rows: countRows } = await pool.query(countQuery, params);
+
+    let dataQuery = `
+      SELECT
+        u.id,
+        u.email,
+        u.created_at,
+        u.is_banned,
+        p.first_name,
+        p.last_name,
+        p.username,
+        p.nickname,
+        ARRAY(SELECT role FROM user_roles WHERE user_id = u.id) AS roles,
+        EXISTS(SELECT 1 FROM story_initiators WHERE initiator_id = u.id) AS is_initiator,
+        EXISTS(SELECT 1 FROM story_access WHERE user_id = u.id AND role = 'owner') AS is_owner,
+        EXISTS(SELECT 1 FROM story_access WHERE user_id = u.id AND role = 'contributor')
+          OR EXISTS(SELECT 1 FROM contributions WHERE author_user_id = u.id) AS is_contributor,
+        EXISTS(SELECT 1 FROM authors WHERE author_id = u.id) AS is_author
+      FROM local_users u
+      LEFT JOIN profiles p ON p.id = u.id
+      ${whereClause}
+      ORDER BY ${sortColumn} ${dir}
+    `;
+
+    const dataParams = [...params];
+    if (!useAll) {
+      dataParams.push(lim, off);
+      dataQuery += ` LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}`;
+    }
+
+    const { rows } = await pool.query(dataQuery, dataParams);
+
+    res.json({ users: rows, total: countRows[0].total });
+  } catch (err) {
+    console.error('[GET /admin/users] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// PATCH /admin/users/:id — update user profile fields (admin-only)
+app.patch('/admin/users/:id', async (req, res) => {
+  const { userId, first_name, last_name, email, username } = req.body ?? {};
+  if (!(await isAdmin(userId))) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  const targetId = req.params.id;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Update email on local_users if provided
+    if (email !== undefined) {
+      // Check for duplicate email
+      const { rows: existing } = await client.query(
+        'SELECT id FROM local_users WHERE email = $1 AND id != $2',
+        [email, targetId]
+      );
+      if (existing.length > 0) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: 'This email is already in use by another account' });
+      }
+      await client.query('UPDATE local_users SET email = $1 WHERE id = $2', [email, targetId]);
+    }
+
+    // Update profile fields
+    if (first_name !== undefined || last_name !== undefined || username !== undefined) {
+      // Check username uniqueness
+      if (username !== undefined && username !== '') {
+        const { rows: existing } = await client.query(
+          'SELECT id FROM profiles WHERE LOWER(username) = LOWER($1) AND id != $2',
+          [username, targetId]
+        );
+        if (existing.length > 0) {
+          await client.query('ROLLBACK');
+          return res.status(409).json({ error: 'Sorry, this name is already taken' });
+        }
+      }
+
+      // Ensure profile row exists
+      await client.query(
+        `INSERT INTO profiles (id, username, created_at, updated_at)
+         VALUES ($1, $2, now(), now())
+         ON CONFLICT (id) DO NOTHING`,
+        [targetId, email || 'user-' + targetId.substring(0, 8)]
+      );
+
+      const updates = [];
+      const vals = [];
+      let idx = 1;
+      if (first_name !== undefined) { updates.push(`first_name = $${idx++}`); vals.push(first_name); }
+      if (last_name !== undefined) { updates.push(`last_name = $${idx++}`); vals.push(last_name); }
+      if (username !== undefined) { updates.push(`username = $${idx++}`); vals.push(username); }
+      updates.push(`updated_at = now()`);
+
+      if (updates.length > 1) {
+        vals.push(targetId);
+        await client.query(
+          `UPDATE profiles SET ${updates.join(', ')} WHERE id = $${idx}`,
+          vals
+        );
+      }
+    }
+
+    await client.query('COMMIT');
+
+    // Return updated user
+    const { rows } = await pool.query(
+      `SELECT
+        u.id, u.email, u.created_at, u.is_banned,
+        p.first_name, p.last_name, p.username, p.nickname,
+        ARRAY(SELECT role FROM user_roles WHERE user_id = u.id) AS roles
+       FROM local_users u
+       LEFT JOIN profiles p ON p.id = u.id
+       WHERE u.id = $1`,
+      [targetId]
+    );
+    res.json(rows[0] || { id: targetId });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('[PATCH /admin/users/:id] failed:', err);
+    res.status(500).json({ error: 'Failed to update user' });
+  } finally {
+    client.release();
+  }
+});
+
+// POST /admin/users/:id/ban — toggle ban status (admin-only)
+app.post('/admin/users/:id/ban', async (req, res) => {
+  const { userId, banned } = req.body ?? {};
+  if (!(await isAdmin(userId))) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  try {
+    const isBanned = banned === true || banned === 'true';
+    const { rows } = await pool.query(
+      'UPDATE local_users SET is_banned = $1 WHERE id = $2 RETURNING id, is_banned',
+      [isBanned, req.params.id]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('[POST /admin/users/:id/ban] failed:', err);
+    res.status(500).json({ error: 'Failed to update ban status' });
+  }
+});
+
+// DELETE /admin/users/:id — delete user (admin-only)
+app.delete('/admin/users/:id', async (req, res) => {
+  const { userId } = req.body ?? {};
+  if (!(await isAdmin(userId))) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  const targetId = req.params.id;
+  // Don't allow self-deletion via admin route
+  if (targetId === userId) {
+    return res.status(400).json({ error: 'Cannot delete your own account via admin panel' });
+  }
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM user_roles WHERE user_id = $1', [targetId]);
+    await client.query('DELETE FROM profiles WHERE id = $1', [targetId]);
+    await client.query('DELETE FROM admin_messages WHERE sender_id = $1 OR recipient_id = $1', [targetId]);
+    const { rowCount } = await client.query('DELETE FROM local_users WHERE id = $1', [targetId]);
+    await client.query('COMMIT');
+    if (rowCount === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('[DELETE /admin/users/:id] failed:', err);
+    res.status(500).json({ error: 'Failed to delete user' });
+  } finally {
+    client.release();
+  }
+});
+
+// POST /admin/users/:id/message — send an admin message to user
+app.post('/admin/users/:id/message', async (req, res) => {
+  const { userId, subject, body } = req.body ?? {};
+  if (!(await isAdmin(userId))) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  if (!subject && !body) {
+    return res.status(400).json({ error: 'Subject or body is required' });
+  }
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO admin_messages (sender_id, recipient_id, subject, body)
+       VALUES ($1, $2, $3, $4)
+       RETURNING *`,
+      [userId, req.params.id, subject || '', body || '']
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error('[POST /admin/users/:id/message] failed:', err);
+    res.status(500).json({ error: 'Failed to send message' });
   }
 });
 

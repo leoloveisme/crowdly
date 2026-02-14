@@ -95,6 +95,14 @@ export default defineConfig(({ mode }) => ({
         target: "http://localhost:4000",
         changeOrigin: true,
       },
+      "/admin/users": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/interface-translations": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
       "/alpha/validate": {
         target: "http://localhost:4000",
         changeOrigin: true,

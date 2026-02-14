@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { fetchSearchResults, SearchResult } from "@/modules/search";
+import { fetchSearchResults, SearchResult, SearchResultType, SEARCH_TYPE_LABELS } from "@/modules/search";
 import { useAuth } from "@/contexts/AuthContext";
 
 function useQueryParam(name: string): string {
@@ -30,6 +30,7 @@ const SearchPage: React.FC = () => {
   const [sort, setSort] = useState<"relevance" | "newest" | "oldest" | "title-asc" | "title-desc">(
     "relevance",
   );
+  const [typeFilter, setTypeFilter] = useState<"all" | SearchResultType>("all");
 
   useEffect(() => {
     setQuery(queryParam);
@@ -75,7 +76,8 @@ const SearchPage: React.FC = () => {
   }, [queryParam, isAdmin]);
 
   const sortedResults = useMemo(() => {
-    const copy = [...results];
+    const filtered = typeFilter === "all" ? results : results.filter((r) => r.type === typeFilter);
+    const copy = [...filtered];
     switch (sort) {
       case "title-asc":
         return copy.sort((a, b) => a.title.localeCompare(b.title));
@@ -121,6 +123,17 @@ const SearchPage: React.FC = () => {
               />
             </div>
             <div className="flex items-center gap-3">
+              <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as typeof typeFilter)}>
+                <SelectTrigger className="w-36">
+                  <SelectValue placeholder="Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All types</SelectItem>
+                  <SelectItem value="story">{SEARCH_TYPE_LABELS.story}</SelectItem>
+                  <SelectItem value="screenplay">{SEARCH_TYPE_LABELS.screenplay}</SelectItem>
+                  <SelectItem value="user">{SEARCH_TYPE_LABELS.user}</SelectItem>
+                </SelectContent>
+              </Select>
               <Select value={sort} onValueChange={(v) => setSort(v as typeof sort)}>
                 <SelectTrigger className="w-40">
                   <SelectValue placeholder="Sort" />
@@ -175,8 +188,16 @@ const SearchPage: React.FC = () => {
                       className="odd:bg-white even:bg-gray-50/60 dark:odd:bg-gray-900 dark:even:bg-gray-800/60 hover:bg-indigo-50/60 dark:hover:bg-indigo-900/40 cursor-pointer"
                       onClick={() => navigate(result.url)}
                     >
-                      <td className="px-4 py-2 align-top text-xs uppercase text-gray-500 dark:text-gray-400">
-                        {result.type}
+                      <td className="px-4 py-2 align-top">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                          result.type === "user"
+                            ? "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300"
+                            : result.type === "story"
+                            ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                            : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                        }`}>
+                          {SEARCH_TYPE_LABELS[result.type] || result.type}
+                        </span>
                       </td>
                       <td className="px-4 py-2 align-top text-indigo-700 dark:text-indigo-200 font-medium">
                         {result.title}
