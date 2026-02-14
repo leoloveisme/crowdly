@@ -721,7 +721,7 @@ Crowd-created stories that branch and grow — discover, experience, create, col
               <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/18 rounded-t-xl px-4 py-2">
                 <CardTitle className="flex items-center gap-1 text-lg font-semibold">
                   <Flame className="text-amber-600" size={18} />
-                  <EditableText id="mostPopularStories">Most Popular Screenplays</EditableText>
+                  <EditableText id="mostPopularScreenplays">Most Popular Screenplays</EditableText>
                 </CardTitle>
                 <CardDescription className="text-xs mt-0.5">Trending screenplays loved by the community</CardDescription>
               </CardHeader>
@@ -771,7 +771,7 @@ Crowd-created stories that branch and grow — discover, experience, create, col
               <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/18 rounded-t-xl px-4 py-2">
                 <CardTitle className="flex items-center gap-1 text-lg font-semibold">
                   <Flame className="text-amber-600" size={18} />
-                  <EditableText id="mostPopularStories">Most Active Screenplays</EditableText>
+                  <EditableText id="mostActiveScreenplays">Most Active Screenplays</EditableText>
                 </CardTitle>
                 <CardDescription className="text-xs mt-0.5">Most active screenplays loved by the community</CardDescription>
               </CardHeader>

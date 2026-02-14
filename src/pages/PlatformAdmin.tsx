@@ -39,6 +39,7 @@ import {
   ShieldCheck,
   X,
 } from "lucide-react";
+import CreateUser from "@/modules/create a user";
 
 const API_BASE = import.meta.env.PROD
   ? (import.meta.env.VITE_API_BASE_URL ?? "")
@@ -70,6 +71,7 @@ const STORY_ROLE_COLORS: Record<string, string> = {
 const PLATFORM_ROLE_COLORS: Record<string, string> = {
   platform_admin: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300",
   platform_supporter: "bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300",
+  ui_translator: "bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300",
   consumer: "bg-gray-100 text-gray-600 dark:bg-gray-800/40 dark:text-gray-400",
 };
 
@@ -339,7 +341,8 @@ const PlatformAdmin = () => {
 
           {/* User Management Tab */}
           <TabsContent value="users">
-            <Card>
+            <CreateUser onUserCreated={fetchUsers} />
+            <Card className="mt-4">
               <CardHeader>
                 <CardTitle>User Management</CardTitle>
                 <CardDescription>Manage platform users — list, edit, ban, delete, and send messages.</CardDescription>

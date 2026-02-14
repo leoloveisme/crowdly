@@ -22,7 +22,7 @@ interface EditableContentContextType {
   toggleEditingMode: () => void;
   startEditing: (elementId: string, content: string, original: string) => void;
   updateContent: (elementId: string, content: string) => void;
-  saveContent: (elementId: string) => Promise<void>;
+  saveContent: (elementId: string, contentOverride?: string) => Promise<void>;
   cancelEditing: (elementId: string) => void;
   isAdmin: boolean;
   currentLanguage: string;
@@ -37,7 +37,7 @@ export const EditableContentProvider: React.FC<{ children: ReactNode }> = ({ chi
   const [currentLanguage, setCurrentLanguage] = useState<string>("English");
   const { user, hasRole } = useAuth();
   const location = useLocation();
-  const isAdmin = user !== null && hasRole('platform_admin');
+  const isAdmin = user !== null && (hasRole('platform_admin') || hasRole('ui_translator'));
   const currentPath = location.pathname;
 
   // Handle language change
@@ -75,15 +75,18 @@ export const EditableContentProvider: React.FC<{ children: ReactNode }> = ({ chi
       const data = await res.json();
 
       if (data && Array.isArray(data)) {
-        const contentMap: EditableContent = {};
-        data.forEach((item: { element_id: string; content: string; original_content: string | null }) => {
-          contentMap[item.element_id] = {
-            content: item.content,
-            original: item.original_content || item.content,
-            isEditing: false
-          };
+        setContents(prev => {
+          const updated: EditableContent = {};
+          data.forEach((item: { element_id: string; content: string; original_content: string | null }) => {
+            updated[item.element_id] = {
+              content: item.content,
+              original: item.original_content || item.content,
+              // Preserve isEditing flag if the element is currently being edited
+              isEditing: prev[item.element_id]?.isEditing || false
+            };
+          });
+          return updated;
         });
-        setContents(contentMap);
       }
     } catch (error) {
       console.error('Error in fetchEditableContent:', error);
@@ -144,12 +147,15 @@ export const EditableContentProvider: React.FC<{ children: ReactNode }> = ({ chi
     }));
   };
 
-  const saveContent = async (elementId: string) => {
+  const saveContent = async (elementId: string, contentOverride?: string) => {
     if (!isAdmin || !currentPath) return;
 
     try {
       const contentData = contents[elementId];
       if (!contentData) return;
+
+      // Use contentOverride if provided (avoids async state timing issues)
+      const finalContent = contentOverride ?? contentData.content;
 
       const res = await fetch(`${API_BASE}/interface-translations`, {
         method: "PUT",
@@ -159,7 +165,7 @@ export const EditableContentProvider: React.FC<{ children: ReactNode }> = ({ chi
           page_path: currentPath,
           element_id: elementId,
           language: currentLanguage,
-          content: contentData.content,
+          content: finalContent,
           original_content: contentData.original,
         }),
       });
@@ -174,11 +180,12 @@ export const EditableContentProvider: React.FC<{ children: ReactNode }> = ({ chi
         return;
       }
 
-      // Turn off editing for this element
+      // Update locally — no refetch needed, avoids wiping other elements' state
       setContents(prev => ({
         ...prev,
         [elementId]: {
-          ...prev[elementId],
+          content: finalContent,
+          original: prev[elementId]?.original || finalContent,
           isEditing: false
         }
       }));
@@ -187,9 +194,6 @@ export const EditableContentProvider: React.FC<{ children: ReactNode }> = ({ chi
         title: "Content saved",
         description: `Your changes have been saved successfully in ${currentLanguage}`,
       });
-
-      // Refresh content to ensure we have the latest
-      fetchEditableContent(currentPath, currentLanguage);
 
     } catch (error) {
       console.error('Error in saveContent:', error);

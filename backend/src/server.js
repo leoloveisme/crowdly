@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { randomUUID } from 'crypto';
 import { pool } from './db.js';
 import { loginWithEmailPassword, registerWithEmailPassword, changePassword, deleteAccountWithPassword } from './auth.js';
+import bcrypt from 'bcryptjs';
 import { sendInvitationEmail, sendApplicationConfirmationEmail, sendApplicationToInvitationEmail } from './email.js';
 
 dotenv.config();
@@ -1112,8 +1113,8 @@ app.get('/interface-translations', async (req, res) => {
 // PUT /interface-translations — upsert a single translation (admin-only)
 app.put('/interface-translations', async (req, res) => {
   const { userId, page_path, element_id, language, content, original_content } = req.body ?? {};
-  if (!(await isAdmin(userId))) {
-    return res.status(403).json({ error: 'Admin access required' });
+  if (!(await isTranslator(userId))) {
+    return res.status(403).json({ error: 'Admin or translator access required' });
   }
   if (!page_path || !element_id || !content) {
     return res.status(400).json({ error: 'page_path, element_id, and content are required' });
@@ -6602,6 +6603,20 @@ async function isAdmin(userId) {
   }
 }
 
+// Helper: check if user has platform_admin or ui_translator role
+async function isTranslator(userId) {
+  if (!userId) return false;
+  try {
+    const { rows } = await pool.query(
+      "SELECT role FROM user_roles WHERE user_id = $1 AND role IN ('platform_admin', 'ui_translator')",
+      [userId]
+    );
+    return rows.length > 0;
+  } catch {
+    return false;
+  }
+}
+
 // POST /admin/invitations — create invitation & send email (admin-only)
 app.post('/admin/invitations', async (req, res) => {
   const { userId, firstName, lastName, email } = req.body ?? {};
@@ -6752,6 +6767,67 @@ app.delete('/admin/applications/:id', async (req, res) => {
 // ---------------------------------------------------------------------------
 // Admin User Management endpoints
 // ---------------------------------------------------------------------------
+
+// POST /admin/users — create a new user (admin-only)
+app.post('/admin/users', async (req, res) => {
+  const { userId, firstName, lastName, email, password, roles } = req.body ?? {};
+  if (!(await isAdmin(userId))) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required' });
+  }
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Check for duplicate email
+    const existing = await client.query('SELECT 1 FROM local_users WHERE email = $1', [email]);
+    if (existing.rows.length > 0) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'An account with this email already exists' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const { rows: userRows } = await client.query(
+      'INSERT INTO local_users (email, password_hash) VALUES ($1, $2) RETURNING id, email',
+      [email, passwordHash]
+    );
+    const newUser = userRows[0];
+
+    // Create profile with first/last name; username defaults to email
+    await client.query(
+      'INSERT INTO profiles (id, first_name, last_name, username) VALUES ($1, $2, $3, $4) ON CONFLICT (id) DO UPDATE SET first_name = $2, last_name = $3',
+      [newUser.id, firstName || null, lastName || null, email.trim()]
+    );
+
+    // Always assign consumer role
+    await client.query('INSERT INTO user_roles (user_id, role) VALUES ($1, $2)', [newUser.id, 'consumer']);
+
+    // Assign additional roles
+    const validRoles = ['ui_translator', 'platform_supporter'];
+    const extraRoles = Array.isArray(roles) ? roles.filter(r => validRoles.includes(r)) : [];
+    for (const role of extraRoles) {
+      await client.query('INSERT INTO user_roles (user_id, role) VALUES ($1, $2)', [newUser.id, role]);
+    }
+
+    await client.query('COMMIT');
+
+    res.status(201).json({
+      id: newUser.id,
+      email: newUser.email,
+      first_name: firstName || null,
+      last_name: lastName || null,
+      roles: ['consumer', ...extraRoles],
+    });
+  } catch (err) {
+    try { await client.query('ROLLBACK'); } catch (_) { /* ignore */ }
+    console.error('[POST /admin/users] failed:', err);
+    res.status(500).json({ error: 'Failed to create user' });
+  } finally {
+    client.release();
+  }
+});
 
 // GET /admin/users — list users with pagination, sorting, search
 app.get('/admin/users', async (req, res) => {
@@ -7058,6 +7134,23 @@ app.get('/alpha/check-access', async (req, res) => {
     res.status(500).json({ hasAccess: false });
   }
 });
+
+// Ensure ui_translator role exists in the app_role enum
+async function ensureUiTranslatorRole() {
+  try {
+    await pool.query("ALTER TYPE app_role ADD VALUE IF NOT EXISTS 'ui_translator'");
+    console.log('[startup] ui_translator role ensured in app_role enum');
+  } catch (err) {
+    // IF NOT EXISTS is only supported in PG 9.3+; if it already exists, ignore
+    if (err.code === '42710') {
+      console.log('[startup] ui_translator role already exists');
+    } else {
+      console.error('[startup] failed to add ui_translator role:', err);
+    }
+  }
+}
+
+ensureUiTranslatorRole();
 
 const port = Number(process.env.PORT) || 4000;
 const host = process.env.HOST || '0.0.0.0';

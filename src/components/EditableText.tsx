@@ -1,14 +1,23 @@
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useEditableContent } from "@/contexts/EditableContentContext";
 import { cn } from "@/lib/utils";
-import { Edit, Check, X } from "lucide-react";
+import { Edit } from "lucide-react";
 
 interface EditableTextProps {
   id: string;
   className?: string;
   children: React.ReactNode;
   as?: keyof JSX.IntrinsicElements;
+}
+
+/** Extract plain text from React children */
+function extractText(children: React.ReactNode): string {
+  if (typeof children === 'string') return children;
+  if (React.isValidElement(children) && typeof children.props.children === 'string') {
+    return children.props.children;
+  }
+  return children?.toString() || '';
 }
 
 const EditableText: React.FC<EditableTextProps> = ({
@@ -23,168 +32,124 @@ const EditableText: React.FC<EditableTextProps> = ({
     isAdmin,
     currentLanguage,
     startEditing,
-    updateContent,
     saveContent,
     cancelEditing
   } = useEditableContent();
-  
-  const [localContent, setLocalContent] = useState<string>("");
+
   const editableRef = useRef<HTMLDivElement>(null);
+  // Refs for tracking content during editing — avoids stale closures & re-renders
+  const contentBeforeEdit = useRef<string>("");
+  const currentEditContent = useRef<string>("");
+
   const elementData = contents[id];
   const isEditing = elementData?.isEditing || false;
-  
-  // Define RTL languages - Arabic and Hebrew only
+
+  // Only set dir attribute for actual RTL languages
   const rtlLanguages = ["Arabic", "Hebrew"];
   const isRTL = rtlLanguages.includes(currentLanguage);
-  
-  // Initialize content from children when the component mounts
-  useEffect(() => {
-    // If children is a string, use it directly
-    if (typeof children === 'string') {
-      setLocalContent(children);
-    } 
-    // If children is a React element, try to extract text content
-    else if (React.isValidElement(children) && typeof children.props.children === 'string') {
-      setLocalContent(children.props.children);
-    } 
-    // Fallback for complex children
-    else {
-      try {
-        const tempContainer = document.createElement('div');
-        tempContainer.innerHTML = children?.toString() || '';
-        setLocalContent(tempContainer.textContent || '');
-      } catch (e) {
-        console.error('Could not extract text from children:', e);
-        setLocalContent(children?.toString() || '');
-      }
-    }
-  }, [children]);
-  
-  // Update localContent when elementData changes or currentLanguage changes
-  useEffect(() => {
-    if (elementData && elementData.content) {
-      setLocalContent(elementData.content);
-    }
-  }, [elementData, currentLanguage]);
+  const dirAttr = isRTL ? "rtl" : undefined;
 
-  // When editing status changes, focus the content editable div
+  // The display text: saved translation > original children
+  const displayText = elementData?.content || extractText(children);
+
+  // When entering edit mode, record the starting text and focus with cursor at end
   useEffect(() => {
     if (isEditing && editableRef.current) {
-      // Focus the editable div
+      const text = editableRef.current.innerText || '';
+      contentBeforeEdit.current = text;
+      currentEditContent.current = text;
+
       editableRef.current.focus();
-      
-      // Place cursor at the end of the text
       const selection = window.getSelection();
       if (selection) {
         const range = document.createRange();
         range.selectNodeContents(editableRef.current);
-        range.collapse(false); // false means collapse to end
+        range.collapse(false);
         selection.removeAllRanges();
         selection.addRange(range);
       }
     }
   }, [isEditing]);
 
-  const handleClick = () => {
-    if (isAdmin && isEditingEnabled && !isEditing) {
-      startEditing(id, localContent, typeof children === 'string' ? children : '');
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    if (isAdmin && isEditingEnabled) {
+      // Prevent parent <Link> from navigating when in editing mode
+      e.preventDefault();
+      e.stopPropagation();
+      if (!isEditing) {
+        const text = elementData?.content || extractText(children);
+        startEditing(id, text, extractText(children));
+      }
     }
-  };
+  }, [isAdmin, isEditingEnabled, isEditing, id, elementData, children, startEditing]);
 
-  const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
-    const value = (e.target as HTMLDivElement).textContent || '';
-    setLocalContent(value);
-    updateContent(id, value);
-  };
+  const handleInput = useCallback(() => {
+    // Read directly from DOM, store in ref only — no state updates, no re-renders
+    if (editableRef.current) {
+      currentEditContent.current = editableRef.current.innerText || '';
+    }
+  }, []);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleBlur = useCallback(() => {
+    const current = currentEditContent.current;
+    const before = contentBeforeEdit.current;
+    if (current !== before) {
+      saveContent(id, current);
+    } else {
+      cancelEditing(id);
+    }
+  }, [id, saveContent, cancelEditing]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSave();
+      // Blur will trigger save
+      editableRef.current?.blur();
     } else if (e.key === 'Escape') {
-      handleCancel();
+      // Prevent blur from saving — reset content to original first
+      currentEditContent.current = contentBeforeEdit.current;
+      cancelEditing(id);
     }
-  };
+  }, [id, cancelEditing]);
 
-  const handleSave = async () => {
-    await saveContent(id);
-  };
-
-  const handleCancel = () => {
-    cancelEditing(id);
-  };
-
-  // If not admin or not in editing mode, just render the content
+  // Non-admin or editing mode disabled — plain display
   if (!isAdmin || !isEditingEnabled) {
     const isSimpleChild = typeof children === "string";
-
-    // For simple text children, prefer saved content, then local text, then original children
     if (isSimpleChild) {
       return (
-        <Component 
-          className={className} 
-          dir={isRTL ? "rtl" : "ltr"}
-        >
-          {elementData?.content || localContent || children}
+        <Component className={className} dir={dirAttr}>
+          {displayText}
         </Component>
       );
     }
-
-    // For complex children (e.g., containing links or other markup),
-    // keep the original React structure so links render correctly.
-    // If there is saved plain-text content for this id, prefer it;
-    // otherwise fall back to the original children.
     return (
-      <Component 
-        className={className} 
-        dir={isRTL ? "rtl" : "ltr"}
-      >
+      <Component className={className} dir={dirAttr}>
         {elementData?.content ?? children}
       </Component>
     );
   }
 
-  // For admins in editing mode
+  // Currently editing this element.
+  // Pass displayText as children for the initial render. No state updates happen
+  // during typing (only refs), so React won't re-render and fight the browser.
   if (isEditing) {
-    return (
-      <div className="relative group">
-        <div
-          ref={editableRef}
-          contentEditable="true"
-          onInput={handleInput}
-          onKeyDown={handleKeyDown}
-          onBlur={(e) => e.stopPropagation()} // Prevent immediate save on blur
-          className={cn(
-            className,
-            "border-2 border-blue-400 p-1 focus:outline-none min-h-[1em] min-w-[1em]",
-            isRTL ? "text-right" : "text-left"
-          )}
-          dir={isRTL ? "rtl" : "ltr"}
-          suppressContentEditableWarning={true}
-        >
-          {elementData?.content || localContent}
-        </div>
-        <div className="absolute right-0 top-0 space-x-1 bg-white shadow-sm border border-gray-200 rounded-md p-1">
-          <button 
-            onClick={handleSave}
-            className="p-1 text-green-600 hover:bg-green-50 rounded"
-            title={`Save (${currentLanguage})`}
-          >
-            <Check size={16} />
-          </button>
-          <button 
-            onClick={handleCancel}
-            className="p-1 text-red-600 hover:bg-red-50 rounded"
-            title="Cancel"
-          >
-            <X size={16} />
-          </button>
-        </div>
-      </div>
-    );
+    return React.createElement(Component as string, {
+      ref: editableRef,
+      contentEditable: true,
+      onInput: handleInput,
+      onKeyDown: handleKeyDown,
+      onBlur: handleBlur,
+      className: cn(
+        className,
+        "border-2 border-blue-400 p-1 focus:outline-none min-h-[1em] min-w-[1em]",
+        isRTL && "text-right"
+      ),
+      dir: dirAttr,
+      suppressContentEditableWarning: true,
+    }, displayText);
   }
 
-  // Admin in edit mode but not currently editing this element
+  // Admin with editing enabled, but not editing this specific element
   return (
     <Component
       className={cn(
@@ -192,13 +157,12 @@ const EditableText: React.FC<EditableTextProps> = ({
         "hover:bg-blue-50 hover:outline-dashed hover:outline-1 hover:outline-blue-300 cursor-pointer relative group"
       )}
       onClick={handleClick}
-      dir={isRTL ? "rtl" : "ltr"}
+      dir={dirAttr}
     >
-      {elementData?.content || localContent || children}
-      <Edit 
-        size={12} 
+      {displayText}
+      <Edit
+        size={12}
         className={`absolute opacity-0 group-hover:opacity-100 ${isRTL ? 'left-0' : 'right-0'} top-0 text-blue-400`}
-        aria-label={`Click to edit (${currentLanguage})`} 
       />
     </Component>
   );
