@@ -399,5 +399,16 @@ Details: {error}</translation>
       <source>Cancel</source>
       <translation>キャンセル</translation>
     </message>
+    <message>
+        <source>No name</source>
+        <translation>名前なし</translation>
+    </message>
   </context>
+<context>
+    <name>CompareRevisionsWindow</name>
+    <message>
+        <source>Show diff highlights</source>
+        <translation>差分ハイライトを表示</translation>
+    </message>
+</context>
 </TS>

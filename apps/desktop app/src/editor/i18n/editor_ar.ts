@@ -399,5 +399,16 @@ Details: {error}</translation>
       <source>Cancel</source>
       <translation>إلغاء</translation>
     </message>
+    <message>
+        <source>No name</source>
+        <translation>بدون اسم</translation>
+    </message>
   </context>
+<context>
+    <name>CompareRevisionsWindow</name>
+    <message>
+        <source>Show diff highlights</source>
+        <translation>إظهار تمييز الفروقات</translation>
+    </message>
+</context>
 </TS>

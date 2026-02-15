@@ -65,6 +65,11 @@ class Settings:
     # tab can be focused on restore.
     session_active_tab: int = 0
 
+    # Custom tab titles at the time the session was saved.  The list order
+    # matches ``session_open_tabs``.  An empty string means "use the
+    # filename"; a non-empty string is a user-assigned custom title.
+    session_tab_titles: list[str] = field(default_factory=list)
+
 
 def _get_config_dir() -> Path:
     """Return the directory where configuration files are stored."""
@@ -145,6 +150,12 @@ def load_settings() -> Settings:
     if not isinstance(session_active_tab, int) or session_active_tab < 0:
         session_active_tab = 0
 
+    raw_tab_titles = raw.get("session_tab_titles") or []
+    session_tab_titles: list[str] = []
+    if isinstance(raw_tab_titles, list):
+        for entry in raw_tab_titles:
+            session_tab_titles.append(entry if isinstance(entry, str) else "")
+
     settings = Settings(
         project_space=project_space,
         spaces=spaces,
@@ -155,6 +166,7 @@ def load_settings() -> Settings:
         session_control=session_control,
         session_open_tabs=session_open_tabs,
         session_active_tab=session_active_tab,
+        session_tab_titles=session_tab_titles,
     )
 
     # Ensure device_id is persisted for older configs.

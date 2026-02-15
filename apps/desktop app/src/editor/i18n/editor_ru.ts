@@ -495,6 +495,10 @@ Details: {error}</source>
         <source>Cancel</source>
         <translation>Отмена</translation>
     </message>
+    <message>
+        <source>No name</source>
+        <translation>Без имени</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>
@@ -651,6 +655,10 @@ Details: {error}</source>
     <message>
         <source>Layout {index}</source>
         <translation>Раскладка {index}</translation>
+    </message>
+    <message>
+        <source>Show diff highlights</source>
+        <translation>Показать подсветку изменений</translation>
     </message>
 </context>
 </TS>

@@ -431,6 +431,10 @@ Details: {error}</translation>
         <source>Cancel</source>
         <translation>Cancel</translation>
     </message>
+    <message>
+        <source>No name</source>
+        <translation>No name</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>
@@ -587,6 +591,10 @@ Details: {error}</translation>
     <message>
         <source>Layout {index}</source>
         <translation>Layout {index}</translation>
+    </message>
+    <message>
+        <source>Show diff highlights</source>
+        <translation>Show diff highlights</translation>
     </message>
 </context>
 </TS>

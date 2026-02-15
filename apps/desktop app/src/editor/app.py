@@ -77,6 +77,17 @@ def main(argv: list[str] | None = None) -> None:
             saved_tabs = getattr(app_settings, "session_open_tabs", []) or []
             if saved_tabs:
                 window._open_paths_from_cli(saved_tabs)  # type: ignore[attr-defined]
+
+                # Restore user-assigned custom tab titles.  A non-empty entry
+                # means the user renamed that tab; an empty string means the
+                # filename should be used (which _open_paths_from_cli already
+                # set).
+                saved_titles = getattr(app_settings, "session_tab_titles", []) or []
+                for i, title in enumerate(saved_titles):
+                    if title and i < window._tab_widget.count():  # type: ignore[attr-defined]
+                        window._tab_widget.setTabText(i, title)  # type: ignore[attr-defined]
+                        window._tab_user_renamed.add(i)  # type: ignore[attr-defined]
+
                 # Restore the active tab that was focused when the session was saved.
                 active = getattr(app_settings, "session_active_tab", 0)
                 if isinstance(active, int) and 0 <= active < len(saved_tabs):

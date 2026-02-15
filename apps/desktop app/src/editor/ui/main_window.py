@@ -154,6 +154,9 @@ class MainWindow(QMainWindow):
         # between Markdown-only, WYSIWYG-only, or both panes visible.
         # Each entry is a dict with boolean "md" and "wysiwyg" keys.
         self._tab_pane_visibility: list[dict[str, bool]] = []
+        # Set of tab indices whose titles were explicitly set by the user via
+        # inline rename.  Autosave will not overwrite these with the filename.
+        self._tab_user_renamed: set[int] = set()
         self._current_tab_index: int = 0
 
         # Simple debounced autosave timer (milliseconds).
@@ -498,6 +501,10 @@ class MainWindow(QMainWindow):
         except Exception:
             # Best-effort only; if the signal is unavailable we still keep
             # inline renaming and non-movable tabs.
+            pass
+        try:
+            rename_tab_bar.tabRenamed.connect(self._on_tab_renamed)
+        except Exception:
             pass
         self._tab_widget.setTabBar(rename_tab_bar)
 
@@ -1300,7 +1307,7 @@ class MainWindow(QMainWindow):
 
         index = self._tab_widget.addTab(
             splitter,
-            title or self.tr("Tab {index}").format(index=self._tab_widget.count() + 1),
+            title or self.tr("No name"),
         )
 
         # Ensure our parallel tab state lists stay aligned with the QTabWidget.
@@ -1386,6 +1393,23 @@ class MainWindow(QMainWindow):
             _move(self._tab_caret_states)
             _move(self._tab_pane_visibility)
 
+            # Remap _tab_user_renamed indices.
+            new_set: set[int] = set()
+            for idx in self._tab_user_renamed:
+                if idx == from_index:
+                    new_set.add(to_index)
+                elif from_index < to_index:
+                    if from_index < idx <= to_index:
+                        new_set.add(idx - 1)
+                    else:
+                        new_set.add(idx)
+                else:
+                    if to_index <= idx < from_index:
+                        new_set.add(idx + 1)
+                    else:
+                        new_set.add(idx)
+            self._tab_user_renamed = new_set
+
             # Refresh the cached current index so that it matches the widget.
             try:
                 current = self._tab_widget.currentIndex()
@@ -1397,6 +1421,10 @@ class MainWindow(QMainWindow):
             # Reordering is best-effort; inconsistencies here must not break
             # the main editor behaviour.
             return
+
+    def _on_tab_renamed(self, index: int, text: str) -> None:  # pragma: no cover - UI wiring
+        """Track that a tab was explicitly renamed by the user."""
+        self._tab_user_renamed.add(index)
 
     def _on_tab_close_requested(self, index: int) -> None:  # pragma: no cover - UI wiring
         """Handle requests to close a tab via its 'x' button.
@@ -1461,6 +1489,13 @@ class MainWindow(QMainWindow):
                 self._tab_caret_states.pop(index)
             if 0 <= index < len(getattr(self, "_tab_pane_visibility", [])):
                 self._tab_pane_visibility.pop(index)
+            # Re-index _tab_user_renamed after removing this tab.
+            new_set: set[int] = set()
+            for idx in self._tab_user_renamed:
+                if idx == index:
+                    continue
+                new_set.add(idx - 1 if idx > index else idx)
+            self._tab_user_renamed = new_set
         except Exception:
             pass
 
@@ -1840,6 +1875,14 @@ class MainWindow(QMainWindow):
         self._document.save(target_path)
         self._update_window_title()
 
+        # Update the tab title to the filename once the document has been saved,
+        # but only if the user has not explicitly renamed this tab.
+        try:
+            if self._current_tab_index not in self._tab_user_renamed:
+                self._tab_widget.setTabText(self._current_tab_index, target_path.name)
+        except Exception:
+            pass
+
         # Enqueue a local versioning snapshot under the `.crowdly` directory
         # so that all changes are captured for later revision/diff pipelines.
         try:
@@ -2097,6 +2140,7 @@ class MainWindow(QMainWindow):
                 self._project_space_path = None
                 self._settings.project_space = None
                 self._settings.session_open_tabs = []
+                self._settings.session_tab_titles = []
                 self._settings.session_active_tab = 0
                 save_settings(self._settings)
             except Exception:
@@ -2106,11 +2150,20 @@ class MainWindow(QMainWindow):
             # they can be re-opened on the next launch.
             try:
                 tab_paths: list[str] = []
-                for doc in self._tab_documents:
+                tab_titles: list[str] = []
+                for i, doc in enumerate(self._tab_documents):
                     p = getattr(doc, "path", None)
                     if isinstance(p, Path) and p.is_file():
                         tab_paths.append(str(p))
+                        # Save the current tab title.  If it matches the
+                        # filename the user did not rename it, so store an
+                        # empty string (meaning "use the filename").
+                        title = self._tab_widget.tabText(i) if i < self._tab_widget.count() else ""
+                        if title == p.name:
+                            title = ""
+                        tab_titles.append(title)
                 self._settings.session_open_tabs = tab_paths
+                self._settings.session_tab_titles = tab_titles
                 self._settings.session_active_tab = self._current_tab_index
                 save_settings(self._settings)
             except Exception:
@@ -2162,6 +2215,18 @@ class MainWindow(QMainWindow):
 
         # Window title shows app name and current filename when available.
         self._update_window_title()
+
+        # Update tab titles: tabs for unsaved documents should show the
+        # translated "No name" label, unless the user explicitly renamed them.
+        try:
+            for i in range(self._tab_widget.count()):
+                if i in self._tab_user_renamed:
+                    continue
+                doc = self._tab_documents[i] if i < len(self._tab_documents) else None
+                if doc is not None and getattr(doc, "path", None) is None:
+                    self._tab_widget.setTabText(i, self.tr("No name"))
+        except Exception:
+            pass
 
         # Menus and actions.
         if hasattr(self, "_burger_button"):
@@ -2653,6 +2718,13 @@ class MainWindow(QMainWindow):
         self._current_story_or_screenplay_url = None
         self._update_story_link_label()
         self._update_window_title()
+
+        # Reset the tab title to "No name" for the fresh document.
+        try:
+            self._tab_widget.setTabText(self._current_tab_index, self.tr("No name"))
+            self._tab_user_renamed.discard(self._current_tab_index)
+        except Exception:
+            pass
 
     def _new_document(self) -> None:  # pragma: no cover - UI wiring
         """Save the current document (if needed) and start a new blank one.
@@ -5541,6 +5613,16 @@ class MainWindow(QMainWindow):
         self._update_story_link_label()
         self._update_window_title()
 
+        # Update the tab title to show the filename, unless the user has
+        # explicitly renamed this tab.
+        try:
+            if self._current_tab_index not in self._tab_user_renamed:
+                display_path = doc.path or external_path
+                if display_path is not None:
+                    self._tab_widget.setTabText(self._current_tab_index, display_path.name)
+        except Exception:
+            pass
+
     def _open_paths_from_cli(self, paths: list[str]) -> None:
         """Open one or more filesystem *paths* passed on the command line.
 
@@ -5587,6 +5669,10 @@ class MainWindow(QMainWindow):
 
         # Open the first *non-master* file in the current tab.
         self._load_document_from_path(normal_paths[0])
+        try:
+            self._tab_widget.setTabText(self._current_tab_index, normal_paths[0].name)
+        except Exception:
+            pass
 
         # Any remaining non-master files are opened in their own tabs.
         for extra in normal_paths[1:]:
@@ -7422,6 +7508,9 @@ class _RenamableTabBar(QTabBar):
     - Pressing Enter or clicking away (focus loss) commits the new title.
     """
 
+    # Emitted when the user commits an inline rename.  Arguments: (index, new_text).
+    tabRenamed = Signal(int, str)
+
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self._editor: QLineEdit | None = None
@@ -7496,6 +7585,10 @@ class _RenamableTabBar(QTabBar):
         # If the name is emptied, keep the old title rather than blank.
         if text:
             self.setTabText(index, text)
+            try:
+                self.tabRenamed.emit(index, text)
+            except Exception:
+                pass
 
         self._editor.deleteLater()
         self._editor = None

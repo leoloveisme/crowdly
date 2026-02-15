@@ -1,19 +1,26 @@
 """Local update queue stored under a `.crowdly` directory.
 
 For each document on disk we maintain an append-only JSONL file that stores
-pending CRDT-style updates. For v1, each update encodes a *full snapshot*
-(body_md + body_html) as a base64-encoded JSON payload so we can evolve
-this into a real CRDT engine later without losing data.
+pending CRDT-style updates.
+
+Version 1 entries store a full snapshot (body_md + body_html).
+Version 2 entries store either a full snapshot (keyframe) or a unified diff
+against the previous entry, saving disk space on frequent autosaves.
 """
 
 from __future__ import annotations
 
+import difflib
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 import base64
 import json
 from typing import List
+
+# Write a full snapshot every N entries to bound reconstruction cost.
+_KEYFRAME_EVERY = 50
 
 
 @dataclass
@@ -119,6 +126,206 @@ def _next_device_seq(document_path: Path) -> int:
     return next_seq
 
 
+# ---------------------------------------------------------------------------
+# Diff helpers (v2 storage)
+# ---------------------------------------------------------------------------
+
+def _make_unified_diff(old: str, new: str) -> str:
+    """Return a unified diff string between *old* and *new*."""
+    old_lines = old.splitlines(keepends=True)
+    new_lines = new.splitlines(keepends=True)
+    return "".join(difflib.unified_diff(old_lines, new_lines, n=0))
+
+
+def _apply_unified_diff(base: str, diff_text: str) -> str:
+    """Apply a unified diff to *base* and return the resulting text.
+
+    Parses ``@@`` hunk headers and applies additions/deletions line-by-line.
+    """
+    if not diff_text:
+        return base
+
+    base_lines = base.splitlines(keepends=True)
+    result_lines: list[str] = []
+    hunk_re = re.compile(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@")
+
+    hunks: list[tuple[int, int, list[str], list[str]]] = []
+    cur_old_start = 0
+    cur_old_count = 0
+    cur_removes: list[str] = []
+    cur_adds: list[str] = []
+    in_hunk = False
+
+    for line in diff_text.splitlines(keepends=True):
+        m = hunk_re.match(line)
+        if m:
+            if in_hunk:
+                hunks.append((cur_old_start, cur_old_count, cur_removes, cur_adds))
+            cur_old_start = int(m.group(1))
+            cur_old_count = int(m.group(2)) if m.group(2) is not None else 1
+            cur_removes = []
+            cur_adds = []
+            in_hunk = True
+        elif in_hunk:
+            if line.startswith("-"):
+                cur_removes.append(line[1:])
+            elif line.startswith("+"):
+                cur_adds.append(line[1:])
+            # context lines (starting with space) are ignored since n=0
+
+    if in_hunk:
+        hunks.append((cur_old_start, cur_old_count, cur_removes, cur_adds))
+
+    # Apply hunks in order.  `pos` tracks how far through base_lines we've
+    # consumed (0-indexed).
+    pos = 0
+    for old_start_1, old_count, removes, adds in hunks:
+        old_start = old_start_1 - 1 if old_start_1 > 0 else 0
+        # Copy unchanged lines before this hunk.
+        if old_start > pos:
+            result_lines.extend(base_lines[pos:old_start])
+        # Skip the removed lines.
+        pos = old_start + old_count
+        # Insert added lines.
+        result_lines.extend(adds)
+
+    # Copy any remaining lines after the last hunk.
+    if pos < len(base_lines):
+        result_lines.extend(base_lines[pos:])
+
+    return "".join(result_lines)
+
+
+def _reconstruct_all(queue_path: Path) -> list[dict]:
+    """Walk all entries in *queue_path* and reconstruct full text for each.
+
+    Handles both v1 (full snapshot) and v2 (snapshot or diff) entries.
+    Returns a list of dicts, each containing ``body_md``, ``body_html``,
+    ``saved_at``, ``device_id``, and ``device_seq``.
+    """
+    queue = UpdateQueue(queue_path)
+    try:
+        updates = queue.read_all()
+    except Exception:
+        return []
+
+    results: list[dict] = []
+    running_md = ""
+    running_html: str | None = None
+
+    for upd in updates:
+        try:
+            raw = base64.b64decode(upd.update_b64.encode("ascii"))
+            payload = json.loads(raw.decode("utf-8"))
+            if not isinstance(payload, dict):
+                continue
+        except Exception:
+            continue
+
+        version = payload.get("version", 1)
+        entry_type = payload.get("entry_type", "snapshot")
+
+        if version == 1 or entry_type == "snapshot":
+            # Full snapshot — reset running state.
+            running_md = payload.get("body_md", "")
+            running_html = payload.get("body_html")
+        elif entry_type == "diff":
+            # Apply diffs to running state.
+            diff_md = payload.get("diff_md", "")
+            running_md = _apply_unified_diff(running_md, diff_md)
+            diff_html = payload.get("diff_html")
+            if diff_html and running_html is not None:
+                running_html = _apply_unified_diff(running_html, diff_html)
+            elif diff_html:
+                # No base HTML yet; skip HTML reconstruction.
+                running_html = None
+            # If diff_html is None, HTML is unchanged — keep running_html.
+        else:
+            continue
+
+        result = {
+            "body_md": running_md,
+            "body_html": running_html,
+            "saved_at": payload.get("saved_at"),
+            "device_id": upd.device_id,
+            "device_seq": upd.device_seq,
+        }
+        results.append(result)
+
+    return results
+
+
+def _read_last_reconstructed_state(queue_path: Path) -> dict | None:
+    """Return the last reconstructed state from *queue_path*, or ``None``."""
+    all_states = _reconstruct_all(queue_path)
+    return all_states[-1] if all_states else None
+
+
+def _count_entries(queue_path: Path) -> int:
+    """Return the number of entries in the queue file."""
+    if not queue_path.exists():
+        return 0
+    try:
+        text = queue_path.read_text(encoding="utf-8")
+        return sum(1 for line in text.splitlines() if line.strip())
+    except Exception:
+        return 0
+
+
+def _enqueue_entry(
+    queue_path: Path,
+    device_id: str,
+    device_seq: int,
+    body_md: str,
+    body_html: str | None,
+) -> None:
+    """Decide whether to write a snapshot or diff, then append the entry."""
+    entry_count = _count_entries(queue_path)
+    is_keyframe = (entry_count == 0) or (entry_count % _KEYFRAME_EVERY == 0)
+
+    if is_keyframe:
+        payload = {
+            "version": 2,
+            "entry_type": "snapshot",
+            "saved_at": datetime.now(timezone.utc).isoformat(),
+            "body_md": body_md,
+            "body_html": body_html,
+        }
+    else:
+        prev = _read_last_reconstructed_state(queue_path)
+        if prev is None:
+            # No previous state — write a full snapshot as safety fallback.
+            payload = {
+                "version": 2,
+                "entry_type": "snapshot",
+                "saved_at": datetime.now(timezone.utc).isoformat(),
+                "body_md": body_md,
+                "body_html": body_html,
+            }
+        else:
+            diff_md = _make_unified_diff(prev.get("body_md", ""), body_md)
+            diff_html = None
+            if body_html is not None and prev.get("body_html") is not None:
+                diff_html = _make_unified_diff(prev["body_html"], body_html)
+            payload = {
+                "version": 2,
+                "entry_type": "diff",
+                "saved_at": datetime.now(timezone.utc).isoformat(),
+                "diff_md": diff_md,
+                "diff_html": diff_html,
+            }
+
+    raw = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    update_b64 = base64.b64encode(raw).decode("ascii")
+
+    queue = UpdateQueue(queue_path)
+    queue.append(PendingUpdate(device_id=device_id, device_seq=device_seq, update_b64=update_b64))
+
+
+# ---------------------------------------------------------------------------
+# Public API (signatures unchanged)
+# ---------------------------------------------------------------------------
+
 def enqueue_full_snapshot_update(
     document_path: Path,
     *,
@@ -126,10 +333,10 @@ def enqueue_full_snapshot_update(
     body_md: str,
     body_html: str | None,
 ) -> None:
-    """Append a full-snapshot update for *document_path* to its queue.
+    """Append a versioning update for *document_path* to its queue.
 
-    The payload stores both Markdown and HTML so the backend can materialise
-    story snapshots and construct CRDT updates/revisions later on.
+    Uses diff-based storage (v2) internally — writes only a unified diff
+    against the previous entry unless a keyframe is due.
     """
 
     try:
@@ -138,18 +345,7 @@ def enqueue_full_snapshot_update(
 
         queue_path = _queue_path_for(document_path)
         device_seq = _next_device_seq(document_path)
-
-        snapshot = {
-            "version": 1,
-            "saved_at": datetime.now(timezone.utc).isoformat(),
-            "body_md": body_md,
-            "body_html": body_html,
-        }
-        raw = json.dumps(snapshot, ensure_ascii=False).encode("utf-8")
-        update_b64 = base64.b64encode(raw).decode("ascii")
-
-        queue = UpdateQueue(queue_path)
-        queue.append(PendingUpdate(device_id=device_id, device_seq=device_seq, update_b64=update_b64))
+        _enqueue_entry(queue_path, device_id, device_seq, body_md, body_html)
     except Exception:
         # Versioning must never break core editing; failures here are logged
         # during development via stderr/tracebacks if the app is run in a
@@ -163,6 +359,9 @@ def load_full_snapshots(document_path: Path) -> List[dict]:
     Each returned dict contains at least ``body_md``, ``body_html``,
     ``saved_at``, ``device_id`` and ``device_seq`` keys when available.
     Snapshots are ordered from oldest to newest based on the queue order.
+
+    Handles both v1 (full snapshot) and v2 (snapshot + diff) entries
+    transparently.
     """
 
     try:
@@ -170,24 +369,6 @@ def load_full_snapshots(document_path: Path) -> List[dict]:
             return []
 
         queue_path = _queue_path_for(document_path)
-        queue = UpdateQueue(queue_path)
-        updates = queue.read_all()
+        return _reconstruct_all(queue_path)
     except Exception:
         return []
-
-    snapshots: List[dict] = []
-    for upd in updates:
-        try:
-            raw = base64.b64decode(upd.update_b64.encode("ascii"))
-            payload = json.loads(raw.decode("utf-8"))
-            if not isinstance(payload, dict):
-                continue
-            # Attach device metadata so callers can use it if desired.
-            payload.setdefault("device_id", upd.device_id)
-            payload.setdefault("device_seq", upd.device_seq)
-            snapshots.append(payload)
-        except Exception:
-            # Skip malformed entries without aborting the whole read.
-            continue
-
-    return snapshots

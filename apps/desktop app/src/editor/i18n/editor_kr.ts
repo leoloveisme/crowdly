@@ -399,5 +399,16 @@ Details: {error}</translation>
       <source>Cancel</source>
       <translation>취소</translation>
     </message>
+    <message>
+        <source>No name</source>
+        <translation>이름 없음</translation>
+    </message>
   </context>
+<context>
+    <name>CompareRevisionsWindow</name>
+    <message>
+        <source>Show diff highlights</source>
+        <translation>차이점 강조 표시</translation>
+    </message>
+</context>
 </TS>
