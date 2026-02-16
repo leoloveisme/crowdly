@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { fetchSearchResults, SearchResult, SearchResultType, SEARCH_TYPE_LABELS } from "@/modules/search";
 import { useAuth } from "@/contexts/AuthContext";
+import EditableText from "@/components/EditableText";
 
 function useQueryParam(name: string): string {
   const location = useLocation();
@@ -128,7 +129,7 @@ const SearchPage: React.FC = () => {
                   <SelectValue placeholder="Type" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All types</SelectItem>
+                  <SelectItem value="all"><EditableText id="search-all-types">All types</EditableText></SelectItem>
                   <SelectItem value="story">{SEARCH_TYPE_LABELS.story}</SelectItem>
                   <SelectItem value="screenplay">{SEARCH_TYPE_LABELS.screenplay}</SelectItem>
                   <SelectItem value="user">{SEARCH_TYPE_LABELS.user}</SelectItem>
@@ -139,26 +140,26 @@ const SearchPage: React.FC = () => {
                   <SelectValue placeholder="Sort" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="relevance">Best match</SelectItem>
-                  <SelectItem value="newest">Newest first</SelectItem>
-                  <SelectItem value="oldest">Oldest first</SelectItem>
-                  <SelectItem value="title-asc">Title A–Z</SelectItem>
-                  <SelectItem value="title-desc">Title Z–A</SelectItem>
+                  <SelectItem value="relevance"><EditableText id="search-sort-relevance">Best match</EditableText></SelectItem>
+                  <SelectItem value="newest"><EditableText id="search-sort-newest">Newest first</EditableText></SelectItem>
+                  <SelectItem value="oldest"><EditableText id="search-sort-oldest">Oldest first</EditableText></SelectItem>
+                  <SelectItem value="title-asc"><EditableText id="search-sort-title-asc">Title A–Z</EditableText></SelectItem>
+                  <SelectItem value="title-desc"><EditableText id="search-sort-title-desc">Title Z–A</EditableText></SelectItem>
                 </SelectContent>
               </Select>
-              <Button type="submit">Search</Button>
+              <Button type="submit"><EditableText id="search-btn">Search</EditableText></Button>
             </div>
           </form>
         </Card>
 
         {loading && (
-          <div className="text-sm text-gray-500">Searching…</div>
+          <EditableText id="search-searching" as="div" className="text-sm text-gray-500">Searching…</EditableText>
         )}
         {error && !loading && (
           <div className="text-sm text-red-600 mb-4">{error}</div>
         )}
         {!loading && !error && queryParam.trim() && sortedResults.length === 0 && (
-          <div className="text-sm text-gray-500">No results found.</div>
+          <EditableText id="search-no-results" as="div" className="text-sm text-gray-500">No results found.</EditableText>
         )}
 
         {!loading && sortedResults.length > 0 && (
@@ -168,16 +169,16 @@ const SearchPage: React.FC = () => {
                 <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr>
                     <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      Type
+                      <EditableText id="search-th-type">Type</EditableText>
                     </th>
                     <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      Title
+                      <EditableText id="search-th-title">Title</EditableText>
                     </th>
                     <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      Details
+                      <EditableText id="search-th-details">Details</EditableText>
                     </th>
                     <th className="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      Created
+                      <EditableText id="search-th-created">Created</EditableText>
                     </th>
                   </tr>
                 </thead>

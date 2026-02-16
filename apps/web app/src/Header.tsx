@@ -143,7 +143,7 @@ const Header: React.FC<HeaderProps> = ({
           {/* Logo & title */}
           <div className="crowdly-header-logo-area">
             <a
-              href="http://crowdly.platform"
+              href="https://crowdly.cloud"
               target="_blank"
               className="crowdly-header-logo-box"
               rel="noreferrer"

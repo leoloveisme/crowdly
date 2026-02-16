@@ -97,3 +97,20 @@ Whenever you add, rename, or modify a menu item or action in the desktop app (`a
 2. **Update ALL `.ts` translation files** in `src/editor/i18n/` — add the corresponding `<message>` entry with the source string and a proper translation for every language file (`editor_en.ts`, `editor_ru.ts`, `editor_ar.ts`, `editor_zh-Hans.ts`, `editor_zh-Hant.ts`, `editor_ja.ts`, `editor_kr.ts`, `editor_pt.ts`).
 
 Skipping either step causes partial/broken translations at runtime. Treat this as a mandatory part of any menu change, not a separate task.
+
+## Web App — Mandatory Checklist for UI Text in New Pages/Modules
+
+All static UI text in the web app **must** be wrapped in `<EditableText>` components so that `platform_admin` and `ui_translator` users can translate it at runtime.
+
+Whenever you create or modify a page (`src/pages/`) or module (`src/modules/`), you **must**:
+
+1. **Import EditableText**: `import EditableText from "@/components/EditableText";`
+2. **Wrap every static UI string** in `<EditableText id="..." as="...">` — this includes headings, labels, button text, loading/empty states, descriptions, table headers, tab labels, dialog titles, and any other user-visible text.
+3. **Use a consistent ID convention**: `{page-or-module-prefix}-{element-description}` (e.g., `admin-tab-users`, `search-btn`, `export-save-device`). IDs must be unique across the page.
+4. **Use the `as` prop** when the element needs a specific HTML tag (e.g., `as="h1"`, `as="p"`). The default is `"span"`.
+5. **Do NOT wrap dynamic/user-generated content** (e.g., usernames, story titles, dates) — only wrap static UI text that should be the same for all users in a given language.
+6. **Do NOT wrap Header or Footer** — these are handled separately.
+
+The `EditableContentProvider` already wraps the entire app in `App.tsx`, so no additional provider setup is needed. Translations are fetched per page path and language from the `/interface-translations` backend endpoint.
+
+Skipping this step means the page/module will have untranslatable UI text. Treat this as a mandatory part of any new page or module, not a separate task.

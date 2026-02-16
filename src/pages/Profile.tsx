@@ -64,7 +64,6 @@ import EditableBio from "@/components/EditableBio";
 import { useToast } from "@/hooks/use-toast";
 import ResponsiveTabsTrigger from "@/components/ResponsiveTabsTrigger";
 import { useIsMobile } from "@/hooks/use-mobile";
-import RevisionComparison from "@/components/RevisionComparison";
 import CommunicationsSection from "@/components/CommunicationsSection";
 import StatsDisplay from "@/components/StatsDisplay";
 import CreativeSpacesModule, { CreativeSpace } from "@/modules/creative spaces";
@@ -85,7 +84,7 @@ const API_BASE = import.meta.env.PROD
 const INITIAL_PROFILE = {
   first_name: "",
   last_name: "",
-  nickname: "",
+  profile_page_name: "",
   about: "",
   bio: "",
   interests: [],
@@ -174,13 +173,6 @@ const Profile = () => {
 
   // Responsive design
   const isMobile = useIsMobile();
-
-  // For the revision history
-  const revisions = [
-    { id: 1, text: "Text 1", time: "11:28" },
-    { id: 2, text: "Text 2", time: "12:15" },
-    { id: 3, text: "Text 3", time: "14:30" },
-  ];
 
   // Add contribution filter state
   const [contributionFilter, setContributionFilter] = useState<"total" | "approved" | "denied" | "undecided">("total");
@@ -1746,15 +1738,6 @@ const Profile = () => {
           </div>
         )}
 
-        {/* Hide editing features in preview mode */}
-        {!previewMode && (
-          <>
-            {/* Revisions Section */}
-            <div className="mb-12">
-              <RevisionComparison revisions={revisions} />
-            </div>
-          </>
-        )}
 
         {/* Communications Section */}
         <div className="mb-12">

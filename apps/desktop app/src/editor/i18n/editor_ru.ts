@@ -188,6 +188,22 @@
         <translation >Японский</translation>
     </message>
     <message>
+        <source>French</source>
+        <translation >Французский</translation>
+    </message>
+    <message>
+        <source>Spanish</source>
+        <translation >Испанский</translation>
+    </message>
+    <message>
+        <source>German</source>
+        <translation >Немецкий</translation>
+    </message>
+    <message>
+        <source>Hindi</source>
+        <translation >Хинди</translation>
+    </message>
+    <message>
         <source>Quit</source>
         <translation >Закрыть программу</translation>
     </message>

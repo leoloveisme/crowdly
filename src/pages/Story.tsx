@@ -15,6 +15,7 @@ import ContributionsModule, { ContributionRow } from "@/modules/contributions";
 import InteractionsWidget from "@/modules/InteractionsWidget";
 import { ExportDialog } from "@/modules/import-export";
 import UserGroupPicker from "@/modules/user-group-picker";
+import CompareRevisionsContainer from "@/modules/compare revisions";
 
 // Use same-origin API base in development; dev server proxies to backend.
 // In production, VITE_API_BASE_URL can point at the deployed API.
@@ -78,71 +79,106 @@ const RevisionsSection = ({
   storyTitleRevisions,
   chapterRevisions,
   chapterRevisionsLoading,
+  chapters,
 }: {
   storyTitleRevisions: any[];
   chapterRevisions: any[];
   chapterRevisionsLoading: boolean;
-}) => (
-  <div className="p-6 space-y-6">
-    <div>
-      <h2 className="text-2xl font-semibold mb-4">Story Title Revisions</h2>
-      <div className="bg-white border rounded p-6 shadow-sm space-y-2">
-        {storyTitleRevisions.length === 0 ? (
-          <div className="text-gray-400 text-sm">No title revisions recorded yet.</div>
-        ) : (
-          <ul className="space-y-1 text-sm">
-            {storyTitleRevisions.map((rev) => (
-              <li key={rev.id ?? `${rev.story_title_id}-${rev.revision_number}`}>
-                <span className="font-medium">{rev.new_title}</span>{" "}
-                <span className="text-xs text-gray-500">
-                  (rev {rev.revision_number} at {new Date(rev.created_at).toLocaleString()})
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </div>
+  chapters: any[];
+}) => {
+  const [compareChapterId, setCompareChapterId] = React.useState<string>("");
 
-    {/* Placeholder block for chapter title revisions (UI only, no data yet) */}
-    <div>
-      <h2 className="text-2xl font-semibold mb-4">Chapter Title Revisions</h2>
-      <div className="bg-white border rounded p-6 shadow-sm space-y-2">
-        <div className="text-gray-400 text-sm">No chapter revisions recorded yet.</div>
-      </div>
-    </div>
-
-    <div>
-      <h2 className="text-2xl font-semibold mb-4">Chapter Revisions</h2>
-      <div className="bg-white border rounded p-6 shadow-sm space-y-2">
-        {chapterRevisionsLoading ? (
-          <div className="text-gray-500 text-sm">Loading chapter revisions...</div>
-        ) : chapterRevisions.length === 0 ? (
-          <div className="text-gray-400 text-sm">No chapter revisions recorded yet.</div>
-        ) : (
-          <ul className="space-y-1 text-sm">
-            {chapterRevisions.map((rev) => (
-              <li
-                key={rev.id}
-                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1"
-              >
-                <div>
-                  <span className="font-medium">{rev.chapter_title}</span>{" "}
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h2 className="text-2xl font-semibold mb-4">Story Title Revisions</h2>
+        <div className="bg-white border rounded p-6 shadow-sm space-y-2">
+          {storyTitleRevisions.length === 0 ? (
+            <div className="text-gray-400 text-sm">No title revisions recorded yet.</div>
+          ) : (
+            <ul className="space-y-1 text-sm">
+              {storyTitleRevisions.map((rev) => (
+                <li key={rev.id ?? `${rev.story_title_id}-${rev.revision_number}`}>
+                  <span className="font-medium">{rev.new_title}</span>{" "}
                   <span className="text-xs text-gray-500">
                     (rev {rev.revision_number} at {new Date(rev.created_at).toLocaleString()})
                   </span>
-                </div>
-                <div className="text-xs text-gray-500">
-                  {rev.revision_reason || 'Chapter updated'}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
+      <div>
+        <h2 className="text-2xl font-semibold mb-4">Chapter Revisions</h2>
+        <div className="bg-white border rounded p-6 shadow-sm space-y-2">
+          {chapterRevisionsLoading ? (
+            <div className="text-gray-500 text-sm">Loading chapter revisions...</div>
+          ) : chapterRevisions.length === 0 ? (
+            <div className="text-gray-400 text-sm">No chapter revisions recorded yet.</div>
+          ) : (
+            <ul className="space-y-1 text-sm">
+              {chapterRevisions.map((rev) => (
+                <li
+                  key={rev.id}
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1"
+                >
+                  <div>
+                    <span className="font-medium">{rev.chapter_title}</span>{" "}
+                    <span className="text-xs text-gray-500">
+                      (rev {rev.revision_number} at {new Date(rev.created_at).toLocaleString()})
+                    </span>
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {rev.revision_reason || 'Chapter updated'}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
+      {/* Compare Revisions */}
+      <div>
+        <h2 className="text-2xl font-semibold mb-4">Compare Chapter Revisions</h2>
+        <div className="bg-white border rounded p-6 shadow-sm space-y-4">
+          {chapters.length === 0 ? (
+            <div className="text-gray-400 text-sm">No chapters available for comparison.</div>
+          ) : (
+            <>
+              <div className="flex items-center gap-3">
+                <label htmlFor="compare-chapter-select" className="text-sm font-medium">
+                  Select chapter:
+                </label>
+                <select
+                  id="compare-chapter-select"
+                  value={compareChapterId}
+                  onChange={(e) => setCompareChapterId(e.target.value)}
+                  className="border rounded px-3 py-1.5 text-sm bg-white"
+                >
+                  <option value="">-- Choose a chapter --</option>
+                  {chapters.map((ch: any) => (
+                    <option key={ch.chapter_id} value={ch.chapter_id}>
+                      {ch.chapter_title || `Chapter ${ch.chapter_index ?? ''}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {compareChapterId && (
+                <CompareRevisionsContainer
+                  chapterId={compareChapterId}
+                  contentType="story"
+                />
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 const BranchesSection = ({ storyId }: { storyId: string }) => (
   <div className="p-6">
     <h2 className="text-2xl font-semibold mb-4">Story Branches</h2>
@@ -2533,6 +2569,7 @@ const Story = () => {
             storyTitleRevisions={storyTitleRevisions}
             chapterRevisions={chapterRevisions}
             chapterRevisionsLoading={chapterRevisionsLoading}
+            chapters={chapters}
           />
         )}
         {activeTab === "branches" && <BranchesSection storyId={story.story_title_id} />}

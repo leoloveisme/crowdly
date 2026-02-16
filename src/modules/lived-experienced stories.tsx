@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle2, Film, BookOpen } from "lucide-react";
+import EditableText from "@/components/EditableText";
 
 const API_BASE = import.meta.env.PROD
   ? (import.meta.env.VITE_API_BASE_URL ?? "")
@@ -69,7 +70,7 @@ const LivedExperiencedStories: React.FC<LivedExperiencedStoriesProps> = ({
   if (!userId) {
     return (
       <div className="text-sm text-gray-500 mt-4">
-        Login to see the stories and screenplays you have already lived / experienced.
+        <EditableText id="lived-login-msg">Login to see the stories and screenplays you have already lived / experienced.</EditableText>
       </div>
     );
   }
@@ -78,7 +79,7 @@ const LivedExperiencedStories: React.FC<LivedExperiencedStoriesProps> = ({
     return (
       <div className="text-sm text-gray-400 mt-4 flex items-center gap-2">
         <CheckCircle2 className="h-4 w-4 text-teal-600" />
-        Loading your lived / experienced titles...
+        <EditableText id="lived-loading">Loading your lived / experienced titles...</EditableText>
       </div>
     );
   }
@@ -94,7 +95,7 @@ const LivedExperiencedStories: React.FC<LivedExperiencedStoriesProps> = ({
   if (items.length === 0) {
     return (
       <div className="text-sm text-gray-400 mt-4 italic">
-        You have not yet finished experiencing any stories here.
+        <EditableText id="lived-empty">You have not yet finished experiencing any stories here.</EditableText>
       </div>
     );
   }

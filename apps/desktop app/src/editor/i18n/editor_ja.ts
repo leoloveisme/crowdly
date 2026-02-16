@@ -92,6 +92,22 @@
       <translation>Japanese</translation>
     </message>
     <message>
+      <source>French</source>
+      <translation>フランス語</translation>
+    </message>
+    <message>
+      <source>Spanish</source>
+      <translation>スペイン語</translation>
+    </message>
+    <message>
+      <source>German</source>
+      <translation>ドイツ語</translation>
+    </message>
+    <message>
+      <source>Hindi</source>
+      <translation>ヒンディー語</translation>
+    </message>
+    <message>
       <source>Quit</source>
       <translation>Quit</translation>
     </message>

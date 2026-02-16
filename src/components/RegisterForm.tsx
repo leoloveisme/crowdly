@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import EditableText from "@/components/EditableText";
 
 // Use same-origin API base in development; dev server proxies to backend.
 // In production, VITE_API_BASE_URL can point at the deployed API.
@@ -79,15 +80,15 @@ const RegisterForm = () => {
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
+        <CardTitle className="text-2xl font-bold"><EditableText id="regform-title">Create an account</EditableText></CardTitle>
         <CardDescription>
-          Enter your email and password below to create your account
+          <EditableText id="regform-desc">Enter your email and password below to create your account</EditableText>
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleRegister} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email"><EditableText id="regform-email-label">Email</EditableText></Label>
             <div className="relative">
               <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -104,7 +105,7 @@ const RegisterForm = () => {
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password"><EditableText id="regform-password-label">Password</EditableText></Label>
             <div className="relative">
               <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -138,18 +139,18 @@ const RegisterForm = () => {
             className="w-full"
             disabled={isLoading}
           >
-            {isLoading ? "Creating account..." : "Create account"}
+            {isLoading ? <EditableText id="regform-btn-loading">Creating account...</EditableText> : <EditableText id="regform-btn">Create account</EditableText>}
           </Button>
           
           <div className="text-center text-sm">
-            Already have an account?{" "}
-            <Button 
-              variant="link" 
-              className="p-0 h-auto" 
+            <EditableText id="regform-have-account">Already have an account?</EditableText>{" "}
+            <Button
+              variant="link"
+              className="p-0 h-auto"
               onClick={() => navigate("/login")}
               disabled={isLoading}
             >
-              Log in
+              <EditableText id="regform-login-link">Log in</EditableText>
             </Button>
           </div>
         </form>

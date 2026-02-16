@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { X, Search, User, Users } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import EditableText from "@/components/EditableText";
 
 const API_BASE = import.meta.env.PROD
   ? (import.meta.env.VITE_API_BASE_URL ?? "")
@@ -63,6 +65,7 @@ const ruleTypeLabels: Record<string, string> = {
 
 export default function UserGroupPicker({ storyTitleId, ruleType, open, onClose }: Props) {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [grants, setGrants] = useState<Grant[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<UserResult[]>([]);
@@ -134,7 +137,10 @@ export default function UserGroupPicker({ storyTitleId, ruleType, open, onClose 
         if (user?.id) params.set("excludeUserId", user.id);
         const res = await fetch(`${API_BASE}/users/search?${params}`);
         if (res.ok) {
-          setSearchResults(await res.json());
+          const data = await res.json();
+          // The endpoint returns { users, hasMore, page, pageSize }
+          const list = Array.isArray(data) ? data : Array.isArray(data.users) ? data.users : [];
+          setSearchResults(list);
           setShowDropdown(true);
         }
       } catch (err) {
@@ -191,10 +197,16 @@ export default function UserGroupPicker({ storyTitleId, ruleType, open, onClose 
         body: JSON.stringify(body),
       });
       if (res.ok) {
+        toast({ title: "Access rules saved" });
         onClose();
+      } else {
+        const errBody = await res.json().catch(() => ({}));
+        console.error("Failed to save access rules:", res.status, errBody);
+        toast({ title: "Error", description: errBody.error || `Failed to save (${res.status})`, variant: "destructive" });
       }
     } catch (err) {
       console.error("Failed to save access rules:", err);
+      toast({ title: "Error", description: "Network error saving access rules", variant: "destructive" });
     }
     setSaving(false);
   };
@@ -212,7 +224,7 @@ export default function UserGroupPicker({ storyTitleId, ruleType, open, onClose 
         </DialogHeader>
 
         {loading ? (
-          <div className="text-sm text-gray-500 py-4">Loading...</div>
+          <div className="text-sm text-gray-500 py-4"><EditableText id="picker-loading">Loading...</EditableText></div>
         ) : (
           <div className="space-y-4">
             {/* Current grants as chips */}
@@ -264,7 +276,7 @@ export default function UserGroupPicker({ storyTitleId, ruleType, open, onClose 
                   {availableUsers.length > 0 && (
                     <div>
                       <div className="px-3 py-1.5 text-xs font-semibold text-gray-500 bg-gray-50">
-                        Users
+                        <EditableText id="picker-users-header">Users</EditableText>
                       </div>
                       {availableUsers.map((u) => (
                         <button
@@ -287,7 +299,7 @@ export default function UserGroupPicker({ storyTitleId, ruleType, open, onClose 
                   {availableGroups.length > 0 && (
                     <div>
                       <div className="px-3 py-1.5 text-xs font-semibold text-gray-500 bg-gray-50">
-                        Groups
+                        <EditableText id="picker-groups-header">Groups</EditableText>
                       </div>
                       {availableGroups.map((g) => (
                         <button
@@ -314,10 +326,10 @@ export default function UserGroupPicker({ storyTitleId, ruleType, open, onClose 
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            <EditableText id="picker-cancel">Cancel</EditableText>
           </Button>
           <Button onClick={handleSave} disabled={saving}>
-            {saving ? "Saving..." : "Save"}
+            {saving ? <EditableText id="picker-saving">Saving...</EditableText> : <EditableText id="picker-save">Save</EditableText>}
           </Button>
         </DialogFooter>
       </DialogContent>

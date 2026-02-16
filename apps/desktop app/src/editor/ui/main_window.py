@@ -371,6 +371,10 @@ class MainWindow(QMainWindow):
             (self.tr("Chinese (Simplified)"), "zh-Hans"),
             (self.tr("Chinese (Traditional)"), "zh-Hant"),
             (self.tr("Japanese"), "ja"),
+            (self.tr("French"), "fr"),
+            (self.tr("Spanish"), "es"),
+            (self.tr("German"), "de"),
+            (self.tr("Hindi"), "hi"),
         ]
 
         group = QActionGroup(self)
@@ -2411,6 +2415,10 @@ class MainWindow(QMainWindow):
             "zh-Hans": self.tr("Chinese (Simplified)"),
             "zh-Hant": self.tr("Chinese (Traditional)"),
             "ja": self.tr("Japanese"),
+            "fr": self.tr("French"),
+            "es": self.tr("Spanish"),
+            "de": self.tr("German"),
+            "hi": self.tr("Hindi"),
         }
         for code, action in self._language_actions.items():
             label = labels_by_code.get(code)

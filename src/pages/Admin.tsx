@@ -6,6 +6,7 @@ import CrowdlyFooter from "@/components/CrowdlyFooter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BookOpen, Users, MessageSquare, GitBranch, HandHelping, Rocket, Film, ExternalLink } from "lucide-react";
+import EditableText from "@/components/EditableText";
 
 const API_BASE = import.meta.env.PROD
   ? (import.meta.env.VITE_API_BASE_URL ?? "")
@@ -242,27 +243,27 @@ const Admin = () => {
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-blue-50 via-sky-100 to-white dark:from-background dark:via-background/70 dark:to-background/90">
       <CrowdlyHeader />
       <main className="flex-grow container mx-auto max-w-6xl px-4 py-8">
-        <h2 className="text-2xl font-bold mb-6">My Content</h2>
+        <EditableText id="admin-heading" as="h2" className="text-2xl font-bold mb-6">My Content</EditableText>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-4 flex-wrap">
             <TabsTrigger value="stories" className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4" /> Story
+              <BookOpen className="h-4 w-4" /> <EditableText id="admin-tab-story">Story</EditableText>
             </TabsTrigger>
             <TabsTrigger value="collaborators" className="flex items-center gap-2">
-              <Users className="h-4 w-4" /> Co-Authors & Contributors
+              <Users className="h-4 w-4" /> <EditableText id="admin-tab-coauthors">Co-Authors & Contributors</EditableText>
             </TabsTrigger>
             <TabsTrigger value="comments" className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4" /> My Comments
+              <MessageSquare className="h-4 w-4" /> <EditableText id="admin-tab-comments">My Comments</EditableText>
             </TabsTrigger>
             <TabsTrigger value="branches" className="flex items-center gap-2">
-              <GitBranch className="h-4 w-4" /> My Branches
+              <GitBranch className="h-4 w-4" /> <EditableText id="admin-tab-branches">My Branches</EditableText>
             </TabsTrigger>
             <TabsTrigger value="contributions" className="flex items-center gap-2">
-              <HandHelping className="h-4 w-4" /> My Contributions
+              <HandHelping className="h-4 w-4" /> <EditableText id="admin-tab-contributions">My Contributions</EditableText>
             </TabsTrigger>
             <TabsTrigger value="spaces" className="flex items-center gap-2">
-              <Rocket className="h-4 w-4" /> My Spaces
+              <Rocket className="h-4 w-4" /> <EditableText id="admin-tab-spaces">My Spaces</EditableText>
             </TabsTrigger>
           </TabsList>
 
@@ -270,8 +271,8 @@ const Admin = () => {
           <TabsContent value="stories">
             <Card>
               <CardHeader>
-                <CardTitle>Story</CardTitle>
-                <CardDescription>All your creative works — stories, screenplays, audio, cartoons, and video.</CardDescription>
+                <CardTitle><EditableText id="admin-story-title">Story</EditableText></CardTitle>
+                <CardDescription><EditableText id="admin-story-desc">All your creative works — stories, screenplays, audio, cartoons, and video.</EditableText></CardDescription>
               </CardHeader>
               <CardContent>
                 {allContent.length === 0 ? (
@@ -333,8 +334,8 @@ const Admin = () => {
           <TabsContent value="collaborators">
             <Card>
               <CardHeader>
-                <CardTitle>Co-Authors & Contributors</CardTitle>
-                <CardDescription>Works where you collaborate with others or others contribute to yours.</CardDescription>
+                <CardTitle><EditableText id="admin-coauthors-title">Co-Authors & Contributors</EditableText></CardTitle>
+                <CardDescription><EditableText id="admin-coauthors-desc">Works where you collaborate with others or others contribute to yours.</EditableText></CardDescription>
               </CardHeader>
               <CardContent>
                 {collaboratorContent.length === 0 ? (
@@ -387,8 +388,8 @@ const Admin = () => {
           <TabsContent value="comments">
             <Card>
               <CardHeader>
-                <CardTitle>My Comments</CardTitle>
-                <CardDescription>View and manage your comments on stories and screenplays.</CardDescription>
+                <CardTitle><EditableText id="admin-comments-title">My Comments</EditableText></CardTitle>
+                <CardDescription><EditableText id="admin-comments-desc">View and manage your comments on stories and screenplays.</EditableText></CardDescription>
               </CardHeader>
               <CardContent>
                 {comments.length === 0 ? (
@@ -436,8 +437,8 @@ const Admin = () => {
           <TabsContent value="branches">
             <Card>
               <CardHeader>
-                <CardTitle>My Branches</CardTitle>
-                <CardDescription>Your alternative paragraph versions across stories.</CardDescription>
+                <CardTitle><EditableText id="admin-branches-title">My Branches</EditableText></CardTitle>
+                <CardDescription><EditableText id="admin-branches-desc">Your alternative paragraph versions across stories.</EditableText></CardDescription>
               </CardHeader>
               <CardContent>
                 {branches.length === 0 ? (
@@ -484,8 +485,8 @@ const Admin = () => {
           <TabsContent value="contributions">
             <Card>
               <CardHeader>
-                <CardTitle>My Contributions</CardTitle>
-                <CardDescription>Track your contributions to other creators' work.</CardDescription>
+                <CardTitle><EditableText id="admin-contributions-title">My Contributions</EditableText></CardTitle>
+                <CardDescription><EditableText id="admin-contributions-desc">Track your contributions to other creators' work.</EditableText></CardDescription>
               </CardHeader>
               <CardContent>
                 {contributions.length === 0 ? (
@@ -528,8 +529,8 @@ const Admin = () => {
           <TabsContent value="spaces">
             <Card>
               <CardHeader>
-                <CardTitle>My Spaces</CardTitle>
-                <CardDescription>Manage your creative spaces and collections.</CardDescription>
+                <CardTitle><EditableText id="admin-spaces-title">My Spaces</EditableText></CardTitle>
+                <CardDescription><EditableText id="admin-spaces-desc">Manage your creative spaces and collections.</EditableText></CardDescription>
               </CardHeader>
               <CardContent>
                 {spaces.length === 0 ? (

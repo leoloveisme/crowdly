@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Trash2, Plus, ChevronDown, ChevronUp, X, Search, User } from "lucide-react";
+import EditableText from "@/components/EditableText";
 
 const API_BASE = import.meta.env.PROD
   ? (import.meta.env.VITE_API_BASE_URL ?? "")
@@ -188,7 +189,7 @@ export default function GroupsManager({ userId, showPlatformGroups }: Props) {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
-            <Plus className="h-4 w-4" /> Create New Group
+            <Plus className="h-4 w-4" /> <EditableText id="groups-create-title">Create New Group</EditableText>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -207,11 +208,11 @@ export default function GroupsManager({ userId, showPlatformGroups }: Props) {
                   checked={isPlatformGroup}
                   onChange={(e) => setIsPlatformGroup(e.target.checked)}
                 />
-                Platform group
+                <EditableText id="groups-platform-label">Platform group</EditableText>
               </label>
             )}
             <Button onClick={createGroup} disabled={creating || !newGroupName.trim()} size="sm">
-              {creating ? "Creating..." : "Create"}
+              {creating ? <EditableText id="groups-btn-creating">Creating...</EditableText> : <EditableText id="groups-btn-create">Create</EditableText>}
             </Button>
           </div>
         </CardContent>
@@ -219,9 +220,9 @@ export default function GroupsManager({ userId, showPlatformGroups }: Props) {
 
       {/* Groups list */}
       {loading ? (
-        <div className="text-sm text-gray-500">Loading groups...</div>
+        <div className="text-sm text-gray-500"><EditableText id="groups-loading">Loading groups...</EditableText></div>
       ) : groups.length === 0 ? (
-        <div className="text-sm text-gray-400">No groups yet.</div>
+        <div className="text-sm text-gray-400"><EditableText id="groups-empty">No groups yet.</EditableText></div>
       ) : (
         <div className="space-y-2">
           {groups.map((group) => (
@@ -265,11 +266,11 @@ export default function GroupsManager({ userId, showPlatformGroups }: Props) {
                 {expandedGroupId === group.id && (
                   <div className="mt-3 border-t pt-3 space-y-3">
                     {membersLoading ? (
-                      <div className="text-xs text-gray-500">Loading members...</div>
+                      <div className="text-xs text-gray-500"><EditableText id="groups-members-loading">Loading members...</EditableText></div>
                     ) : (
                       <>
                         {members.length === 0 ? (
-                          <div className="text-xs text-gray-400">No members yet.</div>
+                          <div className="text-xs text-gray-400"><EditableText id="groups-members-empty">No members yet.</EditableText></div>
                         ) : (
                           <div className="space-y-1">
                             {members.map((m) => (

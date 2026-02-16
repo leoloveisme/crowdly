@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Trash2, UserPlus, ArrowUpDown, ChevronDown } from "lucide-react";
+import EditableText from "@/components/EditableText";
 
 const API_BASE = import.meta.env.PROD
   ? (import.meta.env.VITE_API_BASE_URL ?? "")
@@ -236,7 +237,7 @@ const InviteUsers = () => {
 
   const PageSizeSelector = () => (
     <div className="flex items-center gap-2 text-sm">
-      <span className="text-muted-foreground">Per page:</span>
+      <EditableText id="invite-per-page" className="text-muted-foreground">Per page:</EditableText>
       {PAGE_SIZES.map((size) => (
         <button
           key={size}
@@ -256,12 +257,12 @@ const InviteUsers = () => {
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-blue-50 via-sky-100 to-white dark:from-background dark:via-background/70 dark:to-background/90">
       <CrowdlyHeader />
       <main className="flex-grow container mx-auto max-w-6xl px-4 py-8">
-        <h2 className="text-2xl font-bold mb-6">Alpha User Management</h2>
+        <EditableText id="invite-heading" as="h2" className="text-2xl font-bold mb-6">Alpha User Management</EditableText>
 
         <Tabs defaultValue="invitations">
           <TabsList className="mb-4">
-            <TabsTrigger value="invitations">Invitations</TabsTrigger>
-            <TabsTrigger value="applications">Applications</TabsTrigger>
+            <TabsTrigger value="invitations"><EditableText id="invite-tab-invitations">Invitations</EditableText></TabsTrigger>
+            <TabsTrigger value="applications"><EditableText id="invite-tab-applications">Applications</EditableText></TabsTrigger>
           </TabsList>
 
           {/* Invitations Tab */}
@@ -269,25 +270,25 @@ const InviteUsers = () => {
             {/* Create Invitation Form */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Create Invitation</CardTitle>
+                <CardTitle className="text-lg"><EditableText id="invite-create-title">Create Invitation</EditableText></CardTitle>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleCreateInvitation} className="flex flex-wrap gap-4 items-end">
                   <div className="space-y-1">
-                    <Label htmlFor="inv-fn">First name</Label>
+                    <Label htmlFor="inv-fn"><EditableText id="invite-label-fn">First name</EditableText></Label>
                     <Input id="inv-fn" value={firstName} onChange={(e) => setFirstName(e.target.value)} required className="w-40" />
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor="inv-ln">Last name</Label>
+                    <Label htmlFor="inv-ln"><EditableText id="invite-label-ln">Last name</EditableText></Label>
                     <Input id="inv-ln" value={lastName} onChange={(e) => setLastName(e.target.value)} required className="w-40" />
                   </div>
                   <div className="space-y-1 flex-1 min-w-[200px]">
-                    <Label htmlFor="inv-email">Email</Label>
+                    <Label htmlFor="inv-email"><EditableText id="invite-label-email">Email</EditableText></Label>
                     <Input id="inv-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
                   </div>
                   <Button type="submit" disabled={isCreating}>
                     <UserPlus className="h-4 w-4 mr-2" />
-                    {isCreating ? "Creating..." : "Create & Send Invite"}
+                    {isCreating ? <EditableText id="invite-creating">Creating...</EditableText> : <EditableText id="invite-create-btn">Create & Send Invite</EditableText>}
                   </Button>
                 </form>
               </CardContent>
@@ -308,11 +309,11 @@ const InviteUsers = () => {
                         <th className="text-left p-2"><SortHeader col="first_name" label="First Name" /></th>
                         <th className="text-left p-2"><SortHeader col="last_name" label="Last Name" /></th>
                         <th className="text-left p-2"><SortHeader col="email" label="Email" /></th>
-                        <th className="text-left p-2">Code</th>
+                        <th className="text-left p-2"><EditableText id="invite-th-code">Code</EditableText></th>
                         <th className="text-left p-2"><SortHeader col="invited_at" label="Invited" /></th>
                         <th className="text-left p-2"><SortHeader col="joined_at" label="Joined" /></th>
                         <th className="text-left p-2"><SortHeader col="status" label="Status" /></th>
-                        <th className="text-left p-2">Actions</th>
+                        <th className="text-left p-2"><EditableText id="invite-th-actions">Actions</EditableText></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -350,7 +351,7 @@ const InviteUsers = () => {
                         </tr>
                       ))}
                       {invitations.length === 0 && (
-                        <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">No invitations yet</td></tr>
+                        <tr><td colSpan={8} className="p-8 text-center text-muted-foreground"><EditableText id="invite-no-invitations">No invitations yet</EditableText></td></tr>
                       )}
                     </tbody>
                   </table>
@@ -360,8 +361,8 @@ const InviteUsers = () => {
                 {totalPages > 1 && (
                   <div className="flex justify-between items-center mt-4">
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" disabled={invPage === 0} onClick={() => setInvPage((p) => p - 1)}>Previous</Button>
-                      <Button variant="outline" size="sm" disabled={invPage >= totalPages - 1} onClick={() => setInvPage((p) => p + 1)}>Next</Button>
+                      <Button variant="outline" size="sm" disabled={invPage === 0} onClick={() => setInvPage((p) => p - 1)}><EditableText id="invite-prev">Previous</EditableText></Button>
+                      <Button variant="outline" size="sm" disabled={invPage >= totalPages - 1} onClick={() => setInvPage((p) => p + 1)}><EditableText id="invite-next">Next</EditableText></Button>
                     </div>
                     <span className="text-sm text-muted-foreground">Page {invPage + 1} of {totalPages}</span>
                     <PageSizeSelector />
@@ -438,7 +439,7 @@ const InviteUsers = () => {
                         </React.Fragment>
                       ))}
                       {applications.length === 0 && (
-                        <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">No applications yet</td></tr>
+                        <tr><td colSpan={7} className="p-8 text-center text-muted-foreground"><EditableText id="invite-no-applications">No applications yet</EditableText></td></tr>
                       )}
                     </tbody>
                   </table>

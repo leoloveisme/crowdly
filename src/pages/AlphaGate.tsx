@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { KeyRound, LogIn, FileText, ChevronDown, ChevronUp } from "lucide-react";
+import EditableText from "@/components/EditableText";
 
 const API_BASE = import.meta.env.PROD
   ? (import.meta.env.VITE_API_BASE_URL ?? "")
@@ -108,12 +109,12 @@ const AlphaGate = () => {
         <div className="w-full max-w-md space-y-6">
           {/* Header */}
           <div className="text-center space-y-2">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-900 via-pink-800 to-indigo-400 bg-clip-text text-transparent">
+            <EditableText id="alpha-welcome-heading" as="h1" className="text-3xl font-bold bg-gradient-to-r from-indigo-900 via-pink-800 to-indigo-400 bg-clip-text text-transparent">
               Welcome to Crowdly!
-            </h1>
-            <p className="text-muted-foreground">
+            </EditableText>
+            <EditableText id="alpha-welcome-desc" as="p" className="text-muted-foreground">
               Crowdly is currently in alpha. Enter your invitation code to access the platform.
-            </p>
+            </EditableText>
           </div>
 
           {/* Invitation Code Form */}
@@ -121,13 +122,13 @@ const AlphaGate = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <KeyRound className="h-5 w-5 text-indigo-500" />
-                Enter Invitation Code
+                <EditableText id="alpha-invitation-title">Enter Invitation Code</EditableText>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleValidate} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="inv-code">Invitation Code</Label>
+                  <Label htmlFor="inv-code"><EditableText id="alpha-label-inv-code">Invitation Code</EditableText></Label>
                   <Input
                     id="inv-code"
                     placeholder="inv-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
@@ -137,7 +138,7 @@ const AlphaGate = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="inv-email">Email</Label>
+                  <Label htmlFor="inv-email"><EditableText id="alpha-label-email">Email</EditableText></Label>
                   <Input
                     id="inv-email"
                     type="email"
@@ -148,7 +149,7 @@ const AlphaGate = () => {
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={isValidating}>
-                  {isValidating ? "Validating..." : "Enter Platform"}
+                  {isValidating ? <EditableText id="alpha-validating">Validating...</EditableText> : <EditableText id="alpha-enter-platform">Enter Platform</EditableText>}
                 </Button>
               </form>
             </CardContent>
@@ -163,7 +164,7 @@ const AlphaGate = () => {
             >
               <span className="flex items-center gap-2 font-medium">
                 <LogIn className="h-5 w-5 text-indigo-500" />
-                I already have login data
+                <EditableText id="alpha-have-login">I already have login data</EditableText>
               </span>
               {showLogin ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </button>
@@ -183,19 +184,19 @@ const AlphaGate = () => {
             >
               <span className="flex items-center gap-2 font-medium">
                 <FileText className="h-5 w-5 text-indigo-500" />
-                I don't have a code
+                <EditableText id="alpha-no-code">I don't have a code</EditableText>
               </span>
               {showApply ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </button>
             {showApply && (
               <CardContent className="pt-0">
                 <CardDescription className="mb-4">
-                  Apply to become an alpha user. We'll review your application and send you an invitation code if accepted.
+                  <EditableText id="alpha-apply-desc">Apply to become an alpha user. We'll review your application and send you an invitation code if accepted.</EditableText>
                 </CardDescription>
                 <form onSubmit={handleApply} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="app-first">First name *</Label>
+                      <Label htmlFor="app-first"><EditableText id="alpha-label-firstname">First name *</EditableText></Label>
                       <Input
                         id="app-first"
                         value={appFirstName}
@@ -205,7 +206,7 @@ const AlphaGate = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="app-last">Last name *</Label>
+                      <Label htmlFor="app-last"><EditableText id="alpha-label-lastname">Last name *</EditableText></Label>
                       <Input
                         id="app-last"
                         value={appLastName}
@@ -216,7 +217,7 @@ const AlphaGate = () => {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="app-email">Email *</Label>
+                    <Label htmlFor="app-email"><EditableText id="alpha-label-app-email">Email *</EditableText></Label>
                     <Input
                       id="app-email"
                       type="email"
@@ -228,7 +229,7 @@ const AlphaGate = () => {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="app-motivation">Why do you want to join Crowdly?</Label>
+                    <Label htmlFor="app-motivation"><EditableText id="alpha-label-motivation">Why do you want to join Crowdly?</EditableText></Label>
                     <Textarea
                       id="app-motivation"
                       placeholder="Tell us about yourself and why you'd like to join..."
@@ -239,7 +240,7 @@ const AlphaGate = () => {
                     />
                   </div>
                   <Button type="submit" className="w-full" disabled={isApplying}>
-                    {isApplying ? "Sending..." : "Send Application"}
+                    {isApplying ? <EditableText id="alpha-sending">Sending...</EditableText> : <EditableText id="alpha-send-application">Send Application</EditableText>}
                   </Button>
                 </form>
               </CardContent>

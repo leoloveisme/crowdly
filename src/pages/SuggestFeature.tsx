@@ -21,6 +21,7 @@ import CrowdlyFooter from "@/components/CrowdlyFooter";
 import ReCaptcha from "@/components/ReCaptcha";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import EditableText from "@/components/EditableText";
 
 interface Attachment {
   id: number;
@@ -320,14 +321,14 @@ const SuggestFeature = () => {
       <CrowdlyHeader />
       
       <div className="flex-grow container mx-auto px-4 py-8 max-w-4xl">
-        <h1 className="text-4xl font-bold text-center mb-2 text-[#1A1F2C]">Suggest a feature</h1>
-        
+        <EditableText id="suggest-heading" as="h1" className="text-4xl font-bold text-center mb-2 text-[#1A1F2C]">Suggest a feature</EditableText>
+
         <div className="bg-black text-white text-center text-sm py-1 px-4 rounded mb-4">
-          Your suggestion will be published on our website
+          <EditableText id="suggest-published-banner">Your suggestion will be published on our website</EditableText>
         </div>
-        
+
         <div className="mb-6 text-center text-gray-500 text-sm">
-          Your feature request will be published on our website.
+          <EditableText id="suggest-published-note">Your feature request will be published on our website.</EditableText>
         </div>
         
         <form onSubmit={handleSubmit}>
@@ -341,14 +342,14 @@ const SuggestFeature = () => {
                 onChange={() => setVisibilityOption("public")}
                 className="mr-1"
               />
-              <label htmlFor="public" className="mr-1">Public</label>
+              <label htmlFor="public" className="mr-1"><EditableText id="suggest-public">Public</EditableText></label>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info size={16} className="text-gray-400 cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Your suggestion will be visible to everyone</p>
+                    <EditableText id="suggest-public-tip" as="p">Your suggestion will be visible to everyone</EditableText>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -362,14 +363,14 @@ const SuggestFeature = () => {
                 onChange={() => setVisibilityOption("anonymous")}
                 className="mr-1"
               />
-              <label htmlFor="anonymous" className="mr-1">Anonymous</label>
+              <label htmlFor="anonymous" className="mr-1"><EditableText id="suggest-anonymous">Anonymous</EditableText></label>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info size={16} className="text-gray-400 cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Your name won't be displayed</p>
+                    <EditableText id="suggest-anonymous-tip" as="p">Your name won't be displayed</EditableText>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -383,14 +384,14 @@ const SuggestFeature = () => {
                 onChange={() => setVisibilityOption("private")}
                 className="mr-1"
               />
-              <label htmlFor="private" className="mr-1">Private</label>
+              <label htmlFor="private" className="mr-1"><EditableText id="suggest-private">Private</EditableText></label>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info size={16} className="text-gray-400 cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Only administrators will see this suggestion</p>
+                    <EditableText id="suggest-private-tip" as="p">Only administrators will see this suggestion</EditableText>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -401,7 +402,7 @@ const SuggestFeature = () => {
           {visibilityOption !== "anonymous" && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <Label htmlFor="firstName">First name</Label>
+                <Label htmlFor="firstName"><EditableText id="suggest-label-firstname">First name</EditableText></Label>
                 <Input 
                   id="firstName"
                   type="text" 
@@ -415,7 +416,7 @@ const SuggestFeature = () => {
                 )}
               </div>
               <div>
-                <Label htmlFor="lastName">Last name</Label>
+                <Label htmlFor="lastName"><EditableText id="suggest-label-lastname">Last name</EditableText></Label>
                 <Input 
                   id="lastName"
                   type="text" 
@@ -435,12 +436,12 @@ const SuggestFeature = () => {
           {visibilityOption !== "anonymous" && (
             <div className="bg-gray-200 p-4 rounded mb-6">
               <div className="text-gray-700 mb-4">
-                This section won't be displayed on the feature suggestion output page
+                <EditableText id="suggest-contact-hidden-note">This section won't be displayed on the feature suggestion output page</EditableText>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email"><EditableText id="suggest-label-email">Email</EditableText></Label>
                   <Input 
                     id="email"
                     type="email" 
@@ -453,7 +454,7 @@ const SuggestFeature = () => {
                   )}
                 </div>
                 <div>
-                  <Label htmlFor="telephone">Telephone</Label>
+                  <Label htmlFor="telephone"><EditableText id="suggest-label-telephone">Telephone</EditableText></Label>
                   <Input 
                     id="telephone"
                     type="tel" 
@@ -465,7 +466,7 @@ const SuggestFeature = () => {
               </div>
               
               <div className="mb-4">
-                <Label className="block mb-2">Can we contact you? (in case we have questions)</Label>
+                <Label className="block mb-2"><EditableText id="suggest-can-contact">Can we contact you? (in case we have questions)</EditableText></Label>
                 <RadioGroup value={canContact} onValueChange={setCanContact} className="flex space-x-4">
                   <div className="flex items-center space-x-1">
                     <RadioGroupItem value="yes" id="yes" />
@@ -480,7 +481,7 @@ const SuggestFeature = () => {
               
               {canContact === "yes" && (
                 <div className="mb-4">
-                  <Label className="block mb-2">What is your preferred way of contacting you?</Label>
+                  <Label className="block mb-2"><EditableText id="suggest-preferred-contact">What is your preferred way of contacting you?</EditableText></Label>
                   <div className="flex space-x-4">
                     <div className="flex items-center space-x-1">
                       <Checkbox id="contactEmail" checked={contactMethod === "email"} onCheckedChange={() => setContactMethod("email")} />
@@ -500,14 +501,14 @@ const SuggestFeature = () => {
           {visibilityOption !== "anonymous" && (
             <div className="mb-6">
               <div className="flex items-center mb-2">
-                <Label htmlFor="createAccount" className="mr-2">Would you like to create an account?</Label>
+                <Label htmlFor="createAccount" className="mr-2"><EditableText id="suggest-create-account">Would you like to create an account?</EditableText></Label>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Info size={16} className="text-gray-400 cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>You can create an account on this platform</p>
+                      <EditableText id="suggest-create-account-tip" as="p">You can create an account on this platform</EditableText>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -565,7 +566,7 @@ const SuggestFeature = () => {
           {/* Feature Description */}
           <div className="mb-6">
             <Label htmlFor="featureDescription" className="block mb-2">
-              Please describe the feature you're suggesting here
+              <EditableText id="suggest-desc-label">Please describe the feature you're suggesting here</EditableText>
             </Label>
             <Textarea
               id="featureDescription"
@@ -581,7 +582,7 @@ const SuggestFeature = () => {
           
           {/* Attachments */}
           <div className="mb-6">
-            <Label className="block mb-2">Attachments</Label>
+            <Label className="block mb-2"><EditableText id="suggest-attachments-label">Attachments</EditableText></Label>
             <div className="flex items-center mb-4">
               <Input className="w-auto mr-2" readOnly onClick={handleFileUpload} />
               <input 
@@ -591,7 +592,7 @@ const SuggestFeature = () => {
                 onChange={handleFileChange} 
               />
               <Button type="button" onClick={handleFileUpload} className="bg-blue-500 hover:bg-blue-600">
-                Add
+                <EditableText id="suggest-add-btn">Add</EditableText>
               </Button>
             </div>
             
@@ -608,7 +609,7 @@ const SuggestFeature = () => {
                     className="text-blue-500 hover:text-blue-700"
                     onClick={() => deleteAttachment(attachment.id)}
                   >
-                    Delete
+                    <EditableText id="suggest-delete-btn">Delete</EditableText>
                   </Button>
                 </div>
               ))}
@@ -636,28 +637,28 @@ const SuggestFeature = () => {
               className="bg-indigo-600 hover:bg-indigo-700 text-white px-8"
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Sending..." : "Send"}
+              {isSubmitting ? <EditableText id="suggest-sending">Sending...</EditableText> : <EditableText id="suggest-send-btn">Send</EditableText>}
             </Button>
           </div>
           
           {/* Form Instructions */}
           <div className="mb-6">
             <div className="flex items-center mb-1">
-              <span className="mr-2">None of the fields is compulsory</span>
+              <EditableText id="suggest-none-compulsory" className="mr-2">None of the fields is compulsory</EditableText>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Info size={16} className="text-gray-400 cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Only password field is the exception, providing you choose Yes and decide to create an account on this platform</p>
+                    <EditableText id="suggest-password-exception-tip" as="p">Only password field is the exception, providing you choose Yes and decide to create an account on this platform</EditableText>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </div>
-            <p className="text-gray-500 text-sm">
+            <EditableText id="suggest-empty-form-note" as="p" className="text-gray-500 text-sm">
               If you try to send an empty form it won't send.
-            </p>
+            </EditableText>
           </div>
         </form>
       </div>
@@ -670,10 +671,10 @@ const SuggestFeature = () => {
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center">
               <AlertTriangle className="h-5 w-5 mr-2 text-yellow-500" />
-              Empty Form
+              <EditableText id="suggest-empty-form-title">Empty Form</EditableText>
             </AlertDialogTitle>
             <AlertDialogDescription>
-              You haven't entered any data. Please fill out at least one field to submit the form.
+              <EditableText id="suggest-empty-form-desc">You haven't entered any data. Please fill out at least one field to submit the form.</EditableText>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

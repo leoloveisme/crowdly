@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowUpDown } from "lucide-react";
+import EditableText from "@/components/EditableText";
 
 export type StoriesOutputItem = {
   id: string;
@@ -94,7 +95,7 @@ export const StoriesOutput: React.FC<StoriesOutputProps> = ({
 
   const renderDisplayControl = () => (
     <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-      <span>Display:</span>
+      <EditableText id="stories-output-display">Display:</EditableText>
       <select
         className="border rounded-md px-2 py-1 bg-white dark:bg-gray-900 dark:border-gray-700"
         value={pageSize === Infinity ? "all" : String(pageSize)}
@@ -131,7 +132,7 @@ export const StoriesOutput: React.FC<StoriesOutputProps> = ({
       </div>
 
       {loading && (
-        <div className="text-sm text-gray-500">Loading...</div>
+        <EditableText id="stories-output-loading" as="div" className="text-sm text-gray-500">Loading...</EditableText>
       )}
 
       {error && !loading && (
@@ -139,7 +140,7 @@ export const StoriesOutput: React.FC<StoriesOutputProps> = ({
       )}
 
       {!loading && !error && totalItems === 0 && (
-        <div className="text-sm text-gray-500 italic">No items found.</div>
+        <EditableText id="stories-output-no-items" as="div" className="text-sm text-gray-500 italic">No items found.</EditableText>
       )}
 
       {!loading && !error && totalItems > 0 && (
@@ -151,7 +152,7 @@ export const StoriesOutput: React.FC<StoriesOutputProps> = ({
                   {renderSortLabel("name", "Story name")}
                 </th>
                 <th className="px-4 py-3 text-left border-b border-gray-200 dark:border-gray-700 text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-200">
-                  Author(s)
+                  <EditableText id="stories-output-th-authors">Author(s)</EditableText>
                 </th>
                 <th className="px-4 py-3 text-left border-b border-gray-200 dark:border-gray-700">
                   {renderSortLabel("createdAt", "Creation date")}
@@ -203,7 +204,7 @@ export const StoriesOutput: React.FC<StoriesOutputProps> = ({
                 disabled={currentPage === 1}
                 className="px-2 py-1 text-xs border rounded disabled:opacity-50 disabled:cursor-not-allowed bg-white dark:bg-gray-900 dark:border-gray-700"
               >
-                Previous
+                <EditableText id="stories-output-prev">Previous</EditableText>
               </button>
               <span className="text-xs text-gray-600 dark:text-gray-300">
                 Page {currentPage} of {totalPages}
@@ -214,7 +215,7 @@ export const StoriesOutput: React.FC<StoriesOutputProps> = ({
                 disabled={currentPage === totalPages}
                 className="px-2 py-1 text-xs border rounded disabled:opacity-50 disabled:cursor-not-allowed bg-white dark:bg-gray-900 dark:border-gray-700"
               >
-                Next
+                <EditableText id="stories-output-next">Next</EditableText>
               </button>
               {renderDisplayControl()}
             </div>

@@ -122,12 +122,17 @@ const CrowdlyHeader = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="English">English</SelectItem>
-                  <SelectItem value="Russian">Russian</SelectItem>
-                  <SelectItem value="Chinese">中文</SelectItem>
-                  <SelectItem value="Portuguese">Portuguese</SelectItem>
-                  <SelectItem value="Spanish">Spanish</SelectItem>
-                  <SelectItem value="French">French</SelectItem>
-                  <SelectItem value="Arabic">Arabic</SelectItem>
+                  <SelectItem value="Russian">Русский</SelectItem>
+                  <SelectItem value="Portuguese">Português</SelectItem>
+                  <SelectItem value="Korean">한국어</SelectItem>
+                  <SelectItem value="Arabic">العربية</SelectItem>
+                  <SelectItem value="Chinese (Simplified)">简体中文</SelectItem>
+                  <SelectItem value="Chinese (Traditional)">繁體中文</SelectItem>
+                  <SelectItem value="Japanese">日本語</SelectItem>
+                  <SelectItem value="French">Français</SelectItem>
+                  <SelectItem value="Spanish">Español</SelectItem>
+                  <SelectItem value="German">Deutsch</SelectItem>
+                  <SelectItem value="Hindi">हिन्दी</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -299,12 +304,17 @@ const CrowdlyHeader = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="English">English</SelectItem>
-                  <SelectItem value="Russian">Russian</SelectItem>
-                  <SelectItem value="Chinese">中文</SelectItem>
-                  <SelectItem value="Portuguese">Portuguese</SelectItem>
-                  <SelectItem value="Spanish">Spanish</SelectItem>
-                  <SelectItem value="French">French</SelectItem>
-                  <SelectItem value="Arabic">Arabic</SelectItem>
+                  <SelectItem value="Russian">Русский</SelectItem>
+                  <SelectItem value="Portuguese">Português</SelectItem>
+                  <SelectItem value="Korean">한국어</SelectItem>
+                  <SelectItem value="Arabic">العربية</SelectItem>
+                  <SelectItem value="Chinese (Simplified)">简体中文</SelectItem>
+                  <SelectItem value="Chinese (Traditional)">繁體中文</SelectItem>
+                  <SelectItem value="Japanese">日本語</SelectItem>
+                  <SelectItem value="French">Français</SelectItem>
+                  <SelectItem value="Spanish">Español</SelectItem>
+                  <SelectItem value="German">Deutsch</SelectItem>
+                  <SelectItem value="Hindi">हिन्दी</SelectItem>
                 </SelectContent>
               </Select>
               {user ? (

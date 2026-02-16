@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import EditableText from "@/components/EditableText";
 
 const API_BASE = import.meta.env.PROD
   ? (import.meta.env.VITE_API_BASE_URL ?? "")
@@ -466,7 +467,7 @@ const StoryDetails: React.FC = () => {
       <div className="min-h-screen flex flex-col">
         <CrowdlyHeader />
         <div className="flex-1 flex items-center justify-center">
-          <p className="text-gray-500 text-sm">Loading story details...</p>
+          <EditableText id="story-details-loading" as="p" className="text-gray-500 text-sm">Loading story details...</EditableText>
         </div>
         <CrowdlyFooter />
       </div>
@@ -478,10 +479,10 @@ const StoryDetails: React.FC = () => {
       <div className="min-h-screen flex flex-col">
         <CrowdlyHeader />
         <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
-          <h1 className="text-2xl font-bold mb-2">Story details</h1>
+          <EditableText id="story-details-heading" as="h1" className="text-2xl font-bold mb-2">Story details</EditableText>
           <p className="text-sm text-gray-600 mb-4">{error || "Story not found"}</p>
           <Button variant="outline" onClick={() => navigate(story_id ? `/story/${story_id}` : "/")}>
-            Back to story
+            <EditableText id="story-details-back">Back to story</EditableText>
           </Button>
         </div>
         <CrowdlyFooter />
@@ -519,20 +520,20 @@ const StoryDetails: React.FC = () => {
               className="text-xs h-auto px-2 py-1"
               onClick={() => navigate(`/story/${story.story_title_id}`)}
             >
-              Back to story
+              <EditableText id="story-details-back">Back to story</EditableText>
             </Button>
           </div>
         </div>
 
         <section className="border rounded-lg bg-white p-4 space-y-3">
           <div className="flex items-center justify-between gap-2 mb-1">
-            <h2 className="text-sm font-semibold">Creative Space</h2>
+            <h2 className="text-sm font-semibold"><EditableText id="story-details-space-title">Creative Space</EditableText></h2>
             {currentSpace && (
               <Link
                 to={`/creative_space/${currentSpace.id}`}
                 className="text-xs text-purple-700 hover:underline"
               >
-                Open Space
+                <EditableText id="story-details-open-space">Open Space</EditableText>
               </Link>
             )}
           </div>
@@ -599,7 +600,7 @@ const StoryDetails: React.FC = () => {
 
         <section className="border rounded-lg bg-white p-4">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-sm font-semibold">Attachments</h2>
+            <h2 className="text-sm font-semibold"><EditableText id="story-details-attachments">Attachments</EditableText></h2>
           </div>
           {renderAttachments()}
         </section>

@@ -24,6 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
 import {
   Users,
@@ -41,6 +42,7 @@ import {
 } from "lucide-react";
 import CreateUser from "@/modules/create a user";
 import GroupsManager from "@/modules/groups";
+import EditableText from "@/components/EditableText";
 
 const API_BASE = import.meta.env.PROD
   ? (import.meta.env.VITE_API_BASE_URL ?? "")
@@ -54,12 +56,19 @@ type AdminUser = {
   first_name: string | null;
   last_name: string | null;
   username: string | null;
-  nickname: string | null;
+  profile_page_name: string | null;
   roles: string[];
+  translator_languages: string[];
   is_initiator: boolean;
   is_owner: boolean;
   is_contributor: boolean;
   is_author: boolean;
+};
+
+type Locale = {
+  code: string;
+  english_name: string;
+  native_name: string | null;
 };
 
 const STORY_ROLE_COLORS: Record<string, string> = {
@@ -99,6 +108,10 @@ const PlatformAdmin = () => {
   const [editLastName, setEditLastName] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editUsername, setEditUsername] = useState("");
+  const [editIsUiTranslator, setEditIsUiTranslator] = useState(false);
+  const [editIsPlatformSupporter, setEditIsPlatformSupporter] = useState(false);
+  const [editTranslatorLanguages, setEditTranslatorLanguages] = useState<string[]>([]);
+  const [locales, setLocales] = useState<Locale[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
   // Message dialog
@@ -133,14 +146,16 @@ const PlatformAdmin = () => {
       const res = await fetch(`${API_BASE}/admin/users?${params}`);
       if (res.ok) {
         const data = await res.json();
-        // Normalize roles: PostgreSQL ARRAY() may return a string like "{role1,role2}"
+        // Normalize roles and translator_languages: PostgreSQL ARRAY() may return a string like "{role1,role2}"
+        const parseArray = (val: unknown): string[] => {
+          if (Array.isArray(val)) return val;
+          if (typeof val === "string") return val.replace(/^\{|\}$/g, "").split(",").filter(Boolean);
+          return [];
+        };
         const normalized = (data.users || []).map((u: AdminUser) => ({
           ...u,
-          roles: Array.isArray(u.roles)
-            ? u.roles
-            : typeof u.roles === "string"
-            ? (u.roles as string).replace(/^\{|\}$/g, "").split(",").filter(Boolean)
-            : [],
+          roles: parseArray(u.roles),
+          translator_languages: parseArray(u.translator_languages),
         }));
         setUsers(normalized);
         setTotal(data.total);
@@ -153,6 +168,18 @@ const PlatformAdmin = () => {
   useEffect(() => {
     fetchUsers();
   }, [fetchUsers]);
+
+  // Fetch available locales (for translator language checkboxes)
+  useEffect(() => {
+    fetch(`${API_BASE}/locales`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setLocales(data.filter((l: Locale) => l.code !== "en"));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const handleSort = (col: string) => {
     if (sortBy === col) {
@@ -183,10 +210,25 @@ const PlatformAdmin = () => {
     setEditLastName(u.last_name || "");
     setEditEmail(u.email);
     setEditUsername(u.username || "");
+    setEditIsUiTranslator(u.roles.includes("ui_translator"));
+    setEditIsPlatformSupporter(u.roles.includes("platform_supporter"));
+    setEditTranslatorLanguages(u.translator_languages || []);
+  };
+
+  const toggleEditLanguage = (code: string) => {
+    setEditTranslatorLanguages((prev) =>
+      prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code],
+    );
   };
 
   const handleSaveEdit = async () => {
     if (!user || !editUser) return;
+
+    // Build roles array from checkboxes
+    const roles: string[] = [];
+    if (editIsUiTranslator) roles.push("ui_translator");
+    if (editIsPlatformSupporter) roles.push("platform_supporter");
+
     setIsSaving(true);
     try {
       const res = await fetch(`${API_BASE}/admin/users/${editUser.id}`, {
@@ -198,6 +240,8 @@ const PlatformAdmin = () => {
           last_name: editLastName,
           email: editEmail,
           username: editUsername,
+          roles,
+          translatorLanguages: editIsUiTranslator ? editTranslatorLanguages : [],
         }),
       });
       if (res.ok) {
@@ -319,10 +363,10 @@ const PlatformAdmin = () => {
       <CrowdlyHeader />
       <main className="flex-grow container mx-auto max-w-6xl px-4 py-8">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold">Platform Administration</h2>
+          <h2 className="text-2xl font-bold"><EditableText id="padmin-heading" as="span">Platform Administration</EditableText></h2>
           <Button variant="outline" asChild>
             <Link to="/admin/invite-users">
-              <UserPlus className="h-4 w-4 mr-2" /> Invite Users
+              <UserPlus className="h-4 w-4 mr-2" /> <EditableText id="padmin-invite-btn">Invite Users</EditableText>
             </Link>
           </Button>
         </div>
@@ -330,16 +374,16 @@ const PlatformAdmin = () => {
         <Tabs defaultValue="users">
           <TabsList className="mb-4">
             <TabsTrigger value="users" className="flex items-center gap-2">
-              <Users className="h-4 w-4" /> User Management
+              <Users className="h-4 w-4" /> <EditableText id="padmin-tab-users">User Management</EditableText>
             </TabsTrigger>
             <TabsTrigger value="settings" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" /> Platform Settings
+              <Settings className="h-4 w-4" /> <EditableText id="padmin-tab-settings">Platform Settings</EditableText>
             </TabsTrigger>
             <TabsTrigger value="groups" className="flex items-center gap-2">
-              <Users className="h-4 w-4" /> Groups
+              <Users className="h-4 w-4" /> <EditableText id="padmin-tab-groups">Groups</EditableText>
             </TabsTrigger>
             <TabsTrigger value="analytics" className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" /> Analytics
+              <BarChart3 className="h-4 w-4" /> <EditableText id="padmin-tab-analytics">Analytics</EditableText>
             </TabsTrigger>
           </TabsList>
 
@@ -348,8 +392,8 @@ const PlatformAdmin = () => {
             <CreateUser onUserCreated={fetchUsers} />
             <Card className="mt-4">
               <CardHeader>
-                <CardTitle>User Management</CardTitle>
-                <CardDescription>Manage platform users — list, edit, ban, delete, and send messages.</CardDescription>
+                <CardTitle><EditableText id="padmin-users-title">User Management</EditableText></CardTitle>
+                <CardDescription><EditableText id="padmin-users-desc">Manage platform users — list, edit, ban, delete, and send messages.</EditableText></CardDescription>
               </CardHeader>
               <CardContent>
                 {/* Search & Page Size Controls */}
@@ -365,7 +409,7 @@ const PlatformAdmin = () => {
                       />
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     </div>
-                    <Button type="submit" size="sm" variant="outline">Search</Button>
+                    <Button type="submit" size="sm" variant="outline"><EditableText id="padmin-search-btn">Search</EditableText></Button>
                     {searchQuery && (
                       <Button type="button" size="sm" variant="ghost" onClick={clearSearch}>
                         <X className="h-4 w-4" />
@@ -401,9 +445,9 @@ const PlatformAdmin = () => {
                         <th className="text-left p-2"><SortHeader col="last_name" label="Last Name" /></th>
                         <th className="text-left p-2"><SortHeader col="email" label="Email" /></th>
                         <th className="text-left p-2"><SortHeader col="username" label="Page Name" /></th>
-                        <th className="text-left p-2">Roles</th>
-                        <th className="text-left p-2">Status</th>
-                        <th className="text-left p-2">Actions</th>
+                        <th className="text-left p-2"><EditableText id="padmin-th-roles">Roles</EditableText></th>
+                        <th className="text-left p-2"><EditableText id="padmin-th-status">Status</EditableText></th>
+                        <th className="text-left p-2"><EditableText id="padmin-th-actions">Actions</EditableText></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -418,7 +462,7 @@ const PlatformAdmin = () => {
                                 {u.username}
                               </Link>
                             ) : (
-                              <span className="text-muted-foreground italic">not set</span>
+                              <span className="text-muted-foreground italic"><EditableText id="padmin-not-set">not set</EditableText></span>
                             )}
                           </td>
                           <td className="p-2">
@@ -444,12 +488,24 @@ const PlatformAdmin = () => {
                                 <span className={`text-xs px-1.5 py-0.5 rounded ${STORY_ROLE_COLORS.author}`}>author</span>
                               )}
                             </div>
+                            {u.roles.includes("ui_translator") && u.translator_languages && u.translator_languages.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {u.translator_languages.map((lang) => (
+                                  <span
+                                    key={lang}
+                                    className="text-[10px] px-1 py-0.5 rounded bg-cyan-50 text-cyan-700 border border-cyan-200"
+                                  >
+                                    {lang}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                           </td>
                           <td className="p-2">
                             {u.is_banned ? (
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700">Banned</span>
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-700"><EditableText id="padmin-banned">Banned</EditableText></span>
                             ) : (
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Active</span>
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700"><EditableText id="padmin-active">Active</EditableText></span>
                             )}
                           </td>
                           <td className="p-2">
@@ -499,7 +555,7 @@ const PlatformAdmin = () => {
                       {users.length === 0 && (
                         <tr>
                           <td colSpan={7} className="p-8 text-center text-muted-foreground">
-                            {searchQuery ? "No users match your search" : "No users found"}
+                            {searchQuery ? <EditableText id="padmin-no-match">No users match your search</EditableText> : <EditableText id="padmin-no-users">No users found</EditableText>}
                           </td>
                         </tr>
                       )}
@@ -512,10 +568,10 @@ const PlatformAdmin = () => {
                   <div className="flex justify-between items-center mt-4">
                     <div className="flex gap-2">
                       <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
-                        Previous
+                        <EditableText id="padmin-prev">Previous</EditableText>
                       </Button>
                       <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage((p) => p + 1)}>
-                        Next
+                        <EditableText id="padmin-next">Next</EditableText>
                       </Button>
                     </div>
                     <span className="text-sm text-muted-foreground">
@@ -531,14 +587,14 @@ const PlatformAdmin = () => {
           <TabsContent value="settings">
             <Card>
               <CardHeader>
-                <CardTitle>Platform Settings</CardTitle>
-                <CardDescription>Configure platform-wide settings and preferences.</CardDescription>
+                <CardTitle><EditableText id="padmin-settings-title">Platform Settings</EditableText></CardTitle>
+                <CardDescription><EditableText id="padmin-settings-desc">Configure platform-wide settings and preferences.</EditableText></CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                   <Settings className="h-12 w-12 mb-4 opacity-30" />
-                  <p className="text-lg font-medium">Platform settings coming soon</p>
-                  <p className="text-sm mt-1">This section will allow you to configure platform-wide options.</p>
+                  <p className="text-lg font-medium"><EditableText id="padmin-settings-soon">Platform settings coming soon</EditableText></p>
+                  <p className="text-sm mt-1"><EditableText id="padmin-settings-soon-desc">This section will allow you to configure platform-wide options.</EditableText></p>
                 </div>
               </CardContent>
             </Card>
@@ -548,8 +604,8 @@ const PlatformAdmin = () => {
           <TabsContent value="groups">
             <Card>
               <CardHeader>
-                <CardTitle>Groups Management</CardTitle>
-                <CardDescription>Create and manage platform-wide groups that all users can use for access control.</CardDescription>
+                <CardTitle><EditableText id="padmin-groups-title">Groups Management</EditableText></CardTitle>
+                <CardDescription><EditableText id="padmin-groups-desc">Create and manage platform-wide groups that all users can use for access control.</EditableText></CardDescription>
               </CardHeader>
               <CardContent>
                 {user?.id && <GroupsManager userId={user.id} showPlatformGroups />}
@@ -561,14 +617,14 @@ const PlatformAdmin = () => {
           <TabsContent value="analytics">
             <Card>
               <CardHeader>
-                <CardTitle>Analytics</CardTitle>
-                <CardDescription>Platform statistics and metrics overview.</CardDescription>
+                <CardTitle><EditableText id="padmin-analytics-title">Analytics</EditableText></CardTitle>
+                <CardDescription><EditableText id="padmin-analytics-desc">Platform statistics and metrics overview.</EditableText></CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                   <BarChart3 className="h-12 w-12 mb-4 opacity-30" />
-                  <p className="text-lg font-medium">Analytics coming soon</p>
-                  <p className="text-sm mt-1">This section will display platform stats and metrics.</p>
+                  <p className="text-lg font-medium"><EditableText id="padmin-analytics-soon">Analytics coming soon</EditableText></p>
+                  <p className="text-sm mt-1"><EditableText id="padmin-analytics-soon-desc">This section will display platform stats and metrics.</EditableText></p>
                 </div>
               </CardContent>
             </Card>
@@ -579,34 +635,99 @@ const PlatformAdmin = () => {
 
       {/* Edit User Dialog */}
       <Dialog open={!!editUser} onOpenChange={(open) => !open && setEditUser(null)}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
-            <DialogDescription>Update user profile information.</DialogDescription>
+            <DialogTitle><EditableText id="padmin-edit-title">Edit User</EditableText></DialogTitle>
+            <DialogDescription><EditableText id="padmin-edit-desc">Update user profile information, roles, and translator permissions.</EditableText></DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1">
-              <Label htmlFor="edit-fn">First Name</Label>
+              <Label htmlFor="edit-fn"><EditableText id="padmin-edit-fn">First Name</EditableText></Label>
               <Input id="edit-fn" value={editFirstName} onChange={(e) => setEditFirstName(e.target.value)} />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="edit-ln">Last Name</Label>
+              <Label htmlFor="edit-ln"><EditableText id="padmin-edit-ln">Last Name</EditableText></Label>
               <Input id="edit-ln" value={editLastName} onChange={(e) => setEditLastName(e.target.value)} />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="edit-email">Email</Label>
+              <Label htmlFor="edit-email"><EditableText id="padmin-edit-email">Email</EditableText></Label>
               <Input id="edit-email" type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="edit-username">Profile Page Name</Label>
+              <Label htmlFor="edit-username"><EditableText id="padmin-edit-pagename">Profile Page Name</EditableText></Label>
               <Input id="edit-username" value={editUsername} onChange={(e) => setEditUsername(e.target.value)} placeholder="Must be unique" />
-              <p className="text-xs text-muted-foreground">This is the unique URL slug for the user's public profile page.</p>
+              <p className="text-xs text-muted-foreground"><EditableText id="padmin-edit-pagename-hint">This is the unique URL slug for the user's public profile page.</EditableText></p>
             </div>
+
+            {/* Roles section */}
+            <div className="space-y-2">
+              <Label><EditableText id="padmin-edit-roles">Roles</EditableText></Label>
+              <div className="flex flex-col gap-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={editIsUiTranslator}
+                    onCheckedChange={(v) => {
+                      setEditIsUiTranslator(v === true);
+                      if (!v) setEditTranslatorLanguages([]);
+                    }}
+                  />
+                  <span className="text-sm"><EditableText id="padmin-edit-role-translator">UI Translator</EditableText></span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
+                    checked={editIsPlatformSupporter}
+                    onCheckedChange={(v) => setEditIsPlatformSupporter(v === true)}
+                  />
+                  <span className="text-sm"><EditableText id="padmin-edit-role-support">Platform Support</EditableText></span>
+                </label>
+              </div>
+              {editUser?.roles.includes("platform_admin") && (
+                <p className="text-xs text-amber-600"><EditableText id="padmin-edit-admin-note">This user is a Platform Admin (cannot be changed here).</EditableText></p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                <EditableText id="padmin-edit-roles-hint">Consumer role is always assigned. Check additional roles above.</EditableText>
+              </p>
+            </div>
+
+            {/* Translator languages — shown when UI Translator is checked */}
+            {editIsUiTranslator && (
+              <div className="space-y-2">
+                <Label><EditableText id="padmin-edit-langs">Translator Languages</EditableText></Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  <EditableText id="padmin-edit-langs-hint">Select which languages this user can translate into.</EditableText>
+                </p>
+                <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto border rounded p-3 bg-gray-50">
+                  {locales.length === 0 ? (
+                    <span className="text-xs text-muted-foreground col-span-2"><EditableText id="padmin-edit-langs-loading">Loading languages...</EditableText></span>
+                  ) : (
+                    locales.map((locale) => (
+                      <label key={locale.code} className="flex items-center gap-2 cursor-pointer">
+                        <Checkbox
+                          checked={editTranslatorLanguages.includes(locale.code)}
+                          onCheckedChange={() => toggleEditLanguage(locale.code)}
+                        />
+                        <span className="text-sm">
+                          {locale.english_name}
+                          {locale.native_name && locale.native_name !== locale.english_name && (
+                            <span className="text-xs text-muted-foreground ml-1">({locale.native_name})</span>
+                          )}
+                        </span>
+                      </label>
+                    ))
+                  )}
+                </div>
+                {editTranslatorLanguages.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {editTranslatorLanguages.length} language{editTranslatorLanguages.length !== 1 ? "s" : ""} selected
+                  </p>
+                )}
+              </div>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditUser(null)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setEditUser(null)}><EditableText id="padmin-edit-cancel">Cancel</EditableText></Button>
             <Button onClick={handleSaveEdit} disabled={isSaving}>
-              {isSaving ? "Saving..." : "Save Changes"}
+              {isSaving ? <EditableText id="padmin-edit-saving">Saving...</EditableText> : <EditableText id="padmin-edit-save">Save Changes</EditableText>}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -616,25 +737,25 @@ const PlatformAdmin = () => {
       <Dialog open={!!messageUser} onOpenChange={(open) => !open && setMessageUser(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Send Message</DialogTitle>
+            <DialogTitle><EditableText id="padmin-msg-title">Send Message</EditableText></DialogTitle>
             <DialogDescription>
               Send a message to {messageUser?.email}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1">
-              <Label htmlFor="msg-subject">Subject</Label>
+              <Label htmlFor="msg-subject"><EditableText id="padmin-msg-subject">Subject</EditableText></Label>
               <Input id="msg-subject" value={msgSubject} onChange={(e) => setMsgSubject(e.target.value)} placeholder="Message subject" />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="msg-body">Message</Label>
+              <Label htmlFor="msg-body"><EditableText id="padmin-msg-body-label">Message</EditableText></Label>
               <Textarea id="msg-body" value={msgBody} onChange={(e) => setMsgBody(e.target.value)} placeholder="Write your message..." rows={5} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setMessageUser(null)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setMessageUser(null)}><EditableText id="padmin-msg-cancel">Cancel</EditableText></Button>
             <Button onClick={handleSendMessage} disabled={isSendingMsg}>
-              {isSendingMsg ? "Sending..." : "Send Message"}
+              {isSendingMsg ? <EditableText id="padmin-msg-sending">Sending...</EditableText> : <EditableText id="padmin-msg-send">Send Message</EditableText>}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -644,15 +765,15 @@ const PlatformAdmin = () => {
       <Dialog open={!!deleteUser} onOpenChange={(open) => !open && setDeleteUser(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete User</DialogTitle>
+            <DialogTitle><EditableText id="padmin-del-title">Delete User</EditableText></DialogTitle>
             <DialogDescription>
               Are you sure you want to permanently delete <strong>{deleteUser?.email}</strong>? This action cannot be undone. All of the user's data (profile, roles, messages) will be removed.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteUser(null)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setDeleteUser(null)}><EditableText id="padmin-del-cancel">Cancel</EditableText></Button>
             <Button variant="destructive" onClick={handleConfirmDelete} disabled={isDeleting}>
-              {isDeleting ? "Deleting..." : "Delete User"}
+              {isDeleting ? <EditableText id="padmin-del-deleting">Deleting...</EditableText> : <EditableText id="padmin-del-btn">Delete User</EditableText>}
             </Button>
           </DialogFooter>
         </DialogContent>

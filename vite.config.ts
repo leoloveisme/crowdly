@@ -39,6 +39,14 @@ export default defineConfig(({ mode }) => ({
         target: "http://localhost:4000",
         changeOrigin: true,
       },
+      "/chapter-revisions": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/screenplay-revisions": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
       "/screenplays": {
         target: "http://localhost:4000",
         changeOrigin: true,
@@ -100,6 +108,10 @@ export default defineConfig(({ mode }) => ({
         changeOrigin: true,
       },
       "/admin/users": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/locales": {
         target: "http://localhost:4000",
         changeOrigin: true,
       },
