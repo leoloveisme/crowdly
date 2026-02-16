@@ -97,6 +97,8 @@ import RevisionCheckboxCell from "@/components/RevisionCheckboxCell";
 import { useAuth } from "@/contexts/AuthContext";
 import StorySelector from "@/components/StorySelector";
 import NewStoryDialog from "@/components/NewStoryDialog";
+import StoryLanguageSelect from "@/components/StoryLanguageSelect";
+import CoverImageUpload from "@/components/CoverImageUpload";
 import ParagraphBranchPopover from "@/components/ParagraphBranchPopover";
 import ScreenplayTemplate from "@/modules/screenplay template";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -169,6 +171,8 @@ const NewStoryTemplate = () => {
     index: number;
   } | null>(null);
   const [editingParagraphText, setEditingParagraphText] = useState("");
+  const [storyLanguage, setStoryLanguage] = useState("en");
+  const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
   // Inline add-chapter UI for existing stories (web-style editor)
   const [inlineAddChapterMode, setInlineAddChapterMode] = useState(false);
   const [inlineNewChapterTitle, setInlineNewChapterTitle] = useState("");
@@ -305,6 +309,8 @@ const NewStoryTemplate = () => {
                 .filter((p: string) => p.length > 0),
               userId: user.id,
               creativeSpaceId: selectedSpaceId === "none" ? null : selectedSpaceId,
+              language: storyLanguage,
+              coverImageUrl: coverImageUrl,
             }),
           });
 
@@ -1124,6 +1130,28 @@ const NewStoryTemplate = () => {
                       New Space
                     </Button>
                   </div>
+                </div>
+              </CardHeader>
+            </Card>
+
+            {/* Language & Cover Image */}
+            <Card>
+              <CardHeader>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-6">
+                  <StoryLanguageSelect
+                    value={storyLanguage}
+                    onChange={(code) => {
+                      setStoryLanguage(code);
+                      setDirty(true);
+                    }}
+                  />
+                  <CoverImageUpload
+                    value={coverImageUrl}
+                    onChange={(url) => {
+                      setCoverImageUrl(url);
+                      setDirty(true);
+                    }}
+                  />
                 </div>
               </CardHeader>
             </Card>

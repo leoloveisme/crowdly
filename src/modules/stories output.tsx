@@ -10,6 +10,8 @@ export type StoriesOutputItem = {
   createdAt?: string | null;
   updatedAt?: string | null;
   href?: string | null;
+  language?: string | null;
+  coverImageUrl?: string | null;
 };
 
 export type StoriesOutputSortKey = "name" | "createdAt" | "updatedAt";
@@ -148,11 +150,19 @@ export const StoriesOutput: React.FC<StoriesOutputProps> = ({
           <table className="min-w-full text-sm">
             <thead className="bg-gray-50 dark:bg-gray-800">
               <tr>
+                <th className="px-4 py-3 text-left border-b border-gray-200 dark:border-gray-700 w-10">
+                  <span className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-200">
+                    <EditableText id="stories-output-th-cover">Cover</EditableText>
+                  </span>
+                </th>
                 <th className="px-4 py-3 text-left border-b border-gray-200 dark:border-gray-700">
                   {renderSortLabel("name", "Story name")}
                 </th>
                 <th className="px-4 py-3 text-left border-b border-gray-200 dark:border-gray-700 text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-200">
                   <EditableText id="stories-output-th-authors">Author(s)</EditableText>
+                </th>
+                <th className="px-4 py-3 text-left border-b border-gray-200 dark:border-gray-700 text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-200">
+                  <EditableText id="stories-output-th-language">Language</EditableText>
                 </th>
                 <th className="px-4 py-3 text-left border-b border-gray-200 dark:border-gray-700">
                   {renderSortLabel("createdAt", "Creation date")}
@@ -168,6 +178,17 @@ export const StoriesOutput: React.FC<StoriesOutputProps> = ({
                   key={item.id}
                   className="odd:bg-white even:bg-gray-50/50 dark:odd:bg-gray-900 dark:even:bg-gray-800/60 hover:bg-blue-50/60 dark:hover:bg-blue-900/30 transition-colors"
                 >
+                  <td className="px-4 py-3 align-top w-10">
+                    {item.coverImageUrl ? (
+                      <img
+                        src={item.coverImageUrl}
+                        alt=""
+                        className="h-10 w-10 rounded object-cover"
+                      />
+                    ) : (
+                      <div className="h-10 w-10 rounded bg-gray-200 dark:bg-gray-700" />
+                    )}
+                  </td>
                   <td className="px-4 py-3 align-top">
                     {item.href ? (
                       <Link
@@ -181,7 +202,14 @@ export const StoriesOutput: React.FC<StoriesOutputProps> = ({
                     )}
                   </td>
                   <td className="px-4 py-3 align-top text-gray-700 dark:text-gray-200">
-                    {item.authors || "—"}
+                    {item.authors || "\u2014"}
+                  </td>
+                  <td className="px-4 py-3 align-top text-gray-700 dark:text-gray-200">
+                    {item.language ? (
+                      <span className="px-2 py-0.5 rounded-full text-xs bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                        {item.language.toUpperCase()}
+                      </span>
+                    ) : "\u2014"}
                   </td>
                   <td className="px-4 py-3 align-top text-gray-700 dark:text-gray-200">
                     {formatDate(item.createdAt)}

@@ -16,6 +16,8 @@ import InteractionsWidget from "@/modules/InteractionsWidget";
 import { ExportDialog } from "@/modules/import-export";
 import UserGroupPicker from "@/modules/user-group-picker";
 import CompareRevisionsContainer from "@/modules/compare revisions";
+import StoryLanguageSelect from "@/components/StoryLanguageSelect";
+import CoverImageUpload from "@/components/CoverImageUpload";
 
 // Use same-origin API base in development; dev server proxies to backend.
 // In production, VITE_API_BASE_URL can point at the deployed API.
@@ -203,6 +205,8 @@ const Story = () => {
     export_policy?: string;
     can_clone?: boolean;
     can_export?: boolean;
+    language?: string;
+    cover_image_url?: string | null;
   } | null>(null);
 
   // Helper: count "words" in a paragraph in a way that ignores
@@ -1886,6 +1890,11 @@ const Story = () => {
                 >
                   {(story.completion_status ?? 'draft') === 'completed' ? 'Completed' : 'Draft'}
                 </span>
+                {story.language && (
+                  <span className="px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
+                    {story.language.toUpperCase()}
+                  </span>
+                )}
                 {user && (
                   <button
                     type="button"
@@ -1917,6 +1926,16 @@ const Story = () => {
                   </button>
                 )}
               </div>
+
+              {story.cover_image_url && (
+                <div className="mt-3 mb-3">
+                  <img
+                    src={story.cover_image_url}
+                    alt="Story cover"
+                    className="max-h-48 rounded-md object-contain"
+                  />
+                </div>
+              )}
 
               {/* Unified reactions + comments for this story */}
               <InteractionsWidget kind="story" storyTitleId={story.story_title_id} />
@@ -2127,6 +2146,16 @@ const Story = () => {
                                 Exporters
                               </button>
                             )}
+                            <div className="flex items-center gap-2">
+                              <StoryLanguageSelect
+                                value={story.language || 'en'}
+                                onChange={(code) => updateStorySetting('language', code)}
+                              />
+                            </div>
+                            <CoverImageUpload
+                              value={story.cover_image_url || null}
+                              onChange={(url) => updateStorySetting('cover_image_url', url || '')}
+                            />
                           </>
                         )}
                         {canDeleteStory && (

@@ -30,6 +30,8 @@ interface NewestStory {
   created_at: string;
   story_title: string;
   story_title_id: string;
+  language?: string;
+  cover_image_url?: string | null;
 }
 
 
@@ -40,6 +42,8 @@ interface MostActiveStory {
   story_title: string;
   story_title_id: string;
   last_activity_at: string;
+  language?: string;
+  cover_image_url?: string | null;
 }
 
 interface NewestScreenplay {
@@ -66,6 +70,8 @@ interface MostPopularStory {
   like_count: number;
   favorite_count: number;
   popularity_score: number;
+  language?: string;
+  cover_image_url?: string | null;
 }
 
 interface MostPopularScreenplay {
@@ -142,6 +148,8 @@ const Index = () => {
               created_at: item.created_at,
               story_title_id: item.story_title_id,
               story_title: item.story_title || "Untitled Story",
+              language: item.language || null,
+              cover_image_url: item.cover_image_url || null,
             })),
           );
         }
@@ -176,6 +184,8 @@ const Index = () => {
               story_title_id: item.story_title_id,
               story_title: item.story_title || "Untitled Story",
               last_activity_at: item.last_activity_at || item.created_at,
+              language: item.language || null,
+              cover_image_url: item.cover_image_url || null,
             })),
           );
         }
@@ -277,6 +287,8 @@ const Index = () => {
               like_count: Number(item.like_count ?? 0),
               favorite_count: Number(item.favorite_count ?? 0),
               popularity_score: Number(item.popularity_score ?? 0),
+              language: item.language || null,
+              cover_image_url: item.cover_image_url || null,
             })),
           );
         }
@@ -611,9 +623,23 @@ Crowd-created stories that branch and grow — discover, experience, create, col
                         className="block rounded-md bg-white dark:bg-slate-800/80 hover:bg-indigo-50 dark:hover:bg-indigo-900/40 transition p-4 shadow ring-1 ring-indigo-100 dark:ring-indigo-900/30 hover-scale group"
                         title={story.story_title}
                       >
-                        <div className="font-medium text-base mb-0.5 truncate text-indigo-700 dark:text-indigo-100 group-hover:underline">{story.story_title}</div>
-                        <div className="text-xs text-gray-700 dark:text-gray-300">{story.chapter_title}</div>
-                        <div className="text-[11px] text-gray-400 mt-1">{new Date(story.created_at).toLocaleString()}</div>
+                        <div className="flex items-start gap-3">
+                          {story.cover_image_url && (
+                            <img src={story.cover_image_url} alt="" className="h-12 w-12 rounded object-cover flex-shrink-0" />
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 mb-0.5">
+                              <span className="font-medium text-base truncate text-indigo-700 dark:text-indigo-100 group-hover:underline">{story.story_title}</span>
+                              {story.language && (
+                                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 flex-shrink-0">
+                                  {story.language.toUpperCase()}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-700 dark:text-gray-300">{story.chapter_title}</div>
+                            <div className="text-[11px] text-gray-400 mt-1">{new Date(story.created_at).toLocaleString()}</div>
+                          </div>
+                        </div>
                       </Link>
                     ))}
                   </div>
@@ -691,22 +717,36 @@ Crowd-created stories that branch and grow — discover, experience, create, col
                         className="block rounded-md bg-white dark:bg-slate-800/80 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition p-4 shadow ring-1 ring-amber-100 dark:ring-amber-900/30 hover-scale group"
                         title={story.story_title}
                       >
-                        <div className="font-medium text-base mb-0.5 truncate text-amber-700 dark:text-amber-100 group-hover:underline">
-                          {story.story_title}
-                        </div>
-                        <div className="text-xs text-gray-700 dark:text-gray-300">{story.chapter_title}</div>
-                        <div className="mt-2 flex items-center justify-between text-[11px] text-gray-400">
-                          <span>{new Date(story.created_at).toLocaleString()}</span>
-                          <span className="flex items-center gap-2">
-                            <span className="inline-flex items-center gap-1">
-                              <Heart className="h-3 w-3 text-pink-500" />
-                              <span>{story.like_count}</span>
-                            </span>
-                            <span className="inline-flex items-center gap-1">
-                              <Bookmark className="h-3 w-3 text-amber-500" />
-                              <span>{story.favorite_count}</span>
-                            </span>
-                          </span>
+                        <div className="flex items-start gap-3">
+                          {story.cover_image_url && (
+                            <img src={story.cover_image_url} alt="" className="h-12 w-12 rounded object-cover flex-shrink-0" />
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 mb-0.5">
+                              <span className="font-medium text-base truncate text-amber-700 dark:text-amber-100 group-hover:underline">
+                                {story.story_title}
+                              </span>
+                              {story.language && (
+                                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 flex-shrink-0">
+                                  {story.language.toUpperCase()}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-700 dark:text-gray-300">{story.chapter_title}</div>
+                            <div className="mt-2 flex items-center justify-between text-[11px] text-gray-400">
+                              <span>{new Date(story.created_at).toLocaleString()}</span>
+                              <span className="flex items-center gap-2">
+                                <span className="inline-flex items-center gap-1">
+                                  <Heart className="h-3 w-3 text-pink-500" />
+                                  <span>{story.like_count}</span>
+                                </span>
+                                <span className="inline-flex items-center gap-1">
+                                  <Bookmark className="h-3 w-3 text-amber-500" />
+                                  <span>{story.favorite_count}</span>
+                                </span>
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       </Link>
                     ))}
@@ -829,10 +869,24 @@ Crowd-created stories that branch and grow — discover, experience, create, col
                         className="block rounded-md bg-white dark:bg-slate-800/80 hover:bg-emerald-50 dark:hover:bg-emerald-900/40 transition p-4 shadow ring-1 ring-emerald-100 dark:ring-emerald-900/30 hover-scale group"
                         title={story.story_title}
                       >
-                        <div className="font-medium text-base mb-0.5 truncate text-emerald-700 dark:text-emerald-100 group-hover:underline">{story.story_title}</div>
-                        <div className="text-xs text-gray-700 dark:text-gray-300">{story.chapter_title}</div>
-                        <div className="text-[11px] text-gray-400 mt-1">
-                          Last activity: {new Date(story.last_activity_at || story.created_at).toLocaleString()}
+                        <div className="flex items-start gap-3">
+                          {story.cover_image_url && (
+                            <img src={story.cover_image_url} alt="" className="h-12 w-12 rounded object-cover flex-shrink-0" />
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 mb-0.5">
+                              <span className="font-medium text-base truncate text-emerald-700 dark:text-emerald-100 group-hover:underline">{story.story_title}</span>
+                              {story.language && (
+                                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 flex-shrink-0">
+                                  {story.language.toUpperCase()}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-700 dark:text-gray-300">{story.chapter_title}</div>
+                            <div className="text-[11px] text-gray-400 mt-1">
+                              Last activity: {new Date(story.last_activity_at || story.created_at).toLocaleString()}
+                            </div>
+                          </div>
                         </div>
                       </Link>
                     ))}

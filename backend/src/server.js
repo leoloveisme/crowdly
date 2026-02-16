@@ -11,7 +11,7 @@ dotenv.config();
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '5mb' }));
 
 // Ensure auxiliary tables / columns exist (best-effort)
 async function ensureStoryAccessTable() {
@@ -129,6 +129,16 @@ async function ensureStoryControlColumns() {
     console.log('[init] ensured story_title control columns exist');
   } catch (err) {
     console.error('[init] failed to ensure story_title control columns:', err);
+  }
+}
+
+async function ensureStoryLanguageAndCoverColumns() {
+  try {
+    await pool.query("ALTER TABLE story_title ADD COLUMN IF NOT EXISTS language VARCHAR(10) DEFAULT 'en'");
+    await pool.query("ALTER TABLE story_title ADD COLUMN IF NOT EXISTS cover_image_url TEXT");
+    console.log('[init] ensured story_title language and cover_image_url columns exist');
+  } catch (err) {
+    console.error('[init] failed to ensure story_title language/cover columns:', err);
   }
 }
 
@@ -301,6 +311,7 @@ async function ensureLocalesTable() {
       ['es', 'Spanish', 'Español', 'ltr'],
       ['de', 'German', 'Deutsch', 'ltr'],
       ['hi', 'Hindi', 'हिन्दी', 'ltr'],
+      ['other', 'Other', 'Other', 'ltr'],
     ];
 
     for (const [code, englishName, nativeName, direction] of seedLocales) {
@@ -1144,6 +1155,9 @@ ensureStoryTitleUpdatedAtColumn().catch((err) => {
 });
 ensureStoryControlColumns().catch((err) => {
   console.error('[init] ensureStoryControlColumns unhandled error:', err);
+});
+ensureStoryLanguageAndCoverColumns().catch((err) => {
+  console.error('[init] ensureStoryLanguageAndCoverColumns unhandled error:', err);
 });
 ensureGroupsTables().catch((err) => {
   console.error('[init] ensureGroupsTables unhandled error:', err);
@@ -3320,7 +3334,7 @@ async function getNextParagraphRevisionNumber(chapterId, paragraphIndex) {
 
 // Create story title + initial revision + first chapter in a single transaction
 app.post('/stories/template', async (req, res) => {
-  const { title, chapterTitle, paragraphs, userId, creativeSpaceId } = req.body ?? {};
+  const { title, chapterTitle, paragraphs, userId, creativeSpaceId, language, coverImageUrl } = req.body ?? {};
 
   if (!title || !chapterTitle || !Array.isArray(paragraphs) || !userId) {
     return res.status(400).json({ error: 'title, chapterTitle, paragraphs[], and userId are required' });
@@ -3331,8 +3345,8 @@ app.post('/stories/template', async (req, res) => {
     await client.query('BEGIN');
 
     const insertTitle = await client.query(
-      'INSERT INTO story_title (title, creator_id, creative_space_id) VALUES ($1, $2, $3) RETURNING story_title_id, title, creative_space_id',
-      [title, userId, creativeSpaceId || null],
+      'INSERT INTO story_title (title, creator_id, creative_space_id, language, cover_image_url) VALUES ($1, $2, $3, $4, $5) RETURNING story_title_id, title, creative_space_id, language, cover_image_url',
+      [title, userId, creativeSpaceId || null, language || 'en', coverImageUrl || null],
     );
     const storyTitleRow = insertTitle.rows[0];
 
@@ -3435,7 +3449,9 @@ app.get('/stories/newest', async (req, res) => {
          lc.chapter_title,
          lc.created_at,
          lc.story_title_id,
-         st.title AS story_title
+         st.title AS story_title,
+         st.language,
+         st.cover_image_url
        FROM latest_chapter lc
        JOIN story_title st ON st.story_title_id = lc.story_title_id
        WHERE lc.rn = 1
@@ -3463,6 +3479,8 @@ app.get('/stories/most-active', async (req, res) => {
          SELECT
            st.story_title_id,
            st.title,
+           st.language,
+           st.cover_image_url,
            GREATEST(
              MAX(s.created_at),
              MAX(s.updated_at),
@@ -3484,12 +3502,14 @@ app.get('/stories/most-active', async (req, res) => {
          LEFT JOIN reactions r ON r.chapter_id = s.chapter_id
          LEFT JOIN paragraph_branches pb ON pb.chapter_id = s.chapter_id
          WHERE st.visibility = 'public' AND st.published = true
-         GROUP BY st.story_title_id, st.title
+         GROUP BY st.story_title_id, st.title, st.language, st.cover_image_url
        ),
        scored AS (
          SELECT
            story_title_id,
            title,
+           language,
+           cover_image_url,
            last_activity_at,
            chapter_count,
            paragraph_count,
@@ -3519,7 +3539,9 @@ app.get('/stories/most-active', async (req, res) => {
          sc.chapter_count,
          sc.paragraph_count,
          sc.branch_count,
-         sc.content_score
+         sc.content_score,
+         sc.language,
+         sc.cover_image_url
        FROM scored sc
        JOIN latest_chapter lc ON lc.story_title_id = sc.story_title_id AND lc.rn = 1
        WHERE sc.last_activity_at IS NOT NULL
@@ -3565,6 +3587,8 @@ app.get('/stories/most-popular', async (req, res) => {
          SELECT
            st.story_title_id,
            st.title,
+           st.language,
+           st.cover_image_url,
            COALESCE(rc.like_count, 0) AS like_count,
            COALESCE(fc.favorite_count, 0) AS favorite_count,
            (COALESCE(rc.like_count, 0) * 2 + COALESCE(fc.favorite_count, 0)) AS popularity_score
@@ -3593,7 +3617,9 @@ app.get('/stories/most-popular', async (req, res) => {
          lc.created_at,
          sc.like_count,
          sc.favorite_count,
-         sc.popularity_score
+         sc.popularity_score,
+         sc.language,
+         sc.cover_image_url
        FROM scores sc
        JOIN latest_chapter lc ON lc.story_title_id = sc.story_title_id AND lc.rn = 1
        WHERE sc.popularity_score > 0
@@ -3677,7 +3703,7 @@ app.get('/users/:userId/stories', async (req, res) => {
   try {
     // Stories created by the user
     const created = await pool.query(
-      'SELECT story_title_id, title, created_at, visibility, published FROM story_title WHERE creator_id = $1',
+      'SELECT story_title_id, title, created_at, visibility, published, language, cover_image_url FROM story_title WHERE creator_id = $1',
       [userId],
     );
 
@@ -3688,7 +3714,9 @@ app.get('/users/:userId/stories', async (req, res) => {
               st.title,
               st.created_at,
               st.visibility,
-              st.published
+              st.published,
+              st.language,
+              st.cover_image_url
        FROM story_title st
        JOIN stories s ON st.story_title_id = s.story_title_id
        LEFT JOIN chapter_revisions cr ON cr.chapter_id = s.chapter_id
@@ -3705,6 +3733,8 @@ app.get('/users/:userId/stories', async (req, res) => {
         created_at: row.created_at,
         visibility: row.visibility,
         published: row.published,
+        language: row.language,
+        cover_image_url: row.cover_image_url,
         roles: ['creator'],
       });
     }
@@ -3721,6 +3751,8 @@ app.get('/users/:userId/stories', async (req, res) => {
           created_at: row.created_at,
           visibility: row.visibility,
           published: row.published,
+          language: row.language,
+          cover_image_url: row.cover_image_url,
           roles: ['contributor'],
         });
       }
@@ -6633,7 +6665,7 @@ app.patch('/story-titles/:storyTitleId', async (req, res) => {
 // Update story visibility / published flags (no revision)
 app.patch('/story-titles/:storyTitleId/settings', async (req, res) => {
   const { storyTitleId } = req.params;
-  const { visibility, published, genre, tags, completion_status, clone_policy, export_policy } = req.body ?? {};
+  const { visibility, published, genre, tags, completion_status, clone_policy, export_policy, language, cover_image_url } = req.body ?? {};
 
   if (
     visibility === undefined &&
@@ -6642,10 +6674,12 @@ app.patch('/story-titles/:storyTitleId/settings', async (req, res) => {
     tags === undefined &&
     completion_status === undefined &&
     clone_policy === undefined &&
-    export_policy === undefined
+    export_policy === undefined &&
+    language === undefined &&
+    cover_image_url === undefined
   ) {
     return res.status(400).json({
-      error: 'At least one of visibility, published, genre, tags, completion_status, clone_policy, or export_policy must be provided',
+      error: 'At least one of visibility, published, genre, tags, completion_status, clone_policy, export_policy, language, or cover_image_url must be provided',
     });
   }
 
@@ -6680,6 +6714,14 @@ app.patch('/story-titles/:storyTitleId/settings', async (req, res) => {
   if (export_policy !== undefined) {
     fields.push(`export_policy = $${idx++}`);
     values.push(export_policy);
+  }
+  if (language !== undefined) {
+    fields.push(`language = $${idx++}`);
+    values.push(language || 'en');
+  }
+  if (cover_image_url !== undefined) {
+    fields.push(`cover_image_url = $${idx++}`);
+    values.push(cover_image_url || null);
   }
   values.push(storyTitleId);
 
@@ -7204,7 +7246,7 @@ app.post('/stories/:storyTitleId/clone', async (req, res) => {
     await client.query('BEGIN');
 
     const sourceTitleRes = await client.query(
-      'SELECT story_title_id, title, visibility, published, creative_space_id, clone_policy, creator_id FROM story_title WHERE story_title_id = $1',
+      'SELECT story_title_id, title, visibility, published, creative_space_id, clone_policy, creator_id, language, cover_image_url FROM story_title WHERE story_title_id = $1',
       [storyTitleId],
     );
     if (sourceTitleRes.rows.length === 0) {
@@ -7259,8 +7301,8 @@ app.post('/stories/:storyTitleId/clone', async (req, res) => {
     }
 
     const insertTitleRes = await client.query(
-      'INSERT INTO story_title (title, creator_id, visibility, published, creative_space_id) VALUES ($1, $2, $3, $4, $5) RETURNING story_title_id, title, visibility, published, creative_space_id',
-      [src.title, userId, src.visibility ?? 'public', src.published ?? true, newCreativeSpaceId],
+      'INSERT INTO story_title (title, creator_id, visibility, published, creative_space_id, language, cover_image_url) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING story_title_id, title, visibility, published, creative_space_id, language, cover_image_url',
+      [src.title, userId, src.visibility ?? 'public', src.published ?? true, newCreativeSpaceId, src.language || 'en', src.cover_image_url || null],
     );
     const newTitle = insertTitleRes.rows[0];
 

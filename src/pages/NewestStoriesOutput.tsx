@@ -15,6 +15,8 @@ interface NewestStoryApiRow {
   created_at: string;
   story_title: string;
   story_title_id: string;
+  language?: string;
+  cover_image_url?: string | null;
 }
 
 const NewestStoriesOutput: React.FC = () => {
@@ -46,6 +48,8 @@ const NewestStoriesOutput: React.FC = () => {
             createdAt: row.created_at,
             updatedAt: null,
             href: `/story/${row.story_title_id}`,
+            language: row.language || null,
+            coverImageUrl: row.cover_image_url || null,
           }));
           setItems(mapped);
         } else {
