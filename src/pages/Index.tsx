@@ -364,7 +364,7 @@ const Index = () => {
                 </span>
               </h1>
               <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mb-7 animate-fade-in">
-                <EditableText id="main-hero-description">
+                <EditableText id="main-platform-description">
 Crowd-created stories that branch and grow — discover, experience, create, collaborate, and live amazing branching narratives rich in text, audio, and video, collectively crafted for the world — versioned, multilingual, and unlimited.
                 </EditableText>
               </p>
@@ -474,7 +474,7 @@ Crowd-created stories that branch and grow — discover, experience, create, col
                       <path d="M12 3v12M12 15l-4-4M12 15l4-4" strokeLinecap="round" strokeLinejoin="round" />
                       <path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" strokeLinecap="round" />
                     </svg>
-                    <span>Import an Amazing Story</span>
+                    <span><EditableText id="hero-import-amazing-story">Import an Amazing Story</EditableText></span>
                   </span>
                 </button>
               </>

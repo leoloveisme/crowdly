@@ -345,15 +345,17 @@ const PlatformAdmin = () => {
 
   const totalPages = pageSize === 0 ? 1 : Math.ceil(total / pageSize);
 
-  const SortHeader = ({ col, label }: { col: string; label: string }) => (
-    <button
-      type="button"
-      className="flex items-center gap-1 font-medium text-xs uppercase tracking-wide hover:text-indigo-600"
-      onClick={() => handleSort(col)}
-    >
-      {label}
-      <ArrowUpDown className={`h-3 w-3 ${sortBy === col ? "text-indigo-600" : ""}`} />
-    </button>
+  const SortHeader = ({ col, label, editableId }: { col: string; label: string; editableId?: string }) => (
+    <span className="inline-flex items-center gap-1 font-medium text-xs uppercase tracking-wide">
+      {editableId ? <EditableText id={editableId}>{label}</EditableText> : label}
+      <button
+        type="button"
+        className="hover:text-indigo-600"
+        onClick={() => handleSort(col)}
+      >
+        <ArrowUpDown className={`h-3 w-3 ${sortBy === col ? "text-indigo-600" : ""}`} />
+      </button>
+    </span>
   );
 
   if (!user || !hasRole("platform_admin")) return null;
@@ -441,10 +443,10 @@ const PlatformAdmin = () => {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b">
-                        <th className="text-left p-2"><SortHeader col="first_name" label="First Name" /></th>
-                        <th className="text-left p-2"><SortHeader col="last_name" label="Last Name" /></th>
-                        <th className="text-left p-2"><SortHeader col="email" label="Email" /></th>
-                        <th className="text-left p-2"><SortHeader col="username" label="Page Name" /></th>
+                        <th className="text-left p-2"><SortHeader col="first_name" label="First Name" editableId="padmin-th-first-name" /></th>
+                        <th className="text-left p-2"><SortHeader col="last_name" label="Last Name" editableId="padmin-th-last-name" /></th>
+                        <th className="text-left p-2"><SortHeader col="email" label="Email" editableId="padmin-th-email" /></th>
+                        <th className="text-left p-2"><SortHeader col="username" label="Page Name" editableId="padmin-th-page-name" /></th>
                         <th className="text-left p-2"><EditableText id="padmin-th-roles">Roles</EditableText></th>
                         <th className="text-left p-2"><EditableText id="padmin-th-status">Status</EditableText></th>
                         <th className="text-left p-2"><EditableText id="padmin-th-actions">Actions</EditableText></th>

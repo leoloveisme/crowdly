@@ -282,11 +282,11 @@ const Admin = () => {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide">Type</th>
-                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide">Title</th>
-                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide">Roles</th>
-                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide">Visibility</th>
-                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide">Created</th>
+                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"><EditableText id="admin-content-th-type">Type</EditableText></th>
+                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"><EditableText id="admin-content-th-title">Title</EditableText></th>
+                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"><EditableText id="admin-content-th-roles">Roles</EditableText></th>
+                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"><EditableText id="admin-content-th-visibility">Visibility</EditableText></th>
+                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"><EditableText id="admin-content-th-created">Created</EditableText></th>
                           <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"></th>
                         </tr>
                       </thead>
@@ -345,11 +345,11 @@ const Admin = () => {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide">Type</th>
-                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide">Title</th>
-                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide">Your Roles</th>
-                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide">Visibility</th>
-                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide">Created</th>
+                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"><EditableText id="admin-collab-th-type">Type</EditableText></th>
+                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"><EditableText id="admin-collab-th-title">Title</EditableText></th>
+                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"><EditableText id="admin-collab-th-roles">Your Roles</EditableText></th>
+                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"><EditableText id="admin-collab-th-visibility">Visibility</EditableText></th>
+                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"><EditableText id="admin-collab-th-created">Created</EditableText></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -399,9 +399,9 @@ const Admin = () => {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide">On</th>
-                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide">Comment</th>
-                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide">Date</th>
+                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"><EditableText id="admin-comments-th-on">On</EditableText></th>
+                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"><EditableText id="admin-comments-th-comment">Comment</EditableText></th>
+                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"><EditableText id="admin-comments-th-date">Date</EditableText></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -448,11 +448,11 @@ const Admin = () => {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide">Story</th>
-                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide">Chapter</th>
-                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide">Original</th>
-                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide">Branch</th>
-                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide">Date</th>
+                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"><EditableText id="admin-branches-th-story">Story</EditableText></th>
+                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"><EditableText id="admin-branches-th-chapter">Chapter</EditableText></th>
+                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"><EditableText id="admin-branches-th-original">Original</EditableText></th>
+                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"><EditableText id="admin-branches-th-branch">Branch</EditableText></th>
+                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"><EditableText id="admin-branches-th-date">Date</EditableText></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -496,12 +496,12 @@ const Admin = () => {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide">Story</th>
-                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide">Chapter</th>
-                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide">Text</th>
-                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide">Words</th>
-                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide">Status</th>
-                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide">Date</th>
+                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"><EditableText id="admin-contrib-th-story">Story</EditableText></th>
+                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"><EditableText id="admin-contrib-th-chapter">Chapter</EditableText></th>
+                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"><EditableText id="admin-contrib-th-text">Text</EditableText></th>
+                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"><EditableText id="admin-contrib-th-words">Words</EditableText></th>
+                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"><EditableText id="admin-contrib-th-status">Status</EditableText></th>
+                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"><EditableText id="admin-contrib-th-date">Date</EditableText></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -540,10 +540,10 @@ const Admin = () => {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide">Name</th>
-                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide">Description</th>
-                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide">Visibility</th>
-                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide">Created</th>
+                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"><EditableText id="admin-spaces-th-name">Name</EditableText></th>
+                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"><EditableText id="admin-spaces-th-description">Description</EditableText></th>
+                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"><EditableText id="admin-spaces-th-visibility">Visibility</EditableText></th>
+                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"><EditableText id="admin-spaces-th-created">Created</EditableText></th>
                           <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"></th>
                         </tr>
                       </thead>

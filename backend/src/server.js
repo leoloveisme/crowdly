@@ -280,6 +280,18 @@ async function ensureProfilesVisibilityColumns() {
   }
 }
 
+// Add social_other_links JSONB column for multiple social links with name+address
+async function ensureProfilesSocialOtherLinksColumn() {
+  try {
+    await pool.query(
+      "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS social_other_links jsonb DEFAULT '[]'::jsonb",
+    );
+    console.log('[init] ensured profiles social_other_links column exists');
+  } catch (err) {
+    console.error('[init] failed to ensure profiles social_other_links column:', err);
+  }
+}
+
 // Dedicated locales table to keep a single authoritative list of supported
 // interface languages across the web platform and the desktop editor.
 async function ensureLocalesTable() {
@@ -1183,6 +1195,9 @@ ensureProfilePageNameColumn().catch((err) => {
 ensureProfilesVisibilityColumns().catch((err) => {
   console.error('[init] ensureProfilesVisibilityColumns unhandled error:', err);
 });
+ensureProfilesSocialOtherLinksColumn().catch((err) => {
+  console.error('[init] ensureProfilesSocialOtherLinksColumn unhandled error:', err);
+});
 ensureLocalesTable().catch((err) => {
   console.error('[init] ensureLocalesTable unhandled error:', err);
 });
@@ -1826,6 +1841,7 @@ async function handleProfileUpdate(req, res) {
     'social_snapchat',
     'social_instagram',
     'social_other',
+    'social_other_links',
     'telephone',
     'notify_phone',
     'notify_app',
@@ -1849,6 +1865,30 @@ async function handleProfileUpdate(req, res) {
     'stories_selected_user_ids',
     'screenplays_selected_user_ids',
   ];
+
+  // --- Security: sanitize social_other_links ---
+  if (Array.isArray(body.social_other_links)) {
+    const DANGEROUS_PROTOCOLS = /^(javascript|data|vbscript|blob):/i;
+    const stripHtml = (str) => String(str ?? '').replace(/<[^>]*>/g, '');
+    const sanitised = [];
+    for (const entry of body.social_other_links.slice(0, 20)) {
+      if (!entry || typeof entry !== 'object') continue;
+      const name = stripHtml(String(entry.name ?? '')).trim().slice(0, 100);
+      let address = stripHtml(String(entry.address ?? '')).trim().slice(0, 500);
+      if (DANGEROUS_PROTOCOLS.test(address)) address = '';
+      if (name || address) sanitised.push({ name, address });
+    }
+    body.social_other_links = JSON.stringify(sanitised);
+  }
+
+  // --- Security: sanitize individual social fields ---
+  for (const socialKey of ['social_facebook', 'social_instagram', 'social_snapchat', 'social_other']) {
+    if (Object.prototype.hasOwnProperty.call(body, socialKey) && body[socialKey]) {
+      let val = String(body[socialKey]).replace(/<[^>]*>/g, '').trim().slice(0, 500);
+      if (/^(javascript|data|vbscript|blob):/i.test(val)) val = '';
+      body[socialKey] = val;
+    }
+  }
 
   const fields = [];
   const values = [];
