@@ -12,7 +12,14 @@ Re-write any favorite story to your liking: change characters, places, beginning
 
 The project has reached it's MVP stage and is currently in it's alpha users stage. Feel free to apply to test the Crowdly live platform @ <a href="https://crowdly.cloud" target="_blank" title="Crowdly Entertainment platform">https://crowdly.cloud</a>
 
-The project is quite complex and currently it has a Crowdly platform, a desktop app written in Python, which easily could be ported to Windows, MacOS and Linux and a web app, which is currently in it's very early development stage. Apps for major OSes: Android and iOS are in planning.  // Currently we have MVP desktop app for Linux. 
+The project is quite complex and currently it has: 
+
+- Crowdly platform
+- a desktop app written in Python, which easily could be ported to Windows, MacOS and Linux 
+and 
+- a web app, which is currently in it's very early development stage. 
+
+Apps for major OSes: Android and iOS are in planning.  // Currently we have MVP desktop app for Linux. 
 
 #Crowdly #entertainment #crowd_created_eintertainment #crowdcreatedentertainment #entertainment_platform #entertainmentplatform
 
