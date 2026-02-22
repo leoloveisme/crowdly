@@ -418,6 +418,10 @@ class MainWindow(QMainWindow):
             self.tr("Add genre"),
             self._set_or_clear_story_genre,
         )
+        self._action_set_story_description = story_settings_menu.addAction(
+            self.tr("Edit description"),
+            self._set_or_clear_story_description,
+        )
         self._action_compare_revisions = story_settings_menu.addAction(
             self.tr("Compare revisions"),
             self._open_compare_revisions,
@@ -2313,6 +2317,8 @@ class MainWindow(QMainWindow):
             self._action_view_story_metadata.setText(self.tr("View story metadata"))
         if hasattr(self, "_action_set_story_genre"):
             self._action_set_story_genre.setText(self.tr("Add genre"))
+        if hasattr(self, "_action_set_story_description"):
+            self._action_set_story_description.setText(self.tr("Edit description"))
         if hasattr(self, "_action_refresh_story_from_web"):
             self._action_refresh_story_from_web.setText(self.tr("Refresh from web"))
         if hasattr(self, "_action_compare_revisions"):
@@ -5894,6 +5900,7 @@ class MainWindow(QMainWindow):
                 f"screenplay_id: {sp_id}",
                 f"story_title: {md.story_title or ''}",
                 f"genre: {md.genre or ''}",
+                f"description: {md.description or ''}",
                 f"tags: {md.tags or ''}",
                 f"creation_date: {md.creation_date or ''}",
                 f"change_date: {md.change_date or ''}",
@@ -6017,6 +6024,66 @@ class MainWindow(QMainWindow):
                 self,
                 self.tr("Error"),
                 self.tr("An unexpected error occurred while updating genre."),
+            )
+
+    def _set_or_clear_story_description(self) -> None:  # pragma: no cover - UI wiring
+        """Set/change/clear the story description in file metadata."""
+
+        import traceback
+
+        try:
+            path = self._get_current_document_path()
+            if path is None:
+                QMessageBox.information(
+                    self,
+                    self.tr("Description"),
+                    self.tr("No file is currently loaded."),
+                )
+                return
+
+            has_story = file_metadata.has_story_metadata(path)
+            screenplay_id = file_metadata.get_attr(path, "screenplay_id")
+            if not has_story and not screenplay_id:
+                QMessageBox.information(
+                    self,
+                    self.tr("Description"),
+                    self.tr("This file is not associated with a Crowdly story."),
+                )
+                return
+
+            current = file_metadata.get_attr(path, file_metadata.FIELD_DESCRIPTION) or ""
+
+            text, ok = QInputDialog.getMultiLineText(
+                self,
+                self.tr("Edit description"),
+                self.tr("Enter description:"),
+                current,
+            )
+            if not ok:
+                return
+
+            text = (text or "").strip()
+            if text:
+                file_metadata.set_attr(path, file_metadata.FIELD_DESCRIPTION, text)
+            else:
+                file_metadata.remove_attr(path, file_metadata.FIELD_DESCRIPTION)
+            file_metadata.touch_change_date(path)
+
+            QMessageBox.information(
+                self,
+                self.tr("Description"),
+                self.tr("Description updated.") if text else self.tr("Description deleted."),
+            )
+
+            # Best-effort: if web sync is enabled, schedule a sync attempt.
+            if getattr(self, "_sync_web_platform", False):
+                self._schedule_web_sync()
+        except Exception:
+            traceback.print_exc()
+            QMessageBox.critical(
+                self,
+                self.tr("Error"),
+                self.tr("An unexpected error occurred while updating description."),
             )
 
     def _refresh_story_from_web(self) -> None:  # pragma: no cover - UI wiring
@@ -6411,6 +6478,7 @@ class MainWindow(QMainWindow):
                 "initiator_id": md.initiator_id,
                 "genre": md.genre,
                 "tags": tags_list,
+                "description": md.description,
             }
 
             api_base = None

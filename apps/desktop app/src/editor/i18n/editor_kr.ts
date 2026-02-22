@@ -388,6 +388,26 @@ Details: {error}</translation>
       <translation>Genre updated.</translation>
     </message>
     <message>
+      <source>Edit description</source>
+      <translation>설명 편집</translation>
+    </message>
+    <message>
+      <source>Description</source>
+      <translation>설명</translation>
+    </message>
+    <message>
+      <source>Enter description:</source>
+      <translation>설명 입력:</translation>
+    </message>
+    <message>
+      <source>Description updated.</source>
+      <translation>설명이 업데이트되었습니다.</translation>
+    </message>
+    <message>
+      <source>Description deleted.</source>
+      <translation>설명이 삭제되었습니다.</translation>
+    </message>
+    <message>
       <source>Session control</source>
       <translation>세션 관리</translation>
     </message>

@@ -388,6 +388,26 @@ Details: {error}</translation>
       <translation>Genre updated.</translation>
     </message>
     <message>
+      <source>Edit description</source>
+      <translation>Editar descrição</translation>
+    </message>
+    <message>
+      <source>Description</source>
+      <translation>Descrição</translation>
+    </message>
+    <message>
+      <source>Enter description:</source>
+      <translation>Inserir descrição:</translation>
+    </message>
+    <message>
+      <source>Description updated.</source>
+      <translation>Descrição atualizada.</translation>
+    </message>
+    <message>
+      <source>Description deleted.</source>
+      <translation>Descrição excluída.</translation>
+    </message>
+    <message>
       <source>Session control</source>
       <translation>Controlo de sessão</translation>
     </message>

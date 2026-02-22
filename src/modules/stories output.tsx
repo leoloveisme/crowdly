@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowUpDown } from "lucide-react";
 import EditableText from "@/components/EditableText";
+import TagBadge from "@/components/TagBadge";
 
 export type StoriesOutputItem = {
   id: string;
@@ -12,6 +13,7 @@ export type StoriesOutputItem = {
   href?: string | null;
   language?: string | null;
   coverImageUrl?: string | null;
+  tags?: string[] | null;
 };
 
 export type StoriesOutputSortKey = "name" | "createdAt" | "updatedAt";
@@ -162,6 +164,9 @@ export const StoriesOutput: React.FC<StoriesOutputProps> = ({
                   <EditableText id="stories-output-th-authors">Author(s)</EditableText>
                 </th>
                 <th className="px-4 py-3 text-left border-b border-gray-200 dark:border-gray-700 text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-200">
+                  <EditableText id="stories-output-th-tags">Tags</EditableText>
+                </th>
+                <th className="px-4 py-3 text-left border-b border-gray-200 dark:border-gray-700 text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-200">
                   <EditableText id="stories-output-th-language">Language</EditableText>
                 </th>
                 <th className="px-4 py-3 text-left border-b border-gray-200 dark:border-gray-700">
@@ -203,6 +208,15 @@ export const StoriesOutput: React.FC<StoriesOutputProps> = ({
                   </td>
                   <td className="px-4 py-3 align-top text-gray-700 dark:text-gray-200">
                     {item.authors || "\u2014"}
+                  </td>
+                  <td className="px-4 py-3 align-top text-gray-700 dark:text-gray-200">
+                    {item.tags && item.tags.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {item.tags.map((tag) => (
+                          <TagBadge key={tag} tag={tag} />
+                        ))}
+                      </div>
+                    ) : "\u2014"}
                   </td>
                   <td className="px-4 py-3 align-top text-gray-700 dark:text-gray-200">
                     {item.language ? (

@@ -388,6 +388,26 @@ Details: {error}</translation>
       <translation>Genre updated.</translation>
     </message>
     <message>
+      <source>Edit description</source>
+      <translation>説明を編集</translation>
+    </message>
+    <message>
+      <source>Description</source>
+      <translation>説明</translation>
+    </message>
+    <message>
+      <source>Enter description:</source>
+      <translation>説明を入力：</translation>
+    </message>
+    <message>
+      <source>Description updated.</source>
+      <translation>説明が更新されました。</translation>
+    </message>
+    <message>
+      <source>Description deleted.</source>
+      <translation>説明が削除されました。</translation>
+    </message>
+    <message>
       <source>Session control</source>
       <translation>セッション管理</translation>
     </message>

@@ -37,6 +37,7 @@ FIELD_STORY_ID = "story_id"  # used for regular stories; screenplays use screenp
 FIELD_STORY_TITLE = "story_title"  # used as the primary title for both kinds
 FIELD_GENRE = "genre"
 FIELD_TAGS = "tags"
+FIELD_DESCRIPTION = "description"
 FIELD_CREATION_DATE = "creation_date"
 FIELD_CHANGE_DATE = "change_date"
 FIELD_LAST_SYNC_DATE = "last_sync_date"
@@ -55,6 +56,7 @@ PUBLIC_FIELDS: tuple[str, ...] = (
     FIELD_STORY_TITLE,
     FIELD_GENRE,
     FIELD_TAGS,
+    FIELD_DESCRIPTION,
     FIELD_CREATION_DATE,
     FIELD_CHANGE_DATE,
     FIELD_LAST_SYNC_DATE,
@@ -77,6 +79,7 @@ class StoryMetadata:
     story_title: str | None = None
     genre: str | None = None
     tags: str | None = None
+    description: str | None = None
     creation_date: str | None = None
     change_date: str | None = None
     last_sync_date: str | None = None
@@ -185,6 +188,7 @@ def read_story_metadata(path: Path) -> StoryMetadata:
         story_title=data.get(FIELD_STORY_TITLE),
         genre=data.get(FIELD_GENRE),
         tags=data.get(FIELD_TAGS),
+        description=data.get(FIELD_DESCRIPTION),
         creation_date=data.get(FIELD_CREATION_DATE),
         change_date=data.get(FIELD_CHANGE_DATE),
         last_sync_date=data.get(FIELD_LAST_SYNC_DATE),
@@ -201,6 +205,7 @@ def _iter_items(metadata: StoryMetadata) -> Iterable[tuple[str, str | None]]:
     yield FIELD_STORY_TITLE, metadata.story_title
     yield FIELD_GENRE, metadata.genre
     yield FIELD_TAGS, metadata.tags
+    yield FIELD_DESCRIPTION, metadata.description
     yield FIELD_CREATION_DATE, metadata.creation_date
     yield FIELD_CHANGE_DATE, metadata.change_date
     yield FIELD_LAST_SYNC_DATE, metadata.last_sync_date

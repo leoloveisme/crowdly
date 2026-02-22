@@ -52,6 +52,34 @@ async function ensureStoryTitleGenreAndTagsColumns() {
   }
 }
 
+async function ensureStoryTitleDescriptionColumn() {
+  try {
+    await pool.query('ALTER TABLE story_title ADD COLUMN IF NOT EXISTS description text');
+    console.log('[init] ensured story_title.description column exists');
+  } catch (err) {
+    console.error('[init] failed to ensure story_title.description column:', err);
+  }
+}
+
+async function ensureScreenplayTitleDescriptionColumn() {
+  try {
+    await pool.query('ALTER TABLE screenplay_title ADD COLUMN IF NOT EXISTS description text');
+    console.log('[init] ensured screenplay_title.description column exists');
+  } catch (err) {
+    console.error('[init] failed to ensure screenplay_title.description column:', err);
+  }
+}
+
+async function ensureChapterTagsColumns() {
+  try {
+    await pool.query('ALTER TABLE stories ADD COLUMN IF NOT EXISTS tags text[]');
+    await pool.query('ALTER TABLE stories ADD COLUMN IF NOT EXISTS paragraph_tags jsonb');
+    console.log('[init] ensured stories.tags and stories.paragraph_tags columns exist');
+  } catch (err) {
+    console.error('[init] failed to ensure stories tags columns:', err);
+  }
+}
+
 async function ensureStoryTitleUpdatedAtColumn() {
   try {
     await pool.query('ALTER TABLE story_title ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now()');
@@ -95,6 +123,40 @@ async function ensureStoryInitiatorsTable() {
     console.log('[init] ensured story_initiators table exists');
   } catch (err) {
     console.error('[init] failed to ensure story_initiators table:', err);
+  }
+}
+
+// story_collaborators — per-story authors and co-authors
+async function ensureStoryCollaboratorsTable() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS story_collaborators (
+        story_title_id uuid NOT NULL REFERENCES story_title(story_title_id) ON DELETE CASCADE,
+        user_id uuid NOT NULL REFERENCES local_users(id) ON DELETE CASCADE,
+        role text NOT NULL CHECK (role IN ('author', 'coauthor')),
+        created_at timestamptz NOT NULL DEFAULT now(),
+        PRIMARY KEY (story_title_id, user_id)
+      )
+    `);
+    console.log('[init] ensured story_collaborators table exists');
+  } catch (err) {
+    console.error('[init] failed to ensure story_collaborators table:', err);
+  }
+}
+
+// initiator_id on story_title — permanent original creator (never changes on transfer)
+async function ensureStoryInitiatorColumn() {
+  try {
+    await pool.query(
+      'ALTER TABLE story_title ADD COLUMN IF NOT EXISTS initiator_id uuid REFERENCES local_users(id) ON DELETE SET NULL',
+    );
+    // Back-fill from creator_id for stories created before this migration
+    await pool.query(
+      'UPDATE story_title SET initiator_id = creator_id WHERE initiator_id IS NULL AND creator_id IS NOT NULL',
+    );
+    console.log('[init] ensured story_title.initiator_id column exists');
+  } catch (err) {
+    console.error('[init] failed to ensure story_title.initiator_id column:', err);
   }
 }
 
@@ -1255,6 +1317,21 @@ ensureUserTranslatorLanguagesTable().catch((err) => {
 ensureInterfaceTranslationsTable().catch((err) => {
   console.error('[init] ensureInterfaceTranslationsTable unhandled error:', err);
 });
+ensureStoryTitleDescriptionColumn().catch((err) => {
+  console.error('[init] ensureStoryTitleDescriptionColumn unhandled error:', err);
+});
+ensureScreenplayTitleDescriptionColumn().catch((err) => {
+  console.error('[init] ensureScreenplayTitleDescriptionColumn unhandled error:', err);
+});
+ensureChapterTagsColumns().catch((err) => {
+  console.error('[init] ensureChapterTagsColumns unhandled error:', err);
+});
+ensureStoryCollaboratorsTable().catch((err) => {
+  console.error('[init] ensureStoryCollaboratorsTable unhandled error:', err);
+});
+ensureStoryInitiatorColumn().catch((err) => {
+  console.error('[init] ensureStoryInitiatorColumn unhandled error:', err);
+});
 
 // ---------------------------------------------------------------------------
 // Interface Translations endpoints
@@ -2287,7 +2364,7 @@ app.get('/screenplays/:screenplayId', async (req, res) => {
 // Update screenplay metadata
 app.patch('/screenplays/:screenplayId', async (req, res) => {
   const { screenplayId } = req.params;
-  const { title, visibility, published, genre, tags, formatType } = req.body ?? {};
+  const { title, visibility, published, genre, tags, formatType, description } = req.body ?? {};
 
   const fields = [];
   const values = [];
@@ -2316,6 +2393,10 @@ app.patch('/screenplays/:screenplayId', async (req, res) => {
   if (formatType !== undefined) {
     fields.push(`format_type = $${idx++}`);
     values.push(formatType || null);
+  }
+  if (description !== undefined) {
+    fields.push(`description = $${idx++}`);
+    values.push(description || null);
   }
 
   if (fields.length === 0) {
@@ -3385,7 +3466,7 @@ app.post('/stories/template', async (req, res) => {
     await client.query('BEGIN');
 
     const insertTitle = await client.query(
-      'INSERT INTO story_title (title, creator_id, creative_space_id, language, cover_image_url) VALUES ($1, $2, $3, $4, $5) RETURNING story_title_id, title, creative_space_id, language, cover_image_url',
+      'INSERT INTO story_title (title, creator_id, initiator_id, creative_space_id, language, cover_image_url) VALUES ($1, $2, $2, $3, $4, $5) RETURNING story_title_id, title, creative_space_id, language, cover_image_url',
       [title, userId, creativeSpaceId || null, language || 'en', coverImageUrl || null],
     );
     const storyTitleRow = insertTitle.rows[0];
@@ -3438,6 +3519,18 @@ app.post('/stories/template', async (req, res) => {
     } catch (errAccess) {
       // Do not fail story creation if story_access insert fails
       console.error('[stories/template] failed to insert story_access row:', errAccess);
+    }
+
+    // Best-effort: add creator as the default author in story_collaborators
+    try {
+      await pool.query(
+        `INSERT INTO story_collaborators (story_title_id, user_id, role)
+         VALUES ($1, $2, 'author')
+         ON CONFLICT (story_title_id, user_id) DO NOTHING`,
+        [storyTitleRow.story_title_id, userId],
+      );
+    } catch (errCollab) {
+      console.error('[stories/template] failed to insert story_collaborators author row:', errCollab);
     }
 
     res.status(201).json({
@@ -5108,10 +5201,10 @@ app.post('/chapters', async (req, res) => {
 // Update an existing chapter and record a revision
 app.patch('/chapters/:chapterId', async (req, res) => {
   const { chapterId } = req.params;
-  const { chapterTitle, paragraphs, userId } = req.body ?? {};
+  const { chapterTitle, paragraphs, userId, tags, paragraphTags } = req.body ?? {};
 
-  if (!chapterTitle && !Array.isArray(paragraphs)) {
-    return res.status(400).json({ error: 'chapterTitle or paragraphs[] must be provided' });
+  if (!chapterTitle && !Array.isArray(paragraphs) && tags === undefined && paragraphTags === undefined) {
+    return res.status(400).json({ error: 'chapterTitle, paragraphs[], tags, or paragraphTags must be provided' });
   }
 
   try {
@@ -5136,6 +5229,14 @@ app.patch('/chapters/:chapterId', async (req, res) => {
     if (paragraphs !== undefined) {
       fields.push(`paragraphs = $${idx++}`);
       values.push(paragraphs);
+    }
+    if (tags !== undefined) {
+      fields.push(`tags = $${idx++}`);
+      values.push(Array.isArray(tags) ? tags : null);
+    }
+    if (paragraphTags !== undefined) {
+      fields.push(`paragraph_tags = $${idx++}`);
+      values.push(paragraphTags ? JSON.stringify(paragraphTags) : null);
     }
     values.push(chapterId);
 
@@ -6705,7 +6806,7 @@ app.patch('/story-titles/:storyTitleId', async (req, res) => {
 // Update story visibility / published flags (no revision)
 app.patch('/story-titles/:storyTitleId/settings', async (req, res) => {
   const { storyTitleId } = req.params;
-  const { visibility, published, genre, tags, completion_status, clone_policy, export_policy, language, cover_image_url } = req.body ?? {};
+  const { visibility, published, genre, tags, completion_status, clone_policy, export_policy, language, cover_image_url, description } = req.body ?? {};
 
   if (
     visibility === undefined &&
@@ -6716,10 +6817,11 @@ app.patch('/story-titles/:storyTitleId/settings', async (req, res) => {
     clone_policy === undefined &&
     export_policy === undefined &&
     language === undefined &&
-    cover_image_url === undefined
+    cover_image_url === undefined &&
+    description === undefined
   ) {
     return res.status(400).json({
-      error: 'At least one of visibility, published, genre, tags, completion_status, clone_policy, export_policy, language, or cover_image_url must be provided',
+      error: 'At least one of visibility, published, genre, tags, completion_status, clone_policy, export_policy, language, cover_image_url, or description must be provided',
     });
   }
 
@@ -6762,6 +6864,10 @@ app.patch('/story-titles/:storyTitleId/settings', async (req, res) => {
   if (cover_image_url !== undefined) {
     fields.push(`cover_image_url = $${idx++}`);
     values.push(cover_image_url || null);
+  }
+  if (description !== undefined) {
+    fields.push(`description = $${idx++}`);
+    values.push(description || null);
   }
   values.push(storyTitleId);
 
@@ -6903,7 +7009,8 @@ app.post('/story-titles/:storyTitleId/sync-desktop', async (req, res) => {
     // 2) Sync story_title settings/metadata stored on story_title
     const genre = metadata?.genre;
     const tags = metadata?.tags;
-    if (genre !== undefined || tags !== undefined) {
+    const metaDescription = metadata?.description;
+    if (genre !== undefined || tags !== undefined || metaDescription !== undefined) {
       const fields = [];
       const values = [];
       let idx = 1;
@@ -6914,6 +7021,10 @@ app.post('/story-titles/:storyTitleId/sync-desktop', async (req, res) => {
       if (tags !== undefined) {
         fields.push(`tags = $${idx++}`);
         values.push(Array.isArray(tags) ? tags : null);
+      }
+      if (metaDescription !== undefined) {
+        fields.push(`description = $${idx++}`);
+        values.push(metaDescription || null);
       }
       values.push(storyTitleId);
       await client.query(
@@ -7267,6 +7378,209 @@ app.put('/stories/:storyTitleId/access-rules', async (req, res) => {
     await client.query('ROLLBACK');
     console.error('[PUT /stories/:storyTitleId/access-rules] failed:', err);
     res.status(500).json({ error: 'Failed to update access rules' });
+  } finally {
+    client.release();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Story collaborators: authors, co-authors, and ownership transfer
+// ---------------------------------------------------------------------------
+
+// GET /stories/:storyTitleId/collaborators — list all authors and co-authors
+app.get('/stories/:storyTitleId/collaborators', async (req, res) => {
+  const { storyTitleId } = req.params;
+  try {
+    const { rows } = await pool.query(
+      `SELECT sc.user_id, sc.role, sc.created_at,
+              u.email, p.first_name, p.last_name, p.nickname
+       FROM story_collaborators sc
+       JOIN local_users u ON u.id = sc.user_id
+       LEFT JOIN profiles p ON p.id = sc.user_id
+       WHERE sc.story_title_id = $1
+       ORDER BY sc.role, sc.created_at`,
+      [storyTitleId],
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('[GET /stories/:storyTitleId/collaborators] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch collaborators' });
+  }
+});
+
+// POST /stories/:storyTitleId/authors — add an author
+app.post('/stories/:storyTitleId/authors', async (req, res) => {
+  const { storyTitleId } = req.params;
+  const { userId, requestingUserId } = req.body ?? {};
+  if (!userId || !requestingUserId) {
+    return res.status(400).json({ error: 'userId and requestingUserId are required' });
+  }
+  try {
+    const storyRes = await pool.query('SELECT creator_id FROM story_title WHERE story_title_id = $1', [storyTitleId]);
+    if (!storyRes.rows.length) return res.status(404).json({ error: 'Story not found' });
+    if (storyRes.rows[0].creator_id !== requestingUserId) {
+      return res.status(403).json({ error: 'Only the story owner can add authors' });
+    }
+    await pool.query(
+      `INSERT INTO story_collaborators (story_title_id, user_id, role)
+       VALUES ($1, $2, 'author')
+       ON CONFLICT (story_title_id, user_id) DO UPDATE SET role = 'author'`,
+      [storyTitleId, userId],
+    );
+    const { rows } = await pool.query(
+      `SELECT sc.user_id, sc.role, sc.created_at, u.email, p.first_name, p.last_name, p.nickname
+       FROM story_collaborators sc
+       JOIN local_users u ON u.id = sc.user_id
+       LEFT JOIN profiles p ON p.id = sc.user_id
+       WHERE sc.story_title_id = $1 AND sc.user_id = $2`,
+      [storyTitleId, userId],
+    );
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('[POST /stories/:storyTitleId/authors] failed:', err);
+    res.status(500).json({ error: 'Failed to add author' });
+  }
+});
+
+// DELETE /stories/:storyTitleId/authors/:userId — remove an author
+app.delete('/stories/:storyTitleId/authors/:userId', async (req, res) => {
+  const { storyTitleId, userId } = req.params;
+  const requestingUserId = req.query.requestingUserId;
+  if (!requestingUserId) {
+    return res.status(400).json({ error: 'requestingUserId is required' });
+  }
+  try {
+    const storyRes = await pool.query('SELECT creator_id FROM story_title WHERE story_title_id = $1', [storyTitleId]);
+    if (!storyRes.rows.length) return res.status(404).json({ error: 'Story not found' });
+    if (storyRes.rows[0].creator_id !== requestingUserId) {
+      return res.status(403).json({ error: 'Only the story owner can remove authors' });
+    }
+    await pool.query(
+      `DELETE FROM story_collaborators WHERE story_title_id = $1 AND user_id = $2 AND role = 'author'`,
+      [storyTitleId, userId],
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[DELETE /stories/:storyTitleId/authors/:userId] failed:', err);
+    res.status(500).json({ error: 'Failed to remove author' });
+  }
+});
+
+// POST /stories/:storyTitleId/coauthors — add a co-author
+app.post('/stories/:storyTitleId/coauthors', async (req, res) => {
+  const { storyTitleId } = req.params;
+  const { userId, requestingUserId } = req.body ?? {};
+  if (!userId || !requestingUserId) {
+    return res.status(400).json({ error: 'userId and requestingUserId are required' });
+  }
+  try {
+    const storyRes = await pool.query('SELECT creator_id FROM story_title WHERE story_title_id = $1', [storyTitleId]);
+    if (!storyRes.rows.length) return res.status(404).json({ error: 'Story not found' });
+    if (storyRes.rows[0].creator_id !== requestingUserId) {
+      return res.status(403).json({ error: 'Only the story owner can add co-authors' });
+    }
+    await pool.query(
+      `INSERT INTO story_collaborators (story_title_id, user_id, role)
+       VALUES ($1, $2, 'coauthor')
+       ON CONFLICT (story_title_id, user_id) DO UPDATE SET role = 'coauthor'`,
+      [storyTitleId, userId],
+    );
+    const { rows } = await pool.query(
+      `SELECT sc.user_id, sc.role, sc.created_at, u.email, p.first_name, p.last_name, p.nickname
+       FROM story_collaborators sc
+       JOIN local_users u ON u.id = sc.user_id
+       LEFT JOIN profiles p ON p.id = sc.user_id
+       WHERE sc.story_title_id = $1 AND sc.user_id = $2`,
+      [storyTitleId, userId],
+    );
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('[POST /stories/:storyTitleId/coauthors] failed:', err);
+    res.status(500).json({ error: 'Failed to add co-author' });
+  }
+});
+
+// DELETE /stories/:storyTitleId/coauthors/:userId — remove a co-author
+app.delete('/stories/:storyTitleId/coauthors/:userId', async (req, res) => {
+  const { storyTitleId, userId } = req.params;
+  const requestingUserId = req.query.requestingUserId;
+  if (!requestingUserId) {
+    return res.status(400).json({ error: 'requestingUserId is required' });
+  }
+  try {
+    const storyRes = await pool.query('SELECT creator_id FROM story_title WHERE story_title_id = $1', [storyTitleId]);
+    if (!storyRes.rows.length) return res.status(404).json({ error: 'Story not found' });
+    if (storyRes.rows[0].creator_id !== requestingUserId) {
+      return res.status(403).json({ error: 'Only the story owner can remove co-authors' });
+    }
+    await pool.query(
+      `DELETE FROM story_collaborators WHERE story_title_id = $1 AND user_id = $2 AND role = 'coauthor'`,
+      [storyTitleId, userId],
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[DELETE /stories/:storyTitleId/coauthors/:userId] failed:', err);
+    res.status(500).json({ error: 'Failed to remove co-author' });
+  }
+});
+
+// POST /stories/:storyTitleId/transfer-ownership — transfer story ownership
+app.post('/stories/:storyTitleId/transfer-ownership', async (req, res) => {
+  const { storyTitleId } = req.params;
+  const { newOwnerId, requestingUserId } = req.body ?? {};
+  if (!newOwnerId || !requestingUserId) {
+    return res.status(400).json({ error: 'newOwnerId and requestingUserId are required' });
+  }
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const storyRes = await client.query(
+      'SELECT creator_id FROM story_title WHERE story_title_id = $1 FOR UPDATE',
+      [storyTitleId],
+    );
+    if (!storyRes.rows.length) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Story not found' });
+    }
+    const currentOwnerId = storyRes.rows[0].creator_id;
+    if (currentOwnerId !== requestingUserId) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'Only the current owner can transfer ownership' });
+    }
+    if (currentOwnerId === newOwnerId) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'New owner must be different from the current owner' });
+    }
+    // Verify new owner exists
+    const userRes = await client.query('SELECT id FROM local_users WHERE id = $1', [newOwnerId]);
+    if (!userRes.rows.length) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Target user not found' });
+    }
+    // Update story_title.creator_id (initiator_id stays unchanged)
+    await client.query(
+      'UPDATE story_title SET creator_id = $1 WHERE story_title_id = $2',
+      [newOwnerId, storyTitleId],
+    );
+    // Demote old owner in story_access to contributor
+    await client.query(
+      `UPDATE story_access SET role = 'contributor' WHERE story_title_id = $1 AND user_id = $2`,
+      [storyTitleId, currentOwnerId],
+    );
+    // Promote new owner in story_access
+    await client.query(
+      `INSERT INTO story_access (story_title_id, user_id, role)
+       VALUES ($1, $2, 'owner')
+       ON CONFLICT (story_title_id, user_id) DO UPDATE SET role = 'owner'`,
+      [storyTitleId, newOwnerId],
+    );
+    await client.query('COMMIT');
+    const { rows } = await pool.query('SELECT * FROM story_title WHERE story_title_id = $1', [storyTitleId]);
+    res.json(rows[0]);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('[POST /stories/:storyTitleId/transfer-ownership] failed:', err);
+    res.status(500).json({ error: 'Failed to transfer ownership' });
   } finally {
     client.release();
   }

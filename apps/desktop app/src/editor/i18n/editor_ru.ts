@@ -484,6 +484,26 @@ Details: {error}</source>
         <translation >Жанр обновлён.</translation>
     </message>
     <message>
+        <source>Edit description</source>
+        <translation >Редактировать описание</translation>
+    </message>
+    <message>
+        <source>Description</source>
+        <translation >Описание</translation>
+    </message>
+    <message>
+        <source>Enter description:</source>
+        <translation >Введите описание:</translation>
+    </message>
+    <message>
+        <source>Description updated.</source>
+        <translation >Описание обновлено.</translation>
+    </message>
+    <message>
+        <source>Description deleted.</source>
+        <translation >Описание удалено.</translation>
+    </message>
+    <message>
         <source>Session control</source>
         <translation>Управление сессией</translation>
     </message>

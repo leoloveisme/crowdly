@@ -18,6 +18,8 @@ type StoryTitleRow = {
   story_title_id: string;
   title: string;
   creator_id?: string;
+  description?: string | null;
+  tags?: string[] | null;
 };
 
 const greetingsByLanguage: Record<InterfaceLanguage, string[]> = {
@@ -93,6 +95,8 @@ const StoryViewer: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [storyTitle, setStoryTitle] = useState<string>("");
+  const [storyDescription, setStoryDescription] = useState<string>("");
+  const [storyTags, setStoryTags] = useState<string[]>([]);
   const [chapters, setChapters] = useState<ChapterRow[]>([]);
 
   useEffect(() => {
@@ -138,6 +142,8 @@ const StoryViewer: React.FC = () => {
         if (!cancelled) {
           setStoryTitle(titleRow.title);
           setCreatorId(titleRow.creator_id ?? null);
+          setStoryDescription(titleRow.description || "");
+          setStoryTags(titleRow.tags || []);
         }
 
         // Fetch chapters
@@ -504,6 +510,24 @@ const StoryViewer: React.FC = () => {
               Loaded from Crowdly backend (read-only view).
             </div>
           </header>
+
+          {/* Description & Tags (read-only) */}
+          {(storyDescription || storyTags.length > 0) && (
+            <div style={{ margin: "8px 0 16px", padding: "10px 14px", border: "1px solid #e5e7eb", borderRadius: "8px", background: "#fafafa" }}>
+              {storyDescription && (
+                <p style={{ fontSize: "13px", color: "#374151", whiteSpace: "pre-wrap", margin: "0 0 6px" }}>{storyDescription}</p>
+              )}
+              {storyTags.length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                  {storyTags.map((tag) => (
+                    <span key={tag} style={{ display: "inline-flex", padding: "2px 8px", borderRadius: "9999px", fontSize: "12px", fontWeight: 500, background: "#dbeafe", color: "#1e40af" }}>
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {chapters.length === 0 ? (
             <p className="text-sm text-gray-600">No chapters found for this story.</p>

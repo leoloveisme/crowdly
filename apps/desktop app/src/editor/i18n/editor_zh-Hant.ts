@@ -388,6 +388,26 @@ Details: {error}</translation>
       <translation>Genre updated.</translation>
     </message>
     <message>
+      <source>Edit description</source>
+      <translation>編輯描述</translation>
+    </message>
+    <message>
+      <source>Description</source>
+      <translation>描述</translation>
+    </message>
+    <message>
+      <source>Enter description:</source>
+      <translation>輸入描述：</translation>
+    </message>
+    <message>
+      <source>Description updated.</source>
+      <translation>描述已更新。</translation>
+    </message>
+    <message>
+      <source>Description deleted.</source>
+      <translation>描述已刪除。</translation>
+    </message>
+    <message>
       <source>Session control</source>
       <translation>工作階段控制</translation>
     </message>

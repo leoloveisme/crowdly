@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Loader2, Users, Clock, GitBranch, BookOpen, Heart, Download } from "lucide-react";
+import { Loader2, Users, Clock, GitBranch, BookOpen, Heart, Download, Search, User, X } from "lucide-react";
 import CrowdlyHeader from "@/components/CrowdlyHeader";
 import CrowdlyFooter from "@/components/CrowdlyFooter";
 import EditableText from "@/components/EditableText";
@@ -18,6 +18,9 @@ import UserGroupPicker from "@/modules/user-group-picker";
 import CompareRevisionsContainer from "@/modules/compare revisions";
 import StoryLanguageSelect from "@/components/StoryLanguageSelect";
 import CoverImageUpload from "@/components/CoverImageUpload";
+import DescriptionEditor from "@/components/DescriptionEditor";
+import TagBadge from "@/components/TagBadge";
+import TagInput from "@/components/TagInput";
 
 // Use same-origin API base in development; dev server proxies to backend.
 // In production, VITE_API_BASE_URL can point at the deployed API.
@@ -46,6 +49,27 @@ type Proposal = {
   created_at: string;
   author_email?: string;
 };
+
+type StoryCollaborator = {
+  user_id: string;
+  role: "author" | "coauthor";
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+  nickname?: string;
+};
+
+type UserSearchResult = {
+  id: string;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+};
+
+function collabDisplayName(u: { email?: string; first_name?: string; last_name?: string; nickname?: string }) {
+  const name = [u.first_name, u.last_name].filter(Boolean).join(" ");
+  return name || u.email || "";
+}
 
 // --- Modular components for each section ---
 const ContributorsSection = ({
@@ -207,6 +231,9 @@ const Story = () => {
     can_export?: boolean;
     language?: string;
     cover_image_url?: string | null;
+    description?: string | null;
+    tags?: string[] | null;
+    genre?: string | null;
   } | null>(null);
 
   // Helper: count "words" in a paragraph in a way that ignores
@@ -279,6 +306,35 @@ const Story = () => {
   // Access rules picker state
   const [accessPickerOpen, setAccessPickerOpen] = useState(false);
   const [accessPickerRuleType, setAccessPickerRuleType] = useState<"view" | "clone" | "export">("view");
+
+  // Collaborators state
+  const [collaborators, setCollaborators] = useState<StoryCollaborator[]>([]);
+  const [collaboratorsLoading, setCollaboratorsLoading] = useState(false);
+
+  // Transfer ownership state
+  const [transferQuery, setTransferQuery] = useState("");
+  const [transferResults, setTransferResults] = useState<UserSearchResult[]>([]);
+  const [transferTarget, setTransferTarget] = useState<UserSearchResult | null>(null);
+  const [transferring, setTransferring] = useState(false);
+  const [showTransferDropdown, setShowTransferDropdown] = useState(false);
+  const transferDropdownRef = useRef<HTMLDivElement>(null);
+  const transferDebounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Add author state
+  const [authorQuery, setAuthorQuery] = useState("");
+  const [authorResults, setAuthorResults] = useState<UserSearchResult[]>([]);
+  const [showAuthorDropdown, setShowAuthorDropdown] = useState(false);
+  const [addingAuthor, setAddingAuthor] = useState(false);
+  const authorDropdownRef = useRef<HTMLDivElement>(null);
+  const authorDebounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Add co-author state
+  const [coauthorQuery, setCoauthorQuery] = useState("");
+  const [coauthorResults, setCoauthorResults] = useState<UserSearchResult[]>([]);
+  const [showCoauthorDropdown, setShowCoauthorDropdown] = useState(false);
+  const [addingCoauthor, setAddingCoauthor] = useState(false);
+  const coauthorDropdownRef = useRef<HTMLDivElement>(null);
+  const coauthorDebounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Minimal inline "add chapter" UI in contribute mode
   const [addChapterMode, setAddChapterMode] = useState(false);
@@ -402,6 +458,23 @@ const Story = () => {
       } finally {
         setContributorsLoading(false);
       }
+
+      // Collaborators (authors & co-authors, best-effort)
+      try {
+        setCollaboratorsLoading(true);
+        const collabRes = await fetch(`${API_BASE}/stories/${story_id}/collaborators`);
+        if (collabRes.ok) {
+          const data = await collabRes.json();
+          setCollaborators(Array.isArray(data) ? data : []);
+        } else {
+          setCollaborators([]);
+        }
+      } catch (err) {
+        console.error('Failed to fetch collaborators', err);
+        setCollaborators([]);
+      } finally {
+        setCollaboratorsLoading(false);
+      }
     } catch (err) {
       console.error("Failed to fetch story and chapters", err);
       setStory(null);
@@ -463,6 +536,79 @@ const Story = () => {
     return () => window.clearTimeout(timeout);
   }, [chapter_id, chapters]);
 
+  // Debounced user search for transfer-ownership
+  useEffect(() => {
+    if (transferDebounceRef.current) clearTimeout(transferDebounceRef.current);
+    if (!transferQuery.trim()) { setTransferResults([]); return; }
+    transferDebounceRef.current = setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({ q: transferQuery });
+        if (user?.id) params.set("excludeUserId", user.id);
+        const res = await fetch(`${API_BASE}/users/search?${params}`);
+        if (res.ok) {
+          const data = await res.json();
+          const list: UserSearchResult[] = Array.isArray(data) ? data : Array.isArray(data.users) ? data.users : [];
+          setTransferResults(list);
+          setShowTransferDropdown(true);
+        }
+      } catch { /* ignore */ }
+    }, 300);
+    return () => { if (transferDebounceRef.current) clearTimeout(transferDebounceRef.current); };
+  }, [transferQuery, user?.id]);
+
+  // Debounced user search for adding authors
+  useEffect(() => {
+    if (authorDebounceRef.current) clearTimeout(authorDebounceRef.current);
+    if (!authorQuery.trim()) { setAuthorResults([]); return; }
+    const existingIds = collaborators.filter(c => c.role === "author").map(c => c.user_id);
+    authorDebounceRef.current = setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({ q: authorQuery });
+        if (user?.id) params.set("excludeUserId", user.id);
+        const res = await fetch(`${API_BASE}/users/search?${params}`);
+        if (res.ok) {
+          const data = await res.json();
+          const list: UserSearchResult[] = Array.isArray(data) ? data : Array.isArray(data.users) ? data.users : [];
+          setAuthorResults(list.filter(u => !existingIds.includes(u.id)));
+          setShowAuthorDropdown(true);
+        }
+      } catch { /* ignore */ }
+    }, 300);
+    return () => { if (authorDebounceRef.current) clearTimeout(authorDebounceRef.current); };
+  }, [authorQuery, user?.id, collaborators]);
+
+  // Debounced user search for adding co-authors
+  useEffect(() => {
+    if (coauthorDebounceRef.current) clearTimeout(coauthorDebounceRef.current);
+    if (!coauthorQuery.trim()) { setCoauthorResults([]); return; }
+    const existingIds = collaborators.filter(c => c.role === "coauthor").map(c => c.user_id);
+    coauthorDebounceRef.current = setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({ q: coauthorQuery });
+        if (user?.id) params.set("excludeUserId", user.id);
+        const res = await fetch(`${API_BASE}/users/search?${params}`);
+        if (res.ok) {
+          const data = await res.json();
+          const list: UserSearchResult[] = Array.isArray(data) ? data : Array.isArray(data.users) ? data.users : [];
+          setCoauthorResults(list.filter(u => !existingIds.includes(u.id)));
+          setShowCoauthorDropdown(true);
+        }
+      } catch { /* ignore */ }
+    }, 300);
+    return () => { if (coauthorDebounceRef.current) clearTimeout(coauthorDebounceRef.current); };
+  }, [coauthorQuery, user?.id, collaborators]);
+
+  // Close collaborator dropdowns on click outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (transferDropdownRef.current && !transferDropdownRef.current.contains(e.target as Node)) setShowTransferDropdown(false);
+      if (authorDropdownRef.current && !authorDropdownRef.current.contains(e.target as Node)) setShowAuthorDropdown(false);
+      if (coauthorDropdownRef.current && !coauthorDropdownRef.current.contains(e.target as Node)) setShowCoauthorDropdown(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
   // Permission checks
   const isOwner = user && story && story.creator_id === user.id;
   const canDeleteStory =
@@ -496,6 +642,119 @@ const Story = () => {
     } catch (err) {
       console.error("Failed to delete story", err);
       toast({ title: "Error", description: "Could not delete story", variant: "destructive" });
+    }
+  };
+
+  // Transfer ownership handler
+  const handleTransferOwnership = async () => {
+    if (!story || !transferTarget || !user) return;
+    if (!window.confirm(`Transfer ownership of this story to ${collabDisplayName(transferTarget) || transferTarget.email}? You will no longer be the owner.`)) return;
+    setTransferring(true);
+    try {
+      const res = await fetch(`${API_BASE}/stories/${story.story_title_id}/transfer-ownership`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newOwnerId: transferTarget.id, requestingUserId: user.id }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setStory(updated);
+        setTransferTarget(null);
+        setTransferQuery("");
+        toast({ title: "Ownership transferred", description: `Story is now owned by ${collabDisplayName(transferTarget) || transferTarget.email}` });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast({ title: "Error", description: err.error || "Failed to transfer ownership", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Network error", variant: "destructive" });
+    }
+    setTransferring(false);
+  };
+
+  // Add author handler
+  const handleAddAuthor = async (targetUser: UserSearchResult) => {
+    if (!story || !user) return;
+    setAddingAuthor(true);
+    try {
+      const res = await fetch(`${API_BASE}/stories/${story.story_title_id}/authors`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: targetUser.id, requestingUserId: user.id }),
+      });
+      if (res.ok) {
+        const newCollab: StoryCollaborator = await res.json();
+        setCollaborators(prev => [...prev.filter(c => c.user_id !== targetUser.id), newCollab]);
+        setAuthorQuery("");
+        setAuthorResults([]);
+        setShowAuthorDropdown(false);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast({ title: "Error", description: err.error || "Failed to add author", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Network error", variant: "destructive" });
+    }
+    setAddingAuthor(false);
+  };
+
+  // Remove author handler
+  const handleRemoveAuthor = async (userId: string) => {
+    if (!story || !user) return;
+    try {
+      const params = new URLSearchParams({ requestingUserId: user.id });
+      const res = await fetch(`${API_BASE}/stories/${story.story_title_id}/authors/${userId}?${params}`, { method: "DELETE" });
+      if (res.ok) {
+        setCollaborators(prev => prev.filter(c => !(c.user_id === userId && c.role === "author")));
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast({ title: "Error", description: err.error || "Failed to remove author", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Network error", variant: "destructive" });
+    }
+  };
+
+  // Add co-author handler
+  const handleAddCoauthor = async (targetUser: UserSearchResult) => {
+    if (!story || !user) return;
+    setAddingCoauthor(true);
+    try {
+      const res = await fetch(`${API_BASE}/stories/${story.story_title_id}/coauthors`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: targetUser.id, requestingUserId: user.id }),
+      });
+      if (res.ok) {
+        const newCollab: StoryCollaborator = await res.json();
+        setCollaborators(prev => [...prev.filter(c => c.user_id !== targetUser.id), newCollab]);
+        setCoauthorQuery("");
+        setCoauthorResults([]);
+        setShowCoauthorDropdown(false);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast({ title: "Error", description: err.error || "Failed to add co-author", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Network error", variant: "destructive" });
+    }
+    setAddingCoauthor(false);
+  };
+
+  // Remove co-author handler
+  const handleRemoveCoauthor = async (userId: string) => {
+    if (!story || !user) return;
+    try {
+      const params = new URLSearchParams({ requestingUserId: user.id });
+      const res = await fetch(`${API_BASE}/stories/${story.story_title_id}/coauthors/${userId}?${params}`, { method: "DELETE" });
+      if (res.ok) {
+        setCollaborators(prev => prev.filter(c => !(c.user_id === userId && c.role === "coauthor")));
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast({ title: "Error", description: err.error || "Failed to remove co-author", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Network error", variant: "destructive" });
     }
   };
 
@@ -818,7 +1077,7 @@ const Story = () => {
   // UPDATE
   const handleUpdateChapter = async (
     chapter_id: string,
-    patch: { chapter_title?: string; paragraphs?: string[] }
+    patch: { chapter_title?: string; paragraphs?: string[]; tags?: string[]; paragraphTags?: Record<string, string[]> }
   ) => {
     try {
       const res = await fetch(`${API_BASE}/chapters/${chapter_id}`, {
@@ -827,6 +1086,8 @@ const Story = () => {
         body: JSON.stringify({
           chapterTitle: patch.chapter_title,
           paragraphs: patch.paragraphs,
+          tags: patch.tags,
+          paragraphTags: patch.paragraphTags,
           userId: user?.id,
         }),
       });
@@ -1937,6 +2198,19 @@ const Story = () => {
                 </div>
               )}
 
+              {story.description && (
+                <p className="text-sm text-gray-600 whitespace-pre-wrap mt-2 mb-2">
+                  {story.description}
+                </p>
+              )}
+              {story.tags && story.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2 mb-2">
+                  {story.tags.map((tag) => (
+                    <TagBadge key={tag} tag={tag} />
+                  ))}
+                </div>
+              )}
+
               {/* Unified reactions + comments for this story */}
               <InteractionsWidget kind="story" storyTitleId={story.story_title_id} />
 
@@ -2170,6 +2444,206 @@ const Story = () => {
                     )}
                   </div>
 
+                  {/* Description & Tags (contribute mode) */}
+                  {isOwner && (
+                    <div className="mb-4 space-y-2">
+                      <div>
+                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                          <EditableText id="story-description-label">Description</EditableText>
+                        </span>
+                        <DescriptionEditor
+                          description={story.description || null}
+                          onSave={async (desc) => { updateStorySetting('description', desc); }}
+                        />
+                      </div>
+                      <div>
+                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                          <EditableText id="story-tags-label">Tags</EditableText>
+                        </span>
+                        <TagInput
+                          tags={story.tags || []}
+                          onChange={(newTags) => updateStorySetting('tags', newTags as any)}
+                          className="mt-1 border border-gray-200 rounded-md p-2"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {/* Collaborators management (owner only) */}
+                  {isOwner && (
+                    <div className="mb-4 space-y-3">
+                      <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                        <EditableText id="story-collaborators-label">Collaborators</EditableText>
+                      </span>
+
+                      {/* Transfer Ownership */}
+                      <div className="border rounded-md p-3 bg-gray-50 space-y-2">
+                        <div className="text-xs font-semibold text-gray-600">
+                          <EditableText id="story-transfer-ownership-label">Transfer ownership to</EditableText>
+                        </div>
+                        {transferTarget ? (
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-800">
+                              <User className="h-3 w-3" />
+                              {collabDisplayName(transferTarget) || transferTarget.email}
+                              <button type="button" onClick={() => setTransferTarget(null)} className="ml-0.5 hover:text-red-600">
+                                <X className="h-3 w-3" />
+                              </button>
+                            </span>
+                            <button
+                              type="button"
+                              disabled={transferring}
+                              onClick={handleTransferOwnership}
+                              className="px-3 py-1 text-xs rounded bg-orange-500 text-white font-semibold hover:bg-orange-700 disabled:opacity-50 transition"
+                            >
+                              {transferring ? <EditableText id="story-transfer-btn-ing">Transferring…</EditableText> : <EditableText id="story-transfer-btn">Transfer</EditableText>}
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="relative" ref={transferDropdownRef}>
+                            <div className="relative">
+                              <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-gray-400" />
+                              <input
+                                type="text"
+                                placeholder="Search users…"
+                                value={transferQuery}
+                                onChange={(e) => setTransferQuery(e.target.value)}
+                                onFocus={() => transferResults.length > 0 && setShowTransferDropdown(true)}
+                                className="w-full pl-7 pr-2 py-1.5 text-xs border rounded-md focus:outline-none focus:ring-1 focus:ring-orange-300 bg-white"
+                              />
+                            </div>
+                            {showTransferDropdown && transferResults.length > 0 && (
+                              <div className="absolute z-50 mt-1 w-full bg-white border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                                {transferResults.map((u) => (
+                                  <button
+                                    key={u.id}
+                                    type="button"
+                                    className="w-full text-left px-3 py-2 text-xs hover:bg-orange-50 flex items-center gap-2"
+                                    onClick={() => { setTransferTarget(u); setTransferQuery(""); setShowTransferDropdown(false); }}
+                                  >
+                                    <User className="h-3 w-3 text-gray-400 shrink-0" />
+                                    <span>{collabDisplayName(u) || u.email}</span>
+                                    {u.first_name && <span className="text-gray-400 ml-auto text-xs">{u.email}</span>}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Authors */}
+                      <div className="border rounded-md p-3 bg-gray-50 space-y-2">
+                        <div className="text-xs font-semibold text-gray-600">
+                          <EditableText id="story-authors-label">Authors</EditableText>
+                        </div>
+                        {collaborators.filter(c => c.role === "author").length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {collaborators.filter(c => c.role === "author").map((c) => (
+                              <span key={c.user_id} className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                                <User className="h-3 w-3" />
+                                {collabDisplayName(c) || c.user_id}
+                                <button type="button" onClick={() => handleRemoveAuthor(c.user_id)} className="ml-0.5 hover:text-red-600">
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <div className="relative" ref={authorDropdownRef}>
+                          <div className="relative">
+                            <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-gray-400" />
+                            <input
+                              type="text"
+                              placeholder="Add author…"
+                              value={authorQuery}
+                              onChange={(e) => setAuthorQuery(e.target.value)}
+                              onFocus={() => authorResults.length > 0 && setShowAuthorDropdown(true)}
+                              className="w-full pl-7 pr-2 py-1.5 text-xs border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-300 bg-white"
+                            />
+                          </div>
+                          {showAuthorDropdown && authorResults.length > 0 && (
+                            <div className="absolute z-50 mt-1 w-full bg-white border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                              {authorResults.map((u) => (
+                                <button
+                                  key={u.id}
+                                  type="button"
+                                  disabled={addingAuthor}
+                                  className="w-full text-left px-3 py-2 text-xs hover:bg-blue-50 flex items-center gap-2 disabled:opacity-50"
+                                  onClick={() => handleAddAuthor(u)}
+                                >
+                                  <User className="h-3 w-3 text-gray-400 shrink-0" />
+                                  <span>{collabDisplayName(u) || u.email}</span>
+                                  {u.first_name && <span className="text-gray-400 ml-auto text-xs">{u.email}</span>}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Co-authors */}
+                      <div className="border rounded-md p-3 bg-gray-50 space-y-2">
+                        <div className="text-xs font-semibold text-gray-600">
+                          <EditableText id="story-coauthors-label">Co-authors</EditableText>
+                        </div>
+                        {collaborators.filter(c => c.role === "coauthor").length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {collaborators.filter(c => c.role === "coauthor").map((c) => (
+                              <span key={c.user_id} className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
+                                <User className="h-3 w-3" />
+                                {collabDisplayName(c) || c.user_id}
+                                <button type="button" onClick={() => handleRemoveCoauthor(c.user_id)} className="ml-0.5 hover:text-red-600">
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <div className="relative" ref={coauthorDropdownRef}>
+                          <div className="relative">
+                            <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-gray-400" />
+                            <input
+                              type="text"
+                              placeholder="Add co-author…"
+                              value={coauthorQuery}
+                              onChange={(e) => setCoauthorQuery(e.target.value)}
+                              onFocus={() => coauthorResults.length > 0 && setShowCoauthorDropdown(true)}
+                              className="w-full pl-7 pr-2 py-1.5 text-xs border rounded-md focus:outline-none focus:ring-1 focus:ring-purple-300 bg-white"
+                            />
+                          </div>
+                          {showCoauthorDropdown && coauthorResults.length > 0 && (
+                            <div className="absolute z-50 mt-1 w-full bg-white border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                              {coauthorResults.map((u) => (
+                                <button
+                                  key={u.id}
+                                  type="button"
+                                  disabled={addingCoauthor}
+                                  className="w-full text-left px-3 py-2 text-xs hover:bg-purple-50 flex items-center gap-2 disabled:opacity-50"
+                                  onClick={() => handleAddCoauthor(u)}
+                                >
+                                  <User className="h-3 w-3 text-gray-400 shrink-0" />
+                                  <span>{collabDisplayName(u) || u.email}</span>
+                                  {u.first_name && <span className="text-gray-400 ml-auto text-xs">{u.email}</span>}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {!isOwner && story.description && (
+                    <p className="text-sm text-gray-600 whitespace-pre-wrap mb-2">{story.description}</p>
+                  )}
+                  {!isOwner && story.tags && story.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                      {story.tags.map((tag) => (
+                        <TagBadge key={tag} tag={tag} />
+                      ))}
+                    </div>
+                  )}
+
                   {/* CHAPTERS CRUD & branching (web-editor style) */}
                   {canCRUDChapters ? (
                     <>
@@ -2237,6 +2711,21 @@ const Story = () => {
                               </button>
                             </div>
                           </div>
+                          {/* Chapter tags */}
+                          {isOwner ? (
+                            <div className="mb-2">
+                              <TagInput
+                                tags={chapter.tags || []}
+                                onChange={(newTags) => handleUpdateChapter(chapter.chapter_id, { tags: newTags })}
+                                placeholder="#chapter-tag"
+                                className="border border-gray-100 rounded p-1.5 text-xs"
+                              />
+                            </div>
+                          ) : (chapter.tags && chapter.tags.length > 0) ? (
+                            <div className="flex flex-wrap gap-1 mb-2">
+                              {chapter.tags.map((t: string) => <TagBadge key={t} tag={t} />)}
+                            </div>
+                          ) : null}
                           {Array.isArray(chapter.paragraphs) && chapter.paragraphs.length > 0 ? (
                             chapter.paragraphs.map((paragraph, idx) => (
                               <div key={idx} className="mb-4">

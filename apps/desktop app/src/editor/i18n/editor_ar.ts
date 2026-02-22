@@ -388,6 +388,26 @@ Details: {error}</translation>
       <translation>Genre updated.</translation>
     </message>
     <message>
+      <source>Edit description</source>
+      <translation>تعديل الوصف</translation>
+    </message>
+    <message>
+      <source>Description</source>
+      <translation>الوصف</translation>
+    </message>
+    <message>
+      <source>Enter description:</source>
+      <translation>أدخل الوصف:</translation>
+    </message>
+    <message>
+      <source>Description updated.</source>
+      <translation>تم تحديث الوصف.</translation>
+    </message>
+    <message>
+      <source>Description deleted.</source>
+      <translation>تم حذف الوصف.</translation>
+    </message>
+    <message>
       <source>Session control</source>
       <translation>التحكم بالجلسة</translation>
     </message>

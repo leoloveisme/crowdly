@@ -50,6 +50,7 @@ const NewestStoriesOutput: React.FC = () => {
             href: `/story/${row.story_title_id}`,
             language: row.language || null,
             coverImageUrl: row.cover_image_url || null,
+            tags: row.tags || null,
           }));
           setItems(mapped);
         } else {

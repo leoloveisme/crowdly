@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Header, { InterfaceLanguage } from "./Header";
 import { ImportPopup, ExportPopup } from "../modules/import-export";
+import { parseTags } from "./tag-utils";
 
 // In this standalone editor, talk directly to the Crowdly backend.
 // Prefer VITE_API_BASE_URL if provided; otherwise fall back to using
@@ -146,6 +147,12 @@ const ScreenplayEditor: React.FC = () => {
   const [showImportPopup, setShowImportPopup] = useState(false);
   const [showExportPopup, setShowExportPopup] = useState(false);
 
+  // Description & Tags state
+  const [screenplayDescription, setScreenplayDescription] = useState<string>("");
+  const [screenplayTags, setScreenplayTags] = useState<string[]>([]);
+  const [spTagInput, setSpTagInput] = useState("");
+  const [editingSpDescription, setEditingSpDescription] = useState(false);
+
   const isLoggedIn = !!authUser;
   const username = authUser?.email || "username";
 
@@ -154,6 +161,50 @@ const ScreenplayEditor: React.FC = () => {
     if (!creatorId) return false;
     return authUser.id === creatorId;
   }, [authUser, creatorId, screenplayId]);
+
+  const saveScreenplayDescription = async (desc: string) => {
+    if (!screenplayId) return;
+    setScreenplayDescription(desc);
+    try {
+      await fetch(`${API_BASE}/screenplays/${encodeURIComponent(screenplayId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: desc }),
+      });
+    } catch (err) {
+      console.error("Failed to save screenplay description", err);
+    }
+  };
+
+  const saveScreenplayTags = async (tags: string[]) => {
+    if (!screenplayId) return;
+    setScreenplayTags(tags);
+    try {
+      await fetch(`${API_BASE}/screenplays/${encodeURIComponent(screenplayId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tags }),
+      });
+    } catch (err) {
+      console.error("Failed to save screenplay tags", err);
+    }
+  };
+
+  const handleSpTagInputCommit = () => {
+    const parsed = parseTags(spTagInput);
+    if (parsed.length > 0) {
+      const merged = [...screenplayTags];
+      for (const t of parsed) {
+        if (!merged.includes(t)) merged.push(t);
+      }
+      saveScreenplayTags(merged);
+    }
+    setSpTagInput("");
+  };
+
+  const handleRemoveSpTag = (tag: string) => {
+    saveScreenplayTags(screenplayTags.filter((t) => t !== tag));
+  };
 
   const handleLanguageChange = (language: InterfaceLanguage) => {
     setInterfaceLanguage(language);
@@ -457,6 +508,8 @@ const ScreenplayEditor: React.FC = () => {
         setTitle(meta.title ?? "Untitled Screenplay");
         setFormatType(meta.format_type ?? null);
         setCreatorId(meta.creator_id ?? null);
+        setScreenplayDescription(meta.description || "");
+        setScreenplayTags(meta.tags || []);
 
         // Scenes + blocks
         const res = await fetch(
@@ -890,6 +943,57 @@ const ScreenplayEditor: React.FC = () => {
               </div>
             )}
           </div>
+
+          {/* Description & Tags */}
+          {screenplayId && (
+            <div style={{ margin: "12px 0", padding: "12px 16px", border: "1px solid #e5e7eb", borderRadius: "8px", background: "#fafafa" }}>
+              <div style={{ marginBottom: "8px" }}>
+                <label style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", color: "#6b7280", letterSpacing: "0.05em" }}>Description</label>
+                {editingSpDescription ? (
+                  <textarea
+                    value={screenplayDescription}
+                    onChange={(e) => setScreenplayDescription(e.target.value)}
+                    onBlur={() => { setEditingSpDescription(false); saveScreenplayDescription(screenplayDescription); }}
+                    onKeyDown={(e) => { if (e.key === "Escape") { setEditingSpDescription(false); } }}
+                    autoFocus
+                    rows={3}
+                    style={{ width: "100%", marginTop: "4px", padding: "6px 8px", fontSize: "13px", border: "1px solid #d1d5db", borderRadius: "6px", resize: "vertical", outline: "none" }}
+                  />
+                ) : (
+                  <div
+                    onClick={() => { if (canEdit) setEditingSpDescription(true); }}
+                    style={{ marginTop: "4px", padding: "6px 8px", fontSize: "13px", minHeight: "28px", cursor: canEdit ? "pointer" : "default", borderRadius: "6px", color: screenplayDescription ? "#374151" : "#9ca3af", fontStyle: screenplayDescription ? "normal" : "italic", whiteSpace: "pre-wrap" }}
+                  >
+                    {screenplayDescription || (canEdit ? "Add a description..." : "No description")}
+                  </div>
+                )}
+              </div>
+              <div>
+                <label style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", color: "#6b7280", letterSpacing: "0.05em" }}>Tags</label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", alignItems: "center", marginTop: "4px" }}>
+                  {screenplayTags.map((tag) => (
+                    <span key={tag} style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "2px 8px", borderRadius: "9999px", fontSize: "12px", fontWeight: 500, background: "#dbeafe", color: "#1e40af" }}>
+                      #{tag}
+                      {canEdit && (
+                        <button type="button" onClick={() => handleRemoveSpTag(tag)} style={{ cursor: "pointer", background: "none", border: "none", padding: 0, fontSize: "14px", lineHeight: 1, color: "#1e40af" }}>&times;</button>
+                      )}
+                    </span>
+                  ))}
+                  {canEdit && (
+                    <input
+                      type="text"
+                      value={spTagInput}
+                      onChange={(e) => setSpTagInput(e.target.value)}
+                      onBlur={handleSpTagInputCommit}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSpTagInputCommit(); } }}
+                      placeholder="#tag #'multi word'"
+                      style={{ border: "none", outline: "none", background: "transparent", fontSize: "12px", minWidth: "120px", flex: 1, padding: "2px 4px" }}
+                    />
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="border rounded-lg bg-white p-4 shadow-sm">
             <div className="flex items-center justify-between mb-4">

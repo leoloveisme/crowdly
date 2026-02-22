@@ -392,6 +392,26 @@ Details: {error}</translation>
         <translation >Genre updated.</translation>
     </message>
     <message>
+        <source>Edit description</source>
+        <translation >Edit description</translation>
+    </message>
+    <message>
+        <source>Description</source>
+        <translation >Description</translation>
+    </message>
+    <message>
+        <source>Enter description:</source>
+        <translation >Enter description:</translation>
+    </message>
+    <message>
+        <source>Description updated.</source>
+        <translation >Description updated.</translation>
+    </message>
+    <message>
+        <source>Description deleted.</source>
+        <translation >Description deleted.</translation>
+    </message>
+    <message>
         <source>Project space is not set</source>
         <translation >Project space is not set</translation>
     </message>

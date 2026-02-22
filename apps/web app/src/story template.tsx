@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import "./app.css";
 import Header, { InterfaceLanguage } from "./Header";
 import { ImportPopup, ExportPopup } from "../modules/import-export";
+import { parseTags, formatTags } from "./tag-utils";
 
 type BlockKind = "title" | "chapter" | "paragraph";
 
@@ -22,7 +23,14 @@ type UndoEntry = {
   message: string;
 };
 
-const STORAGE_KEY = "web-editor:blocks:v1";
+const STORAGE_KEY_PREFIX = "web-editor:blocks:v1";
+
+/** Return a per-story localStorage key when editing an existing story,
+ *  or the legacy shared key for the new-story creation flow. */
+function storageKeyFor(storyId: string | null): string {
+  if (storyId) return `${STORAGE_KEY_PREFIX}:${storyId}`;
+  return STORAGE_KEY_PREFIX;
+}
 
 // In this standalone editor, talk directly to the Crowdly backend.
 // Prefer VITE_API_BASE_URL if provided; otherwise fall back to using
@@ -218,8 +226,14 @@ const App: React.FC = () => {
   const [blocks, setBlocks] = useState<Block[]>(() => {
     const base = buildInitialBlocks();
 
+    // When opening an existing story via /story/:id, start with blank
+    // blocks — loadStoryIntoBlocks will populate them from the backend.
+    if (storyIdFromUrl) {
+      return base.map((b) => ({ ...b, visible: false, html: "" }));
+    }
+
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = localStorage.getItem(storageKeyFor(null));
       if (!raw) return base;
 
       const parsed = JSON.parse(raw) as PersistedState;
@@ -247,6 +261,16 @@ const App: React.FC = () => {
 
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [resetConfirmation, setResetConfirmation] = useState("");
+
+  // Set to true when the backend returns a 4xx for a URL-loaded story
+  // (private story or user lacks access).
+  const [storyAccessDenied, setStoryAccessDenied] = useState(false);
+
+  // Description & Tags state
+  const [storyDescription, setStoryDescription] = useState<string>("");
+  const [storyTags, setStoryTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
+  const [editingDescription, setEditingDescription] = useState(false);
   const [showImportPopup, setShowImportPopup] = useState(false);
   const [showExportPopup, setShowExportPopup] = useState(false);
 
@@ -273,11 +297,11 @@ const App: React.FC = () => {
           html,
         })),
       };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      localStorage.setItem(storageKeyFor(storyTitleId), JSON.stringify(payload));
     } catch {
       // ignore storage errors
     }
-  }, []);
+  }, [storyTitleId]);
 
   const snapshotBlocksFromDom = useCallback(
     (src: Block[]) => {
@@ -714,10 +738,18 @@ const App: React.FC = () => {
         // 1) Fetch story title
         const titleRes = await fetch(`${API_BASE}/story-titles/${encodeURIComponent(storyTitleId)}`);
         if (!titleRes.ok) {
-          // Do not crash editor if backend is unavailable; just keep local blocks.
+          // 4xx = private story or no access; 5xx = backend unavailable (keep blank blocks).
+          if (!cancelled && titleRes.status >= 400 && titleRes.status < 500) {
+            setStoryAccessDenied(true);
+          }
           return;
         }
-        const titleRow = (await titleRes.json()) as { title?: string };
+        const titleRow = (await titleRes.json()) as { title?: string; description?: string | null; tags?: string[] | null };
+
+        if (!cancelled) {
+          setStoryDescription(titleRow.description || "");
+          setStoryTags(titleRow.tags || []);
+        }
 
         // 2) Fetch chapters
         const params = new URLSearchParams({ storyTitleId: storyTitleId });
@@ -1031,6 +1063,50 @@ const App: React.FC = () => {
     window.location.href = "/";
   };
 
+  const saveStoryDescription = async (desc: string) => {
+    if (!storyTitleId) return;
+    setStoryDescription(desc);
+    try {
+      await fetch(`${API_BASE}/story-titles/${encodeURIComponent(storyTitleId)}/settings`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: desc }),
+      });
+    } catch (err) {
+      console.error("Failed to save description", err);
+    }
+  };
+
+  const saveStoryTags = async (tags: string[]) => {
+    if (!storyTitleId) return;
+    setStoryTags(tags);
+    try {
+      await fetch(`${API_BASE}/story-titles/${encodeURIComponent(storyTitleId)}/settings`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tags }),
+      });
+    } catch (err) {
+      console.error("Failed to save tags", err);
+    }
+  };
+
+  const handleTagInputCommit = () => {
+    const parsed = parseTags(tagInput);
+    if (parsed.length > 0) {
+      const merged = [...storyTags];
+      for (const t of parsed) {
+        if (!merged.includes(t)) merged.push(t);
+      }
+      saveStoryTags(merged);
+    }
+    setTagInput("");
+  };
+
+  const handleRemoveTag = (tag: string) => {
+    saveStoryTags(storyTags.filter((t) => t !== tag));
+  };
+
   const handleLogoutFromHeader = () => {
     try {
       localStorage.removeItem("crowdly_auth_user");
@@ -1105,15 +1181,68 @@ const App: React.FC = () => {
       </div>
       {!hasVisibleContent ? (
         <div className="empty-state">
-          <p>There is nothing left here.</p>
-          <p>
-            You can create a new story here{" "}
-            <a href="http://localhost:8080/new-story-template">
-              http://localhost:8080/new-story-template
-            </a>
-          </p>
+          {storyAccessDenied && storyIdFromUrl ? (
+            <p>Sorry! You don't have access to the story.</p>
+          ) : (
+            <>
+              <p>There is nothing left here.</p>
+              <p>
+                You can create a new story here{" "}
+                <a href="http://localhost:8080/new-story-template">
+                  http://localhost:8080/new-story-template
+                </a>
+              </p>
+            </>
+          )}
         </div>
       ) : null}
+
+      {/* Description & Tags metadata */}
+      {storyTitleId && !storyAccessDenied && (
+        <div style={{ margin: "12px 0", padding: "12px 16px", border: "1px solid #e5e7eb", borderRadius: "8px", background: "#fafafa" }}>
+          <div style={{ marginBottom: "8px" }}>
+            <label style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", color: "#6b7280", letterSpacing: "0.05em" }}>Description</label>
+            {editingDescription ? (
+              <textarea
+                value={storyDescription}
+                onChange={(e) => setStoryDescription(e.target.value)}
+                onBlur={() => { setEditingDescription(false); saveStoryDescription(storyDescription); }}
+                onKeyDown={(e) => { if (e.key === "Escape") { setEditingDescription(false); } }}
+                autoFocus
+                rows={3}
+                style={{ width: "100%", marginTop: "4px", padding: "6px 8px", fontSize: "13px", border: "1px solid #d1d5db", borderRadius: "6px", resize: "vertical", outline: "none" }}
+              />
+            ) : (
+              <div
+                onClick={() => setEditingDescription(true)}
+                style={{ marginTop: "4px", padding: "6px 8px", fontSize: "13px", minHeight: "28px", cursor: "pointer", borderRadius: "6px", color: storyDescription ? "#374151" : "#9ca3af", fontStyle: storyDescription ? "normal" : "italic", whiteSpace: "pre-wrap" }}
+              >
+                {storyDescription || "Add a description..."}
+              </div>
+            )}
+          </div>
+          <div>
+            <label style={{ fontSize: "11px", fontWeight: 600, textTransform: "uppercase", color: "#6b7280", letterSpacing: "0.05em" }}>Tags</label>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", alignItems: "center", marginTop: "4px" }}>
+              {storyTags.map((tag) => (
+                <span key={tag} style={{ display: "inline-flex", alignItems: "center", gap: "4px", padding: "2px 8px", borderRadius: "9999px", fontSize: "12px", fontWeight: 500, background: "#dbeafe", color: "#1e40af" }}>
+                  #{tag}
+                  <button type="button" onClick={() => handleRemoveTag(tag)} style={{ cursor: "pointer", background: "none", border: "none", padding: 0, fontSize: "14px", lineHeight: 1, color: "#1e40af" }}>&times;</button>
+                </span>
+              ))}
+              <input
+                type="text"
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onBlur={handleTagInputCommit}
+                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleTagInputCommit(); } }}
+                placeholder="#tag #'multi word'"
+                style={{ border: "none", outline: "none", background: "transparent", fontSize: "12px", minWidth: "120px", flex: 1, padding: "2px 4px" }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="doc">
         {blocks.map((b) => {
