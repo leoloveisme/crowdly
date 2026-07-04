@@ -441,6 +441,121 @@ Details: {error}</translation>
     </message>
   </context>
 <context>
+    <name>MasterDocumentWindow</name>
+    <message>
+        <source>Save as</source>
+        <translation>另存為</translation>
+    </message>
+    <message>
+        <source>as .md file</source>
+        <translation>作為 .md 檔案</translation>
+    </message>
+    <message>
+        <source>as .story file</source>
+        <translation>作為 .story 檔案</translation>
+    </message>
+    <message>
+        <source>as .screenplay file</source>
+        <translation>作為 .screenplay 檔案</translation>
+    </message>
+    <message>
+        <source>as .master file</source>
+        <translation>作為 .master 檔案</translation>
+    </message>
+    <message>
+        <source>The master document is empty; there is nothing to save.</source>
+        <translation>主文件為空，沒有可儲存的內容。</translation>
+    </message>
+    <message>
+        <source>Save as Markdown</source>
+        <translation>另存為 Markdown</translation>
+    </message>
+    <message>
+        <source>Markdown files (*.md);;All files (*)</source>
+        <translation>Markdown 檔案 (*.md);;所有檔案 (*)</translation>
+    </message>
+    <message>
+        <source>Saved document to: {path}</source>
+        <translation>文件已儲存至：{path}</translation>
+    </message>
+    <message>
+        <source>Save failed</source>
+        <translation>儲存失敗</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the document.</source>
+        <translation>儲存文件時發生未預期的錯誤。</translation>
+    </message>
+    <message>
+        <source>Save as Story</source>
+        <translation>另存為故事</translation>
+    </message>
+    <message>
+        <source>Story files (*.story);;All files (*)</source>
+        <translation>故事檔案 (*.story);;所有檔案 (*)</translation>
+    </message>
+    <message>
+        <source>Saved story to: {path} (Story ID: {id})</source>
+        <translation>故事已儲存至：{path}（故事ID：{id}）</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the story.</source>
+        <translation>儲存故事時發生未預期的錯誤。</translation>
+    </message>
+    <message>
+        <source>Save as Screenplay</source>
+        <translation>另存為劇本</translation>
+    </message>
+    <message>
+        <source>Screenplay files (*.screenplay);;All files (*)</source>
+        <translation>劇本檔案 (*.screenplay);;所有檔案 (*)</translation>
+    </message>
+    <message>
+        <source>Saved screenplay to: {path} (Screenplay ID: {id})</source>
+        <translation>劇本已儲存至：{path}（劇本ID：{id}）</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the screenplay.</source>
+        <translation>儲存劇本時發生未預期的錯誤。</translation>
+    </message>
+    <message>
+        <source>Save as Master document</source>
+        <translation>另存為主文件</translation>
+    </message>
+    <message>
+        <source>Master documents (*.master);;All files (*)</source>
+        <translation>主文件檔案 (*.master);;所有檔案 (*)</translation>
+    </message>
+    <message>
+        <source>Saved master document to: {path}</source>
+        <translation>主文件已儲存至：{path}</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the master document.</source>
+        <translation>儲存主文件時發生未預期的錯誤。</translation>
+    </message>
+    <message>
+        <source>Save outside Space</source>
+        <translation>儲存到空間之外</translation>
+    </message>
+    <message>
+        <source>You're about to save the {file_type} file outside of a creative Space. Do you really want to do that?</source>
+        <translation>您即將把{file_type}檔案儲存到創作空間之外。確定要這樣做嗎？</translation>
+    </message>
+    <message>
+        <source>Yes</source>
+        <translation>是</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>取消</translation>
+    </message>
+    <message>
+        <source>Set | Create new Space</source>
+        <translation>設定｜建立新空間</translation>
+    </message>
+</context>
+<context>
     <name>CompareRevisionsWindow</name>
     <message>
         <source>Show diff highlights</source>

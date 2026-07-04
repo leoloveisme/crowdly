@@ -918,6 +918,16 @@ class MasterDocumentWindow(QMainWindow):
         self._master_path: Path | None = master_path
         self._dirty: bool = False
 
+        # Fallback ``~/*.bupx`` backup path used when there is no Space (and
+        # no project space) to persist the master document into. Lazily
+        # created the first time it is needed, then reused so autosave keeps
+        # overwriting the same file instead of spawning a new one every tick.
+        self._home_backup_path: Path | None = None
+
+        # Shown at most once per window: warns the user that, without a
+        # Space, their changes will only be kept as a home-directory backup.
+        self._no_space_warning_shown: bool = False
+
         # Debounced autosave timer for the master document itself.
         self._autosave_timer = QTimer(self)
         self._autosave_timer.setSingleShot(True)
@@ -1027,6 +1037,9 @@ class MasterDocumentWindow(QMainWindow):
         )
         self._action_save_as_screenplay = save_as_menu.addAction(
             self.tr("as .screenplay file"), self._save_as_screenplay
+        )
+        self._action_save_as_master = save_as_menu.addAction(
+            self.tr("as .master file"), self._save_as_master
         )
 
         # Simple menu bar with a View menu for toggling the explorer.
@@ -1785,9 +1798,33 @@ class MasterDocumentWindow(QMainWindow):
         """Mark the master document as dirty and schedule an autosave."""
 
         self._dirty = True
+        self._maybe_warn_no_space_on_input()
         if self._autosave_timer.isActive():
             self._autosave_timer.stop()
         self._autosave_timer.start()
+
+    def _maybe_warn_no_space_on_input(self) -> None:
+        """Show a one-time warning when editing with no Space / project space.
+
+        Mirrors ``MainWindow._maybe_warn_no_space_on_input``: the dialog is
+        shown at most once per window and only once there is actual content
+        at risk.
+        """
+
+        if self._no_space_warning_shown:
+            return
+        if self._project_space is not None:
+            return
+        if not self._get_combined_content().strip():
+            return
+
+        self._no_space_warning_shown = True
+
+        QMessageBox.information(
+            self,
+            self.tr("Project space is not set"),
+            self.tr("You need to set a Space to keep the changes you've made"),
+        )
 
     def _ensure_master_path(self) -> Path | None:
         """Ensure there is a backing `.master` file path.
@@ -1808,6 +1845,20 @@ class MasterDocumentWindow(QMainWindow):
         path = self._project_space / f"master-{timestamp}.master"
         self._master_path = path
         return path
+
+    def _ensure_home_backup_path(self) -> Path:
+        """Ensure there is a fallback ``~/*.bupx`` backup path.
+
+        Used in place of a `.master` path when no Space (and no project
+        space) is configured, mirroring the existing home-directory backup
+        behaviour used for regular documents in the main window. The path is
+        created once and reused so autosave overwrites the same file rather
+        than creating a new one on every tick.
+        """
+
+        if self._home_backup_path is None:
+            self._home_backup_path = storage.new_home_backup_path()
+        return self._home_backup_path
 
     def _serialise_to_text(self) -> str:
         """Return a Markdown-like text representation of the master doc.
@@ -1854,14 +1905,22 @@ class MasterDocumentWindow(QMainWindow):
         return text
 
     def _perform_autosave(self) -> None:  # pragma: no cover - UI wiring
-        """Persist the master document to its `.master` file and version it."""
+        """Persist the master document to its `.master` file and version it.
+
+        When there is no Space (and no project space) to hold a `.master`
+        file, fall back to a home-directory ``.bupx`` backup — the same
+        last-resort mechanism already used for regular documents in the main
+        window — so that in-progress work is never silently lost.
+        """
 
         if not self._dirty:
             return
 
         path = self._ensure_master_path()
+        using_home_backup = False
         if path is None:
-            return
+            path = self._ensure_home_backup_path()
+            using_home_backup = True
 
         try:
             body_md = self._serialise_to_text()
@@ -1870,6 +1929,12 @@ class MasterDocumentWindow(QMainWindow):
         except Exception:
             # Core persistence must be robust; if writing fails we keep the
             # dirty flag so that a later attempt may still succeed.
+            return
+
+        if using_home_backup:
+            # Home-directory backups are a last-resort safety net, not a
+            # tracked project document; they are not versioned or synced,
+            # mirroring the existing no-Space backup behaviour elsewhere.
             return
 
         # Enqueue a full-snapshot update for versioning, mirroring the
@@ -2243,6 +2308,108 @@ class MasterDocumentWindow(QMainWindow):
                 self.tr("An unexpected error occurred while saving the screenplay."),
             )
 
+    def _save_as_master(self) -> None:  # pragma: no cover - UI wiring
+        """Save the master document itself under a user-chosen name/location.
+
+        Unlike the .md/.story/.screenplay exports above (which write a
+        derived, flattened copy of the content), this saves the master
+        document in its own native `.master` format -- the same format
+        produced by autosave -- and adopts *target_path* as the document's
+        backing file so future autosaves keep updating it.
+        """
+
+        combined = self._get_combined_content()
+        if not combined.strip():
+            QMessageBox.information(
+                self,
+                self.tr("Save as"),
+                self.tr("The master document is empty; there is nothing to save."),
+            )
+            return
+
+        # Suggest a default filename based on the current master path or timestamp.
+        if self._master_path:
+            default_name = f"{self._master_path.stem}.master"
+        else:
+            timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+            default_name = f"master-export-{timestamp}.master"
+
+        start_dir = str(self._project_space) if self._project_space else ""
+        if start_dir:
+            initial = str(Path(start_dir) / default_name)
+        else:
+            initial = default_name
+
+        path_str, _ = QFileDialog.getSaveFileName(
+            self,
+            self.tr("Save as Master document"),
+            initial,
+            self.tr("Master documents (*.master);;All files (*)"),
+        )
+        if not path_str:
+            return
+
+        target_path = Path(path_str)
+        if target_path.suffix.lower() != ".master":
+            target_path = target_path.with_suffix(".master")
+
+        # Check if outside current Space (or none set at all)
+        if not self._is_path_inside_space(target_path):
+            result = self._show_outside_space_dialog("master")
+            if result == "cancel":
+                return
+            elif result == "yes":
+                # Reset Space to None
+                self._project_space = None
+                try:
+                    if self._settings is not None:
+                        self._settings.project_space = None
+                        save_settings(self._settings)
+                except Exception:
+                    pass
+            elif result == "set_space":
+                # Set the target directory as the new Space
+                new_space = target_path.parent
+                self._project_space = new_space
+                try:
+                    if self._settings is not None:
+                        # Ensure the space is registered
+                        spaces = getattr(self._settings, "spaces", None) or []
+                        if not isinstance(spaces, list):
+                            spaces = []
+                        if new_space not in spaces:
+                            spaces.append(new_space)
+                            self._settings.spaces = spaces
+                        self._settings.project_space = new_space
+                        save_settings(self._settings)
+                except Exception:
+                    pass
+
+        try:
+            body_md = self._serialise_to_text()
+            storage.write_text(target_path, body_md)
+
+            # This is now the master document's backing file: subsequent
+            # autosaves (and the no-Space home-directory backup fallback)
+            # should keep updating it rather than generating another path.
+            self._master_path = target_path
+            self._dirty = False
+
+            bar = self.statusBar()
+            if bar is not None:
+                bar.showMessage(
+                    self.tr("Saved master document to: {path}").format(path=target_path),
+                    5000,
+                )
+        except Exception:
+            import traceback
+            traceback.print_exc()
+            QMessageBox.critical(
+                self,
+                self.tr("Save failed"),
+                self.tr("An unexpected error occurred while saving the master document."),
+            )
+
     def closeEvent(self, event) -> None:  # pragma: no cover - UI wiring
         """Ensure pending changes are flushed before the window closes."""
 
@@ -2283,6 +2450,11 @@ class MasterDocumentWindow(QMainWindow):
         try:
             if hasattr(self, "_action_save_as_screenplay"):
                 self._action_save_as_screenplay.setText(self.tr("as .screenplay file"))
+        except Exception:
+            pass
+        try:
+            if hasattr(self, "_action_save_as_master"):
+                self._action_save_as_master.setText(self.tr("as .master file"))
         except Exception:
             pass
         try:

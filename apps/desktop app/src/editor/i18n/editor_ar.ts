@@ -441,6 +441,121 @@ Details: {error}</translation>
     </message>
   </context>
 <context>
+    <name>MasterDocumentWindow</name>
+    <message>
+        <source>Save as</source>
+        <translation>حفظ باسم</translation>
+    </message>
+    <message>
+        <source>as .md file</source>
+        <translation>كملف .md</translation>
+    </message>
+    <message>
+        <source>as .story file</source>
+        <translation>كملف .story</translation>
+    </message>
+    <message>
+        <source>as .screenplay file</source>
+        <translation>كملف .screenplay</translation>
+    </message>
+    <message>
+        <source>as .master file</source>
+        <translation>كملف .master</translation>
+    </message>
+    <message>
+        <source>The master document is empty; there is nothing to save.</source>
+        <translation>المستند الرئيسي فارغ؛ لا يوجد ما يمكن حفظه.</translation>
+    </message>
+    <message>
+        <source>Save as Markdown</source>
+        <translation>حفظ كملف Markdown</translation>
+    </message>
+    <message>
+        <source>Markdown files (*.md);;All files (*)</source>
+        <translation>ملفات Markdown (*.md);;كل الملفات (*)</translation>
+    </message>
+    <message>
+        <source>Saved document to: {path}</source>
+        <translation>تم حفظ المستند في: {path}</translation>
+    </message>
+    <message>
+        <source>Save failed</source>
+        <translation>فشل الحفظ</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the document.</source>
+        <translation>حدث خطأ غير متوقع أثناء حفظ المستند.</translation>
+    </message>
+    <message>
+        <source>Save as Story</source>
+        <translation>حفظ كقصة</translation>
+    </message>
+    <message>
+        <source>Story files (*.story);;All files (*)</source>
+        <translation>ملفات القصص (*.story);;كل الملفات (*)</translation>
+    </message>
+    <message>
+        <source>Saved story to: {path} (Story ID: {id})</source>
+        <translation>تم حفظ القصة في: {path} (معرّف القصة: {id})</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the story.</source>
+        <translation>حدث خطأ غير متوقع أثناء حفظ القصة.</translation>
+    </message>
+    <message>
+        <source>Save as Screenplay</source>
+        <translation>حفظ كسيناريو</translation>
+    </message>
+    <message>
+        <source>Screenplay files (*.screenplay);;All files (*)</source>
+        <translation>ملفات السيناريو (*.screenplay);;كل الملفات (*)</translation>
+    </message>
+    <message>
+        <source>Saved screenplay to: {path} (Screenplay ID: {id})</source>
+        <translation>تم حفظ السيناريو في: {path} (معرّف السيناريو: {id})</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the screenplay.</source>
+        <translation>حدث خطأ غير متوقع أثناء حفظ السيناريو.</translation>
+    </message>
+    <message>
+        <source>Save as Master document</source>
+        <translation>حفظ كمستند رئيسي</translation>
+    </message>
+    <message>
+        <source>Master documents (*.master);;All files (*)</source>
+        <translation>المستندات الرئيسية (*.master);;كل الملفات (*)</translation>
+    </message>
+    <message>
+        <source>Saved master document to: {path}</source>
+        <translation>تم حفظ المستند الرئيسي في: {path}</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the master document.</source>
+        <translation>حدث خطأ غير متوقع أثناء حفظ المستند الرئيسي.</translation>
+    </message>
+    <message>
+        <source>Save outside Space</source>
+        <translation>الحفظ خارج المساحة</translation>
+    </message>
+    <message>
+        <source>You're about to save the {file_type} file outside of a creative Space. Do you really want to do that?</source>
+        <translation>أنت على وشك حفظ ملف {file_type} خارج مساحة إبداعية. هل تريد فعلاً القيام بذلك؟</translation>
+    </message>
+    <message>
+        <source>Yes</source>
+        <translation>نعم</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>إلغاء</translation>
+    </message>
+    <message>
+        <source>Set | Create new Space</source>
+        <translation>تعيين | إنشاء مساحة جديدة</translation>
+    </message>
+</context>
+<context>
     <name>CompareRevisionsWindow</name>
     <message>
         <source>Show diff highlights</source>

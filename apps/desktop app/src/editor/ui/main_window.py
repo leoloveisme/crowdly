@@ -820,9 +820,7 @@ class MainWindow(QMainWindow):
         """
 
         try:
-            home = Path.home()
-            timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-            backup_path = home / f"crowdly-backup-{timestamp}.bupx"
+            backup_path = storage.new_home_backup_path()
             storage.write_text(backup_path, getattr(document, "content", "") or "")
         except Exception:
             # Backups must never interfere with core behaviour.

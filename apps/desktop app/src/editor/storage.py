@@ -5,7 +5,20 @@ This module is GUI-agnostic and centralises basic file IO.
 
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
+
+
+def new_home_backup_path() -> Path:
+    """Return a fresh timestamp-based ``~/*.bupx`` backup path.
+
+    Used as the fallback save location when there is no Space (and no
+    project space) to persist a document or master document into.
+    """
+
+    home = Path.home()
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    return home / f"crowdly-backup-{timestamp}.bupx"
 
 
 def read_text(path: Path, encoding: str = "utf-8") -> str:

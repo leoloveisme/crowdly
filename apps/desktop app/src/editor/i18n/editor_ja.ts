@@ -441,6 +441,121 @@ Details: {error}</translation>
     </message>
   </context>
 <context>
+    <name>MasterDocumentWindow</name>
+    <message>
+        <source>Save as</source>
+        <translation>名前を付けて保存</translation>
+    </message>
+    <message>
+        <source>as .md file</source>
+        <translation>.mdファイルとして</translation>
+    </message>
+    <message>
+        <source>as .story file</source>
+        <translation>.storyファイルとして</translation>
+    </message>
+    <message>
+        <source>as .screenplay file</source>
+        <translation>.screenplayファイルとして</translation>
+    </message>
+    <message>
+        <source>as .master file</source>
+        <translation>.masterファイルとして</translation>
+    </message>
+    <message>
+        <source>The master document is empty; there is nothing to save.</source>
+        <translation>マスタードキュメントは空です。保存する内容がありません。</translation>
+    </message>
+    <message>
+        <source>Save as Markdown</source>
+        <translation>Markdownとして保存</translation>
+    </message>
+    <message>
+        <source>Markdown files (*.md);;All files (*)</source>
+        <translation>Markdownファイル (*.md);;すべてのファイル (*)</translation>
+    </message>
+    <message>
+        <source>Saved document to: {path}</source>
+        <translation>ドキュメントを保存しました: {path}</translation>
+    </message>
+    <message>
+        <source>Save failed</source>
+        <translation>保存に失敗しました</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the document.</source>
+        <translation>ドキュメントの保存中に予期しないエラーが発生しました。</translation>
+    </message>
+    <message>
+        <source>Save as Story</source>
+        <translation>ストーリーとして保存</translation>
+    </message>
+    <message>
+        <source>Story files (*.story);;All files (*)</source>
+        <translation>ストーリーファイル (*.story);;すべてのファイル (*)</translation>
+    </message>
+    <message>
+        <source>Saved story to: {path} (Story ID: {id})</source>
+        <translation>ストーリーを保存しました: {path}(ストーリーID: {id})</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the story.</source>
+        <translation>ストーリーの保存中に予期しないエラーが発生しました。</translation>
+    </message>
+    <message>
+        <source>Save as Screenplay</source>
+        <translation>脚本として保存</translation>
+    </message>
+    <message>
+        <source>Screenplay files (*.screenplay);;All files (*)</source>
+        <translation>脚本ファイル (*.screenplay);;すべてのファイル (*)</translation>
+    </message>
+    <message>
+        <source>Saved screenplay to: {path} (Screenplay ID: {id})</source>
+        <translation>脚本を保存しました: {path}(脚本ID: {id})</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the screenplay.</source>
+        <translation>脚本の保存中に予期しないエラーが発生しました。</translation>
+    </message>
+    <message>
+        <source>Save as Master document</source>
+        <translation>マスタードキュメントとして保存</translation>
+    </message>
+    <message>
+        <source>Master documents (*.master);;All files (*)</source>
+        <translation>マスタードキュメント (*.master);;すべてのファイル (*)</translation>
+    </message>
+    <message>
+        <source>Saved master document to: {path}</source>
+        <translation>マスタードキュメントを保存しました: {path}</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the master document.</source>
+        <translation>マスタードキュメントの保存中に予期しないエラーが発生しました。</translation>
+    </message>
+    <message>
+        <source>Save outside Space</source>
+        <translation>スペース外に保存</translation>
+    </message>
+    <message>
+        <source>You're about to save the {file_type} file outside of a creative Space. Do you really want to do that?</source>
+        <translation>{file_type}ファイルをクリエイティブスペースの外に保存しようとしています。本当によろしいですか?</translation>
+    </message>
+    <message>
+        <source>Yes</source>
+        <translation>はい</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>キャンセル</translation>
+    </message>
+    <message>
+        <source>Set | Create new Space</source>
+        <translation>設定 | 新しいスペースを作成</translation>
+    </message>
+</context>
+<context>
     <name>CompareRevisionsWindow</name>
     <message>
         <source>Show diff highlights</source>

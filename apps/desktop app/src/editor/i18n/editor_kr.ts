@@ -441,6 +441,121 @@ Details: {error}</translation>
     </message>
   </context>
 <context>
+    <name>MasterDocumentWindow</name>
+    <message>
+        <source>Save as</source>
+        <translation>다른 이름으로 저장</translation>
+    </message>
+    <message>
+        <source>as .md file</source>
+        <translation>.md 파일로</translation>
+    </message>
+    <message>
+        <source>as .story file</source>
+        <translation>.story 파일로</translation>
+    </message>
+    <message>
+        <source>as .screenplay file</source>
+        <translation>.screenplay 파일로</translation>
+    </message>
+    <message>
+        <source>as .master file</source>
+        <translation>.master 파일로</translation>
+    </message>
+    <message>
+        <source>The master document is empty; there is nothing to save.</source>
+        <translation>마스터 문서가 비어 있어 저장할 내용이 없습니다.</translation>
+    </message>
+    <message>
+        <source>Save as Markdown</source>
+        <translation>Markdown으로 저장</translation>
+    </message>
+    <message>
+        <source>Markdown files (*.md);;All files (*)</source>
+        <translation>Markdown 파일 (*.md);;모든 파일 (*)</translation>
+    </message>
+    <message>
+        <source>Saved document to: {path}</source>
+        <translation>문서를 저장했습니다: {path}</translation>
+    </message>
+    <message>
+        <source>Save failed</source>
+        <translation>저장 실패</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the document.</source>
+        <translation>문서를 저장하는 중 예기치 않은 오류가 발생했습니다.</translation>
+    </message>
+    <message>
+        <source>Save as Story</source>
+        <translation>스토리로 저장</translation>
+    </message>
+    <message>
+        <source>Story files (*.story);;All files (*)</source>
+        <translation>스토리 파일 (*.story);;모든 파일 (*)</translation>
+    </message>
+    <message>
+        <source>Saved story to: {path} (Story ID: {id})</source>
+        <translation>스토리를 저장했습니다: {path} (스토리 ID: {id})</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the story.</source>
+        <translation>스토리를 저장하는 중 예기치 않은 오류가 발생했습니다.</translation>
+    </message>
+    <message>
+        <source>Save as Screenplay</source>
+        <translation>시나리오로 저장</translation>
+    </message>
+    <message>
+        <source>Screenplay files (*.screenplay);;All files (*)</source>
+        <translation>시나리오 파일 (*.screenplay);;모든 파일 (*)</translation>
+    </message>
+    <message>
+        <source>Saved screenplay to: {path} (Screenplay ID: {id})</source>
+        <translation>시나리오를 저장했습니다: {path} (시나리오 ID: {id})</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the screenplay.</source>
+        <translation>시나리오를 저장하는 중 예기치 않은 오류가 발생했습니다.</translation>
+    </message>
+    <message>
+        <source>Save as Master document</source>
+        <translation>마스터 문서로 저장</translation>
+    </message>
+    <message>
+        <source>Master documents (*.master);;All files (*)</source>
+        <translation>마스터 문서 (*.master);;모든 파일 (*)</translation>
+    </message>
+    <message>
+        <source>Saved master document to: {path}</source>
+        <translation>마스터 문서를 저장했습니다: {path}</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the master document.</source>
+        <translation>마스터 문서를 저장하는 중 예기치 않은 오류가 발생했습니다.</translation>
+    </message>
+    <message>
+        <source>Save outside Space</source>
+        <translation>스페이스 밖에 저장</translation>
+    </message>
+    <message>
+        <source>You're about to save the {file_type} file outside of a creative Space. Do you really want to do that?</source>
+        <translation>{file_type} 파일을 크리에이티브 스페이스 밖에 저장하려고 합니다. 정말로 계속하시겠습니까?</translation>
+    </message>
+    <message>
+        <source>Yes</source>
+        <translation>예</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>취소</translation>
+    </message>
+    <message>
+        <source>Set | Create new Space</source>
+        <translation>설정 | 새 스페이스 만들기</translation>
+    </message>
+</context>
+<context>
     <name>CompareRevisionsWindow</name>
     <message>
         <source>Show diff highlights</source>

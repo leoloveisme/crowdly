@@ -645,6 +645,118 @@ Details: {error}</source>
         <source>Read only include container</source>
         <translation>Нередактируемый контейнер (только для чтения)</translation>
     </message>
+    <message>
+        <source>Save as</source>
+        <translation>Сохранить как</translation>
+    </message>
+    <message>
+        <source>as .md file</source>
+        <translation>как файл .md</translation>
+    </message>
+    <message>
+        <source>as .story file</source>
+        <translation>как файл .story</translation>
+    </message>
+    <message>
+        <source>as .screenplay file</source>
+        <translation>как файл .screenplay</translation>
+    </message>
+    <message>
+        <source>as .master file</source>
+        <translation>как файл .master</translation>
+    </message>
+    <message>
+        <source>The master document is empty; there is nothing to save.</source>
+        <translation>Мастер документ пуст; сохранять нечего.</translation>
+    </message>
+    <message>
+        <source>Save as Markdown</source>
+        <translation>Сохранить как Markdown</translation>
+    </message>
+    <message>
+        <source>Markdown files (*.md);;All files (*)</source>
+        <translation>Файлы Markdown (*.md);;Все файлы (*)</translation>
+    </message>
+    <message>
+        <source>Saved document to: {path}</source>
+        <translation>Документ сохранён в: {path}</translation>
+    </message>
+    <message>
+        <source>Save failed</source>
+        <translation>Не удалось сохранить</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the document.</source>
+        <translation>Произошла непредвиденная ошибка при сохранении документа.</translation>
+    </message>
+    <message>
+        <source>Save as Story</source>
+        <translation>Сохранить как историю</translation>
+    </message>
+    <message>
+        <source>Story files (*.story);;All files (*)</source>
+        <translation>Файлы историй (*.story);;Все файлы (*)</translation>
+    </message>
+    <message>
+        <source>Saved story to: {path} (Story ID: {id})</source>
+        <translation>История сохранена в: {path} (ID истории: {id})</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the story.</source>
+        <translation>Произошла непредвиденная ошибка при сохранении истории.</translation>
+    </message>
+    <message>
+        <source>Save as Screenplay</source>
+        <translation>Сохранить как сценарий</translation>
+    </message>
+    <message>
+        <source>Screenplay files (*.screenplay);;All files (*)</source>
+        <translation>Файлы сценариев (*.screenplay);;Все файлы (*)</translation>
+    </message>
+    <message>
+        <source>Saved screenplay to: {path} (Screenplay ID: {id})</source>
+        <translation>Сценарий сохранён в: {path} (ID сценария: {id})</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the screenplay.</source>
+        <translation>Произошла непредвиденная ошибка при сохранении сценария.</translation>
+    </message>
+    <message>
+        <source>Save as Master document</source>
+        <translation>Сохранить как мастер документ</translation>
+    </message>
+    <message>
+        <source>Master documents (*.master);;All files (*)</source>
+        <translation>Мастер документы (*.master);;Все файлы (*)</translation>
+    </message>
+    <message>
+        <source>Saved master document to: {path}</source>
+        <translation>Мастер документ сохранён в: {path}</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the master document.</source>
+        <translation>Произошла непредвиденная ошибка при сохранении мастер документа.</translation>
+    </message>
+    <message>
+        <source>Save outside Space</source>
+        <translation>Сохранить вне Пространства</translation>
+    </message>
+    <message>
+        <source>You're about to save the {file_type} file outside of a creative Space. Do you really want to do that?</source>
+        <translation>Вы собираетесь сохранить файл {file_type} вне творческого Пространства. Вы действительно хотите это сделать?</translation>
+    </message>
+    <message>
+        <source>Yes</source>
+        <translation>Да</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Отмена</translation>
+    </message>
+    <message>
+        <source>Set | Create new Space</source>
+        <translation>Задать | Создать новое Пространство</translation>
+    </message>
 </context>
 <context>
     <name>CompareRevisionsWindow</name>

@@ -581,6 +581,118 @@ Details: {error}</translation>
         <source>Read only include container</source>
         <translation>Read only include container</translation>
     </message>
+    <message>
+        <source>Save as</source>
+        <translation>Save as</translation>
+    </message>
+    <message>
+        <source>as .md file</source>
+        <translation>as .md file</translation>
+    </message>
+    <message>
+        <source>as .story file</source>
+        <translation>as .story file</translation>
+    </message>
+    <message>
+        <source>as .screenplay file</source>
+        <translation>as .screenplay file</translation>
+    </message>
+    <message>
+        <source>as .master file</source>
+        <translation>as .master file</translation>
+    </message>
+    <message>
+        <source>The master document is empty; there is nothing to save.</source>
+        <translation>The master document is empty; there is nothing to save.</translation>
+    </message>
+    <message>
+        <source>Save as Markdown</source>
+        <translation>Save as Markdown</translation>
+    </message>
+    <message>
+        <source>Markdown files (*.md);;All files (*)</source>
+        <translation>Markdown files (*.md);;All files (*)</translation>
+    </message>
+    <message>
+        <source>Saved document to: {path}</source>
+        <translation>Saved document to: {path}</translation>
+    </message>
+    <message>
+        <source>Save failed</source>
+        <translation>Save failed</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the document.</source>
+        <translation>An unexpected error occurred while saving the document.</translation>
+    </message>
+    <message>
+        <source>Save as Story</source>
+        <translation>Save as Story</translation>
+    </message>
+    <message>
+        <source>Story files (*.story);;All files (*)</source>
+        <translation>Story files (*.story);;All files (*)</translation>
+    </message>
+    <message>
+        <source>Saved story to: {path} (Story ID: {id})</source>
+        <translation>Saved story to: {path} (Story ID: {id})</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the story.</source>
+        <translation>An unexpected error occurred while saving the story.</translation>
+    </message>
+    <message>
+        <source>Save as Screenplay</source>
+        <translation>Save as Screenplay</translation>
+    </message>
+    <message>
+        <source>Screenplay files (*.screenplay);;All files (*)</source>
+        <translation>Screenplay files (*.screenplay);;All files (*)</translation>
+    </message>
+    <message>
+        <source>Saved screenplay to: {path} (Screenplay ID: {id})</source>
+        <translation>Saved screenplay to: {path} (Screenplay ID: {id})</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the screenplay.</source>
+        <translation>An unexpected error occurred while saving the screenplay.</translation>
+    </message>
+    <message>
+        <source>Save as Master document</source>
+        <translation>Save as Master document</translation>
+    </message>
+    <message>
+        <source>Master documents (*.master);;All files (*)</source>
+        <translation>Master documents (*.master);;All files (*)</translation>
+    </message>
+    <message>
+        <source>Saved master document to: {path}</source>
+        <translation>Saved master document to: {path}</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the master document.</source>
+        <translation>An unexpected error occurred while saving the master document.</translation>
+    </message>
+    <message>
+        <source>Save outside Space</source>
+        <translation>Save outside Space</translation>
+    </message>
+    <message>
+        <source>You're about to save the {file_type} file outside of a creative Space. Do you really want to do that?</source>
+        <translation>You're about to save the {file_type} file outside of a creative Space. Do you really want to do that?</translation>
+    </message>
+    <message>
+        <source>Yes</source>
+        <translation>Yes</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Cancel</translation>
+    </message>
+    <message>
+        <source>Set | Create new Space</source>
+        <translation>Set | Create new Space</translation>
+    </message>
 </context>
 <context>
     <name>CompareRevisionsWindow</name>

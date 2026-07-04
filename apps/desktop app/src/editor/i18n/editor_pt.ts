@@ -441,6 +441,121 @@ Details: {error}</translation>
     </message>
   </context>
 <context>
+    <name>MasterDocumentWindow</name>
+    <message>
+        <source>Save as</source>
+        <translation>Salvar como</translation>
+    </message>
+    <message>
+        <source>as .md file</source>
+        <translation>como arquivo .md</translation>
+    </message>
+    <message>
+        <source>as .story file</source>
+        <translation>como arquivo .story</translation>
+    </message>
+    <message>
+        <source>as .screenplay file</source>
+        <translation>como arquivo .screenplay</translation>
+    </message>
+    <message>
+        <source>as .master file</source>
+        <translation>como arquivo .master</translation>
+    </message>
+    <message>
+        <source>The master document is empty; there is nothing to save.</source>
+        <translation>O documento mestre está vazio; não há nada para salvar.</translation>
+    </message>
+    <message>
+        <source>Save as Markdown</source>
+        <translation>Salvar como Markdown</translation>
+    </message>
+    <message>
+        <source>Markdown files (*.md);;All files (*)</source>
+        <translation>Arquivos Markdown (*.md);;Todos os arquivos (*)</translation>
+    </message>
+    <message>
+        <source>Saved document to: {path}</source>
+        <translation>Documento salvo em: {path}</translation>
+    </message>
+    <message>
+        <source>Save failed</source>
+        <translation>Falha ao salvar</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the document.</source>
+        <translation>Ocorreu um erro inesperado ao salvar o documento.</translation>
+    </message>
+    <message>
+        <source>Save as Story</source>
+        <translation>Salvar como História</translation>
+    </message>
+    <message>
+        <source>Story files (*.story);;All files (*)</source>
+        <translation>Arquivos de história (*.story);;Todos os arquivos (*)</translation>
+    </message>
+    <message>
+        <source>Saved story to: {path} (Story ID: {id})</source>
+        <translation>História salva em: {path} (ID da história: {id})</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the story.</source>
+        <translation>Ocorreu um erro inesperado ao salvar a história.</translation>
+    </message>
+    <message>
+        <source>Save as Screenplay</source>
+        <translation>Salvar como Roteiro</translation>
+    </message>
+    <message>
+        <source>Screenplay files (*.screenplay);;All files (*)</source>
+        <translation>Arquivos de roteiro (*.screenplay);;Todos os arquivos (*)</translation>
+    </message>
+    <message>
+        <source>Saved screenplay to: {path} (Screenplay ID: {id})</source>
+        <translation>Roteiro salvo em: {path} (ID do roteiro: {id})</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the screenplay.</source>
+        <translation>Ocorreu um erro inesperado ao salvar o roteiro.</translation>
+    </message>
+    <message>
+        <source>Save as Master document</source>
+        <translation>Salvar como Documento mestre</translation>
+    </message>
+    <message>
+        <source>Master documents (*.master);;All files (*)</source>
+        <translation>Documentos mestre (*.master);;Todos os arquivos (*)</translation>
+    </message>
+    <message>
+        <source>Saved master document to: {path}</source>
+        <translation>Documento mestre salvo em: {path}</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the master document.</source>
+        <translation>Ocorreu um erro inesperado ao salvar o documento mestre.</translation>
+    </message>
+    <message>
+        <source>Save outside Space</source>
+        <translation>Salvar fora do Espaço</translation>
+    </message>
+    <message>
+        <source>You're about to save the {file_type} file outside of a creative Space. Do you really want to do that?</source>
+        <translation>Você está prestes a salvar o arquivo {file_type} fora de um Espaço criativo. Deseja realmente fazer isso?</translation>
+    </message>
+    <message>
+        <source>Yes</source>
+        <translation>Sim</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Cancelar</translation>
+    </message>
+    <message>
+        <source>Set | Create new Space</source>
+        <translation>Definir | Criar novo Espaço</translation>
+    </message>
+</context>
+<context>
     <name>CompareRevisionsWindow</name>
     <message>
         <source>Show diff highlights</source>
