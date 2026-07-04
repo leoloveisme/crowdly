@@ -144,7 +144,37 @@ class _IncludeListWidget(QListWidget):
                 hint.setWidth(viewport_width)
                 item.setSizeHint(hint)
 
+    @staticmethod
+    def _local_file_urls(event) -> list:
+        """Return local-file URLs carried by *event*'s mime data, if any."""
+
+        mime = event.mimeData()
+        if mime is None or not mime.hasUrls():
+            return []
+        return [url for url in mime.urls() if url.isLocalFile()]
+
+    def dragEnterEvent(self, event) -> None:  # pragma: no cover - UI wiring
+        """Accept external file drops (e.g. from the file explorer) in
+        addition to the existing internal reordering drag mode."""
+
+        if self._local_file_urls(event):
+            event.acceptProposedAction()
+            return
+        super().dragEnterEvent(event)
+
     def dropEvent(self, event) -> None:  # pragma: no cover - UI wiring
+        # A file dropped onto empty workspace space (as opposed to directly
+        # onto an existing container, which IncludeContainerWidget itself
+        # already handles) creates one or more brand-new containers.
+        local_urls = self._local_file_urls(event)
+        if local_urls:
+            window = self.window()
+            handler = getattr(window, "_handle_files_dropped_on_workspace", None)
+            if callable(handler):
+                handler(local_urls)
+            event.acceptProposedAction()
+            return
+
         pos = self.dropIndicatorPosition()
         if pos == QAbstractItemView.DropIndicatorPosition.OnItem:
             # Ignore drops that target the middle of an item; the user must
@@ -163,9 +193,17 @@ class _IncludeListWidget(QListWidget):
         drop indication and item reordering.
         """
 
-        # First, let the base class update the drop indicator and handle
-        # standard drag behaviour.
-        super().dragMoveEvent(event)
+        # External file drags are handled entirely by us (the base
+        # QListWidget's internal-move drop logic does not know about
+        # "text/uri-list" mime data), so accept explicitly here and skip
+        # the base implementation; internal reordering drags fall through
+        # to it as before.
+        if self._local_file_urls(event):
+            event.acceptProposedAction()
+        else:
+            # Let the base class update the drop indicator and handle
+            # standard drag behaviour.
+            super().dragMoveEvent(event)
 
         try:
             # QDragMoveEvent.position() is available in Qt 6; fall back to
@@ -928,6 +966,17 @@ class MasterDocumentWindow(QMainWindow):
         # Space, their changes will only be kept as a home-directory backup.
         self._no_space_warning_shown: bool = False
 
+        # Session-level container-type policy for files dropped onto empty
+        # workspace space (as opposed to onto an existing container, which
+        # keeps that container's own type unchanged). ``None`` means "ask
+        # for every file"; "editable"/"readonly" means a session-wide choice
+        # has been locked in and drops no longer prompt at all.
+        self._drop_container_type_choice: str | None = None
+        # Whether the "use the same type for all further files?" question
+        # has already been asked once this session. Asked only the first
+        # time a file is dropped onto empty space.
+        self._drop_asked_remember_pref: bool = False
+
         # Debounced autosave timer for the master document itself.
         self._autosave_timer = QTimer(self)
         self._autosave_timer.setSingleShot(True)
@@ -1048,7 +1097,7 @@ class MasterDocumentWindow(QMainWindow):
 
     # Include containers --------------------------------------------------
 
-    def _add_include_container(self, editable: bool) -> None:
+    def _add_include_container(self, editable: bool) -> IncludeContainerWidget:
         widget = IncludeContainerWidget(editable, parent=self._include_list)
         item = QListWidgetItem(self._include_list)
 
@@ -1083,6 +1132,92 @@ class MasterDocumentWindow(QMainWindow):
             pass
 
         self._mark_dirty()
+
+        return widget
+
+    def _handle_files_dropped_on_workspace(self, urls) -> None:
+        """Create new include containers for files dropped on empty space.
+
+        This is the entry point for drops that land on empty workspace area
+        rather than directly onto an already-created container (that case
+        continues to be handled by ``IncludeContainerWidget`` itself and is
+        unaffected). For each dropped file we ask -- unless a session-wide
+        choice has already been locked in -- whether it should become a
+        writable or read-only container, then create that container and
+        bind it to the file exactly as an explicit drag onto an existing
+        container would.
+        """
+
+        for url in urls:
+            try:
+                path = Path(url.toLocalFile())
+            except Exception:
+                continue
+            if not path.is_file():
+                continue
+
+            container_type = self._prompt_container_type_for_drop()
+            if container_type is None:
+                # User cancelled the type prompt; stop processing the rest
+                # of this drop rather than silently guessing.
+                break
+
+            widget = self._add_include_container(editable=(container_type == "editable"))
+            widget.set_file_from_path(path)
+
+    def _prompt_container_type_for_drop(self) -> str | None:
+        """Return "editable" or "readonly" for the next dropped file.
+
+        Prompts the user unless a session-wide choice was already locked in
+        via the "use this for all further files?" question. Returns ``None``
+        if the user cancels the type prompt.
+        """
+
+        if self._drop_container_type_choice is not None:
+            return self._drop_container_type_choice
+
+        chosen = self._ask_container_type_for_dropped_file()
+        if chosen is None:
+            return None
+
+        if not self._drop_asked_remember_pref:
+            self._drop_asked_remember_pref = True
+            remember = QMessageBox.question(
+                self,
+                self.tr("Container type"),
+                self.tr(
+                    "Should the same type of container be used for all "
+                    "further files during this session?"
+                ),
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.Yes,
+            )
+            if remember == QMessageBox.StandardButton.Yes:
+                self._drop_container_type_choice = chosen
+
+        return chosen
+
+    def _ask_container_type_for_dropped_file(self) -> str | None:
+        """Ask whether a dropped file should become a writable or read-only
+        container. Returns "editable", "readonly", or ``None`` on cancel."""
+
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle(self.tr("Add file as container"))
+        msg_box.setText(
+            self.tr("What kind of container should the dropped file be placed into?")
+        )
+        writable_btn = msg_box.addButton(self.tr("Writable"), QMessageBox.ButtonRole.AcceptRole)
+        readonly_btn = msg_box.addButton(self.tr("Read-only"), QMessageBox.ButtonRole.AcceptRole)
+        msg_box.addButton(self.tr("Cancel"), QMessageBox.ButtonRole.RejectRole)
+
+        msg_box.exec()
+
+        clicked = msg_box.clickedButton()
+        if clicked == writable_btn:
+            return "editable"
+        if clicked == readonly_btn:
+            return "readonly"
+        return None
 
     def _on_container_delete_requested(self, widget: IncludeContainerWidget) -> None:
         item = self._container_items.pop(widget, None)
