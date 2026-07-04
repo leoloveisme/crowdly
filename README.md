@@ -21,5 +21,11 @@ and
 
 Apps for major OSes: Android and iOS are in planning.  // Currently we have MVP desktop app for Linux. 
 
-#Crowdly #entertainment #crowd_created_eintertainment #crowdcreatedentertainment #entertainment_platform #entertainmentplatform
+- Crowdly platform
+- a desktop app written in Python, which easily could be ported to Windows, MacOS and Linux 
+and 
+- a web app, which is currently in it's very early development stage. 
 
+Apps for major OSes: Android and iOS are in planning.  // Currently we have MVP desktop app for Linux. 
+
+#Crowdly #entertainment #crowd_created_eintertainment #crowdcreatedentertainment #entertainment_platform #entertainmentplatform #FOSS 
