@@ -5,6 +5,7 @@ import CrowdlyHeader from "@/components/CrowdlyHeader";
 import CrowdlyFooter from "@/components/CrowdlyFooter";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import EditableText from "@/components/EditableText";
 
 const API_BASE = import.meta.env.PROD
   ? (import.meta.env.VITE_API_BASE_URL ?? "")
@@ -257,7 +258,7 @@ const CreativeSpacePage: React.FC = () => {
       <div className="min-h-screen flex flex-col">
         <CrowdlyHeader />
         <div className="flex flex-1 items-center justify-center">
-          <p className="text-gray-500">Loading creative space...</p>
+          <EditableText id="space-loading" as="p" className="text-gray-500">Loading creative space...</EditableText>
         </div>
         <CrowdlyFooter />
       </div>
@@ -281,7 +282,7 @@ const CreativeSpacePage: React.FC = () => {
       <div className="min-h-screen flex flex-col">
         <CrowdlyHeader />
         <div className="flex flex-1 items-center justify-center">
-          <p className="text-gray-500">Creative space not found.</p>
+          <EditableText id="space-not-found" as="p" className="text-gray-500">Creative space not found.</EditableText>
         </div>
         <CrowdlyFooter />
       </div>
@@ -293,9 +294,9 @@ const CreativeSpacePage: React.FC = () => {
       <div className="min-h-screen flex flex-col">
         <CrowdlyHeader />
         <div className="flex flex-1 items-center justify-center">
-          <p className="text-gray-500 text-center max-w-md">
+          <EditableText id="space-no-access" as="p" className="text-gray-500 text-center max-w-md">
             You do not have access to this creative space.
-          </p>
+          </EditableText>
         </div>
         <CrowdlyFooter />
       </div>
@@ -315,7 +316,7 @@ const CreativeSpacePage: React.FC = () => {
       <div className="container mx-auto px-4 pt-8 pb-16 flex-grow max-w-5xl space-y-6">
         <div className="text-xs mb-2">
           <Link to="/profile" className="text-blue-700 hover:underline">
-            ← Back to profile page
+            <EditableText id="space-back-profile">← Back to profile page</EditableText>
           </Link>
         </div>
         <section className="bg-white/90 backdrop-blur border border-slate-200 rounded-2xl p-6 shadow-sm">
@@ -375,12 +376,12 @@ const CreativeSpacePage: React.FC = () => {
                       type="button"
                       className="text-xs text-blue-700 hover:underline"
                     >
-                      New story in this Space
+                      <EditableText id="space-new-story">New story in this Space</EditableText>
                     </button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>What would you like to create in this Space?</DialogTitle>
+                      <DialogTitle><EditableText id="space-create-dialog-title">What would you like to create in this Space?</EditableText></DialogTitle>
                     </DialogHeader>
                     <div className="mt-4 flex flex-col gap-3 text-sm">
                       <button
@@ -391,7 +392,7 @@ const CreativeSpacePage: React.FC = () => {
                           navigate(`/new-story-template?type=story&spaceId=${space.id}`);
                         }}
                       >
-                        Regular story (novel)
+                        <EditableText id="space-regular-story">Regular story (novel)</EditableText>
                       </button>
                       <button
                         type="button"
@@ -401,14 +402,14 @@ const CreativeSpacePage: React.FC = () => {
                           navigate(`/new-story-template?type=screenplay&spaceId=${space.id}`);
                         }}
                       >
-                        Screenplay story
+                        <EditableText id="space-screenplay-story">Screenplay story</EditableText>
                       </button>
                     </div>
                   </DialogContent>
                 </Dialog>
               )}
               <Button size="sm" onClick={handleCreateFolder} className="rounded-full px-3">
-                New folder
+                <EditableText id="space-new-folder">New folder</EditableText>
               </Button>
             </div>
           </div>
@@ -440,16 +441,16 @@ const CreativeSpacePage: React.FC = () => {
 
           <div className="border border-slate-200 rounded-xl overflow-hidden">
             <div className="flex items-center justify-between px-4 py-2 bg-slate-50 text-xs font-semibold text-slate-600">
-              <div className="flex-1">Name</div>
-              <div className="w-24 text-right">Type</div>
-              <div className="w-40 text-right">Updated</div>
-              <div className="w-32 text-right">Actions</div>
+              <div className="flex-1"><EditableText id="space-th-name">Name</EditableText></div>
+              <div className="w-24 text-right"><EditableText id="space-th-type">Type</EditableText></div>
+              <div className="w-40 text-right"><EditableText id="space-th-updated">Updated</EditableText></div>
+              <div className="w-32 text-right"><EditableText id="space-th-actions">Actions</EditableText></div>
             </div>
             {itemsLoading ? (
-              <div className="px-4 py-4 text-sm text-slate-500">Loading items...</div>
+              <div className="px-4 py-4 text-sm text-slate-500"><EditableText id="space-loading-items">Loading items...</EditableText></div>
             ) : items.length === 0 ? (
               <div className="px-4 py-6 text-sm text-slate-500">
-                No items in this folder yet.
+                <EditableText id="space-no-items">No items in this folder yet.</EditableText>
               </div>
             ) : (
               <ul className="divide-y text-sm">
@@ -485,14 +486,14 @@ const CreativeSpacePage: React.FC = () => {
                         className="text-slate-500 hover:text-slate-700"
                         onClick={() => handleRenameItem(item)}
                       >
-                        Rename
+                        <EditableText id="space-rename">Rename</EditableText>
                       </button>
                       <button
                         type="button"
                         className="text-red-600 hover:text-red-800"
                         onClick={() => handleDeleteItem(item)}
                       >
-                        Delete
+                        <EditableText id="space-delete">Delete</EditableText>
                       </button>
                     </div>
                   </li>

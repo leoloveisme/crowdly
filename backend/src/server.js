@@ -4,12 +4,14 @@ import dotenv from 'dotenv';
 import { randomUUID } from 'crypto';
 import { pool } from './db.js';
 import { loginWithEmailPassword, registerWithEmailPassword, changePassword, deleteAccountWithPassword } from './auth.js';
+import bcrypt from 'bcryptjs';
+import { sendInvitationEmail, sendApplicationConfirmationEmail, sendApplicationToInvitationEmail } from './email.js';
 
 dotenv.config();
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '5mb' }));
 
 // Ensure auxiliary tables / columns exist (best-effort)
 async function ensureStoryAccessTable() {
@@ -47,6 +49,34 @@ async function ensureStoryTitleGenreAndTagsColumns() {
     console.log('[init] ensured story_title.genre and story_title.tags columns exist');
   } catch (err) {
     console.error('[init] failed to ensure story_title.genre/tags columns:', err);
+  }
+}
+
+async function ensureStoryTitleDescriptionColumn() {
+  try {
+    await pool.query('ALTER TABLE story_title ADD COLUMN IF NOT EXISTS description text');
+    console.log('[init] ensured story_title.description column exists');
+  } catch (err) {
+    console.error('[init] failed to ensure story_title.description column:', err);
+  }
+}
+
+async function ensureScreenplayTitleDescriptionColumn() {
+  try {
+    await pool.query('ALTER TABLE screenplay_title ADD COLUMN IF NOT EXISTS description text');
+    console.log('[init] ensured screenplay_title.description column exists');
+  } catch (err) {
+    console.error('[init] failed to ensure screenplay_title.description column:', err);
+  }
+}
+
+async function ensureChapterTagsColumns() {
+  try {
+    await pool.query('ALTER TABLE stories ADD COLUMN IF NOT EXISTS tags text[]');
+    await pool.query('ALTER TABLE stories ADD COLUMN IF NOT EXISTS paragraph_tags jsonb');
+    console.log('[init] ensured stories.tags and stories.paragraph_tags columns exist');
+  } catch (err) {
+    console.error('[init] failed to ensure stories tags columns:', err);
   }
 }
 
@@ -96,6 +126,40 @@ async function ensureStoryInitiatorsTable() {
   }
 }
 
+// story_collaborators — per-story authors and co-authors
+async function ensureStoryCollaboratorsTable() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS story_collaborators (
+        story_title_id uuid NOT NULL REFERENCES story_title(story_title_id) ON DELETE CASCADE,
+        user_id uuid NOT NULL REFERENCES local_users(id) ON DELETE CASCADE,
+        role text NOT NULL CHECK (role IN ('author', 'coauthor')),
+        created_at timestamptz NOT NULL DEFAULT now(),
+        PRIMARY KEY (story_title_id, user_id)
+      )
+    `);
+    console.log('[init] ensured story_collaborators table exists');
+  } catch (err) {
+    console.error('[init] failed to ensure story_collaborators table:', err);
+  }
+}
+
+// initiator_id on story_title — permanent original creator (never changes on transfer)
+async function ensureStoryInitiatorColumn() {
+  try {
+    await pool.query(
+      'ALTER TABLE story_title ADD COLUMN IF NOT EXISTS initiator_id uuid REFERENCES local_users(id) ON DELETE SET NULL',
+    );
+    // Back-fill from creator_id for stories created before this migration
+    await pool.query(
+      'UPDATE story_title SET initiator_id = creator_id WHERE initiator_id IS NULL AND creator_id IS NOT NULL',
+    );
+    console.log('[init] ensured story_title.initiator_id column exists');
+  } catch (err) {
+    console.error('[init] failed to ensure story_title.initiator_id column:', err);
+  }
+}
+
 // Paragraph branches table for story paragraph branching (moved from Supabase)
 async function ensureParagraphBranchesTable() {
   try {
@@ -118,6 +182,75 @@ async function ensureParagraphBranchesTable() {
   }
 }
 
+// Story control columns: completion status, clone/export policies
+async function ensureStoryControlColumns() {
+  try {
+    await pool.query("ALTER TABLE story_title ADD COLUMN IF NOT EXISTS completion_status text NOT NULL DEFAULT 'draft'");
+    await pool.query("ALTER TABLE story_title ADD COLUMN IF NOT EXISTS clone_policy text NOT NULL DEFAULT 'anyone'");
+    await pool.query("ALTER TABLE story_title ADD COLUMN IF NOT EXISTS export_policy text NOT NULL DEFAULT 'anyone'");
+    console.log('[init] ensured story_title control columns exist');
+  } catch (err) {
+    console.error('[init] failed to ensure story_title control columns:', err);
+  }
+}
+
+async function ensureStoryLanguageAndCoverColumns() {
+  try {
+    await pool.query("ALTER TABLE story_title ADD COLUMN IF NOT EXISTS language VARCHAR(10) DEFAULT 'en'");
+    await pool.query("ALTER TABLE story_title ADD COLUMN IF NOT EXISTS cover_image_url TEXT");
+    console.log('[init] ensured story_title language and cover_image_url columns exist');
+  } catch (err) {
+    console.error('[init] failed to ensure story_title language/cover columns:', err);
+  }
+}
+
+async function ensureGroupsTables() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS user_groups (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        name text NOT NULL,
+        owner_id uuid NOT NULL REFERENCES local_users(id) ON DELETE CASCADE,
+        is_platform_group boolean NOT NULL DEFAULT false,
+        created_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS user_group_members (
+        group_id uuid NOT NULL REFERENCES user_groups(id) ON DELETE CASCADE,
+        user_id uuid NOT NULL REFERENCES local_users(id) ON DELETE CASCADE,
+        added_at timestamptz NOT NULL DEFAULT now(),
+        PRIMARY KEY (group_id, user_id)
+      )
+    `);
+    console.log('[init] ensured user_groups and user_group_members tables exist');
+  } catch (err) {
+    console.error('[init] failed to ensure groups tables:', err);
+  }
+}
+
+async function ensureStoryAccessRulesTable() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS story_access_rules (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        story_title_id uuid NOT NULL REFERENCES story_title(story_title_id) ON DELETE CASCADE,
+        rule_type text NOT NULL,
+        grantee_user_id uuid REFERENCES local_users(id) ON DELETE CASCADE,
+        grantee_group_id uuid REFERENCES user_groups(id) ON DELETE CASCADE,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        CONSTRAINT valid_grantee CHECK (
+          (grantee_user_id IS NOT NULL AND grantee_group_id IS NULL) OR
+          (grantee_user_id IS NULL AND grantee_group_id IS NOT NULL)
+        )
+      )
+    `);
+    console.log('[init] ensured story_access_rules table exists');
+  } catch (err) {
+    console.error('[init] failed to ensure story_access_rules table:', err);
+  }
+}
+
 // Additional profile metadata columns
 async function ensureProfilesRealNicknameColumn() {
   try {
@@ -127,6 +260,21 @@ async function ensureProfilesRealNicknameColumn() {
     console.log('[init] ensured profiles.real_nickname column exists');
   } catch (err) {
     console.error('[init] failed to ensure profiles.real_nickname column:', err);
+  }
+}
+
+async function ensureProfilePageNameColumn() {
+  try {
+    await pool.query(
+      'ALTER TABLE profiles ADD COLUMN IF NOT EXISTS profile_page_name text',
+    );
+    // Copy existing nickname data into the new column for rows that haven't been migrated yet.
+    await pool.query(
+      'UPDATE profiles SET profile_page_name = nickname WHERE nickname IS NOT NULL AND profile_page_name IS NULL',
+    );
+    console.log('[init] ensured profiles.profile_page_name column exists');
+  } catch (err) {
+    console.error('[init] failed to ensure profiles.profile_page_name column:', err);
   }
 }
 
@@ -194,6 +342,18 @@ async function ensureProfilesVisibilityColumns() {
   }
 }
 
+// Add social_other_links JSONB column for multiple social links with name+address
+async function ensureProfilesSocialOtherLinksColumn() {
+  try {
+    await pool.query(
+      "ALTER TABLE profiles ADD COLUMN IF NOT EXISTS social_other_links jsonb DEFAULT '[]'::jsonb",
+    );
+    console.log('[init] ensured profiles social_other_links column exists');
+  } catch (err) {
+    console.error('[init] failed to ensure profiles social_other_links column:', err);
+  }
+}
+
 // Dedicated locales table to keep a single authoritative list of supported
 // interface languages across the web platform and the desktop editor.
 async function ensureLocalesTable() {
@@ -224,8 +384,8 @@ async function ensureLocalesTable() {
       ['fr', 'French', 'Français', 'ltr'],
       ['es', 'Spanish', 'Español', 'ltr'],
       ['de', 'German', 'Deutsch', 'ltr'],
-      ['zh', 'Chinese (unspecified script)', '中文', 'ltr'],
       ['hi', 'Hindi', 'हिन्दी', 'ltr'],
+      ['other', 'Other', 'Other', 'ltr'],
     ];
 
     for (const [code, englishName, nativeName, direction] of seedLocales) {
@@ -240,6 +400,9 @@ async function ensureLocalesTable() {
         [code, englishName, nativeName, direction],
       );
     }
+
+    // Remove the legacy "zh" (unspecified script) locale — Simplified and Traditional are sufficient
+    await pool.query("UPDATE locales SET enabled = false, updated_at = now() WHERE code = 'zh'");
 
     console.log('[init] ensured locales table and seed data exist');
   } catch (err) {
@@ -902,6 +1065,152 @@ async function ensureScreenplayAccessRow(screenplayId, userId, role = 'contribut
   }
 }
 
+// Screenplay revisions table for tracking changes to scenes and blocks
+async function ensureScreenplayRevisionsTable() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS screenplay_revisions (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        screenplay_title_id uuid NOT NULL REFERENCES screenplay_title(screenplay_id) ON DELETE CASCADE,
+        scene_id uuid NULL REFERENCES screenplay_scene(scene_id) ON DELETE CASCADE,
+        prev_content jsonb,
+        new_content jsonb,
+        created_by uuid NULL REFERENCES local_users(id) ON DELETE SET NULL,
+        revision_number integer NOT NULL DEFAULT 1,
+        revision_reason text,
+        created_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    await pool.query(
+      'CREATE INDEX IF NOT EXISTS screenplay_revisions_title_idx ON screenplay_revisions(screenplay_title_id)',
+    );
+    await pool.query(
+      'CREATE INDEX IF NOT EXISTS screenplay_revisions_scene_idx ON screenplay_revisions(scene_id)',
+    );
+    console.log('[init] ensured screenplay_revisions table exists');
+  } catch (err) {
+    console.error('[init] failed to ensure screenplay_revisions table:', err);
+  }
+}
+
+// Alpha invitation & application tables
+async function ensureAlphaInvitationsTable() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS alpha_invitations (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        invitation_code text UNIQUE NOT NULL,
+        first_name text NOT NULL,
+        last_name text NOT NULL,
+        email text NOT NULL UNIQUE,
+        invited_by uuid REFERENCES local_users(id) ON DELETE SET NULL,
+        invited_at timestamptz NOT NULL DEFAULT now(),
+        joined_at timestamptz,
+        status text NOT NULL DEFAULT 'pending',
+        created_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    console.log('[init] ensured alpha_invitations table exists');
+  } catch (err) {
+    console.error('[init] failed to ensure alpha_invitations table:', err);
+  }
+}
+
+async function ensureAlphaApplicationsTable() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS alpha_applications (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        first_name text NOT NULL,
+        last_name text NOT NULL,
+        email text NOT NULL,
+        motivation_letter text,
+        status text NOT NULL DEFAULT 'pending',
+        created_at timestamptz NOT NULL DEFAULT now(),
+        processed_at timestamptz,
+        processed_by uuid REFERENCES local_users(id) ON DELETE SET NULL
+      )
+    `);
+    console.log('[init] ensured alpha_applications table exists');
+  } catch (err) {
+    console.error('[init] failed to ensure alpha_applications table:', err);
+  }
+}
+
+async function ensureUserBannedColumn() {
+  try {
+    await pool.query(
+      "ALTER TABLE local_users ADD COLUMN IF NOT EXISTS is_banned boolean NOT NULL DEFAULT false"
+    );
+    console.log('[init] ensured local_users.is_banned column exists');
+  } catch (err) {
+    console.error('[init] failed to ensure local_users.is_banned column:', err);
+  }
+}
+
+async function ensureAdminMessagesTable() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS admin_messages (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        sender_id uuid NOT NULL REFERENCES local_users(id) ON DELETE CASCADE,
+        recipient_id uuid NOT NULL REFERENCES local_users(id) ON DELETE CASCADE,
+        subject text NOT NULL DEFAULT '',
+        body text NOT NULL DEFAULT '',
+        created_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    console.log('[init] ensured admin_messages table exists');
+  } catch (err) {
+    console.error('[init] failed to ensure admin_messages table:', err);
+  }
+}
+
+async function ensureUserTranslatorLanguagesTable() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS user_translator_languages (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id uuid NOT NULL REFERENCES local_users(id) ON DELETE CASCADE,
+        locale_code text NOT NULL REFERENCES locales(code) ON DELETE CASCADE,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        UNIQUE(user_id, locale_code)
+      )
+    `);
+    await pool.query(
+      'CREATE INDEX IF NOT EXISTS user_translator_langs_user_idx ON user_translator_languages(user_id)',
+    );
+    console.log('[init] ensured user_translator_languages table exists');
+  } catch (err) {
+    console.error('[init] failed to ensure user_translator_languages table:', err);
+  }
+}
+
+async function ensureInterfaceTranslationsTable() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS interface_translations (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        page_path text NOT NULL,
+        element_id text NOT NULL,
+        language text NOT NULL DEFAULT 'English',
+        content text NOT NULL,
+        original_content text,
+        updated_by uuid REFERENCES local_users(id) ON DELETE SET NULL,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now()
+      )
+    `);
+    await pool.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS interface_translations_unique_idx
+      ON interface_translations (page_path, element_id, language)
+    `);
+    console.log('[init] ensured interface_translations table exists');
+  } catch (err) {
+    console.error('[init] failed to ensure interface_translations table:', err);
+  }
+}
+
 // Fire and forget; if this fails we log but do not crash the server
 ensurePgcryptoExtension().catch((err) => {
   console.error('[init] ensurePgcryptoExtension unhandled error:', err);
@@ -918,6 +1227,18 @@ ensureStoryTitleGenreAndTagsColumns().catch((err) => {
 ensureStoryTitleUpdatedAtColumn().catch((err) => {
   console.error('[init] ensureStoryTitleUpdatedAtColumn unhandled error:', err);
 });
+ensureStoryControlColumns().catch((err) => {
+  console.error('[init] ensureStoryControlColumns unhandled error:', err);
+});
+ensureStoryLanguageAndCoverColumns().catch((err) => {
+  console.error('[init] ensureStoryLanguageAndCoverColumns unhandled error:', err);
+});
+ensureGroupsTables().catch((err) => {
+  console.error('[init] ensureGroupsTables unhandled error:', err);
+});
+ensureStoryAccessRulesTable().catch((err) => {
+  console.error('[init] ensureStoryAccessRulesTable unhandled error:', err);
+});
 ensureAuthorsTable().catch((err) => {
   console.error('[init] ensureAuthorsTable unhandled error:', err);
 });
@@ -930,8 +1251,14 @@ ensureParagraphBranchesTable().catch((err) => {
 ensureProfilesRealNicknameColumn().catch((err) => {
   console.error('[init] ensureProfilesRealNicknameColumn unhandled error:', err);
 });
+ensureProfilePageNameColumn().catch((err) => {
+  console.error('[init] ensureProfilePageNameColumn unhandled error:', err);
+});
 ensureProfilesVisibilityColumns().catch((err) => {
   console.error('[init] ensureProfilesVisibilityColumns unhandled error:', err);
+});
+ensureProfilesSocialOtherLinksColumn().catch((err) => {
+  console.error('[init] ensureProfilesSocialOtherLinksColumn unhandled error:', err);
 });
 ensureLocalesTable().catch((err) => {
   console.error('[init] ensureLocalesTable unhandled error:', err);
@@ -951,6 +1278,9 @@ ensureContributionsTable().catch((err) => {
 ensureScreenplayTables().catch((err) => {
   console.error('[init] ensureScreenplayTables unhandled error:', err);
 });
+ensureScreenplayRevisionsTable().catch((err) => {
+  console.error('[init] ensureScreenplayRevisionsTable unhandled error:', err);
+});
 ensureUserStoryStatusTable().catch((err) => {
   console.error('[init] ensureUserStoryStatusTable unhandled error:', err);
 });
@@ -968,6 +1298,128 @@ ensureStoryCreativeSpaceColumnsAndAttachments().catch((err) => {
 });
 ensureStorySpacesTable().catch((err) => {
   console.error('[init] ensureStorySpacesTable unhandled error:', err);
+});
+ensureAlphaInvitationsTable().catch((err) => {
+  console.error('[init] ensureAlphaInvitationsTable unhandled error:', err);
+});
+ensureAlphaApplicationsTable().catch((err) => {
+  console.error('[init] ensureAlphaApplicationsTable unhandled error:', err);
+});
+ensureUserBannedColumn().catch((err) => {
+  console.error('[init] ensureUserBannedColumn unhandled error:', err);
+});
+ensureAdminMessagesTable().catch((err) => {
+  console.error('[init] ensureAdminMessagesTable unhandled error:', err);
+});
+ensureUserTranslatorLanguagesTable().catch((err) => {
+  console.error('[init] ensureUserTranslatorLanguagesTable unhandled error:', err);
+});
+ensureInterfaceTranslationsTable().catch((err) => {
+  console.error('[init] ensureInterfaceTranslationsTable unhandled error:', err);
+});
+ensureStoryTitleDescriptionColumn().catch((err) => {
+  console.error('[init] ensureStoryTitleDescriptionColumn unhandled error:', err);
+});
+ensureScreenplayTitleDescriptionColumn().catch((err) => {
+  console.error('[init] ensureScreenplayTitleDescriptionColumn unhandled error:', err);
+});
+ensureChapterTagsColumns().catch((err) => {
+  console.error('[init] ensureChapterTagsColumns unhandled error:', err);
+});
+ensureStoryCollaboratorsTable().catch((err) => {
+  console.error('[init] ensureStoryCollaboratorsTable unhandled error:', err);
+});
+ensureStoryInitiatorColumn().catch((err) => {
+  console.error('[init] ensureStoryInitiatorColumn unhandled error:', err);
+});
+
+// ---------------------------------------------------------------------------
+// Interface Translations endpoints
+// ---------------------------------------------------------------------------
+
+// GET /interface-translations — fetch translations for a page + language
+app.get('/interface-translations', async (req, res) => {
+  const { page_path, language } = req.query;
+  if (!page_path) {
+    return res.status(400).json({ error: 'page_path is required' });
+  }
+  try {
+    const lang = language || 'English';
+    const { rows } = await pool.query(
+      `SELECT element_id, content, original_content
+       FROM interface_translations
+       WHERE page_path = $1 AND language = $2`,
+      [page_path, lang]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('[GET /interface-translations] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch translations' });
+  }
+});
+
+// PUT /interface-translations — upsert a single translation (admin-only)
+app.put('/interface-translations', async (req, res) => {
+  const { userId, page_path, element_id, language, content, original_content } = req.body ?? {};
+  if (!(await isTranslator(userId))) {
+    return res.status(403).json({ error: 'Admin or translator access required' });
+  }
+  if (!page_path || !element_id || !content) {
+    return res.status(400).json({ error: 'page_path, element_id, and content are required' });
+  }
+  // Safeguard: English is the source language and must not be overwritten by translators
+  const lang = language || 'English';
+  if (lang === 'English') {
+    return res.status(403).json({ error: 'English is the source language and cannot be modified through the translation interface.' });
+  }
+
+  // Enforce translator language restrictions (admins bypass this check)
+  if (userId) {
+    const { rows: adminCheck } = await pool.query(
+      "SELECT 1 FROM user_roles WHERE user_id = $1 AND role = 'platform_admin'",
+      [userId],
+    );
+    if (adminCheck.length === 0) {
+      // Not an admin — check if this translator is allowed to edit this language
+      const { rows: allowedLangs } = await pool.query(
+        'SELECT locale_code FROM user_translator_languages WHERE user_id = $1',
+        [userId],
+      );
+      // If the translator has language restrictions (rows exist), enforce them.
+      // If no rows exist, the translator has no languages assigned and cannot translate.
+      if (allowedLangs.length === 0) {
+        return res.status(403).json({ error: 'You do not have any languages assigned. Contact a platform admin.' });
+      }
+      const allowedCodes = allowedLangs.map(r => r.locale_code);
+      // Match locale code to language name — look up the English name for the requested language
+      const { rows: localeRow } = await pool.query(
+        'SELECT code FROM locales WHERE english_name = $1 OR code = $1',
+        [lang],
+      );
+      const resolvedCode = localeRow.length > 0 ? localeRow[0].code : lang;
+      if (!allowedCodes.includes(resolvedCode) && !allowedCodes.includes(lang)) {
+        return res.status(403).json({ error: `You are not authorized to translate into ${lang}. Contact a platform admin to add this language to your profile.` });
+      }
+    }
+  }
+
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO interface_translations (page_path, element_id, language, content, original_content, updated_by, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, now())
+       ON CONFLICT (page_path, element_id, language)
+       DO UPDATE SET content = EXCLUDED.content,
+                     original_content = COALESCE(EXCLUDED.original_content, interface_translations.original_content),
+                     updated_by = EXCLUDED.updated_by,
+                     updated_at = now()
+       RETURNING *`,
+      [page_path, element_id, lang, content, original_content || null, userId || null]
+    );
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('[PUT /interface-translations] failed:', err);
+    res.status(500).json({ error: 'Failed to save translation' });
+  }
 });
 
 app.get('/health', async (_req, res) => {
@@ -1053,6 +1505,17 @@ app.post('/auth/register', async (req, res) => {
 
   try {
     const registered = await registerWithEmailPassword(email, password);
+
+    // Void alpha invitation on successful registration
+    try {
+      await pool.query(
+        `UPDATE alpha_invitations SET status = 'joined', joined_at = now() WHERE email = $1 AND status = 'pending'`,
+        [email]
+      );
+    } catch (invErr) {
+      console.error('[auth/register] failed to void alpha invitation:', invErr);
+    }
+
     res.status(201).json(registered);
   } catch (err) {
     console.error('[auth/register] failed:', err);
@@ -1155,17 +1618,17 @@ app.get('/search', async (req, res) => {
          p.username,
          p.first_name,
          p.last_name,
-         p.nickname
+         p.profile_page_name
        FROM local_users u
        LEFT JOIN profiles p ON p.id = u.id
        WHERE (
          COALESCE(p.username, '') ILIKE $1 OR
-         COALESCE(p.nickname, '') ILIKE $1 OR
+         COALESCE(p.profile_page_name, '') ILIKE $1 OR
          u.email ILIKE $1 OR
          COALESCE(p.first_name, '') ILIKE $1 OR
          COALESCE(p.last_name, '') ILIKE $1
        )
-       ORDER BY COALESCE(p.username, p.nickname, u.email) ASC
+       ORDER BY COALESCE(p.username, p.profile_page_name, u.email) ASC
        LIMIT $2`,
       [pattern, userLimit],
     );
@@ -1204,8 +1667,8 @@ app.get('/search', async (req, res) => {
 
     for (const row of userRows.rows) {
       const fullName = [row.first_name, row.last_name].filter(Boolean).join(' ') || null;
-      const displayName = row.username || row.nickname || row.email || 'User';
-      const slugSource = row.username || row.nickname || row.email || row.id;
+      const displayName = row.username || row.profile_page_name || row.email || 'User';
+      const slugSource = row.username || row.profile_page_name || row.email || row.id;
       const profileUrlSafe = encodeURIComponent(String(slugSource));
 
       results.push({
@@ -1232,6 +1695,7 @@ app.get('/search', async (req, res) => {
 app.get('/users/search', async (req, res) => {
   const rawQuery = typeof req.query.q === 'string' ? req.query.q : '';
   const search = rawQuery.trim();
+  const excludeUserId = typeof req.query.excludeUserId === 'string' ? req.query.excludeUserId.trim() : null;
 
   const rawPage = req.query.page ? parseInt(String(req.query.page), 10) : 1;
   const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
@@ -1246,17 +1710,24 @@ app.get('/users/search', async (req, res) => {
 
   try {
     const params = [];
-    let whereClause = '';
+    const conditions = [];
 
     if (search) {
       params.push(`%${search}%`);
-      whereClause = `WHERE (
-        COALESCE(p.username, '') ILIKE $1 OR
-        u.email ILIKE $1 OR
-        COALESCE(p.first_name, '') ILIKE $1 OR
-        COALESCE(p.last_name, '') ILIKE $1
-      )`;
+      conditions.push(`(
+        COALESCE(p.username, '') ILIKE $${params.length} OR
+        u.email ILIKE $${params.length} OR
+        COALESCE(p.first_name, '') ILIKE $${params.length} OR
+        COALESCE(p.last_name, '') ILIKE $${params.length}
+      )`);
     }
+
+    if (excludeUserId) {
+      params.push(excludeUserId);
+      conditions.push(`u.id != $${params.length}`);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
     params.push(limit);
     params.push(offset);
@@ -1299,7 +1770,7 @@ app.get('/public-profiles/:username', async (req, res) => {
       `SELECT *
        FROM profiles
        WHERE LOWER(username) = LOWER($1)
-          OR LOWER(COALESCE(nickname, '')) = LOWER($1)
+          OR LOWER(COALESCE(profile_page_name, '')) = LOWER($1)
        ORDER BY updated_at DESC
        LIMIT 1`,
       [username],
@@ -1310,7 +1781,7 @@ app.get('/public-profiles/:username', async (req, res) => {
     }
     // In future we can enforce per-field visibility based on profile settings
     // (e.g. a dedicated "public handle" field). For now we accept either
-    // username or nickname (case-insensitive) as the slug.
+    // username or profile_page_name (case-insensitive) as the slug.
     res.json(rows[0]);
   } catch (err) {
     console.error('[GET /public-profiles/:username] failed:', err);
@@ -1416,10 +1887,28 @@ async function handleProfileUpdate(req, res) {
     return res.status(400).json({ error: 'userId is required' });
   }
 
+  // Enforce unique profile_page_name across all users.
+  if (body.profile_page_name && body.profile_page_name.trim()) {
+    try {
+      const { rows } = await pool.query(
+        `SELECT id FROM profiles
+         WHERE LOWER(TRIM(profile_page_name)) = LOWER(TRIM($1)) AND id != $2
+         LIMIT 1`,
+        [body.profile_page_name, userId],
+      );
+      if (rows.length > 0) {
+        return res.status(409).json({ error: 'This profile page name is already taken. Please choose a different one.' });
+      }
+    } catch (err) {
+      console.error('[handleProfileUpdate] profile_page_name uniqueness check failed:', err);
+      return res.status(500).json({ error: 'Failed to validate profile page name' });
+    }
+  }
+
   const allowedFields = [
     'first_name',
     'last_name',
-    'nickname',
+    'profile_page_name',
     'about',
     'bio',
     'profile_image_url',
@@ -1429,6 +1918,7 @@ async function handleProfileUpdate(req, res) {
     'social_snapchat',
     'social_instagram',
     'social_other',
+    'social_other_links',
     'telephone',
     'notify_phone',
     'notify_app',
@@ -1452,6 +1942,30 @@ async function handleProfileUpdate(req, res) {
     'stories_selected_user_ids',
     'screenplays_selected_user_ids',
   ];
+
+  // --- Security: sanitize social_other_links ---
+  if (Array.isArray(body.social_other_links)) {
+    const DANGEROUS_PROTOCOLS = /^(javascript|data|vbscript|blob):/i;
+    const stripHtml = (str) => String(str ?? '').replace(/<[^>]*>/g, '');
+    const sanitised = [];
+    for (const entry of body.social_other_links.slice(0, 20)) {
+      if (!entry || typeof entry !== 'object') continue;
+      const name = stripHtml(String(entry.name ?? '')).trim().slice(0, 100);
+      let address = stripHtml(String(entry.address ?? '')).trim().slice(0, 500);
+      if (DANGEROUS_PROTOCOLS.test(address)) address = '';
+      if (name || address) sanitised.push({ name, address });
+    }
+    body.social_other_links = JSON.stringify(sanitised);
+  }
+
+  // --- Security: sanitize individual social fields ---
+  for (const socialKey of ['social_facebook', 'social_instagram', 'social_snapchat', 'social_other']) {
+    if (Object.prototype.hasOwnProperty.call(body, socialKey) && body[socialKey]) {
+      let val = String(body[socialKey]).replace(/<[^>]*>/g, '').trim().slice(0, 500);
+      if (/^(javascript|data|vbscript|blob):/i.test(val)) val = '';
+      body[socialKey] = val;
+    }
+  }
 
   const fields = [];
   const values = [];
@@ -1484,6 +1998,30 @@ async function handleProfileUpdate(req, res) {
     return res.status(500).json({ error: 'Failed to update profile' });
   }
 }
+
+// Check whether a profile_page_name is already taken by another user.
+app.get('/profiles/check-profile-page-name/:name', async (req, res) => {
+  const { name } = req.params;
+  const excludeUserId = req.query.exclude; // current user's id
+
+  if (!name || !name.trim()) {
+    return res.json({ available: true });
+  }
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT id FROM profiles
+       WHERE LOWER(TRIM(profile_page_name)) = LOWER(TRIM($1))
+         ${excludeUserId ? 'AND id != $2' : ''}
+       LIMIT 1`,
+      excludeUserId ? [name, excludeUserId] : [name],
+    );
+    return res.json({ available: rows.length === 0 });
+  } catch (err) {
+    console.error('[GET /profiles/check-profile-page-name] failed:', err);
+    return res.status(500).json({ error: 'Failed to check profile page name' });
+  }
+});
 
 // Support both POST (legacy) and PATCH (current frontend) for updating profiles.
 app.post('/profiles/:userId', handleProfileUpdate);
@@ -1826,7 +2364,7 @@ app.get('/screenplays/:screenplayId', async (req, res) => {
 // Update screenplay metadata
 app.patch('/screenplays/:screenplayId', async (req, res) => {
   const { screenplayId } = req.params;
-  const { title, visibility, published, genre, tags, formatType } = req.body ?? {};
+  const { title, visibility, published, genre, tags, formatType, description } = req.body ?? {};
 
   const fields = [];
   const values = [];
@@ -1855,6 +2393,10 @@ app.patch('/screenplays/:screenplayId', async (req, res) => {
   if (formatType !== undefined) {
     fields.push(`format_type = $${idx++}`);
     values.push(formatType || null);
+  }
+  if (description !== undefined) {
+    fields.push(`description = $${idx++}`);
+    values.push(description || null);
   }
 
   if (fields.length === 0) {
@@ -1997,20 +2539,52 @@ app.patch('/screenplay-scenes/:sceneId', async (req, res) => {
   const sql = `UPDATE screenplay_scene SET ${fields.join(', ')} WHERE scene_id = $${idx} RETURNING *`;
 
   try {
+    // Fetch existing scene for revision tracking
+    const { rows: existingRows } = await pool.query(
+      'SELECT * FROM screenplay_scene WHERE scene_id = $1',
+      [sceneId],
+    );
+    const existing = existingRows[0] || null;
+
     const { rows } = await pool.query(sql, values);
     if (rows.length === 0) {
       return res.status(404).json({ error: 'Scene not found' });
     }
 
+    const updated = rows[0];
+
     // Best-effort: mark this user as a contributor on the screenplay
     if (userId) {
-      const screenplayId = rows[0].screenplay_id;
+      const screenplayId = updated.screenplay_id;
       if (screenplayId) {
         await ensureScreenplayAccessRow(screenplayId, userId, 'contributor');
       }
     }
 
-    res.json(rows[0]);
+    // Best-effort: insert screenplay revision row
+    if (existing && updated.screenplay_id) {
+      try {
+        const nextRev = await getNextScreenplayRevisionNumber(updated.screenplay_id, sceneId);
+        await pool.query(
+          `INSERT INTO screenplay_revisions
+             (screenplay_title_id, scene_id, prev_content, new_content, created_by, revision_number, revision_reason)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [
+            updated.screenplay_id,
+            sceneId,
+            JSON.stringify({ slugline: existing.slugline, location: existing.location, time_of_day: existing.time_of_day, is_interior: existing.is_interior, synopsis: existing.synopsis }),
+            JSON.stringify({ slugline: updated.slugline, location: updated.location, time_of_day: updated.time_of_day, is_interior: updated.is_interior, synopsis: updated.synopsis }),
+            userId || null,
+            nextRev,
+            'Scene updated',
+          ],
+        );
+      } catch (revErr) {
+        console.error('[PATCH /screenplay-scenes/:sceneId] revision insert failed:', revErr);
+      }
+    }
+
+    res.json(updated);
   } catch (err) {
     console.error('[PATCH /screenplay-scenes/:sceneId] failed:', err);
     res.status(500).json({ error: 'Failed to update scene' });
@@ -2105,20 +2679,52 @@ app.patch('/screenplay-blocks/:blockId', async (req, res) => {
   const sql = `UPDATE screenplay_block SET ${fields.join(', ')} WHERE block_id = $${idx} RETURNING *`;
 
   try {
+    // Fetch existing block for revision tracking
+    const { rows: existingRows } = await pool.query(
+      'SELECT * FROM screenplay_block WHERE block_id = $1',
+      [blockId],
+    );
+    const existing = existingRows[0] || null;
+
     const { rows } = await pool.query(sql, values);
     if (rows.length === 0) {
       return res.status(404).json({ error: 'Block not found' });
     }
 
+    const updated = rows[0];
+
     // Best-effort: mark this user as a contributor on the screenplay
     if (userId) {
-      const screenplayId = rows[0].screenplay_id;
+      const screenplayId = updated.screenplay_id;
       if (screenplayId) {
         await ensureScreenplayAccessRow(screenplayId, userId, 'contributor');
       }
     }
 
-    res.json(rows[0]);
+    // Best-effort: insert screenplay revision row for block change
+    if (existing && updated.screenplay_id) {
+      try {
+        const nextRev = await getNextScreenplayRevisionNumber(updated.screenplay_id, updated.scene_id);
+        await pool.query(
+          `INSERT INTO screenplay_revisions
+             (screenplay_title_id, scene_id, prev_content, new_content, created_by, revision_number, revision_reason)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [
+            updated.screenplay_id,
+            updated.scene_id || null,
+            JSON.stringify({ block_id: blockId, block_type: existing.block_type, text: existing.text, block_index: existing.block_index }),
+            JSON.stringify({ block_id: blockId, block_type: updated.block_type, text: updated.text, block_index: updated.block_index }),
+            userId || null,
+            nextRev,
+            'Block updated',
+          ],
+        );
+      } catch (revErr) {
+        console.error('[PATCH /screenplay-blocks/:blockId] revision insert failed:', revErr);
+      }
+    }
+
+    res.json(updated);
   } catch (err) {
     console.error('[PATCH /screenplay-blocks/:blockId] failed:', err);
     res.status(500).json({ error: 'Failed to update block' });
@@ -2433,8 +3039,93 @@ app.get('/story-titles/:storyTitleId', async (req, res) => {
 
     const payload = { ...story, attachments };
 
-    if (visibility !== 'private') {
+    // Compute can_clone and can_export for the requesting user
+    let can_clone = true;
+    let can_export = true;
+    const storyClonePolicy = story.clone_policy ?? 'anyone';
+    const storyExportPolicy = story.export_policy ?? 'anyone';
+    const isCreatorOrAccess = userId && (story.creator_id === userId || await (async () => {
+      try {
+        const acc = await pool.query('SELECT 1 FROM story_access WHERE story_title_id = $1 AND user_id = $2 LIMIT 1', [storyTitleId, userId]);
+        return acc.rows.length > 0;
+      } catch { return false; }
+    })());
+
+    if (storyClonePolicy === 'none') {
+      can_clone = !!isCreatorOrAccess;
+    } else if (storyClonePolicy === 'restricted') {
+      if (isCreatorOrAccess) {
+        can_clone = true;
+      } else if (userId) {
+        try {
+          const ruleCheck = await pool.query(
+            `SELECT 1 FROM story_access_rules WHERE story_title_id = $1 AND rule_type = 'clone'
+             AND (grantee_user_id = $2 OR grantee_group_id IN (SELECT group_id FROM user_group_members WHERE user_id = $2))
+             LIMIT 1`,
+            [storyTitleId, userId],
+          );
+          can_clone = ruleCheck.rows.length > 0;
+        } catch { can_clone = false; }
+      } else {
+        can_clone = false;
+      }
+    }
+
+    if (storyExportPolicy === 'none') {
+      can_export = !!isCreatorOrAccess;
+    } else if (storyExportPolicy === 'restricted') {
+      if (isCreatorOrAccess) {
+        can_export = true;
+      } else if (userId) {
+        try {
+          const ruleCheck = await pool.query(
+            `SELECT 1 FROM story_access_rules WHERE story_title_id = $1 AND rule_type = 'export'
+             AND (grantee_user_id = $2 OR grantee_group_id IN (SELECT group_id FROM user_group_members WHERE user_id = $2))
+             LIMIT 1`,
+            [storyTitleId, userId],
+          );
+          can_export = ruleCheck.rows.length > 0;
+        } catch { can_export = false; }
+      } else {
+        can_export = false;
+      }
+    }
+
+    payload.can_clone = can_clone;
+    payload.can_export = can_export;
+
+    if (visibility === 'public') {
       return res.json(payload);
+    }
+
+    if (visibility === 'unlisted') {
+      // Creator always has access
+      if (userId && story.creator_id === userId) {
+        return res.json(payload);
+      }
+      // Check story_access table
+      if (userId) {
+        try {
+          const access = await pool.query(
+            'SELECT 1 FROM story_access WHERE story_title_id = $1 AND user_id = $2 LIMIT 1',
+            [storyTitleId, userId],
+          );
+          if (access.rows.length > 0) return res.json(payload);
+        } catch {}
+        // Check story_access_rules for view
+        try {
+          const ruleCheck = await pool.query(
+            `SELECT 1 FROM story_access_rules WHERE story_title_id = $1 AND rule_type = 'view'
+             AND (grantee_user_id = $2 OR grantee_group_id IN (SELECT group_id FROM user_group_members WHERE user_id = $2))
+             LIMIT 1`,
+            [storyTitleId, userId],
+          );
+          if (ruleCheck.rows.length > 0) return res.json(payload);
+        } catch {}
+      }
+      return res.status(403).json({
+        error: 'This story is unlisted. You need an invitation from the owner to view it.',
+      });
     }
 
     // Private story: enforce access
@@ -2764,7 +3455,7 @@ async function getNextParagraphRevisionNumber(chapterId, paragraphIndex) {
 
 // Create story title + initial revision + first chapter in a single transaction
 app.post('/stories/template', async (req, res) => {
-  const { title, chapterTitle, paragraphs, userId, creativeSpaceId } = req.body ?? {};
+  const { title, chapterTitle, paragraphs, userId, creativeSpaceId, language, coverImageUrl } = req.body ?? {};
 
   if (!title || !chapterTitle || !Array.isArray(paragraphs) || !userId) {
     return res.status(400).json({ error: 'title, chapterTitle, paragraphs[], and userId are required' });
@@ -2775,8 +3466,8 @@ app.post('/stories/template', async (req, res) => {
     await client.query('BEGIN');
 
     const insertTitle = await client.query(
-      'INSERT INTO story_title (title, creator_id, creative_space_id) VALUES ($1, $2, $3) RETURNING story_title_id, title, creative_space_id',
-      [title, userId, creativeSpaceId || null],
+      'INSERT INTO story_title (title, creator_id, initiator_id, creative_space_id, language, cover_image_url) VALUES ($1, $2, $2, $3, $4, $5) RETURNING story_title_id, title, creative_space_id, language, cover_image_url',
+      [title, userId, creativeSpaceId || null, language || 'en', coverImageUrl || null],
     );
     const storyTitleRow = insertTitle.rows[0];
 
@@ -2830,6 +3521,18 @@ app.post('/stories/template', async (req, res) => {
       console.error('[stories/template] failed to insert story_access row:', errAccess);
     }
 
+    // Best-effort: add creator as the default author in story_collaborators
+    try {
+      await pool.query(
+        `INSERT INTO story_collaborators (story_title_id, user_id, role)
+         VALUES ($1, $2, 'author')
+         ON CONFLICT (story_title_id, user_id) DO NOTHING`,
+        [storyTitleRow.story_title_id, userId],
+      );
+    } catch (errCollab) {
+      console.error('[stories/template] failed to insert story_collaborators author row:', errCollab);
+    }
+
     res.status(201).json({
       storyTitleId: storyTitleRow.story_title_id,
       chapterId: chapterRow.chapter_id,
@@ -2879,7 +3582,9 @@ app.get('/stories/newest', async (req, res) => {
          lc.chapter_title,
          lc.created_at,
          lc.story_title_id,
-         st.title AS story_title
+         st.title AS story_title,
+         st.language,
+         st.cover_image_url
        FROM latest_chapter lc
        JOIN story_title st ON st.story_title_id = lc.story_title_id
        WHERE lc.rn = 1
@@ -2907,6 +3612,8 @@ app.get('/stories/most-active', async (req, res) => {
          SELECT
            st.story_title_id,
            st.title,
+           st.language,
+           st.cover_image_url,
            GREATEST(
              MAX(s.created_at),
              MAX(s.updated_at),
@@ -2928,12 +3635,14 @@ app.get('/stories/most-active', async (req, res) => {
          LEFT JOIN reactions r ON r.chapter_id = s.chapter_id
          LEFT JOIN paragraph_branches pb ON pb.chapter_id = s.chapter_id
          WHERE st.visibility = 'public' AND st.published = true
-         GROUP BY st.story_title_id, st.title
+         GROUP BY st.story_title_id, st.title, st.language, st.cover_image_url
        ),
        scored AS (
          SELECT
            story_title_id,
            title,
+           language,
+           cover_image_url,
            last_activity_at,
            chapter_count,
            paragraph_count,
@@ -2963,7 +3672,9 @@ app.get('/stories/most-active', async (req, res) => {
          sc.chapter_count,
          sc.paragraph_count,
          sc.branch_count,
-         sc.content_score
+         sc.content_score,
+         sc.language,
+         sc.cover_image_url
        FROM scored sc
        JOIN latest_chapter lc ON lc.story_title_id = sc.story_title_id AND lc.rn = 1
        WHERE sc.last_activity_at IS NOT NULL
@@ -3009,6 +3720,8 @@ app.get('/stories/most-popular', async (req, res) => {
          SELECT
            st.story_title_id,
            st.title,
+           st.language,
+           st.cover_image_url,
            COALESCE(rc.like_count, 0) AS like_count,
            COALESCE(fc.favorite_count, 0) AS favorite_count,
            (COALESCE(rc.like_count, 0) * 2 + COALESCE(fc.favorite_count, 0)) AS popularity_score
@@ -3037,7 +3750,9 @@ app.get('/stories/most-popular', async (req, res) => {
          lc.created_at,
          sc.like_count,
          sc.favorite_count,
-         sc.popularity_score
+         sc.popularity_score,
+         sc.language,
+         sc.cover_image_url
        FROM scores sc
        JOIN latest_chapter lc ON lc.story_title_id = sc.story_title_id AND lc.rn = 1
        WHERE sc.popularity_score > 0
@@ -3121,7 +3836,7 @@ app.get('/users/:userId/stories', async (req, res) => {
   try {
     // Stories created by the user
     const created = await pool.query(
-      'SELECT story_title_id, title, created_at, visibility, published FROM story_title WHERE creator_id = $1',
+      'SELECT story_title_id, title, created_at, visibility, published, language, cover_image_url FROM story_title WHERE creator_id = $1',
       [userId],
     );
 
@@ -3132,7 +3847,9 @@ app.get('/users/:userId/stories', async (req, res) => {
               st.title,
               st.created_at,
               st.visibility,
-              st.published
+              st.published,
+              st.language,
+              st.cover_image_url
        FROM story_title st
        JOIN stories s ON st.story_title_id = s.story_title_id
        LEFT JOIN chapter_revisions cr ON cr.chapter_id = s.chapter_id
@@ -3149,6 +3866,8 @@ app.get('/users/:userId/stories', async (req, res) => {
         created_at: row.created_at,
         visibility: row.visibility,
         published: row.published,
+        language: row.language,
+        cover_image_url: row.cover_image_url,
         roles: ['creator'],
       });
     }
@@ -3165,6 +3884,8 @@ app.get('/users/:userId/stories', async (req, res) => {
           created_at: row.created_at,
           visibility: row.visibility,
           published: row.published,
+          language: row.language,
+          cover_image_url: row.cover_image_url,
           roles: ['contributor'],
         });
       }
@@ -3244,6 +3965,77 @@ app.get('/users/:userId/screenplays', async (req, res) => {
   } catch (err) {
     console.error('[GET /users/:userId/screenplays] failed:', err);
     res.status(500).json({ error: 'Failed to fetch user screenplays' });
+  }
+});
+
+// GET /users/:userId/comments — list all comments made by a user
+app.get('/users/:userId/comments', async (req, res) => {
+  const { userId } = req.params;
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+  try {
+    const { rows } = await pool.query(
+      `SELECT
+         c.id,
+         c.body,
+         c.created_at,
+         c.story_title_id,
+         c.chapter_id,
+         c.paragraph_index,
+         c.screenplay_id,
+         c.screenplay_scene_id,
+         c.parent_comment_id,
+         st.title AS story_title,
+         s.chapter_title,
+         spt.title AS screenplay_title
+       FROM comments c
+       LEFT JOIN story_title st ON st.story_title_id = c.story_title_id
+       LEFT JOIN stories s ON s.chapter_id = c.chapter_id
+       LEFT JOIN screenplay_title spt ON spt.screenplay_id = c.screenplay_id
+       WHERE c.user_id = $1
+       ORDER BY c.created_at DESC
+       LIMIT 500`,
+      [userId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('[GET /users/:userId/comments] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch user comments' });
+  }
+});
+
+// GET /users/:userId/branches — list all paragraph branches by a user
+app.get('/users/:userId/branches', async (req, res) => {
+  const { userId } = req.params;
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+  try {
+    const { rows } = await pool.query(
+      `SELECT
+         pb.id,
+         pb.chapter_id,
+         pb.parent_paragraph_index,
+         pb.parent_paragraph_text,
+         pb.branch_text,
+         pb.language,
+         pb.created_at,
+         s.story_title_id,
+         s.chapter_title,
+         st.title AS story_title
+       FROM paragraph_branches pb
+       JOIN stories s ON s.chapter_id = pb.chapter_id
+       LEFT JOIN story_title st ON st.story_title_id = s.story_title_id
+       WHERE pb.user_id = $1
+       ORDER BY pb.created_at DESC
+       LIMIT 500`,
+      [userId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('[GET /users/:userId/branches] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch user branches' });
   }
 });
 
@@ -4409,10 +5201,10 @@ app.post('/chapters', async (req, res) => {
 // Update an existing chapter and record a revision
 app.patch('/chapters/:chapterId', async (req, res) => {
   const { chapterId } = req.params;
-  const { chapterTitle, paragraphs, userId } = req.body ?? {};
+  const { chapterTitle, paragraphs, userId, tags, paragraphTags } = req.body ?? {};
 
-  if (!chapterTitle && !Array.isArray(paragraphs)) {
-    return res.status(400).json({ error: 'chapterTitle or paragraphs[] must be provided' });
+  if (!chapterTitle && !Array.isArray(paragraphs) && tags === undefined && paragraphTags === undefined) {
+    return res.status(400).json({ error: 'chapterTitle, paragraphs[], tags, or paragraphTags must be provided' });
   }
 
   try {
@@ -4437,6 +5229,14 @@ app.patch('/chapters/:chapterId', async (req, res) => {
     if (paragraphs !== undefined) {
       fields.push(`paragraphs = $${idx++}`);
       values.push(paragraphs);
+    }
+    if (tags !== undefined) {
+      fields.push(`tags = $${idx++}`);
+      values.push(Array.isArray(tags) ? tags : null);
+    }
+    if (paragraphTags !== undefined) {
+      fields.push(`paragraph_tags = $${idx++}`);
+      values.push(paragraphTags ? JSON.stringify(paragraphTags) : null);
     }
     values.push(chapterId);
 
@@ -4521,6 +5321,146 @@ app.get('/chapter-revisions/:chapterId', async (req, res) => {
   } catch (err) {
     console.error('[GET /chapter-revisions/:chapterId] failed:', err);
     res.status(500).json({ error: 'Failed to fetch chapter revisions' });
+  }
+});
+
+// Compare chapter revisions — returns RevisionSnapshot[] for diffing
+app.get('/chapter-revisions/:chapterId/compare', async (req, res) => {
+  const { chapterId } = req.params;
+  const { revisionNumbers } = req.query; // optional comma-separated: "1,3,5"
+
+  try {
+    let query = `
+      SELECT cr.*, lu.email AS created_by_name
+      FROM chapter_revisions cr
+      LEFT JOIN local_users lu ON lu.id = cr.created_by
+      WHERE cr.chapter_id = $1
+    `;
+    const params = [chapterId];
+
+    if (revisionNumbers) {
+      const nums = String(revisionNumbers).split(',').map(Number).filter(n => !isNaN(n));
+      if (nums.length > 0) {
+        query += ` AND cr.revision_number = ANY($2)`;
+        params.push(nums);
+      }
+    }
+
+    query += ` ORDER BY cr.revision_number ASC`;
+
+    const { rows } = await pool.query(query, params);
+
+    // Transform into RevisionSnapshot format
+    const snapshots = rows.map(row => {
+      // Build contentText from paragraphs
+      const paragraphs = row.new_paragraphs;
+      const contentText = Array.isArray(paragraphs)
+        ? paragraphs.join('\n\n')
+        : (typeof paragraphs === 'string' ? paragraphs : '');
+
+      return {
+        id: row.id,
+        revisionNumber: row.revision_number,
+        title: row.new_chapter_title || `Revision ${row.revision_number}`,
+        contentText,
+        contentData: { paragraphs: row.new_paragraphs, prevParagraphs: row.prev_paragraphs },
+        contentType: 'story',
+        createdBy: row.created_by,
+        createdByName: row.created_by_name || null,
+        createdAt: row.created_at,
+        revisionReason: row.revision_reason,
+        isContribution: false, // will be refined when contributor detection is available
+      };
+    });
+
+    res.json(snapshots);
+  } catch (err) {
+    console.error('[GET /chapter-revisions/:chapterId/compare] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch chapter revision comparison' });
+  }
+});
+
+// Helper: get next screenplay revision number
+async function getNextScreenplayRevisionNumber(screenplayTitleId, sceneId) {
+  const whereClause = sceneId
+    ? 'WHERE screenplay_title_id = $1 AND scene_id = $2'
+    : 'WHERE screenplay_title_id = $1 AND scene_id IS NULL';
+  const params = sceneId ? [screenplayTitleId, sceneId] : [screenplayTitleId];
+
+  const { rows } = await pool.query(
+    `SELECT revision_number FROM screenplay_revisions ${whereClause} ORDER BY revision_number DESC LIMIT 1`,
+    params,
+  );
+  if (rows.length === 0) return 1;
+  return Number(rows[0].revision_number) + 1;
+}
+
+// Compare screenplay revisions
+app.get('/screenplay-revisions/:screenplayTitleId/compare', async (req, res) => {
+  const { screenplayTitleId } = req.params;
+  const { revisionNumbers, sceneId } = req.query;
+
+  try {
+    let query = `
+      SELECT sr.*, lu.email AS created_by_name
+      FROM screenplay_revisions sr
+      LEFT JOIN local_users lu ON lu.id = sr.created_by
+      WHERE sr.screenplay_title_id = $1
+    `;
+    const params = [screenplayTitleId];
+    let idx = 2;
+
+    if (sceneId) {
+      query += ` AND sr.scene_id = $${idx++}`;
+      params.push(sceneId);
+    }
+
+    if (revisionNumbers) {
+      const nums = String(revisionNumbers).split(',').map(Number).filter(n => !isNaN(n));
+      if (nums.length > 0) {
+        query += ` AND sr.revision_number = ANY($${idx++})`;
+        params.push(nums);
+      }
+    }
+
+    query += ` ORDER BY sr.revision_number ASC`;
+
+    const { rows } = await pool.query(query, params);
+
+    // Transform into RevisionSnapshot format
+    const snapshots = rows.map(row => {
+      // Serialize blocks/content into text for diffing
+      const content = row.new_content;
+      let contentText = '';
+      if (content && typeof content === 'object') {
+        if (Array.isArray(content.blocks)) {
+          contentText = content.blocks.map(b => `[${b.block_type || 'text'}] ${b.text || ''}`).join('\n');
+        } else if (content.slugline || content.synopsis) {
+          contentText = [content.slugline, content.synopsis].filter(Boolean).join('\n');
+        } else {
+          contentText = JSON.stringify(content, null, 2);
+        }
+      }
+
+      return {
+        id: row.id,
+        revisionNumber: row.revision_number,
+        title: `Revision ${row.revision_number}`,
+        contentText,
+        contentData: { newContent: row.new_content, prevContent: row.prev_content },
+        contentType: 'screenplay',
+        createdBy: row.created_by,
+        createdByName: row.created_by_name || null,
+        createdAt: row.created_at,
+        revisionReason: row.revision_reason,
+        isContribution: false,
+      };
+    });
+
+    res.json(snapshots);
+  } catch (err) {
+    console.error('[GET /screenplay-revisions/:screenplayTitleId/compare] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch screenplay revision comparison' });
   }
 });
 
@@ -5866,16 +6806,22 @@ app.patch('/story-titles/:storyTitleId', async (req, res) => {
 // Update story visibility / published flags (no revision)
 app.patch('/story-titles/:storyTitleId/settings', async (req, res) => {
   const { storyTitleId } = req.params;
-  const { visibility, published, genre, tags } = req.body ?? {};
+  const { visibility, published, genre, tags, completion_status, clone_policy, export_policy, language, cover_image_url, description } = req.body ?? {};
 
   if (
     visibility === undefined &&
     published === undefined &&
     genre === undefined &&
-    tags === undefined
+    tags === undefined &&
+    completion_status === undefined &&
+    clone_policy === undefined &&
+    export_policy === undefined &&
+    language === undefined &&
+    cover_image_url === undefined &&
+    description === undefined
   ) {
     return res.status(400).json({
-      error: 'At least one of visibility, published, genre, or tags must be provided',
+      error: 'At least one of visibility, published, genre, tags, completion_status, clone_policy, export_policy, language, cover_image_url, or description must be provided',
     });
   }
 
@@ -5898,6 +6844,30 @@ app.patch('/story-titles/:storyTitleId/settings', async (req, res) => {
   if (tags !== undefined) {
     fields.push(`tags = $${idx++}`);
     values.push(Array.isArray(tags) ? tags : null);
+  }
+  if (completion_status !== undefined) {
+    fields.push(`completion_status = $${idx++}`);
+    values.push(completion_status);
+  }
+  if (clone_policy !== undefined) {
+    fields.push(`clone_policy = $${idx++}`);
+    values.push(clone_policy);
+  }
+  if (export_policy !== undefined) {
+    fields.push(`export_policy = $${idx++}`);
+    values.push(export_policy);
+  }
+  if (language !== undefined) {
+    fields.push(`language = $${idx++}`);
+    values.push(language || 'en');
+  }
+  if (cover_image_url !== undefined) {
+    fields.push(`cover_image_url = $${idx++}`);
+    values.push(cover_image_url || null);
+  }
+  if (description !== undefined) {
+    fields.push(`description = $${idx++}`);
+    values.push(description || null);
   }
   values.push(storyTitleId);
 
@@ -6039,7 +7009,8 @@ app.post('/story-titles/:storyTitleId/sync-desktop', async (req, res) => {
     // 2) Sync story_title settings/metadata stored on story_title
     const genre = metadata?.genre;
     const tags = metadata?.tags;
-    if (genre !== undefined || tags !== undefined) {
+    const metaDescription = metadata?.description;
+    if (genre !== undefined || tags !== undefined || metaDescription !== undefined) {
       const fields = [];
       const values = [];
       let idx = 1;
@@ -6050,6 +7021,10 @@ app.post('/story-titles/:storyTitleId/sync-desktop', async (req, res) => {
       if (tags !== undefined) {
         fields.push(`tags = $${idx++}`);
         values.push(Array.isArray(tags) ? tags : null);
+      }
+      if (metaDescription !== undefined) {
+        fields.push(`description = $${idx++}`);
+        values.push(metaDescription || null);
       }
       values.push(storyTitleId);
       await client.query(
@@ -6223,6 +7198,394 @@ app.post('/story-titles/:storyTitleId/sync-desktop', async (req, res) => {
   }
 });
 
+
+// List groups: user's own groups + all platform groups
+app.get('/groups', async (req, res) => {
+  const { userId } = req.query;
+  if (!userId) return res.status(400).json({ error: 'userId is required' });
+  try {
+    const { rows } = await pool.query(
+      `SELECT g.*, (SELECT count(*) FROM user_group_members m WHERE m.group_id = g.id)::int AS member_count
+       FROM user_groups g
+       WHERE g.owner_id = $1 OR g.is_platform_group = true
+       ORDER BY g.created_at DESC`,
+      [userId],
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('[GET /groups] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch groups' });
+  }
+});
+
+// Create a group
+app.post('/groups', async (req, res) => {
+  const { userId, name, isPlatformGroup } = req.body ?? {};
+  if (!userId || !name) return res.status(400).json({ error: 'userId and name are required' });
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO user_groups (name, owner_id, is_platform_group) VALUES ($1, $2, $3) RETURNING *`,
+      [name.trim(), userId, !!isPlatformGroup],
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error('[POST /groups] failed:', err);
+    res.status(500).json({ error: 'Failed to create group' });
+  }
+});
+
+// Delete a group
+app.delete('/groups/:id', async (req, res) => {
+  const { id } = req.params;
+  const { userId } = req.query;
+  if (!userId) return res.status(400).json({ error: 'userId is required' });
+  try {
+    // Only owner or platform admin can delete
+    const admin = await isAdmin(userId);
+    const { rowCount } = await pool.query(
+      admin
+        ? 'DELETE FROM user_groups WHERE id = $1'
+        : 'DELETE FROM user_groups WHERE id = $1 AND owner_id = $2',
+      admin ? [id] : [id, userId],
+    );
+    if (rowCount === 0) return res.status(404).json({ error: 'Group not found or not authorized' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[DELETE /groups/:id] failed:', err);
+    res.status(500).json({ error: 'Failed to delete group' });
+  }
+});
+
+// List members of a group
+app.get('/groups/:id/members', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { rows } = await pool.query(
+      `SELECT u.id, u.email, u.first_name, u.last_name, m.added_at
+       FROM user_group_members m
+       JOIN local_users u ON u.id = m.user_id
+       WHERE m.group_id = $1
+       ORDER BY m.added_at`,
+      [id],
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('[GET /groups/:id/members] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch group members' });
+  }
+});
+
+// Add a member to a group
+app.post('/groups/:id/members', async (req, res) => {
+  const { id } = req.params;
+  const { memberId } = req.body ?? {};
+  if (!memberId) return res.status(400).json({ error: 'memberId is required' });
+  try {
+    await pool.query(
+      `INSERT INTO user_group_members (group_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+      [id, memberId],
+    );
+    res.status(201).json({ success: true });
+  } catch (err) {
+    console.error('[POST /groups/:id/members] failed:', err);
+    res.status(500).json({ error: 'Failed to add member' });
+  }
+});
+
+// Remove a member from a group
+app.delete('/groups/:id/members/:memberId', async (req, res) => {
+  const { id, memberId } = req.params;
+  try {
+    await pool.query(
+      'DELETE FROM user_group_members WHERE group_id = $1 AND user_id = $2',
+      [id, memberId],
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[DELETE /groups/:id/members/:memberId] failed:', err);
+    res.status(500).json({ error: 'Failed to remove member' });
+  }
+});
+
+// List access rules for a story
+app.get('/stories/:storyTitleId/access-rules', async (req, res) => {
+  const { storyTitleId } = req.params;
+  try {
+    const { rows } = await pool.query(
+      `SELECT r.*,
+              u.email AS user_email, p.first_name AS user_first_name, p.last_name AS user_last_name,
+              g.name AS group_name
+       FROM story_access_rules r
+       LEFT JOIN local_users u ON u.id = r.grantee_user_id
+       LEFT JOIN profiles p ON p.id = r.grantee_user_id
+       LEFT JOIN user_groups g ON g.id = r.grantee_group_id
+       WHERE r.story_title_id = $1
+       ORDER BY r.rule_type, r.created_at`,
+      [storyTitleId],
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('[GET /stories/:storyTitleId/access-rules] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch access rules' });
+  }
+});
+
+// Replace all access rules for a given rule_type
+app.put('/stories/:storyTitleId/access-rules', async (req, res) => {
+  const { storyTitleId } = req.params;
+  const { ruleType, grants } = req.body ?? {};
+  if (!ruleType || !Array.isArray(grants)) {
+    return res.status(400).json({ error: 'ruleType and grants[] are required' });
+  }
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    // Delete existing rules of this type
+    await client.query(
+      'DELETE FROM story_access_rules WHERE story_title_id = $1 AND rule_type = $2',
+      [storyTitleId, ruleType],
+    );
+    // Insert new ones
+    for (const g of grants) {
+      if (g.userId) {
+        await client.query(
+          'INSERT INTO story_access_rules (story_title_id, rule_type, grantee_user_id) VALUES ($1, $2, $3)',
+          [storyTitleId, ruleType, g.userId],
+        );
+      } else if (g.groupId) {
+        await client.query(
+          'INSERT INTO story_access_rules (story_title_id, rule_type, grantee_group_id) VALUES ($1, $2, $3)',
+          [storyTitleId, ruleType, g.groupId],
+        );
+      }
+    }
+    await client.query('COMMIT');
+    // Return updated rules
+    const { rows } = await pool.query(
+      `SELECT r.*,
+              u.email AS user_email, p.first_name AS user_first_name, p.last_name AS user_last_name,
+              g.name AS group_name
+       FROM story_access_rules r
+       LEFT JOIN local_users u ON u.id = r.grantee_user_id
+       LEFT JOIN profiles p ON p.id = r.grantee_user_id
+       LEFT JOIN user_groups g ON g.id = r.grantee_group_id
+       WHERE r.story_title_id = $1 AND r.rule_type = $2
+       ORDER BY r.created_at`,
+      [storyTitleId, ruleType],
+    );
+    res.json(rows);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('[PUT /stories/:storyTitleId/access-rules] failed:', err);
+    res.status(500).json({ error: 'Failed to update access rules' });
+  } finally {
+    client.release();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Story collaborators: authors, co-authors, and ownership transfer
+// ---------------------------------------------------------------------------
+
+// GET /stories/:storyTitleId/collaborators — list all authors and co-authors
+app.get('/stories/:storyTitleId/collaborators', async (req, res) => {
+  const { storyTitleId } = req.params;
+  try {
+    const { rows } = await pool.query(
+      `SELECT sc.user_id, sc.role, sc.created_at,
+              u.email, p.first_name, p.last_name, p.nickname
+       FROM story_collaborators sc
+       JOIN local_users u ON u.id = sc.user_id
+       LEFT JOIN profiles p ON p.id = sc.user_id
+       WHERE sc.story_title_id = $1
+       ORDER BY sc.role, sc.created_at`,
+      [storyTitleId],
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('[GET /stories/:storyTitleId/collaborators] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch collaborators' });
+  }
+});
+
+// POST /stories/:storyTitleId/authors — add an author
+app.post('/stories/:storyTitleId/authors', async (req, res) => {
+  const { storyTitleId } = req.params;
+  const { userId, requestingUserId } = req.body ?? {};
+  if (!userId || !requestingUserId) {
+    return res.status(400).json({ error: 'userId and requestingUserId are required' });
+  }
+  try {
+    const storyRes = await pool.query('SELECT creator_id FROM story_title WHERE story_title_id = $1', [storyTitleId]);
+    if (!storyRes.rows.length) return res.status(404).json({ error: 'Story not found' });
+    if (storyRes.rows[0].creator_id !== requestingUserId) {
+      return res.status(403).json({ error: 'Only the story owner can add authors' });
+    }
+    await pool.query(
+      `INSERT INTO story_collaborators (story_title_id, user_id, role)
+       VALUES ($1, $2, 'author')
+       ON CONFLICT (story_title_id, user_id) DO UPDATE SET role = 'author'`,
+      [storyTitleId, userId],
+    );
+    const { rows } = await pool.query(
+      `SELECT sc.user_id, sc.role, sc.created_at, u.email, p.first_name, p.last_name, p.nickname
+       FROM story_collaborators sc
+       JOIN local_users u ON u.id = sc.user_id
+       LEFT JOIN profiles p ON p.id = sc.user_id
+       WHERE sc.story_title_id = $1 AND sc.user_id = $2`,
+      [storyTitleId, userId],
+    );
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('[POST /stories/:storyTitleId/authors] failed:', err);
+    res.status(500).json({ error: 'Failed to add author' });
+  }
+});
+
+// DELETE /stories/:storyTitleId/authors/:userId — remove an author
+app.delete('/stories/:storyTitleId/authors/:userId', async (req, res) => {
+  const { storyTitleId, userId } = req.params;
+  const requestingUserId = req.query.requestingUserId;
+  if (!requestingUserId) {
+    return res.status(400).json({ error: 'requestingUserId is required' });
+  }
+  try {
+    const storyRes = await pool.query('SELECT creator_id FROM story_title WHERE story_title_id = $1', [storyTitleId]);
+    if (!storyRes.rows.length) return res.status(404).json({ error: 'Story not found' });
+    if (storyRes.rows[0].creator_id !== requestingUserId) {
+      return res.status(403).json({ error: 'Only the story owner can remove authors' });
+    }
+    await pool.query(
+      `DELETE FROM story_collaborators WHERE story_title_id = $1 AND user_id = $2 AND role = 'author'`,
+      [storyTitleId, userId],
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[DELETE /stories/:storyTitleId/authors/:userId] failed:', err);
+    res.status(500).json({ error: 'Failed to remove author' });
+  }
+});
+
+// POST /stories/:storyTitleId/coauthors — add a co-author
+app.post('/stories/:storyTitleId/coauthors', async (req, res) => {
+  const { storyTitleId } = req.params;
+  const { userId, requestingUserId } = req.body ?? {};
+  if (!userId || !requestingUserId) {
+    return res.status(400).json({ error: 'userId and requestingUserId are required' });
+  }
+  try {
+    const storyRes = await pool.query('SELECT creator_id FROM story_title WHERE story_title_id = $1', [storyTitleId]);
+    if (!storyRes.rows.length) return res.status(404).json({ error: 'Story not found' });
+    if (storyRes.rows[0].creator_id !== requestingUserId) {
+      return res.status(403).json({ error: 'Only the story owner can add co-authors' });
+    }
+    await pool.query(
+      `INSERT INTO story_collaborators (story_title_id, user_id, role)
+       VALUES ($1, $2, 'coauthor')
+       ON CONFLICT (story_title_id, user_id) DO UPDATE SET role = 'coauthor'`,
+      [storyTitleId, userId],
+    );
+    const { rows } = await pool.query(
+      `SELECT sc.user_id, sc.role, sc.created_at, u.email, p.first_name, p.last_name, p.nickname
+       FROM story_collaborators sc
+       JOIN local_users u ON u.id = sc.user_id
+       LEFT JOIN profiles p ON p.id = sc.user_id
+       WHERE sc.story_title_id = $1 AND sc.user_id = $2`,
+      [storyTitleId, userId],
+    );
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('[POST /stories/:storyTitleId/coauthors] failed:', err);
+    res.status(500).json({ error: 'Failed to add co-author' });
+  }
+});
+
+// DELETE /stories/:storyTitleId/coauthors/:userId — remove a co-author
+app.delete('/stories/:storyTitleId/coauthors/:userId', async (req, res) => {
+  const { storyTitleId, userId } = req.params;
+  const requestingUserId = req.query.requestingUserId;
+  if (!requestingUserId) {
+    return res.status(400).json({ error: 'requestingUserId is required' });
+  }
+  try {
+    const storyRes = await pool.query('SELECT creator_id FROM story_title WHERE story_title_id = $1', [storyTitleId]);
+    if (!storyRes.rows.length) return res.status(404).json({ error: 'Story not found' });
+    if (storyRes.rows[0].creator_id !== requestingUserId) {
+      return res.status(403).json({ error: 'Only the story owner can remove co-authors' });
+    }
+    await pool.query(
+      `DELETE FROM story_collaborators WHERE story_title_id = $1 AND user_id = $2 AND role = 'coauthor'`,
+      [storyTitleId, userId],
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[DELETE /stories/:storyTitleId/coauthors/:userId] failed:', err);
+    res.status(500).json({ error: 'Failed to remove co-author' });
+  }
+});
+
+// POST /stories/:storyTitleId/transfer-ownership — transfer story ownership
+app.post('/stories/:storyTitleId/transfer-ownership', async (req, res) => {
+  const { storyTitleId } = req.params;
+  const { newOwnerId, requestingUserId } = req.body ?? {};
+  if (!newOwnerId || !requestingUserId) {
+    return res.status(400).json({ error: 'newOwnerId and requestingUserId are required' });
+  }
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const storyRes = await client.query(
+      'SELECT creator_id FROM story_title WHERE story_title_id = $1 FOR UPDATE',
+      [storyTitleId],
+    );
+    if (!storyRes.rows.length) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Story not found' });
+    }
+    const currentOwnerId = storyRes.rows[0].creator_id;
+    if (currentOwnerId !== requestingUserId) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'Only the current owner can transfer ownership' });
+    }
+    if (currentOwnerId === newOwnerId) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'New owner must be different from the current owner' });
+    }
+    // Verify new owner exists
+    const userRes = await client.query('SELECT id FROM local_users WHERE id = $1', [newOwnerId]);
+    if (!userRes.rows.length) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Target user not found' });
+    }
+    // Update story_title.creator_id (initiator_id stays unchanged)
+    await client.query(
+      'UPDATE story_title SET creator_id = $1 WHERE story_title_id = $2',
+      [newOwnerId, storyTitleId],
+    );
+    // Demote old owner in story_access to contributor
+    await client.query(
+      `UPDATE story_access SET role = 'contributor' WHERE story_title_id = $1 AND user_id = $2`,
+      [storyTitleId, currentOwnerId],
+    );
+    // Promote new owner in story_access
+    await client.query(
+      `INSERT INTO story_access (story_title_id, user_id, role)
+       VALUES ($1, $2, 'owner')
+       ON CONFLICT (story_title_id, user_id) DO UPDATE SET role = 'owner'`,
+      [storyTitleId, newOwnerId],
+    );
+    await client.query('COMMIT');
+    const { rows } = await pool.query('SELECT * FROM story_title WHERE story_title_id = $1', [storyTitleId]);
+    res.json(rows[0]);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('[POST /stories/:storyTitleId/transfer-ownership] failed:', err);
+    res.status(500).json({ error: 'Failed to transfer ownership' });
+  } finally {
+    client.release();
+  }
+});
+
 // Clone a story (title + chapters) for the requesting user
 app.post('/stories/:storyTitleId/clone', async (req, res) => {
   const { storyTitleId } = req.params;
@@ -6237,7 +7600,7 @@ app.post('/stories/:storyTitleId/clone', async (req, res) => {
     await client.query('BEGIN');
 
     const sourceTitleRes = await client.query(
-      'SELECT story_title_id, title, visibility, published, creative_space_id FROM story_title WHERE story_title_id = $1',
+      'SELECT story_title_id, title, visibility, published, creative_space_id, clone_policy, creator_id, language, cover_image_url FROM story_title WHERE story_title_id = $1',
       [storyTitleId],
     );
     if (sourceTitleRes.rows.length === 0) {
@@ -6245,6 +7608,36 @@ app.post('/stories/:storyTitleId/clone', async (req, res) => {
       return res.status(404).json({ error: 'Source story not found' });
     }
     const src = sourceTitleRes.rows[0];
+
+    // Enforce clone policy
+    const clonePolicy = src.clone_policy ?? 'anyone';
+    const isCloneOwnerOrAccess = src.creator_id === userId || await (async () => {
+      try {
+        const acc = await client.query('SELECT 1 FROM story_access WHERE story_title_id = $1 AND user_id = $2 LIMIT 1', [storyTitleId, userId]);
+        return acc.rows.length > 0;
+      } catch { return false; }
+    })();
+
+    if (clonePolicy === 'none' && !isCloneOwnerOrAccess) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'This story does not allow cloning.' });
+    }
+    if (clonePolicy === 'restricted' && !isCloneOwnerOrAccess) {
+      try {
+        const ruleCheck = await client.query(
+          `SELECT 1 FROM story_access_rules WHERE story_title_id = $1 AND rule_type = 'clone'
+           AND (grantee_user_id = $2 OR grantee_group_id IN (SELECT group_id FROM user_group_members WHERE user_id = $2))
+           LIMIT 1`,
+          [storyTitleId, userId],
+        );
+        if (ruleCheck.rows.length === 0) {
+          await client.query('ROLLBACK');
+          return res.status(403).json({ error: 'You do not have permission to clone this story.' });
+        }
+      } catch (ruleErr) {
+        console.error('[POST /stories/:storyTitleId/clone] rule check failed:', ruleErr);
+      }
+    }
 
     // Decide which Space (if any) the cloned story should belong to.
     let newCreativeSpaceId = src.creative_space_id || null;
@@ -6262,8 +7655,8 @@ app.post('/stories/:storyTitleId/clone', async (req, res) => {
     }
 
     const insertTitleRes = await client.query(
-      'INSERT INTO story_title (title, creator_id, visibility, published, creative_space_id) VALUES ($1, $2, $3, $4, $5) RETURNING story_title_id, title, visibility, published, creative_space_id',
-      [src.title, userId, src.visibility ?? 'public', src.published ?? true, newCreativeSpaceId],
+      'INSERT INTO story_title (title, creator_id, visibility, published, creative_space_id, language, cover_image_url) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING story_title_id, title, visibility, published, creative_space_id, language, cover_image_url',
+      [src.title, userId, src.visibility ?? 'public', src.published ?? true, newCreativeSpaceId, src.language || 'en', src.cover_image_url || null],
     );
     const newTitle = insertTitleRes.rows[0];
 
@@ -6333,6 +7726,632 @@ app.post('/stories/:storyTitleId/clone', async (req, res) => {
     client.release();
   }
 });
+
+// ---------------------------------------------------------------------------
+// Alpha Invitations & Applications endpoints
+// ---------------------------------------------------------------------------
+
+// Helper: check if user has platform_admin role
+async function isAdmin(userId) {
+  if (!userId) return false;
+  try {
+    const { rows } = await pool.query(
+      "SELECT role FROM user_roles WHERE user_id = $1 AND role = 'platform_admin'",
+      [userId]
+    );
+    return rows.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+// Helper: check if user has platform_admin or ui_translator role
+async function isTranslator(userId) {
+  if (!userId) return false;
+  try {
+    const { rows } = await pool.query(
+      "SELECT role FROM user_roles WHERE user_id = $1 AND role IN ('platform_admin', 'ui_translator')",
+      [userId]
+    );
+    return rows.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+// POST /admin/invitations — create invitation & send email (admin-only)
+app.post('/admin/invitations', async (req, res) => {
+  const { userId, firstName, lastName, email } = req.body ?? {};
+  if (!userId || !firstName || !lastName || !email) {
+    return res.status(400).json({ error: 'userId, firstName, lastName, and email are required' });
+  }
+  if (!(await isAdmin(userId))) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  try {
+    const invitationCode = `inv-${randomUUID()}`;
+    const { rows } = await pool.query(
+      `INSERT INTO alpha_invitations (invitation_code, first_name, last_name, email, invited_by)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [invitationCode, firstName, lastName, email, userId]
+    );
+    // Fire-and-forget email
+    sendInvitationEmail(email, firstName, invitationCode);
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error('[POST /admin/invitations] failed:', err);
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'An invitation for this email already exists' });
+    }
+    res.status(500).json({ error: 'Failed to create invitation' });
+  }
+});
+
+// GET /admin/invitations — list invitations with sort/pagination
+app.get('/admin/invitations', async (req, res) => {
+  const { userId, sortBy, sortOrder, limit, offset } = req.query;
+  if (!(await isAdmin(userId))) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  try {
+    const allowedSort = ['first_name', 'last_name', 'email', 'invited_at', 'joined_at', 'status'];
+    const col = allowedSort.includes(sortBy) ? sortBy : 'invited_at';
+    const dir = sortOrder === 'asc' ? 'ASC' : 'DESC';
+    const lim = Math.min(Number(limit) || 50, 1000);
+    const off = Number(offset) || 0;
+
+    const { rows } = await pool.query(
+      `SELECT * FROM alpha_invitations ORDER BY ${col} ${dir} LIMIT $1 OFFSET $2`,
+      [lim, off]
+    );
+    const { rows: countRows } = await pool.query('SELECT count(*)::int AS total FROM alpha_invitations');
+    res.json({ invitations: rows, total: countRows[0].total });
+  } catch (err) {
+    console.error('[GET /admin/invitations] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch invitations' });
+  }
+});
+
+// DELETE /admin/invitations/:id — revoke & delete
+app.delete('/admin/invitations/:id', async (req, res) => {
+  const { userId } = req.body ?? {};
+  if (!(await isAdmin(userId))) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  try {
+    const { rowCount } = await pool.query('DELETE FROM alpha_invitations WHERE id = $1', [req.params.id]);
+    if (rowCount === 0) {
+      return res.status(404).json({ error: 'Invitation not found' });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[DELETE /admin/invitations/:id] failed:', err);
+    res.status(500).json({ error: 'Failed to delete invitation' });
+  }
+});
+
+// GET /admin/applications — list applications
+app.get('/admin/applications', async (req, res) => {
+  const { userId } = req.query;
+  if (!(await isAdmin(userId))) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  try {
+    const { rows } = await pool.query('SELECT * FROM alpha_applications ORDER BY created_at DESC');
+    res.json({ applications: rows });
+  } catch (err) {
+    console.error('[GET /admin/applications] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch applications' });
+  }
+});
+
+// POST /admin/applications/:id/invite — convert application to invitation
+app.post('/admin/applications/:id/invite', async (req, res) => {
+  const { userId } = req.body ?? {};
+  if (!(await isAdmin(userId))) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  try {
+    // Get the application
+    const { rows: appRows } = await pool.query('SELECT * FROM alpha_applications WHERE id = $1', [req.params.id]);
+    if (appRows.length === 0) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+    const application = appRows[0];
+
+    // Create invitation from application
+    const invitationCode = `inv-${randomUUID()}`;
+    const { rows: invRows } = await pool.query(
+      `INSERT INTO alpha_invitations (invitation_code, first_name, last_name, email, invited_by)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [invitationCode, application.first_name, application.last_name, application.email, userId]
+    );
+
+    // Update application status
+    await pool.query(
+      `UPDATE alpha_applications SET status = 'invited', processed_at = now(), processed_by = $1 WHERE id = $2`,
+      [userId, req.params.id]
+    );
+
+    // Fire-and-forget email
+    sendApplicationToInvitationEmail(application.email, application.first_name, invitationCode);
+
+    res.status(201).json(invRows[0]);
+  } catch (err) {
+    console.error('[POST /admin/applications/:id/invite] failed:', err);
+    if (err.code === '23505') {
+      return res.status(409).json({ error: 'An invitation for this email already exists' });
+    }
+    res.status(500).json({ error: 'Failed to convert application to invitation' });
+  }
+});
+
+// DELETE /admin/applications/:id — delete application
+app.delete('/admin/applications/:id', async (req, res) => {
+  const { userId } = req.body ?? {};
+  if (!(await isAdmin(userId))) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  try {
+    const { rowCount } = await pool.query('DELETE FROM alpha_applications WHERE id = $1', [req.params.id]);
+    if (rowCount === 0) {
+      return res.status(404).json({ error: 'Application not found' });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[DELETE /admin/applications/:id] failed:', err);
+    res.status(500).json({ error: 'Failed to delete application' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Admin User Management endpoints
+// ---------------------------------------------------------------------------
+
+// POST /admin/users — create a new user (admin-only)
+app.post('/admin/users', async (req, res) => {
+  const { userId, firstName, lastName, email, password, roles, translatorLanguages } = req.body ?? {};
+  if (!(await isAdmin(userId))) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Email and password are required' });
+  }
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Check for duplicate email
+    const existing = await client.query('SELECT 1 FROM local_users WHERE email = $1', [email]);
+    if (existing.rows.length > 0) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: 'An account with this email already exists' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const { rows: userRows } = await client.query(
+      'INSERT INTO local_users (email, password_hash) VALUES ($1, $2) RETURNING id, email',
+      [email, passwordHash]
+    );
+    const newUser = userRows[0];
+
+    // Create profile with first/last name; username defaults to email
+    await client.query(
+      'INSERT INTO profiles (id, first_name, last_name, username) VALUES ($1, $2, $3, $4) ON CONFLICT (id) DO UPDATE SET first_name = $2, last_name = $3',
+      [newUser.id, firstName || null, lastName || null, email.trim()]
+    );
+
+    // Always assign consumer role
+    await client.query('INSERT INTO user_roles (user_id, role) VALUES ($1, $2)', [newUser.id, 'consumer']);
+
+    // Assign additional roles
+    const validRoles = ['ui_translator', 'platform_supporter'];
+    const extraRoles = Array.isArray(roles) ? roles.filter(r => validRoles.includes(r)) : [];
+    for (const role of extraRoles) {
+      await client.query('INSERT INTO user_roles (user_id, role) VALUES ($1, $2)', [newUser.id, role]);
+    }
+
+    // Assign translator languages if ui_translator role is being assigned
+    if (extraRoles.includes('ui_translator') && Array.isArray(translatorLanguages) && translatorLanguages.length > 0) {
+      for (const localeCode of translatorLanguages) {
+        await client.query(
+          'INSERT INTO user_translator_languages (user_id, locale_code) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+          [newUser.id, localeCode],
+        );
+      }
+    }
+
+    await client.query('COMMIT');
+
+    res.status(201).json({
+      id: newUser.id,
+      email: newUser.email,
+      first_name: firstName || null,
+      last_name: lastName || null,
+      roles: ['consumer', ...extraRoles],
+      translator_languages: extraRoles.includes('ui_translator') ? (translatorLanguages || []) : [],
+    });
+  } catch (err) {
+    try { await client.query('ROLLBACK'); } catch (_) { /* ignore */ }
+    console.error('[POST /admin/users] failed:', err);
+    res.status(500).json({ error: 'Failed to create user' });
+  } finally {
+    client.release();
+  }
+});
+
+// GET /admin/users — list users with pagination, sorting, search
+app.get('/admin/users', async (req, res) => {
+  const { userId, sortBy, sortOrder, limit, offset, search } = req.query;
+  if (!(await isAdmin(userId))) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  try {
+    const allowedSort = ['first_name', 'last_name', 'email', 'username'];
+    const col = allowedSort.includes(sortBy) ? sortBy : 'email';
+    const dir = sortOrder === 'desc' ? 'DESC' : 'ASC';
+
+    // limit=0 means "all"
+    const rawLimit = Number(limit);
+    const useAll = rawLimit === 0;
+    const lim = useAll ? null : (Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : 20);
+    const off = Number(offset) || 0;
+
+    const searchPattern = search ? `%${search}%` : null;
+
+    const sortColumn = col === 'email' ? 'u.email'
+      : col === 'username' ? "COALESCE(p.username, '')"
+      : col === 'first_name' ? "COALESCE(p.first_name, '')"
+      : "COALESCE(p.last_name, '')";
+
+    let whereClause = '';
+    const params = [];
+    if (searchPattern) {
+      params.push(searchPattern);
+      whereClause = `WHERE (
+        u.email ILIKE $1 OR
+        COALESCE(p.first_name, '') ILIKE $1 OR
+        COALESCE(p.last_name, '') ILIKE $1 OR
+        COALESCE(p.username, '') ILIKE $1
+      )`;
+    }
+
+    const countQuery = `
+      SELECT count(*)::int AS total
+      FROM local_users u
+      LEFT JOIN profiles p ON p.id = u.id
+      ${whereClause}
+    `;
+    const { rows: countRows } = await pool.query(countQuery, params);
+
+    let dataQuery = `
+      SELECT
+        u.id,
+        u.email,
+        u.created_at,
+        u.is_banned,
+        p.first_name,
+        p.last_name,
+        p.username,
+        p.profile_page_name,
+        ARRAY(SELECT role FROM user_roles WHERE user_id = u.id) AS roles,
+        ARRAY(SELECT locale_code FROM user_translator_languages WHERE user_id = u.id) AS translator_languages,
+        EXISTS(SELECT 1 FROM story_initiators WHERE initiator_id = u.id) AS is_initiator,
+        EXISTS(SELECT 1 FROM story_access WHERE user_id = u.id AND role = 'owner') AS is_owner,
+        EXISTS(SELECT 1 FROM story_access WHERE user_id = u.id AND role = 'contributor')
+          OR EXISTS(SELECT 1 FROM contributions WHERE author_user_id = u.id) AS is_contributor,
+        EXISTS(SELECT 1 FROM authors WHERE author_id = u.id) AS is_author
+      FROM local_users u
+      LEFT JOIN profiles p ON p.id = u.id
+      ${whereClause}
+      ORDER BY ${sortColumn} ${dir}
+    `;
+
+    const dataParams = [...params];
+    if (!useAll) {
+      dataParams.push(lim, off);
+      dataQuery += ` LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}`;
+    }
+
+    const { rows } = await pool.query(dataQuery, dataParams);
+
+    res.json({ users: rows, total: countRows[0].total });
+  } catch (err) {
+    console.error('[GET /admin/users] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch users' });
+  }
+});
+
+// PATCH /admin/users/:id — update user profile fields (admin-only)
+app.patch('/admin/users/:id', async (req, res) => {
+  const { userId, first_name, last_name, email, username, roles, translatorLanguages } = req.body ?? {};
+  if (!(await isAdmin(userId))) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  const targetId = req.params.id;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Update email on local_users if provided
+    if (email !== undefined) {
+      // Check for duplicate email
+      const { rows: existing } = await client.query(
+        'SELECT id FROM local_users WHERE email = $1 AND id != $2',
+        [email, targetId]
+      );
+      if (existing.length > 0) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error: 'This email is already in use by another account' });
+      }
+      await client.query('UPDATE local_users SET email = $1 WHERE id = $2', [email, targetId]);
+    }
+
+    // Update profile fields
+    if (first_name !== undefined || last_name !== undefined || username !== undefined) {
+      // Check username uniqueness
+      if (username !== undefined && username !== '') {
+        const { rows: existing } = await client.query(
+          'SELECT id FROM profiles WHERE LOWER(username) = LOWER($1) AND id != $2',
+          [username, targetId]
+        );
+        if (existing.length > 0) {
+          await client.query('ROLLBACK');
+          return res.status(409).json({ error: 'Sorry, this name is already taken' });
+        }
+      }
+
+      // Ensure profile row exists
+      await client.query(
+        `INSERT INTO profiles (id, username, created_at, updated_at)
+         VALUES ($1, $2, now(), now())
+         ON CONFLICT (id) DO NOTHING`,
+        [targetId, email || 'user-' + targetId.substring(0, 8)]
+      );
+
+      const updates = [];
+      const vals = [];
+      let idx = 1;
+      if (first_name !== undefined) { updates.push(`first_name = $${idx++}`); vals.push(first_name); }
+      if (last_name !== undefined) { updates.push(`last_name = $${idx++}`); vals.push(last_name); }
+      if (username !== undefined) { updates.push(`username = $${idx++}`); vals.push(username); }
+      updates.push(`updated_at = now()`);
+
+      if (updates.length > 1) {
+        vals.push(targetId);
+        await client.query(
+          `UPDATE profiles SET ${updates.join(', ')} WHERE id = $${idx}`,
+          vals
+        );
+      }
+    }
+
+    // Update roles if provided (array of role strings)
+    if (Array.isArray(roles)) {
+      const validRoles = ['ui_translator', 'platform_supporter'];
+      const desiredExtra = roles.filter(r => validRoles.includes(r));
+
+      // Get current roles (excluding consumer and platform_admin which we never touch)
+      const { rows: currentRoleRows } = await client.query(
+        "SELECT role FROM user_roles WHERE user_id = $1 AND role IN ('ui_translator', 'platform_supporter')",
+        [targetId],
+      );
+      const currentExtra = currentRoleRows.map(r => r.role);
+
+      // Add missing roles
+      for (const role of desiredExtra) {
+        if (!currentExtra.includes(role)) {
+          await client.query(
+            'INSERT INTO user_roles (user_id, role) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+            [targetId, role],
+          );
+        }
+      }
+      // Remove roles no longer desired
+      for (const role of currentExtra) {
+        if (!desiredExtra.includes(role)) {
+          await client.query(
+            'DELETE FROM user_roles WHERE user_id = $1 AND role = $2',
+            [targetId, role],
+          );
+        }
+      }
+    }
+
+    // Update translator languages if provided (array of locale codes)
+    if (Array.isArray(translatorLanguages)) {
+      // Replace all: delete existing, insert new
+      await client.query('DELETE FROM user_translator_languages WHERE user_id = $1', [targetId]);
+      for (const localeCode of translatorLanguages) {
+        if (localeCode) {
+          await client.query(
+            'INSERT INTO user_translator_languages (user_id, locale_code) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+            [targetId, localeCode],
+          );
+        }
+      }
+    }
+
+    await client.query('COMMIT');
+
+    // Return updated user with translator languages
+    const { rows } = await pool.query(
+      `SELECT
+        u.id, u.email, u.created_at, u.is_banned,
+        p.first_name, p.last_name, p.username, p.profile_page_name,
+        ARRAY(SELECT role FROM user_roles WHERE user_id = u.id) AS roles,
+        ARRAY(SELECT locale_code FROM user_translator_languages WHERE user_id = u.id) AS translator_languages
+       FROM local_users u
+       LEFT JOIN profiles p ON p.id = u.id
+       WHERE u.id = $1`,
+      [targetId]
+    );
+    res.json(rows[0] || { id: targetId });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('[PATCH /admin/users/:id] failed:', err);
+    res.status(500).json({ error: 'Failed to update user' });
+  } finally {
+    client.release();
+  }
+});
+
+// POST /admin/users/:id/ban — toggle ban status (admin-only)
+app.post('/admin/users/:id/ban', async (req, res) => {
+  const { userId, banned } = req.body ?? {};
+  if (!(await isAdmin(userId))) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  try {
+    const isBanned = banned === true || banned === 'true';
+    const { rows } = await pool.query(
+      'UPDATE local_users SET is_banned = $1 WHERE id = $2 RETURNING id, is_banned',
+      [isBanned, req.params.id]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('[POST /admin/users/:id/ban] failed:', err);
+    res.status(500).json({ error: 'Failed to update ban status' });
+  }
+});
+
+// DELETE /admin/users/:id — delete user (admin-only)
+app.delete('/admin/users/:id', async (req, res) => {
+  const { userId } = req.body ?? {};
+  if (!(await isAdmin(userId))) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  const targetId = req.params.id;
+  // Don't allow self-deletion via admin route
+  if (targetId === userId) {
+    return res.status(400).json({ error: 'Cannot delete your own account via admin panel' });
+  }
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM user_roles WHERE user_id = $1', [targetId]);
+    await client.query('DELETE FROM profiles WHERE id = $1', [targetId]);
+    await client.query('DELETE FROM admin_messages WHERE sender_id = $1 OR recipient_id = $1', [targetId]);
+    const { rowCount } = await client.query('DELETE FROM local_users WHERE id = $1', [targetId]);
+    await client.query('COMMIT');
+    if (rowCount === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('[DELETE /admin/users/:id] failed:', err);
+    res.status(500).json({ error: 'Failed to delete user' });
+  } finally {
+    client.release();
+  }
+});
+
+// POST /admin/users/:id/message — send an admin message to user
+app.post('/admin/users/:id/message', async (req, res) => {
+  const { userId, subject, body } = req.body ?? {};
+  if (!(await isAdmin(userId))) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  if (!subject && !body) {
+    return res.status(400).json({ error: 'Subject or body is required' });
+  }
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO admin_messages (sender_id, recipient_id, subject, body)
+       VALUES ($1, $2, $3, $4)
+       RETURNING *`,
+      [userId, req.params.id, subject || '', body || '']
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error('[POST /admin/users/:id/message] failed:', err);
+    res.status(500).json({ error: 'Failed to send message' });
+  }
+});
+
+// POST /alpha/validate — validate invitation code + email (public)
+app.post('/alpha/validate', async (req, res) => {
+  const { code, email } = req.body ?? {};
+  if (!code || !email) {
+    return res.status(400).json({ error: 'Invitation code and email are required' });
+  }
+  try {
+    const { rows } = await pool.query(
+      `SELECT * FROM alpha_invitations WHERE invitation_code = $1 AND email = $2 AND status = 'pending'`,
+      [code, email]
+    );
+    if (rows.length === 0) {
+      return res.status(401).json({ valid: false, error: 'Invalid invitation code or email' });
+    }
+    res.json({ valid: true, firstName: rows[0].first_name });
+  } catch (err) {
+    console.error('[POST /alpha/validate] failed:', err);
+    res.status(500).json({ error: 'Failed to validate invitation' });
+  }
+});
+
+// POST /alpha/apply — submit application (public)
+app.post('/alpha/apply', async (req, res) => {
+  const { firstName, lastName, email, motivationLetter } = req.body ?? {};
+  if (!firstName || !lastName || !email) {
+    return res.status(400).json({ error: 'First name, last name, and email are required' });
+  }
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO alpha_applications (first_name, last_name, email, motivation_letter)
+       VALUES ($1, $2, $3, $4)
+       RETURNING *`,
+      [firstName, lastName, email, motivationLetter || null]
+    );
+    // Fire-and-forget email
+    sendApplicationConfirmationEmail(email, firstName);
+    res.status(201).json({ success: true, application: rows[0] });
+  } catch (err) {
+    console.error('[POST /alpha/apply] failed:', err);
+    res.status(500).json({ error: 'Failed to submit application' });
+  }
+});
+
+// GET /alpha/check-access — check alpha access status
+app.get('/alpha/check-access', async (req, res) => {
+  const { code, email } = req.query;
+  if (!code || !email) {
+    return res.status(400).json({ hasAccess: false });
+  }
+  try {
+    const { rows } = await pool.query(
+      `SELECT * FROM alpha_invitations WHERE invitation_code = $1 AND email = $2 AND status = 'pending'`,
+      [code, email]
+    );
+    res.json({ hasAccess: rows.length > 0 });
+  } catch (err) {
+    console.error('[GET /alpha/check-access] failed:', err);
+    res.status(500).json({ hasAccess: false });
+  }
+});
+
+// Ensure ui_translator role exists in the app_role enum
+async function ensureUiTranslatorRole() {
+  try {
+    await pool.query("ALTER TYPE app_role ADD VALUE IF NOT EXISTS 'ui_translator'");
+    console.log('[startup] ui_translator role ensured in app_role enum');
+  } catch (err) {
+    // IF NOT EXISTS is only supported in PG 9.3+; if it already exists, ignore
+    if (err.code === '42710') {
+      console.log('[startup] ui_translator role already exists');
+    } else {
+      console.error('[startup] failed to add ui_translator role:', err);
+    }
+  }
+}
+
+ensureUiTranslatorRole();
 
 const port = Number(process.env.PORT) || 4000;
 const host = process.env.HOST || '0.0.0.0';

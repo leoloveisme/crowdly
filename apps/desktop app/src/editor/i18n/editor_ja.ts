@@ -92,6 +92,22 @@
       <translation>Japanese</translation>
     </message>
     <message>
+      <source>French</source>
+      <translation>フランス語</translation>
+    </message>
+    <message>
+      <source>Spanish</source>
+      <translation>スペイン語</translation>
+    </message>
+    <message>
+      <source>German</source>
+      <translation>ドイツ語</translation>
+    </message>
+    <message>
+      <source>Hindi</source>
+      <translation>ヒンディー語</translation>
+    </message>
+    <message>
       <source>Quit</source>
       <translation>Quit</translation>
     </message>
@@ -126,6 +142,30 @@
     <message>
       <source>as odt</source>
       <translation>as odt</translation>
+    </message>
+    <message>
+      <source>as FDX</source>
+      <translation>as FDX</translation>
+    </message>
+    <message>
+      <source>as FOUNTAIN</source>
+      <translation>as FOUNTAIN</translation>
+    </message>
+    <message>
+      <source>Save as</source>
+      <translation>Save as</translation>
+    </message>
+    <message>
+      <source>as .md file</source>
+      <translation>as .md file</translation>
+    </message>
+    <message>
+      <source>as .story file</source>
+      <translation>as .story file</translation>
+    </message>
+    <message>
+      <source>as .screenplay file</source>
+      <translation>as .screenplay file</translation>
     </message>
     <message>
       <source>Import</source>
@@ -347,5 +387,64 @@ Details: {error}</translation>
       <source>Genre updated.</source>
       <translation>Genre updated.</translation>
     </message>
+    <message>
+      <source>Edit description</source>
+      <translation>説明を編集</translation>
+    </message>
+    <message>
+      <source>Description</source>
+      <translation>説明</translation>
+    </message>
+    <message>
+      <source>Enter description:</source>
+      <translation>説明を入力：</translation>
+    </message>
+    <message>
+      <source>Description updated.</source>
+      <translation>説明が更新されました。</translation>
+    </message>
+    <message>
+      <source>Description deleted.</source>
+      <translation>説明が削除されました。</translation>
+    </message>
+    <message>
+      <source>Session control</source>
+      <translation>セッション管理</translation>
+    </message>
+    <message>
+      <source>Here you can decide how the session control for closing of the app should work.</source>
+      <translation>アプリケーション終了時のセッション管理の動作を設定できます。</translation>
+    </message>
+    <message>
+      <source>The app will:</source>
+      <translation>アプリケーションの動作：</translation>
+    </message>
+    <message>
+      <source>Close all its tabs and clear creative / project Space</source>
+      <translation>すべてのタブを閉じ、クリエイティブスペース/プロジェクトスペースをクリアする</translation>
+    </message>
+    <message>
+      <source>Keep the current session (saves all the opened tabs and windows, and the Space remains set)</source>
+      <translation>現在のセッションを保持する（開いているすべてのタブとウィンドウを保存し、スペースの設定を維持する）</translation>
+    </message>
+    <message>
+      <source>Save</source>
+      <translation>保存</translation>
+    </message>
+    <message>
+      <source>Cancel</source>
+      <translation>キャンセル</translation>
+    </message>
+    <message>
+        <source>No name</source>
+        <translation>名前なし</translation>
+    </message>
   </context>
+<context>
+    <name>CompareRevisionsWindow</name>
+    <message>
+        <source>Show diff highlights</source>
+        <translation>差分ハイライトを表示</translation>
+    </message>
+</context>
 </TS>

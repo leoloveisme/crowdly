@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 export type UserRole =
   | "platform_admin"
   | "platform_supporter"
+  | "ui_translator"
   | "consumer"
   | "author"
   | "editor"

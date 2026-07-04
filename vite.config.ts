@@ -39,6 +39,14 @@ export default defineConfig(({ mode }) => ({
         target: "http://localhost:4000",
         changeOrigin: true,
       },
+      "/chapter-revisions": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/screenplay-revisions": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
       "/screenplays": {
         target: "http://localhost:4000",
         changeOrigin: true,
@@ -67,6 +75,10 @@ export default defineConfig(({ mode }) => ({
         target: "http://localhost:4000",
         changeOrigin: true,
       },
+      "/groups": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
       "/creative-spaces": {
         target: "http://localhost:4000",
         changeOrigin: true,
@@ -84,6 +96,38 @@ export default defineConfig(({ mode }) => ({
         changeOrigin: true,
       },
       "/search": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/admin/invitations": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/admin/applications": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/admin/users": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/locales": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/interface-translations": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/alpha/validate": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/alpha/apply": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/alpha/check-access": {
         target: "http://localhost:4000",
         changeOrigin: true,
       },

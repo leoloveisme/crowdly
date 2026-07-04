@@ -188,6 +188,22 @@
         <translation >Японский</translation>
     </message>
     <message>
+        <source>French</source>
+        <translation >Французский</translation>
+    </message>
+    <message>
+        <source>Spanish</source>
+        <translation >Испанский</translation>
+    </message>
+    <message>
+        <source>German</source>
+        <translation >Немецкий</translation>
+    </message>
+    <message>
+        <source>Hindi</source>
+        <translation >Хинди</translation>
+    </message>
+    <message>
         <source>Quit</source>
         <translation >Закрыть программу</translation>
     </message>
@@ -222,6 +238,30 @@
     <message>
         <source>as odt</source>
         <translation >в odt</translation>
+    </message>
+    <message>
+        <source>as FDX</source>
+        <translation >в FDX</translation>
+    </message>
+    <message>
+        <source>as FOUNTAIN</source>
+        <translation >в FOUNTAIN</translation>
+    </message>
+    <message>
+        <source>Save as</source>
+        <translation >Сохранить как</translation>
+    </message>
+    <message>
+        <source>as .md file</source>
+        <translation >.md файл</translation>
+    </message>
+    <message>
+        <source>as .story file</source>
+        <translation >.story файл</translation>
+    </message>
+    <message>
+        <source>as .screenplay file</source>
+        <translation >.screenplay файл</translation>
     </message>
     <message>
         <source>Import</source>
@@ -443,6 +483,58 @@ Details: {error}</source>
         <source>Genre updated.</source>
         <translation >Жанр обновлён.</translation>
     </message>
+    <message>
+        <source>Edit description</source>
+        <translation >Редактировать описание</translation>
+    </message>
+    <message>
+        <source>Description</source>
+        <translation >Описание</translation>
+    </message>
+    <message>
+        <source>Enter description:</source>
+        <translation >Введите описание:</translation>
+    </message>
+    <message>
+        <source>Description updated.</source>
+        <translation >Описание обновлено.</translation>
+    </message>
+    <message>
+        <source>Description deleted.</source>
+        <translation >Описание удалено.</translation>
+    </message>
+    <message>
+        <source>Session control</source>
+        <translation>Управление сессией</translation>
+    </message>
+    <message>
+        <source>Here you can decide how the session control for closing of the app should work.</source>
+        <translation>Здесь вы можете выбрать, как должно работать управление сессией при закрытии приложения.</translation>
+    </message>
+    <message>
+        <source>The app will:</source>
+        <translation>Приложение будет:</translation>
+    </message>
+    <message>
+        <source>Close all its tabs and clear creative / project Space</source>
+        <translation>Закрыть все вкладки и очистить креативное пространство / проект</translation>
+    </message>
+    <message>
+        <source>Keep the current session (saves all the opened tabs and windows, and the Space remains set)</source>
+        <translation>Сохранить текущую сессию (сохраняет все открытые вкладки и окна, креативное пространство остаётся установленным)</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>Сохранить</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Отмена</translation>
+    </message>
+    <message>
+        <source>No name</source>
+        <translation>Без имени</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>
@@ -599,6 +691,10 @@ Details: {error}</source>
     <message>
         <source>Layout {index}</source>
         <translation>Раскладка {index}</translation>
+    </message>
+    <message>
+        <source>Show diff highlights</source>
+        <translation>Показать подсветку изменений</translation>
     </message>
 </context>
 </TS>

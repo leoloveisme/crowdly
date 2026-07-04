@@ -7,16 +7,19 @@ layered on top of this layout.
 
 from __future__ import annotations
 
+import uuid
 from pathlib import Path
 from datetime import datetime
 
 from PySide6.QtWidgets import (
+    QButtonGroup,
     QFileDialog,
     QHBoxLayout,
     QLabel,
     QMainWindow,
     QMenu,
     QMessageBox,
+    QRadioButton,
     QSplitter,
     QStatusBar,
     QToolButton,
@@ -151,6 +154,9 @@ class MainWindow(QMainWindow):
         # between Markdown-only, WYSIWYG-only, or both panes visible.
         # Each entry is a dict with boolean "md" and "wysiwyg" keys.
         self._tab_pane_visibility: list[dict[str, bool]] = []
+        # Set of tab indices whose titles were explicitly set by the user via
+        # inline rename.  Autosave will not overwrite these with the filename.
+        self._tab_user_renamed: set[int] = set()
         self._current_tab_index: int = 0
 
         # Simple debounced autosave timer (milliseconds).
@@ -303,16 +309,21 @@ class MainWindow(QMainWindow):
             self.tr("as FOUNTAIN"), self._export_as_fountain
         )
 
+        # Save as menu: save the current document in different formats.
+        save_as_menu = menu.addMenu(self.tr("Save as"))
+        self._save_as_menu = save_as_menu
+        self._action_save_as_md = save_as_menu.addAction(
+            self.tr("as .md file"), self._save_as_md
+        )
+        self._action_save_as_story = save_as_menu.addAction(
+            self.tr("as .story file"), self._save_as_story
+        )
+        self._action_save_as_screenplay = save_as_menu.addAction(
+            self.tr("as .screenplay file"), self._save_as_screenplay
+        )
+
         settings_menu = menu.addMenu(self.tr("Settings"))
         self._settings_menu = settings_menu
-        self._action_choose_project_space = settings_menu.addAction(
-            self.tr("Create or choose your project space"),
-            self._choose_project_space,
-        )
-        self._action_clear_project_space = settings_menu.addAction(
-            self.tr("Clear project space setting"),
-            self._clear_project_space,
-        )
 
         sync_menu = settings_menu.addMenu(self.tr("Synchronisation with"))
         self._sync_menu = sync_menu
@@ -321,22 +332,6 @@ class MainWindow(QMainWindow):
             self.tr("web platform"), self._toggle_sync_web_platform
         )
         self._action_sync_web.setCheckable(True)
-
-        # One-off manual sync of the current project space to the web
-        # platform. This is an alpha feature focused on pushing a snapshot
-        # of local folders/files into the user's default creative space.
-        self._action_sync_current_space = sync_menu.addAction(
-            self.tr("Sync current Space now"), self._sync_current_space_to_web
-        )
-
-        # Manual pull of changes made on the Crowdly web platform back into
-        # the current project-space directory. This operates on the folder /
-        # file *structure* (creating missing folders/files locally) and is
-        # intentionally conservative about overwriting or deleting existing
-        # local files.
-        self._action_pull_current_space = sync_menu.addAction(
-            self.tr("Pull updates for current Space"), self._pull_current_space_from_web
-        )
 
         online_storage_menu = sync_menu.addMenu(self.tr("online storage"))
         self._online_storage_menu = online_storage_menu
@@ -376,6 +371,10 @@ class MainWindow(QMainWindow):
             (self.tr("Chinese (Simplified)"), "zh-Hans"),
             (self.tr("Chinese (Traditional)"), "zh-Hant"),
             (self.tr("Japanese"), "ja"),
+            (self.tr("French"), "fr"),
+            (self.tr("Spanish"), "es"),
+            (self.tr("German"), "de"),
+            (self.tr("Hindi"), "hi"),
         ]
 
         group = QActionGroup(self)
@@ -392,6 +391,10 @@ class MainWindow(QMainWindow):
             self._language_actions[code] = action
 
         self._update_language_actions()
+
+        self._action_session_control = settings_menu.addAction(
+            self.tr("Session control"), self._show_session_control_dialog
+        )
 
         # "View" menu removed; pane visibility is now controlled via
         # checkboxes in the top bar.
@@ -415,9 +418,9 @@ class MainWindow(QMainWindow):
             self.tr("Add genre"),
             self._set_or_clear_story_genre,
         )
-        self._action_refresh_story_from_web = story_settings_menu.addAction(
-            self.tr("Refresh from web"),
-            self._refresh_story_from_web,
+        self._action_set_story_description = story_settings_menu.addAction(
+            self.tr("Edit description"),
+            self._set_or_clear_story_description,
         )
         self._action_compare_revisions = story_settings_menu.addAction(
             self.tr("Compare revisions"),
@@ -506,6 +509,10 @@ class MainWindow(QMainWindow):
         except Exception:
             # Best-effort only; if the signal is unavailable we still keep
             # inline renaming and non-movable tabs.
+            pass
+        try:
+            rename_tab_bar.tabRenamed.connect(self._on_tab_renamed)
+        except Exception:
             pass
         self._tab_widget.setTabBar(rename_tab_bar)
 
@@ -1308,7 +1315,7 @@ class MainWindow(QMainWindow):
 
         index = self._tab_widget.addTab(
             splitter,
-            title or self.tr("Tab {index}").format(index=self._tab_widget.count() + 1),
+            title or self.tr("No name"),
         )
 
         # Ensure our parallel tab state lists stay aligned with the QTabWidget.
@@ -1394,6 +1401,23 @@ class MainWindow(QMainWindow):
             _move(self._tab_caret_states)
             _move(self._tab_pane_visibility)
 
+            # Remap _tab_user_renamed indices.
+            new_set: set[int] = set()
+            for idx in self._tab_user_renamed:
+                if idx == from_index:
+                    new_set.add(to_index)
+                elif from_index < to_index:
+                    if from_index < idx <= to_index:
+                        new_set.add(idx - 1)
+                    else:
+                        new_set.add(idx)
+                else:
+                    if to_index <= idx < from_index:
+                        new_set.add(idx + 1)
+                    else:
+                        new_set.add(idx)
+            self._tab_user_renamed = new_set
+
             # Refresh the cached current index so that it matches the widget.
             try:
                 current = self._tab_widget.currentIndex()
@@ -1405,6 +1429,10 @@ class MainWindow(QMainWindow):
             # Reordering is best-effort; inconsistencies here must not break
             # the main editor behaviour.
             return
+
+    def _on_tab_renamed(self, index: int, text: str) -> None:  # pragma: no cover - UI wiring
+        """Track that a tab was explicitly renamed by the user."""
+        self._tab_user_renamed.add(index)
 
     def _on_tab_close_requested(self, index: int) -> None:  # pragma: no cover - UI wiring
         """Handle requests to close a tab via its 'x' button.
@@ -1469,6 +1497,13 @@ class MainWindow(QMainWindow):
                 self._tab_caret_states.pop(index)
             if 0 <= index < len(getattr(self, "_tab_pane_visibility", [])):
                 self._tab_pane_visibility.pop(index)
+            # Re-index _tab_user_renamed after removing this tab.
+            new_set: set[int] = set()
+            for idx in self._tab_user_renamed:
+                if idx == index:
+                    continue
+                new_set.add(idx - 1 if idx > index else idx)
+            self._tab_user_renamed = new_set
         except Exception:
             pass
 
@@ -1848,6 +1883,14 @@ class MainWindow(QMainWindow):
         self._document.save(target_path)
         self._update_window_title()
 
+        # Update the tab title to the filename once the document has been saved,
+        # but only if the user has not explicitly renamed this tab.
+        try:
+            if self._current_tab_index not in self._tab_user_renamed:
+                self._tab_widget.setTabText(self._current_tab_index, target_path.name)
+        except Exception:
+            pass
+
         # Enqueue a local versioning snapshot under the `.crowdly` directory
         # so that all changes are captured for later revision/diff pipelines.
         try:
@@ -2095,6 +2138,45 @@ class MainWindow(QMainWindow):
         except Exception:
             pass
 
+        # Session control: when set to "close_all" (the default), clear all
+        # tabs and the creative / project space so the next launch starts
+        # fresh.  When set to "keep_session" the open tab paths are persisted
+        # so they can be restored on the next launch.
+        session_mode = getattr(self._settings, "session_control", "close_all")
+        if session_mode == "close_all":
+            try:
+                self._project_space_path = None
+                self._settings.project_space = None
+                self._settings.session_open_tabs = []
+                self._settings.session_tab_titles = []
+                self._settings.session_active_tab = 0
+                save_settings(self._settings)
+            except Exception:
+                pass
+        else:
+            # "keep_session" – persist every open tab that has a saved file so
+            # they can be re-opened on the next launch.
+            try:
+                tab_paths: list[str] = []
+                tab_titles: list[str] = []
+                for i, doc in enumerate(self._tab_documents):
+                    p = getattr(doc, "path", None)
+                    if isinstance(p, Path) and p.is_file():
+                        tab_paths.append(str(p))
+                        # Save the current tab title.  If it matches the
+                        # filename the user did not rename it, so store an
+                        # empty string (meaning "use the filename").
+                        title = self._tab_widget.tabText(i) if i < self._tab_widget.count() else ""
+                        if title == p.name:
+                            title = ""
+                        tab_titles.append(title)
+                self._settings.session_open_tabs = tab_paths
+                self._settings.session_tab_titles = tab_titles
+                self._settings.session_active_tab = self._current_tab_index
+                save_settings(self._settings)
+            except Exception:
+                pass
+
         try:
             app = QCoreApplication.instance()
             if app is not None:
@@ -2141,6 +2223,18 @@ class MainWindow(QMainWindow):
 
         # Window title shows app name and current filename when available.
         self._update_window_title()
+
+        # Update tab titles: tabs for unsaved documents should show the
+        # translated "No name" label, unless the user explicitly renamed them.
+        try:
+            for i in range(self._tab_widget.count()):
+                if i in self._tab_user_renamed:
+                    continue
+                doc = self._tab_documents[i] if i < len(self._tab_documents) else None
+                if doc is not None and getattr(doc, "path", None) is None:
+                    self._tab_widget.setTabText(i, self.tr("No name"))
+        except Exception:
+            pass
 
         # Menus and actions.
         if hasattr(self, "_burger_button"):
@@ -2223,6 +2317,8 @@ class MainWindow(QMainWindow):
             self._action_view_story_metadata.setText(self.tr("View story metadata"))
         if hasattr(self, "_action_set_story_genre"):
             self._action_set_story_genre.setText(self.tr("Add genre"))
+        if hasattr(self, "_action_set_story_description"):
+            self._action_set_story_description.setText(self.tr("Edit description"))
         if hasattr(self, "_action_refresh_story_from_web"):
             self._action_refresh_story_from_web.setText(self.tr("Refresh from web"))
         if hasattr(self, "_action_compare_revisions"):
@@ -2241,6 +2337,10 @@ class MainWindow(QMainWindow):
         if hasattr(self, "_action_sync_web"):
             self._action_sync_web.setText(self.tr("web platform"))
             self._action_sync_web.setChecked(self._sync_web_platform)
+        if hasattr(self, "_action_sync_current_space"):
+            self._action_sync_current_space.setText(self.tr("Sync current Space now"))
+        if hasattr(self, "_action_pull_current_space"):
+            self._action_pull_current_space.setText(self.tr("Pull updates for current Space"))
         if hasattr(self, "_online_storage_menu"):
             self._online_storage_menu.setTitle(self.tr("online storage"))
         if hasattr(self, "_action_sync_dropbox"):
@@ -2273,6 +2373,14 @@ class MainWindow(QMainWindow):
             self._action_export_fdx.setText(self.tr("as FDX"))
         if hasattr(self, "_action_export_fountain"):
             self._action_export_fountain.setText(self.tr("as FOUNTAIN"))
+        if hasattr(self, "_save_as_menu"):
+            self._save_as_menu.setTitle(self.tr("Save as"))
+        if hasattr(self, "_action_save_as_md"):
+            self._action_save_as_md.setText(self.tr("as .md file"))
+        if hasattr(self, "_action_save_as_story"):
+            self._action_save_as_story.setText(self.tr("as .story file"))
+        if hasattr(self, "_action_save_as_screenplay"):
+            self._action_save_as_screenplay.setText(self.tr("as .screenplay file"))
         if hasattr(self, "_action_choose_project_space"):
             self._action_choose_project_space.setText(
                 self.tr("Create or choose your project space")
@@ -2292,6 +2400,8 @@ class MainWindow(QMainWindow):
                 self._action_login_logout.setText(self.tr("Logout"))
             else:
                 self._action_login_logout.setText(self.tr("Login"))
+        if hasattr(self, "_action_session_control"):
+            self._action_session_control.setText(self.tr("Session control"))
         if hasattr(self, "_action_quit"):
             self._action_quit.setText(self.tr("Quit"))
 
@@ -2311,6 +2421,10 @@ class MainWindow(QMainWindow):
             "zh-Hans": self.tr("Chinese (Simplified)"),
             "zh-Hant": self.tr("Chinese (Traditional)"),
             "ja": self.tr("Japanese"),
+            "fr": self.tr("French"),
+            "es": self.tr("Spanish"),
+            "de": self.tr("German"),
+            "hi": self.tr("Hindi"),
         }
         for code, action in self._language_actions.items():
             label = labels_by_code.get(code)
@@ -2326,6 +2440,10 @@ class MainWindow(QMainWindow):
             self._preview_toggle.setToolTip(
                 self.tr("Show or hide the preview pane")
             )
+        if hasattr(self, "_chk_md_editor"):
+            self._chk_md_editor.setText(self.tr("Markdown (MD) / HTML"))
+        if hasattr(self, "_chk_wysiwyg"):
+            self._chk_wysiwyg.setText(self.tr("WYSIWYG"))
 
     def _compute_document_stats(self) -> tuple[int, int, int]:
         """Return (words, paragraphs, chapters) for the current document.
@@ -2614,6 +2732,13 @@ class MainWindow(QMainWindow):
         self._current_story_or_screenplay_url = None
         self._update_story_link_label()
         self._update_window_title()
+
+        # Reset the tab title to "No name" for the fresh document.
+        try:
+            self._tab_widget.setTabText(self._current_tab_index, self.tr("No name"))
+            self._tab_user_renamed.discard(self._current_tab_index)
+        except Exception:
+            pass
 
     def _new_document(self) -> None:  # pragma: no cover - UI wiring
         """Save the current document (if needed) and start a new blank one.
@@ -3201,6 +3326,383 @@ class MainWindow(QMainWindow):
             self.tr("Export as Fountain"),
             self.tr("Fountain files (*.fountain);;All files (*)"),
         )
+
+    # ------------------------------------------------------------------
+    # Save as helpers
+    # ------------------------------------------------------------------
+
+    def _is_path_inside_space(self, target_path: Path) -> bool:
+        """Return True if *target_path* is inside the current project space."""
+
+        if self._project_space_path is None:
+            return False
+
+        try:
+            space_resolved = self._project_space_path.resolve()
+            target_resolved = target_path.resolve()
+            return str(target_resolved).startswith(str(space_resolved) + "/") or target_resolved == space_resolved
+        except Exception:
+            return False
+
+    def _show_outside_space_dialog(self, file_type: str) -> str:
+        """Show a dialog when saving .story/.screenplay outside the current Space.
+
+        Returns:
+            "yes" - save outside space, reset space to None
+            "cancel" - abort the operation
+            "set_space" - user wants to set/create new space at target location
+        """
+
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle(self.tr("Save outside Space"))
+        msg_box.setText(
+            self.tr(
+                "You're about to save the {file_type} file outside of a creative Space. "
+                "Do you really want to do that?"
+            ).format(file_type=file_type)
+        )
+
+        yes_btn = msg_box.addButton(self.tr("Yes"), QMessageBox.ButtonRole.AcceptRole)
+        cancel_btn = msg_box.addButton(self.tr("Cancel"), QMessageBox.ButtonRole.RejectRole)
+        set_space_btn = msg_box.addButton(
+            self.tr("Set | Create new Space"), QMessageBox.ButtonRole.ActionRole
+        )
+
+        msg_box.exec()
+
+        clicked = msg_box.clickedButton()
+        if clicked == yes_btn:
+            return "yes"
+        elif clicked == set_space_btn:
+            return "set_space"
+        else:
+            return "cancel"
+
+    def _save_as_md(self) -> None:  # pragma: no cover - UI wiring
+        """Save the current document as a .md file.
+
+        Creates a copy at a new location. If saved outside the current Space,
+        the Space is reset to None and future changes are saved to the new path.
+        """
+
+        content = getattr(self._document, "content", "") or ""
+        if not content.strip():
+            QMessageBox.information(
+                self,
+                self.tr("Save as"),
+                self.tr("The current document is empty; there is nothing to save."),
+            )
+            return
+
+        # Suggest a default filename
+        title = self._guess_document_title() or "untitled"
+        default_name = f"{self._suggest_export_basename(title)}.md"
+
+        start_dir = str(self._project_space_path) if self._project_space_path else ""
+        if start_dir:
+            initial = str(Path(start_dir) / default_name)
+        else:
+            initial = default_name
+
+        path_str, _ = QFileDialog.getSaveFileName(
+            self,
+            self.tr("Save as Markdown"),
+            initial,
+            self.tr("Markdown files (*.md);;All files (*)"),
+        )
+        if not path_str:
+            return
+
+        target_path = Path(path_str)
+        if target_path.suffix.lower() != ".md":
+            target_path = target_path.with_suffix(".md")
+
+        # Check if outside current Space
+        if not self._is_path_inside_space(target_path):
+            # For .md files, simply reset the Space to None without asking
+            if self._project_space_path is not None:
+                self._project_space_path = None
+                self._settings.project_space = None
+                save_settings(self._settings)
+                self._update_project_space_status()
+                self._rebuild_spaces_menu()
+
+        try:
+            # Save via the Document model so metadata and dirty flags stay consistent.
+            self._document.storage_format = "markdown"
+            self._document.kind = "generic"
+            self._document.save(target_path)
+            self._document.is_dirty = False
+
+            self._update_window_title()
+            self._update_story_link_label()
+
+            bar = self.statusBar()
+            if bar is not None:
+                bar.showMessage(
+                    self.tr("Saved document to: {path}").format(path=target_path),
+                    5000,
+                )
+        except Exception:
+            import traceback
+            traceback.print_exc()
+            QMessageBox.critical(
+                self,
+                self.tr("Save failed"),
+                self.tr("An unexpected error occurred while saving the document."),
+            )
+
+    def _save_as_story(self) -> None:  # pragma: no cover - UI wiring
+        """Save the current document as a .story file.
+
+        Creates a new story id and associates it with the newly created file.
+        If saved outside the current Space, shows a confirmation dialog.
+        """
+
+        content = getattr(self._document, "content", "") or ""
+        if not content.strip():
+            QMessageBox.information(
+                self,
+                self.tr("Save as"),
+                self.tr("The current document is empty; there is nothing to save."),
+            )
+            return
+
+        # Suggest a default filename
+        title = self._guess_document_title() or "untitled"
+        default_name = f"{self._suggest_export_basename(title)}.story"
+
+        start_dir = str(self._project_space_path) if self._project_space_path else ""
+        if start_dir:
+            initial = str(Path(start_dir) / default_name)
+        else:
+            initial = default_name
+
+        path_str, _ = QFileDialog.getSaveFileName(
+            self,
+            self.tr("Save as Story"),
+            initial,
+            self.tr("Story files (*.story);;All files (*)"),
+        )
+        if not path_str:
+            return
+
+        target_path = Path(path_str)
+        if target_path.suffix.lower() != ".story":
+            target_path = target_path.with_suffix(".story")
+
+        # Check if outside current Space (or none set at all)
+        if not self._is_path_inside_space(target_path):
+            result = self._show_outside_space_dialog("story")
+            if result == "cancel":
+                return
+            elif result == "yes":
+                # Reset Space to None
+                self._project_space_path = None
+                self._settings.project_space = None
+                save_settings(self._settings)
+                self._update_project_space_status()
+                self._rebuild_spaces_menu()
+            elif result == "set_space":
+                # Set the target directory as the new Space
+                new_space = target_path.parent
+                self._ensure_space_registered(new_space)
+                self._project_space_path = new_space
+                self._settings.project_space = new_space
+                save_settings(self._settings)
+                self._update_project_space_status()
+                self._rebuild_spaces_menu()
+
+        try:
+            # Generate a new story_id
+            new_story_id = str(uuid.uuid4())
+
+            # Convert content to story DSL if not already
+            storage_format = getattr(self._document, "storage_format", "markdown") or "markdown"
+            if storage_format != "story_v1":
+                # Convert markdown to story DSL
+                try:
+                    dsl_content = story_markup.markdown_to_dsl(content)
+                except Exception:
+                    dsl_content = content
+            else:
+                dsl_content = content
+
+            # Write the file
+            storage.write_text(target_path, dsl_content)
+
+            # Set the story metadata
+            file_metadata.set_attr(target_path, file_metadata.FIELD_STORY_ID, new_story_id)
+            file_metadata.set_attr(target_path, file_metadata.FIELD_BODY_FORMAT, "story_v1")
+            file_metadata.set_attr(target_path, file_metadata.FIELD_CREATION_DATE, file_metadata.now_human())
+            file_metadata.touch_change_date(target_path)
+
+            # Update the current document
+            self._document.path = target_path
+            self._document.content = dsl_content
+            self._document.storage_format = "story_v1"
+            self._document.kind = "story"
+            self._document.is_dirty = False
+
+            # Update the editor with the new content
+            old_state = self.editor.blockSignals(True)
+            try:
+                self.editor.setPlainText(dsl_content)
+            finally:
+                self.editor.blockSignals(old_state)
+
+            # Refresh preview
+            try:
+                html = story_markup.dsl_to_html(dsl_content)
+                self.preview.set_html(html)
+            except Exception:
+                self.preview.set_markdown(dsl_content)
+
+            self._update_window_title()
+            self._update_story_link_label()
+
+            bar = self.statusBar()
+            if bar is not None:
+                bar.showMessage(
+                    self.tr("Saved story to: {path} (Story ID: {id})").format(
+                        path=target_path, id=new_story_id
+                    ),
+                    5000,
+                )
+        except Exception:
+            import traceback
+            traceback.print_exc()
+            QMessageBox.critical(
+                self,
+                self.tr("Save failed"),
+                self.tr("An unexpected error occurred while saving the story."),
+            )
+
+    def _save_as_screenplay(self) -> None:  # pragma: no cover - UI wiring
+        """Save the current document as a .screenplay file.
+
+        Creates a new screenplay id and associates it with the newly created file.
+        If saved outside the current Space, shows a confirmation dialog.
+        """
+
+        content = getattr(self._document, "content", "") or ""
+        if not content.strip():
+            QMessageBox.information(
+                self,
+                self.tr("Save as"),
+                self.tr("The current document is empty; there is nothing to save."),
+            )
+            return
+
+        # Suggest a default filename
+        title = self._guess_document_title() or "untitled"
+        default_name = f"{self._suggest_export_basename(title)}.screenplay"
+
+        start_dir = str(self._project_space_path) if self._project_space_path else ""
+        if start_dir:
+            initial = str(Path(start_dir) / default_name)
+        else:
+            initial = default_name
+
+        path_str, _ = QFileDialog.getSaveFileName(
+            self,
+            self.tr("Save as Screenplay"),
+            initial,
+            self.tr("Screenplay files (*.screenplay);;All files (*)"),
+        )
+        if not path_str:
+            return
+
+        target_path = Path(path_str)
+        if target_path.suffix.lower() != ".screenplay":
+            target_path = target_path.with_suffix(".screenplay")
+
+        # Check if outside current Space (or none set at all)
+        if not self._is_path_inside_space(target_path):
+            result = self._show_outside_space_dialog("screenplay")
+            if result == "cancel":
+                return
+            elif result == "yes":
+                # Reset Space to None
+                self._project_space_path = None
+                self._settings.project_space = None
+                save_settings(self._settings)
+                self._update_project_space_status()
+                self._rebuild_spaces_menu()
+            elif result == "set_space":
+                # Set the target directory as the new Space
+                new_space = target_path.parent
+                self._ensure_space_registered(new_space)
+                self._project_space_path = new_space
+                self._settings.project_space = new_space
+                save_settings(self._settings)
+                self._update_project_space_status()
+                self._rebuild_spaces_menu()
+
+        try:
+            # Generate a new screenplay_id
+            new_screenplay_id = str(uuid.uuid4())
+
+            # Convert content to screenplay DSL if not already
+            storage_format = getattr(self._document, "storage_format", "markdown") or "markdown"
+            if storage_format != "screenplay_v1":
+                # Convert markdown to screenplay DSL
+                try:
+                    dsl_content = screenplay_markup.markdown_to_dsl(content)
+                except Exception:
+                    dsl_content = content
+            else:
+                dsl_content = content
+
+            # Write the file
+            storage.write_text(target_path, dsl_content)
+
+            # Set the screenplay metadata
+            file_metadata.set_attr(target_path, "screenplay_id", new_screenplay_id)
+            file_metadata.set_attr(target_path, file_metadata.FIELD_BODY_FORMAT, "screenplay_v1")
+            file_metadata.set_attr(target_path, file_metadata.FIELD_CREATION_DATE, file_metadata.now_human())
+            file_metadata.touch_change_date(target_path)
+
+            # Update the current document
+            self._document.path = target_path
+            self._document.content = dsl_content
+            self._document.storage_format = "screenplay_v1"
+            self._document.kind = "screenplay"
+            self._document.is_dirty = False
+
+            # Update the editor with the new content
+            old_state = self.editor.blockSignals(True)
+            try:
+                self.editor.setPlainText(dsl_content)
+            finally:
+                self.editor.blockSignals(old_state)
+
+            # Refresh preview
+            try:
+                html = screenplay_markup.dsl_to_html(dsl_content)
+                self.preview.set_html(html)
+            except Exception:
+                self.preview.set_markdown(dsl_content)
+
+            self._update_window_title()
+            self._update_story_link_label()
+
+            bar = self.statusBar()
+            if bar is not None:
+                bar.showMessage(
+                    self.tr("Saved screenplay to: {path} (Screenplay ID: {id})").format(
+                        path=target_path, id=new_screenplay_id
+                    ),
+                    5000,
+                )
+        except Exception:
+            import traceback
+            traceback.print_exc()
+            QMessageBox.critical(
+                self,
+                self.tr("Save failed"),
+                self.tr("An unexpected error occurred while saving the screenplay."),
+            )
 
     def _import_from_file(self) -> None:  # pragma: no cover - UI wiring
         """Import content from an external file into the current document.
@@ -5125,6 +5627,16 @@ class MainWindow(QMainWindow):
         self._update_story_link_label()
         self._update_window_title()
 
+        # Update the tab title to show the filename, unless the user has
+        # explicitly renamed this tab.
+        try:
+            if self._current_tab_index not in self._tab_user_renamed:
+                display_path = doc.path or external_path
+                if display_path is not None:
+                    self._tab_widget.setTabText(self._current_tab_index, display_path.name)
+        except Exception:
+            pass
+
     def _open_paths_from_cli(self, paths: list[str]) -> None:
         """Open one or more filesystem *paths* passed on the command line.
 
@@ -5171,6 +5683,10 @@ class MainWindow(QMainWindow):
 
         # Open the first *non-master* file in the current tab.
         self._load_document_from_path(normal_paths[0])
+        try:
+            self._tab_widget.setTabText(self._current_tab_index, normal_paths[0].name)
+        except Exception:
+            pass
 
         # Any remaining non-master files are opened in their own tabs.
         for extra in normal_paths[1:]:
@@ -5220,6 +5736,78 @@ class MainWindow(QMainWindow):
         self._settings.project_space = None
         save_settings(self._settings)
         self._update_project_space_status()
+
+    def _show_session_control_dialog(self) -> None:  # pragma: no cover - UI wiring
+        """Open a dialog that lets the user choose session-close behaviour."""
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle(self.tr("Session control"))
+        dialog.setMinimumWidth(480)
+
+        layout = QVBoxLayout(dialog)
+
+        description = QLabel(
+            self.tr(
+                "Here you can decide how the session control for closing of "
+                "the app should work."
+            )
+        )
+        description.setWordWrap(True)
+        layout.addWidget(description)
+
+        label = QLabel(self.tr("The app will:"))
+        layout.addWidget(label)
+
+        radio_close_all = QRadioButton(
+            self.tr(
+                "Close all its tabs and clear creative / project Space"
+            )
+        )
+        radio_keep_session = QRadioButton(
+            self.tr(
+                "Keep the current session (saves all the opened tabs and "
+                "windows, and the Space remains set)"
+            )
+        )
+
+        button_group = QButtonGroup(dialog)
+        button_group.addButton(radio_close_all)
+        button_group.addButton(radio_keep_session)
+
+        current = getattr(self._settings, "session_control", "close_all")
+        if current == "keep_session":
+            radio_keep_session.setChecked(True)
+        else:
+            radio_close_all.setChecked(True)
+
+        layout.addWidget(radio_close_all)
+        layout.addWidget(radio_keep_session)
+
+        button_layout = QHBoxLayout()
+        button_layout.addStretch()
+        save_button = QPushButton(self.tr("Save"))
+        cancel_button = QPushButton(self.tr("Cancel"))
+        button_layout.addWidget(save_button)
+        button_layout.addWidget(cancel_button)
+        layout.addLayout(button_layout)
+
+        def _on_save() -> None:
+            if radio_keep_session.isChecked():
+                self._settings.session_control = "keep_session"
+            else:
+                self._settings.session_control = "close_all"
+                # Clear any stale session-restore data when switching to
+                # "close_all" so the next launch does not unexpectedly
+                # reopen old tabs.
+                self._settings.session_open_tabs = []
+                self._settings.session_active_tab = 0
+            save_settings(self._settings)
+            dialog.accept()
+
+        save_button.clicked.connect(_on_save)
+        cancel_button.clicked.connect(dialog.reject)
+
+        dialog.exec()
 
     def _get_current_document_path(self) -> Path | None:
         """Return the current document path, if it exists on disk."""
@@ -5312,6 +5900,7 @@ class MainWindow(QMainWindow):
                 f"screenplay_id: {sp_id}",
                 f"story_title: {md.story_title or ''}",
                 f"genre: {md.genre or ''}",
+                f"description: {md.description or ''}",
                 f"tags: {md.tags or ''}",
                 f"creation_date: {md.creation_date or ''}",
                 f"change_date: {md.change_date or ''}",
@@ -5435,6 +6024,66 @@ class MainWindow(QMainWindow):
                 self,
                 self.tr("Error"),
                 self.tr("An unexpected error occurred while updating genre."),
+            )
+
+    def _set_or_clear_story_description(self) -> None:  # pragma: no cover - UI wiring
+        """Set/change/clear the story description in file metadata."""
+
+        import traceback
+
+        try:
+            path = self._get_current_document_path()
+            if path is None:
+                QMessageBox.information(
+                    self,
+                    self.tr("Description"),
+                    self.tr("No file is currently loaded."),
+                )
+                return
+
+            has_story = file_metadata.has_story_metadata(path)
+            screenplay_id = file_metadata.get_attr(path, "screenplay_id")
+            if not has_story and not screenplay_id:
+                QMessageBox.information(
+                    self,
+                    self.tr("Description"),
+                    self.tr("This file is not associated with a Crowdly story."),
+                )
+                return
+
+            current = file_metadata.get_attr(path, file_metadata.FIELD_DESCRIPTION) or ""
+
+            text, ok = QInputDialog.getMultiLineText(
+                self,
+                self.tr("Edit description"),
+                self.tr("Enter description:"),
+                current,
+            )
+            if not ok:
+                return
+
+            text = (text or "").strip()
+            if text:
+                file_metadata.set_attr(path, file_metadata.FIELD_DESCRIPTION, text)
+            else:
+                file_metadata.remove_attr(path, file_metadata.FIELD_DESCRIPTION)
+            file_metadata.touch_change_date(path)
+
+            QMessageBox.information(
+                self,
+                self.tr("Description"),
+                self.tr("Description updated.") if text else self.tr("Description deleted."),
+            )
+
+            # Best-effort: if web sync is enabled, schedule a sync attempt.
+            if getattr(self, "_sync_web_platform", False):
+                self._schedule_web_sync()
+        except Exception:
+            traceback.print_exc()
+            QMessageBox.critical(
+                self,
+                self.tr("Error"),
+                self.tr("An unexpected error occurred while updating description."),
             )
 
     def _refresh_story_from_web(self) -> None:  # pragma: no cover - UI wiring
@@ -5829,6 +6478,7 @@ class MainWindow(QMainWindow):
                 "initiator_id": md.initiator_id,
                 "genre": md.genre,
                 "tags": tags_list,
+                "description": md.description,
             }
 
             api_base = None
@@ -6934,6 +7584,9 @@ class _RenamableTabBar(QTabBar):
     - Pressing Enter or clicking away (focus loss) commits the new title.
     """
 
+    # Emitted when the user commits an inline rename.  Arguments: (index, new_text).
+    tabRenamed = Signal(int, str)
+
     def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self._editor: QLineEdit | None = None
@@ -7008,6 +7661,10 @@ class _RenamableTabBar(QTabBar):
         # If the name is emptied, keep the old title rather than blank.
         if text:
             self.setTabText(index, text)
+            try:
+                self.tabRenamed.emit(index, text)
+            except Exception:
+                pass
 
         self._editor.deleteLater()
         self._editor = None

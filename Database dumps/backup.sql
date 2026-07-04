@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict ixU8SRGlN80Q5DR9JmNrOi3qxXrUdaEGY7ou33xFQucKTrptQC5b2IcUnRt9tuC
+\restrict c8A2BMA1hzg0j1AIUDdNrYP2yNCYKRVVpsZZjm9BPvc4r7wEvuS21yqDhyJqzOj
 
 -- Dumped from database version 16.11 (Ubuntu 16.11-0ubuntu0.24.04.1)
 -- Dumped by pg_dump version 16.11 (Ubuntu 16.11-0ubuntu0.24.04.1)
@@ -44,7 +44,8 @@ CREATE TYPE public.app_role AS ENUM (
     'editor',
     'chief_editor',
     'producer',
-    'contributor'
+    'contributor',
+    'ui_translator'
 );
 
 
@@ -106,6 +107,61 @@ ALTER TYPE public.visibility_type OWNER TO lad;
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
+
+--
+-- Name: admin_messages; Type: TABLE; Schema: public; Owner: lad
+--
+
+CREATE TABLE public.admin_messages (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    sender_id uuid NOT NULL,
+    recipient_id uuid NOT NULL,
+    subject text DEFAULT ''::text NOT NULL,
+    body text DEFAULT ''::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.admin_messages OWNER TO lad;
+
+--
+-- Name: alpha_applications; Type: TABLE; Schema: public; Owner: lad
+--
+
+CREATE TABLE public.alpha_applications (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    first_name text NOT NULL,
+    last_name text NOT NULL,
+    email text NOT NULL,
+    motivation_letter text,
+    status text DEFAULT 'pending'::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    processed_at timestamp with time zone,
+    processed_by uuid
+);
+
+
+ALTER TABLE public.alpha_applications OWNER TO lad;
+
+--
+-- Name: alpha_invitations; Type: TABLE; Schema: public; Owner: lad
+--
+
+CREATE TABLE public.alpha_invitations (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    invitation_code text NOT NULL,
+    first_name text NOT NULL,
+    last_name text NOT NULL,
+    email text NOT NULL,
+    invited_by uuid,
+    invited_at timestamp with time zone DEFAULT now() NOT NULL,
+    joined_at timestamp with time zone,
+    status text DEFAULT 'pending'::text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.alpha_invitations OWNER TO lad;
 
 --
 -- Name: authors; Type: TABLE; Schema: public; Owner: lad
@@ -420,6 +476,25 @@ CREATE TABLE public.feature_suggestions (
 ALTER TABLE public.feature_suggestions OWNER TO lad;
 
 --
+-- Name: interface_translations; Type: TABLE; Schema: public; Owner: lad
+--
+
+CREATE TABLE public.interface_translations (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    page_path text NOT NULL,
+    element_id text NOT NULL,
+    language text DEFAULT 'English'::text NOT NULL,
+    content text NOT NULL,
+    original_content text,
+    updated_by uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.interface_translations OWNER TO lad;
+
+--
 -- Name: local_users; Type: TABLE; Schema: public; Owner: lad
 --
 
@@ -427,7 +502,8 @@ CREATE TABLE public.local_users (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
     email text NOT NULL,
     password_hash text NOT NULL,
-    created_at timestamp with time zone DEFAULT now()
+    created_at timestamp with time zone DEFAULT now(),
+    is_banned boolean DEFAULT false NOT NULL
 );
 
 
@@ -531,6 +607,7 @@ CREATE TABLE public.profiles (
     screenplays_visibility text DEFAULT 'public'::text,
     stories_selected_user_ids uuid[] DEFAULT '{}'::uuid[],
     screenplays_selected_user_ids uuid[] DEFAULT '{}'::uuid[],
+    profile_page_name text,
     CONSTRAINT username_length CHECK ((char_length(username) >= 3))
 );
 
@@ -588,6 +665,25 @@ CREATE TABLE public.screenplay_block (
 
 
 ALTER TABLE public.screenplay_block OWNER TO lad;
+
+--
+-- Name: screenplay_revisions; Type: TABLE; Schema: public; Owner: lad
+--
+
+CREATE TABLE public.screenplay_revisions (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    screenplay_title_id uuid NOT NULL,
+    scene_id uuid,
+    prev_content jsonb,
+    new_content jsonb,
+    created_by uuid,
+    revision_number integer DEFAULT 1 NOT NULL,
+    revision_reason text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.screenplay_revisions OWNER TO lad;
 
 --
 -- Name: screenplay_scene; Type: TABLE; Schema: public; Owner: lad
@@ -664,6 +760,23 @@ CREATE TABLE public.story_access (
 
 
 ALTER TABLE public.story_access OWNER TO lad;
+
+--
+-- Name: story_access_rules; Type: TABLE; Schema: public; Owner: lad
+--
+
+CREATE TABLE public.story_access_rules (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    story_title_id uuid NOT NULL,
+    rule_type text NOT NULL,
+    grantee_user_id uuid,
+    grantee_group_id uuid,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT valid_grantee CHECK ((((grantee_user_id IS NOT NULL) AND (grantee_group_id IS NULL)) OR ((grantee_user_id IS NULL) AND (grantee_group_id IS NOT NULL))))
+);
+
+
+ALTER TABLE public.story_access_rules OWNER TO lad;
 
 --
 -- Name: story_attachments; Type: TABLE; Schema: public; Owner: lad
@@ -764,7 +877,10 @@ CREATE TABLE public.story_title (
     published boolean DEFAULT true NOT NULL,
     genre text,
     tags text[],
-    creative_space_id uuid
+    creative_space_id uuid,
+    completion_status text DEFAULT 'draft'::text NOT NULL,
+    clone_policy text DEFAULT 'anyone'::text NOT NULL,
+    export_policy text DEFAULT 'anyone'::text NOT NULL
 );
 
 
@@ -806,6 +922,34 @@ CREATE TABLE public.subscribers (
 ALTER TABLE public.subscribers OWNER TO lad;
 
 --
+-- Name: user_group_members; Type: TABLE; Schema: public; Owner: lad
+--
+
+CREATE TABLE public.user_group_members (
+    group_id uuid NOT NULL,
+    user_id uuid NOT NULL,
+    added_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.user_group_members OWNER TO lad;
+
+--
+-- Name: user_groups; Type: TABLE; Schema: public; Owner: lad
+--
+
+CREATE TABLE public.user_groups (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL,
+    owner_id uuid NOT NULL,
+    is_platform_group boolean DEFAULT false NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.user_groups OWNER TO lad;
+
+--
 -- Name: user_roles; Type: TABLE; Schema: public; Owner: lad
 --
 
@@ -840,10 +984,49 @@ CREATE TABLE public.user_story_status (
 ALTER TABLE public.user_story_status OWNER TO lad;
 
 --
+-- Name: user_translator_languages; Type: TABLE; Schema: public; Owner: lad
+--
+
+CREATE TABLE public.user_translator_languages (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    user_id uuid NOT NULL,
+    locale_code text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
+
+ALTER TABLE public.user_translator_languages OWNER TO lad;
+
+--
 -- Name: crdt_changes id; Type: DEFAULT; Schema: public; Owner: lad
 --
 
 ALTER TABLE ONLY public.crdt_changes ALTER COLUMN id SET DEFAULT nextval('public.crdt_changes_id_seq'::regclass);
+
+
+--
+-- Data for Name: admin_messages; Type: TABLE DATA; Schema: public; Owner: lad
+--
+
+COPY public.admin_messages (id, sender_id, recipient_id, subject, body, created_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: alpha_applications; Type: TABLE DATA; Schema: public; Owner: lad
+--
+
+COPY public.alpha_applications (id, first_name, last_name, email, motivation_letter, status, created_at, processed_at, processed_by) FROM stdin;
+\.
+
+
+--
+-- Data for Name: alpha_invitations; Type: TABLE DATA; Schema: public; Owner: lad
+--
+
+COPY public.alpha_invitations (id, invitation_code, first_name, last_name, email, invited_by, invited_at, joined_at, status, created_at) FROM stdin;
+b9214906-1d3d-4591-a0db-5bcc30de628f	inv-da4227f5-084e-4543-a26e-ac93159d1925	Leo	Force	4leo@leoloveis.me	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-11 21:13:09.575952+01	2026-02-11 21:17:26.392644+01	joined	2026-02-11 21:13:09.575952+01
+\.
 
 
 --
@@ -2247,14 +2430,90 @@ COPY public.feature_suggestions (id, user_id, first_name, last_name, email, tele
 
 
 --
+-- Data for Name: interface_translations; Type: TABLE DATA; Schema: public; Owner: lad
+--
+
+COPY public.interface_translations (id, page_path, element_id, language, content, original_content, updated_by, created_at, updated_at) FROM stdin;
+189c25ed-bf96-4724-b62d-87b91555f8d1	/	header-title	Russian	Crowdly - место, где живут ваши истории	Crowdly where YOUR entertainment (l)i(ve)s	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-14 11:10:00.747958+01	2026-02-14 11:10:00.747958+01
+10be7d61-effc-4acc-97c9-dde525325f79	/	main-subtitle	Russian	Фавориты	Favorites	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-14 11:11:21.733475+01	2026-02-14 11:11:21.733475+01
+ceb3f8b6-1522-4a1a-8c40-d0f09c890abf	/	newestStories	Russian	Новейшие истории	Newest Stories	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-14 11:20:11.264886+01	2026-02-14 11:20:11.264886+01
+7150646c-3d0f-4dcf-8196-60895fe7cd5e	/	newestScreenplays	Russian	Новейшие сценарии	Newest Screenplays	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-14 11:36:57.400299+01	2026-02-14 11:41:29.320638+01
+131676e7-50c1-45d4-81ee-ef3688fd06a2	/profile	profile-title	Russian	Профиль	Profile	3ce90476-02ae-4f8e-8238-66f3bbd43929	2026-02-15 16:17:48.328849+01	2026-02-15 16:17:48.328849+01
+fda571fa-e47d-4139-b19b-9eebf0ce7119	/profile	first-name	Russian	Имя	First name	3ce90476-02ae-4f8e-8238-66f3bbd43929	2026-02-15 16:18:04.977166+01	2026-02-15 16:18:04.977166+01
+386a2998-fe0e-44ba-b9a6-7bd8a18f63a8	/profile	last-name	Russian	Фамилия	Last name	3ce90476-02ae-4f8e-8238-66f3bbd43929	2026-02-15 16:18:15.44001+01	2026-02-15 16:18:15.44001+01
+01635e03-5e6e-4115-9812-2561cc75dc48	/profile	main-subtitle	Russian	Обо мне	About	3ce90476-02ae-4f8e-8238-66f3bbd43929	2026-02-15 16:19:40.378069+01	2026-02-15 16:19:40.378069+01
+1c50503a-15ce-4430-b56c-f71457a55240	/	mostPopularStories	Russian	Самые популярные истории	Most Popular Stories	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-14 12:07:54.602644+01	2026-02-14 12:07:54.602644+01
+5eed70a7-be8f-491f-8b65-20190e8c7347	/	mostPopularScreenplays	Russian	Самые популярные сценарии	Most Popular Screenplays	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-14 12:08:11.568414+01	2026-02-14 12:08:11.568414+01
+7e51e504-467b-46af-a166-cff064e80ddb	/	mostActiveScreenplays	Russian	Самые активные сценарии	Most Active Screenplays	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-14 12:08:52.601329+01	2026-02-14 12:08:52.601329+01
+a5fb82a9-d6a5-4878-8426-678e7c939f58	/	mostActiveStories	Russian	Самые активные истории	Most Active Stories	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-14 12:09:11.653149+01	2026-02-14 12:09:11.653149+01
+8b369c48-b0e2-4bd9-a339-8a7a3c4a27c4	/	LivingTheStories	Russian	Живые истории	Living / Experiencing the story(-ies)	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-14 12:10:49.892005+01	2026-02-14 12:10:49.892005+01
+cff05b3b-0abf-4629-b1c2-7aac5a887b56	/	StoriesToLiveToExperience	Russian	Истории, которыми можно жить	Story(-ies) to live / to experience	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-14 12:10:16.811535+01	2026-02-14 12:13:59.961842+01
+a41c1e04-c25e-4810-a3a9-7dd959358720	/	LivedThoseStories	Russian	Прожитые истории	Lived / Experienced those story(-ies)	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-14 12:14:32.466376+01	2026-02-14 12:14:32.466376+01
+9dd4be93-5fff-4e84-8159-ad4388f068c7	/	footer-company-title	Russian	Компания	Company	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-14 12:16:58.571019+01	2026-02-14 12:16:58.571019+01
+948052fe-3652-4c2d-ba90-9bb13f3f71b8	/	footer-community-title	Russian	Сообщество	Community	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-14 12:17:40.410178+01	2026-02-14 12:17:40.410178+01
+21dc4813-21ca-4f0c-a406-68a471c11460	/	footer-social-title	Russian	Найдите нас на	Find us on	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-14 12:28:09.635399+01	2026-02-14 12:28:09.635399+01
+13667243-264b-428d-ae86-a38a252ae508	/	footer-cocreate-title	Russian	Создавайте с нами	C(o-c)reate with us	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-14 12:28:31.505141+01	2026-02-14 12:28:31.505141+01
+08e8976b-7885-4de2-94ef-575f5af675b2	/	footer-navigation-title	Russian	Путеводитель	Finding your ways	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-14 12:29:19.583098+01	2026-02-14 12:29:19.583098+01
+861514e6-ab95-4148-ba5d-418420438c97	/	footer-about	Russian	О нас	About Us	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-14 12:33:54.74448+01	2026-02-14 12:33:54.74448+01
+01a32f86-ffa4-42b2-a693-23293542f2da	/	footer-careers	Russian	Карьера	Careers	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-14 12:34:15.438225+01	2026-02-14 12:34:15.438225+01
+43a8936e-f45c-4f48-98aa-80e7e43cda32	/	footer-press	Russian	Пресса	Press	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-14 12:34:33.541649+01	2026-02-14 12:34:33.541649+01
+94952fc8-02c1-4be0-b3e2-f383f4c2a1d8	/	footer-news	Russian	Новости	News	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-14 12:34:41.48071+01	2026-02-14 12:34:41.48071+01
+934b9952-258f-4ec3-880a-6a9ecd9dfc12	/	footer-blog	Russian	Блог	Blog	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-14 12:34:57.870479+01	2026-02-14 12:34:57.870479+01
+e060678f-2ce5-4496-840b-da322c89080d	/	footer-support	Russian	Поддержка	Support	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-14 12:35:11.390896+01	2026-02-14 12:35:11.390896+01
+297b190b-e5ae-4b31-b510-d72d27f099f8	/	footer-terms	Russian	Условия пользования	Terms & Conditions	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-14 12:36:00.470799+01	2026-02-14 12:36:00.470799+01
+2e9577b2-e632-4081-ad19-45614693da98	/	footer-privacy	Russian	Конфиденциальность	Privacy	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-14 12:36:49.627452+01	2026-02-14 12:36:49.627452+01
+d9e7316f-649d-4901-9054-14103475ae28	/	footer-sitemap	Russian	Карта сайта	Sitemap	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-14 12:37:02.421915+01	2026-02-14 12:37:02.421915+01
+ecff190c-4366-40c0-86b4-ec98e56e3e62	/	footer-lounge	Russian	Место встреч	Lounge	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-14 12:37:37.962127+01	2026-02-14 12:37:55.3481+01
+b1baee34-8f32-482b-87d1-3d14df14160a	/	footer-software	Russian	Программное обеспечение	Apps and software	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-14 12:38:18.148161+01	2026-02-14 12:38:18.148161+01
+400d4303-4348-4ced-8d7f-36cba6884f0a	/	footer-github	Russian	Crowdly на Github-е	Crowdly on Github	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-14 12:38:33.038257+01	2026-02-14 12:38:33.038257+01
+dc31a94c-6856-46d7-9c07-ab132812e7e6	/	footer-contact	Russian	Связь с нами	Contact us	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-14 12:38:54.431376+01	2026-02-14 12:38:54.431376+01
+4acd9e8c-8cb7-4eb1-9019-0784ee1805b6	/	footer-feedback	Russian	Обратная связь	Send feedback	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-14 12:39:09.709886+01	2026-02-14 12:39:09.709886+01
+97942a4b-b48a-4291-b799-82388262a0f5	/	footer-bug	Russian	Сообщить об ошибке	Submit a bug report	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-14 12:39:29.439788+01	2026-02-14 12:39:44.312618+01
+41b0a3e3-03f0-46e2-bf41-cbbbd02bf622	/	footer-feature	Russian	Предложить новый функционал	Suggest a feature	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	2026-02-14 12:40:18.215655+01	2026-02-14 12:41:42.930943+01
+48d46f0d-168b-419f-8529-2e6a4de62317	/	footer-about	Arabic	نبذة عنا	About Us	0991b06f-e0f4-4cc1-bf2d-73188a1c6786	2026-02-14 13:28:58.221034+01	2026-02-14 13:28:58.221034+01
+9dc81c36-e26f-4857-8b54-a62e2d80c78f	/	footer-careers	Arabic	الوظائف	Careers	0991b06f-e0f4-4cc1-bf2d-73188a1c6786	2026-02-14 13:29:39.979567+01	2026-02-14 13:29:39.979567+01
+9824da17-9d89-4584-9db5-d97e87ec07ff	/	footer-news	Arabic	الأخبار	News	0991b06f-e0f4-4cc1-bf2d-73188a1c6786	2026-02-14 13:30:02.315717+01	2026-02-14 13:30:02.315717+01
+45ff00cc-00a2-4ec1-869b-185148ec61d3	/	footer-blog	Arabic	المدونة	Blog	0991b06f-e0f4-4cc1-bf2d-73188a1c6786	2026-02-14 13:30:24.959572+01	2026-02-14 13:30:24.959572+01
+279ee7be-2998-4382-a945-ff5802394d12	/	footer-support	Arabic	الدعم	Support	0991b06f-e0f4-4cc1-bf2d-73188a1c6786	2026-02-14 13:30:51.772378+01	2026-02-14 13:30:51.772378+01
+39007fb2-e5d3-4e12-ada0-4cf098f94f4b	/	footer-terms	Arabic	الشروط والأحكام	Terms & Conditions	0991b06f-e0f4-4cc1-bf2d-73188a1c6786	2026-02-14 13:31:11.367892+01	2026-02-14 13:31:11.367892+01
+c46cf66b-8327-47ca-8e50-e75e504aba71	/	footer-privacy	Arabic	الخصوصية	Privacy	0991b06f-e0f4-4cc1-bf2d-73188a1c6786	2026-02-14 13:31:33.435201+01	2026-02-14 13:31:33.435201+01
+98e53da4-e992-4b1b-a41a-b9c68e0aaca2	/	footer-company-title	Arabic	شركة	Company	0991b06f-e0f4-4cc1-bf2d-73188a1c6786	2026-02-14 13:32:37.10906+01	2026-02-14 13:32:37.10906+01
+448d17ec-db5e-4484-b970-72bc0a9646f7	/	footer-community-title	Arabic	مجتمع	Community	0991b06f-e0f4-4cc1-bf2d-73188a1c6786	2026-02-14 13:33:20.215944+01	2026-02-14 13:33:20.215944+01
+e3690784-51a9-44b2-b071-024308ff63ca	/profile	interests-heading	Russian	Интересы / увлечения	Interests/Hobbies	3ce90476-02ae-4f8e-8238-66f3bbd43929	2026-02-15 16:20:06.374684+01	2026-02-15 16:20:06.374684+01
+2abf14a7-bdbc-44c3-aba6-6433459b5f16	/profile	my-groups	Russian	Мои группы	My Groups	3ce90476-02ae-4f8e-8238-66f3bbd43929	2026-02-15 16:20:35.466036+01	2026-02-15 16:20:35.466036+01
+3a69c60b-e65d-403d-a2b9-f5d9300bba9a	/profile	stats-overview	Russian	Обзор статистики	Stats Overview	3ce90476-02ae-4f8e-8238-66f3bbd43929	2026-02-15 16:20:59.304881+01	2026-02-15 16:20:59.304881+01
+7217cea1-3c90-4536-95ff-e2c4e1ac23ab	/profile	communication	Russian	Общение	Communication	3ce90476-02ae-4f8e-8238-66f3bbd43929	2026-02-15 16:21:10.874571+01	2026-02-15 16:21:10.874571+01
+e785ba56-edf4-47ae-88d2-0ef424b20756	/profile	comments	Russian	Комментарии	Comments	3ce90476-02ae-4f8e-8238-66f3bbd43929	2026-02-15 16:21:19.893508+01	2026-02-15 16:21:19.893508+01
+ddd66eaa-9733-4d02-bdc2-48472f2171e9	/profile	discussions	Russian	Дискусии / сообщения	Discussions / Messages	3ce90476-02ae-4f8e-8238-66f3bbd43929	2026-02-15 16:21:56.787002+01	2026-02-15 16:21:56.787002+01
+014ae1bd-c935-4e4e-ae0e-34cf031777ad	/profile	notifications	Russian	Уведомления	Notifications	3ce90476-02ae-4f8e-8238-66f3bbd43929	2026-02-15 16:22:18.075328+01	2026-02-15 16:22:18.075328+01
+51cbb305-c81d-451e-8a36-dc505962d6c5	/profile	account-administration	Russian	Управление аккаунтом	Account Administration	3ce90476-02ae-4f8e-8238-66f3bbd43929	2026-02-15 16:22:51.498841+01	2026-02-15 16:22:51.498841+01
+08f8a162-217e-414a-b2aa-aa3782770c40	/profile	filter-approved	Russian	одобренные	approved	3ce90476-02ae-4f8e-8238-66f3bbd43929	2026-02-15 16:24:13.16593+01	2026-02-15 16:24:13.16593+01
+fcc71a1b-cf61-4248-8855-6375b4309a7f	/profile	filter-total	Russian	все	total	3ce90476-02ae-4f8e-8238-66f3bbd43929	2026-02-15 16:24:23.899168+01	2026-02-15 16:24:23.899168+01
+ab3d4aac-52f5-4a10-a721-6aebfb54ed07	/profile	filter-denied	Russian	отказанные	denied	3ce90476-02ae-4f8e-8238-66f3bbd43929	2026-02-15 16:24:33.199702+01	2026-02-15 16:24:33.199702+01
+366d2b9c-b3e9-4b90-8961-e57539077030	/profile	filter-undecided	Russian	нерешённые	undecided	3ce90476-02ae-4f8e-8238-66f3bbd43929	2026-02-15 16:24:54.234562+01	2026-02-15 16:24:54.234562+01
+b0c13ec9-075d-4430-b71b-28f983b193d8	/profile	contrib-paragraph-heading	Russian	Параграф	Paragraph	3ce90476-02ae-4f8e-8238-66f3bbd43929	2026-02-15 16:25:22.211908+01	2026-02-15 16:25:22.211908+01
+4299a5d7-8a59-410c-a76e-4e4c71e91c78	/profile	contrib-user-heading	Russian	Имя	User	3ce90476-02ae-4f8e-8238-66f3bbd43929	2026-02-15 16:25:28.45429+01	2026-02-15 16:25:28.45429+01
+ecce7948-3b42-4192-9ac8-f492caca7aca	/profile	contrib-date-heading	Russian	Дата	Date	3ce90476-02ae-4f8e-8238-66f3bbd43929	2026-02-15 16:25:36.47895+01	2026-02-15 16:25:36.47895+01
+47e785f0-437d-4643-891d-fc4234f53831	/profile	contrib-words-heading	Russian	Слов(а)	Words	3ce90476-02ae-4f8e-8238-66f3bbd43929	2026-02-15 16:25:42.696315+01	2026-02-15 16:25:52.696323+01
+58324202-719b-4cd8-aba1-e5087d43e463	/profile	contrib-comments-heading	Russian	Комментарии	Comments	3ce90476-02ae-4f8e-8238-66f3bbd43929	2026-02-15 16:26:16.131585+01	2026-02-15 16:26:16.131585+01
+\.
+
+
+--
 -- Data for Name: local_users; Type: TABLE DATA; Schema: public; Owner: lad
 --
 
-COPY public.local_users (id, email, password_hash, created_at) FROM stdin;
-6f542cd0-551b-4ec9-b2b0-61113dd7af2b	admin@example.com	$2a$10$KF.z26z21tijHZ4CpiEgYerHdvcM06bEMg9pKxEpMxOBAlHz13aDu	2025-12-10 11:00:49.543657+01
-cad23ca1-121d-448f-8947-ddd5048ecb15	test@example.com	$2a$10$Q4Zg8NV5Lmvj1ECgFN9YJuw3ko453tXTjnMeE.FuidL7Nd0gnNr.G	2025-12-10 14:12:09.978783+01
-aef37573-600e-4442-9ae1-63a05799d9a0	leolove@example.com	$2a$10$wPM5JRiWxBRBZUnbnh4naukM3rAUYflyweAjhnAITafxcloZCE0Fq	2025-12-10 14:12:41.462047+01
-6fe20d11-0118-43b4-8439-ecd9738c8226	leoforce@example.com	$2a$10$rfTAI06f19zt531DHrBmpusN35/v1qchiULzuKn6ixgm9jHd/39Ca	2026-01-13 16:34:34.837794+01
+COPY public.local_users (id, email, password_hash, created_at, is_banned) FROM stdin;
+6f542cd0-551b-4ec9-b2b0-61113dd7af2b	admin@example.com	$2a$10$KF.z26z21tijHZ4CpiEgYerHdvcM06bEMg9pKxEpMxOBAlHz13aDu	2025-12-10 11:00:49.543657+01	f
+cad23ca1-121d-448f-8947-ddd5048ecb15	test@example.com	$2a$10$Q4Zg8NV5Lmvj1ECgFN9YJuw3ko453tXTjnMeE.FuidL7Nd0gnNr.G	2025-12-10 14:12:09.978783+01	f
+aef37573-600e-4442-9ae1-63a05799d9a0	leolove@example.com	$2a$10$wPM5JRiWxBRBZUnbnh4naukM3rAUYflyweAjhnAITafxcloZCE0Fq	2025-12-10 14:12:41.462047+01	f
+6fe20d11-0118-43b4-8439-ecd9738c8226	leoforce@example.com	$2a$10$rfTAI06f19zt531DHrBmpusN35/v1qchiULzuKn6ixgm9jHd/39Ca	2026-01-13 16:34:34.837794+01	f
+4b0fde23-9891-4c9a-80a0-f41646476bb0	4leo@leoloveis.me	$2a$10$KT28kRB.wNB2jXHI.AJasOJk15mH9.PSdiJcoqwg3P/4mZ.D5sTuG	2026-02-11 21:17:26.377337+01	f
+c6e72e27-57bf-40df-8f99-1631201dc008	crowdly-support@crowdly.cloud	$2a$10$68dbZx4oY.kYOFWI8SL6I./QmgEtmkk2BzfktSdFOje4ro4WY0SJq	2026-02-14 07:22:22.531683+01	f
+0991b06f-e0f4-4cc1-bf2d-73188a1c6786	translator.arabic@example.com	$2a$10$GuZ/yxrEHspk2/2TnXpUjeyok5L2Dzh35xwDAB/YDAKGC7Fn3PBnq	2026-02-14 13:21:22.802481+01	f
+3ce90476-02ae-4f8e-8238-66f3bbd43929	translator.russian@crowdly.cloud	$2a$10$G/SdqsXPTF4NzpA5iX3JJO/YlyDjytYK6KeT2UlClAErR1nj.nKSi	2026-02-15 16:15:21.378134+01	f
+bd090d15-23fd-41aa-9775-e02b95462475	translator.chinese_simplified@crowdly.cloud	$2a$10$NM3lCyYuJWCpS0nroilTC.jLNXEZz4iINFV4R1r/3BVSuVkJJnJS.	2026-02-16 11:23:34.783994+01	f
+030d9299-d05c-4f81-b6e2-73d1decf1037	translator.chinese_traditional@crowdly.cloud	$2a$10$inKy.tTThWqUbYPiSm22fu/cjIQQjHJWNPjEyS7zYNPr9GzfNg4/y	2026-02-16 11:25:48.924105+01	f
 \.
 
 
@@ -2263,19 +2522,19 @@ aef37573-600e-4442-9ae1-63a05799d9a0	leolove@example.com	$2a$10$wPM5JRiWxBRBZUnb
 --
 
 COPY public.locales (code, english_name, native_name, direction, enabled, created_at, updated_at) FROM stdin;
-en	English	English	ltr	t	2026-01-09 17:06:24.947739+01	2026-01-27 15:39:52.00556+01
-ru	Russian	Русский	ltr	t	2026-01-09 17:06:24.953415+01	2026-01-27 15:39:52.017926+01
-pt	Portuguese	Português	ltr	t	2026-01-09 17:06:24.956627+01	2026-01-27 15:39:52.025111+01
-kr	Korean	한국어	ltr	t	2026-01-09 17:06:24.959807+01	2026-01-27 15:39:52.037712+01
-ar	Arabic	العربية	rtl	t	2026-01-09 17:06:24.961686+01	2026-01-27 15:39:52.039518+01
-zh-Hans	Chinese (Simplified)	简体中文	ltr	t	2026-01-09 17:06:24.965034+01	2026-01-27 15:39:52.041717+01
-zh-Hant	Chinese (Traditional)	繁體中文	ltr	t	2026-01-09 17:06:24.967524+01	2026-01-27 15:39:52.044061+01
-ja	Japanese	日本語	ltr	t	2026-01-09 17:06:24.969897+01	2026-01-27 15:39:52.046842+01
-fr	French	Français	ltr	t	2026-01-09 17:06:24.972028+01	2026-01-27 15:39:52.048808+01
-es	Spanish	Español	ltr	t	2026-01-09 17:06:24.974189+01	2026-01-27 15:39:52.051104+01
-de	German	Deutsch	ltr	t	2026-01-09 17:06:24.978093+01	2026-01-27 15:39:52.053597+01
-zh	Chinese (unspecified script)	中文	ltr	t	2026-01-09 17:06:24.98017+01	2026-01-27 15:39:52.055379+01
-hi	Hindi	हिन्दी	ltr	t	2026-01-09 17:06:24.98167+01	2026-01-27 15:39:52.057239+01
+en	English	English	ltr	t	2026-01-09 17:06:24.947739+01	2026-02-16 13:02:26.882428+01
+ru	Russian	Русский	ltr	t	2026-01-09 17:06:24.953415+01	2026-02-16 13:02:26.892327+01
+pt	Portuguese	Português	ltr	t	2026-01-09 17:06:24.956627+01	2026-02-16 13:02:26.896631+01
+kr	Korean	한국어	ltr	t	2026-01-09 17:06:24.959807+01	2026-02-16 13:02:26.901175+01
+ar	Arabic	العربية	rtl	t	2026-01-09 17:06:24.961686+01	2026-02-16 13:02:26.902559+01
+zh-Hans	Chinese (Simplified)	简体中文	ltr	t	2026-01-09 17:06:24.965034+01	2026-02-16 13:02:26.90483+01
+zh-Hant	Chinese (Traditional)	繁體中文	ltr	t	2026-01-09 17:06:24.967524+01	2026-02-16 13:02:26.906355+01
+ja	Japanese	日本語	ltr	t	2026-01-09 17:06:24.969897+01	2026-02-16 13:02:26.90757+01
+fr	French	Français	ltr	t	2026-01-09 17:06:24.972028+01	2026-02-16 13:02:26.908812+01
+es	Spanish	Español	ltr	t	2026-01-09 17:06:24.974189+01	2026-02-16 13:02:26.91002+01
+de	German	Deutsch	ltr	t	2026-01-09 17:06:24.978093+01	2026-02-16 13:02:26.91105+01
+hi	Hindi	हिन्दी	ltr	t	2026-01-09 17:06:24.98167+01	2026-02-16 13:02:26.912318+01
+zh	Chinese (unspecified script)	中文	ltr	f	2026-01-09 17:06:24.98017+01	2026-02-16 13:02:26.913295+01
 \.
 
 
@@ -2363,15 +2622,19 @@ e717a256-3542-4645-a866-d44b3b60dfda	20c98a0f-5396-47af-982c-c418de96934b	0	Was 
 -- Data for Name: profiles; Type: TABLE DATA; Schema: public; Owner: lad
 --
 
-COPY public.profiles (id, username, created_at, updated_at, first_name, last_name, nickname, about, bio, interests, profile_image_url, birthday, languages, social_facebook, social_snapchat, social_instagram, social_other, telephone, notify_phone, notify_app, notify_email, real_nickname, show_public_stories, show_public_screenplays, show_public_favorites, show_public_living, show_public_lived, favorites_visibility, living_visibility, lived_visibility, favorites_selected_user_ids, living_selected_user_ids, lived_selected_user_ids, stories_visibility, screenplays_visibility, stories_selected_user_ids, screenplays_selected_user_ids) FROM stdin;
-61f38d4e-60a7-4836-9f43-1dfe7ddd00e7	leoforce@example.com	2025-05-05 17:37:32.335628+02	2025-05-05 17:37:32.335628+02	\N	\N	\N	\N	\N	{}	\N	\N	{}	\N	\N	\N	\N	\N	f	t	t	\N	t	t	t	t	t	public	public	public	{}	{}	{}	public	public	{}	{}
-e95ec2a3-c9de-4d3c-b516-1998deb243f2	leolove@example.com	2025-05-05 18:21:13.488887+02	2025-05-05 18:21:13.488887+02	\N	\N	\N	\N	\N	{}	\N	\N	{}	\N	\N	\N	\N	\N	f	t	t	\N	t	t	t	t	t	public	public	public	{}	{}	{}	public	public	{}	{}
-4b1454d7-f26c-4485-9e3f-614c92dcd0ae	leoforce@crowdly.org	2025-06-15 15:51:07.942667+02	2025-06-15 15:51:07.942667+02	\N	\N	\N	\N	\N	{}	\N	\N	{}	\N	\N	\N	\N	\N	f	t	t	\N	t	t	t	t	t	public	public	public	{}	{}	{}	public	public	{}	{}
-e28cf50b-29ce-4486-b1e6-085882b6dbe9	leoforce@growdly.online	2025-05-05 18:37:05.47367+02	2025-05-05 18:37:05.47367+02	Leo	Force	\N	\N	\N	{}	\N	\N	{}	\N	\N	\N	\N	\N	f	f	f	\N	t	t	t	t	t	public	public	public	{}	{}	{}	public	public	{}	{}
-6f542cd0-551b-4ec9-b2b0-61113dd7af2b	admin@example.com	2025-12-18 14:14:36.218696+01	2026-01-05 14:58:05.20482+01	\N	\N		\N	\N	{}	\N	\N	{}	\N	\N	\N	\N	\N	f	t	t	\N	t	t	t	t	t	public	public	public	{}	{}	{}	public	public	{}	{}
-aef37573-600e-4442-9ae1-63a05799d9a0	leolove@example.com-aef37573	2025-12-17 16:58:44.976518+01	2026-01-14 14:50:16.050624+01	Leo	Love	leolove	\N	My name is Love, Leo Love :)	{reading,writing,travelling,"acquiring languages"}	\N	1980-08-09	{}	\N	\N	\N	\N	\N	f	t	f	Leo wise and happy, kind and gentle Love	f	f	f	f	f	private	private	private	{}	{}	{}	private	private	{}	{}
-cad23ca1-121d-448f-8947-ddd5048ecb15	test@example.com	2025-12-17 17:14:34.761162+01	2026-01-05 15:26:06.560331+01	Тест	Тестов	test	\N	\N	{}	\N	\N	{}	\N	\N	\N	\N	\N	f	t	t	試試	t	t	t	t	t	public	public	public	{}	{}	{}	public	public	{}	{}
-6fe20d11-0118-43b4-8439-ecd9738c8226	leoforce@example.com-6fe20d11	2026-01-13 16:34:52.08019+01	2026-01-17 11:09:28.560404+01	Leo	Force	leoforce	\N	\N	{}	\N	\N	{}	\N	\N	\N	\N	\N	f	t	t	\N	t	t	t	t	t	public	public	public	{}	{}	{}	public	public	{}	{}
+COPY public.profiles (id, username, created_at, updated_at, first_name, last_name, nickname, about, bio, interests, profile_image_url, birthday, languages, social_facebook, social_snapchat, social_instagram, social_other, telephone, notify_phone, notify_app, notify_email, real_nickname, show_public_stories, show_public_screenplays, show_public_favorites, show_public_living, show_public_lived, favorites_visibility, living_visibility, lived_visibility, favorites_selected_user_ids, living_selected_user_ids, lived_selected_user_ids, stories_visibility, screenplays_visibility, stories_selected_user_ids, screenplays_selected_user_ids, profile_page_name) FROM stdin;
+61f38d4e-60a7-4836-9f43-1dfe7ddd00e7	leoforce@example.com	2025-05-05 17:37:32.335628+02	2025-05-05 17:37:32.335628+02	\N	\N	\N	\N	\N	{}	\N	\N	{}	\N	\N	\N	\N	\N	f	t	t	\N	t	t	t	t	t	public	public	public	{}	{}	{}	public	public	{}	{}	\N
+e95ec2a3-c9de-4d3c-b516-1998deb243f2	leolove@example.com	2025-05-05 18:21:13.488887+02	2025-05-05 18:21:13.488887+02	\N	\N	\N	\N	\N	{}	\N	\N	{}	\N	\N	\N	\N	\N	f	t	t	\N	t	t	t	t	t	public	public	public	{}	{}	{}	public	public	{}	{}	\N
+4b1454d7-f26c-4485-9e3f-614c92dcd0ae	leoforce@crowdly.org	2025-06-15 15:51:07.942667+02	2025-06-15 15:51:07.942667+02	\N	\N	\N	\N	\N	{}	\N	\N	{}	\N	\N	\N	\N	\N	f	t	t	\N	t	t	t	t	t	public	public	public	{}	{}	{}	public	public	{}	{}	\N
+e28cf50b-29ce-4486-b1e6-085882b6dbe9	leoforce@growdly.online	2025-05-05 18:37:05.47367+02	2025-05-05 18:37:05.47367+02	Leo	Force	\N	\N	\N	{}	\N	\N	{}	\N	\N	\N	\N	\N	f	f	f	\N	t	t	t	t	t	public	public	public	{}	{}	{}	public	public	{}	{}	\N
+0991b06f-e0f4-4cc1-bf2d-73188a1c6786	translator.arabic@example.com	2026-02-14 13:21:22.802481+01	2026-02-15 16:14:06.191446+01	Translator	Arabic	\N	\N	\N	{}	\N	\N	{}	\N	\N	\N	\N	\N	f	t	t	\N	t	t	t	t	t	public	public	public	{}	{}	{}	public	public	{}	{}	\N
+3ce90476-02ae-4f8e-8238-66f3bbd43929	translator.russian@crowdly.cloud	2026-02-15 16:15:21.378134+01	2026-02-15 16:22:22.763493+01	Translator	Russian	\N	\N	\N	{}	\N	\N	{}	\N	\N	\N	\N	\N	f	t	t	\N	t	t	t	t	t	public	public	public	{}	{}	{}	public	public	{}	{}	\N
+bd090d15-23fd-41aa-9775-e02b95462475	translator.chinese_simplified@crowdly.cloud	2026-02-16 11:23:34.783994+01	2026-02-16 11:23:34.783994+01	Translator	Chinese simplified	\N	\N	\N	{}	\N	\N	{}	\N	\N	\N	\N	\N	f	t	t	\N	t	t	t	t	t	public	public	public	{}	{}	{}	public	public	{}	{}	\N
+030d9299-d05c-4f81-b6e2-73d1decf1037	translator.chinese_traditional@crowdly.cloud	2026-02-16 11:25:48.924105+01	2026-02-16 11:25:48.924105+01	Translator	Chinese traditional	\N	\N	\N	{}	\N	\N	{}	\N	\N	\N	\N	\N	f	t	t	\N	t	t	t	t	t	public	public	public	{}	{}	{}	public	public	{}	{}	\N
+6f542cd0-551b-4ec9-b2b0-61113dd7af2b	admin@example.com	2025-12-18 14:14:36.218696+01	2026-01-05 14:58:05.20482+01	\N	\N		\N	\N	{}	\N	\N	{}	\N	\N	\N	\N	\N	f	t	t	\N	t	t	t	t	t	public	public	public	{}	{}	{}	public	public	{}	{}	
+aef37573-600e-4442-9ae1-63a05799d9a0	leolove@example.com-aef37573	2025-12-17 16:58:44.976518+01	2026-01-14 14:50:16.050624+01	Leo	Love	leolove	\N	My name is Love, Leo Love :)	{reading,writing,travelling,"acquiring languages"}	\N	1980-08-09	{}	\N	\N	\N	\N	\N	f	t	f	Leo wise and happy, kind and gentle Love	f	f	f	f	f	private	private	private	{}	{}	{}	private	private	{}	{}	leolove
+cad23ca1-121d-448f-8947-ddd5048ecb15	test@example.com	2025-12-17 17:14:34.761162+01	2026-01-05 15:26:06.560331+01	Тест	Тестов	test	\N	\N	{}	\N	\N	{}	\N	\N	\N	\N	\N	f	t	t	試試	t	t	t	t	t	public	public	public	{}	{}	{}	public	public	{}	{}	test
+6fe20d11-0118-43b4-8439-ecd9738c8226	leoforce@example.com-6fe20d11	2026-01-13 16:34:52.08019+01	2026-01-17 11:09:28.560404+01	Leo	Force	leoforce	\N	\N	{}	\N	\N	{}	\N	\N	\N	\N	\N	f	t	t	\N	t	t	t	t	t	public	public	public	{}	{}	{}	public	public	{}	{}	leoforce
 \.
 
 
@@ -2585,6 +2848,14 @@ e3ada423-be14-4ec0-a496-646c734f8cd5	afc667e9-aca2-476a-a6b2-ac9abd4607a1	bf2729
 
 
 --
+-- Data for Name: screenplay_revisions; Type: TABLE DATA; Schema: public; Owner: lad
+--
+
+COPY public.screenplay_revisions (id, screenplay_title_id, scene_id, prev_content, new_content, created_by, revision_number, revision_reason, created_at) FROM stdin;
+\.
+
+
+--
 -- Data for Name: screenplay_scene; Type: TABLE DATA; Schema: public; Owner: lad
 --
 
@@ -2691,9 +2962,11 @@ b9f1de59-0c10-472f-8174-093d351f0e0c	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	Test f
 ba894805-d466-4ed5-b6e6-b276f9bbc232	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	Adult life	{"YEAH, YEah, Yeah... yeah... WTH...."}	2025-12-17 14:25:58.743404+01	2025-12-17 14:25:58.743404+01	undecided	\N	\N	\N	11
 eb752fad-3eae-458a-97c5-6fa67e389bed	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	When one meest her	{"New text here"}	2025-12-19 11:07:03.489811+01	2025-12-19 11:07:03.489811+01	undecided	\N	\N	\N	12
 1028d940-b3ca-4253-b6c3-afd634ff0923	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	It takes a village to raise a child, again	{"indeed so","now it is us who need to find that village","Now I'm adding another paragraph in the desktop app as the user test to see the\nbehaviour of both desktop app and Crowdly web"}	2025-12-23 11:14:13.629506+01	2025-12-23 11:14:13.629506+01	undecided	\N	\N	\N	13
+20b2294a-b775-4a3d-95d3-258736da33d0	579149a9-60d5-420e-a233-810a6e4eee63	College	{"First real life experiences","Let's build that village"}	2026-02-15 13:53:31.040577+01	2026-02-15 13:53:31.040577+01	undecided	\N	\N	\N	8
 bde622be-157c-49ff-a131-96d02a7e0284	1e6bb2d6-0430-439d-99cf-4616617dfbf8	Intro	{"It is a series of short stories."}	2025-12-29 15:07:39.093126+01	2025-12-29 15:07:39.093126+01	undecided	\N	\N	\N	1
 c35dbd92-0686-4036-9b5c-74db0e8cf177	1e6bb2d6-0430-439d-99cf-4616617dfbf8	Chapter 1 - What goes around, comes around	{"Adding couple of words here"}	2025-12-29 15:15:52.628119+01	2025-12-29 15:15:52.628119+01	undecided	\N	\N	\N	2
 1988ba43-a32f-4f5b-8698-9fcbc1b10ad7	1e6bb2d6-0430-439d-99cf-4616617dfbf8	Chapter 2 - Bla Bla Blu - is not my song	{"There is a popular female Thai  singer who sings this song"}	2025-12-29 15:16:54.42495+01	2025-12-29 15:16:54.42495+01	undecided	\N	\N	\N	3
+04db0deb-c1c4-4689-9e30-2e0f279d6430	579149a9-60d5-420e-a233-810a6e4eee63	Test from API 2	{One,Two,Three}	2026-02-15 13:53:31.040577+01	2026-02-15 13:53:31.040577+01	undecided	\N	\N	\N	9
 f4985aa1-0b7d-4c64-9234-99288c0846b5	10e2ca77-0b5c-4f72-aeee-965cbe4db67a	Intro	{"some intro text"}	2025-12-29 15:22:19.667271+01	2025-12-29 15:22:19.667271+01	undecided	\N	\N	\N	1
 0e4ec8f8-acb9-4c5e-be77-cda6021976fa	10e2ca77-0b5c-4f72-aeee-965cbe4db67a	Chapter 1	{"Text of chapter 1"}	2025-12-29 15:23:11.836369+01	2025-12-29 15:23:11.836369+01	undecided	\N	\N	\N	2
 988e930d-258c-40e1-aa52-7fa141eb1fb5	10e2ca77-0b5c-4f72-aeee-965cbe4db67a	Chapter 2	{"Text of chapter 2"}	2025-12-29 15:23:11.836369+01	2025-12-29 15:23:11.836369+01	undecided	\N	\N	\N	3
@@ -2708,6 +2981,17 @@ e4f1826c-eb02-4b2e-917e-0b48f6014840	3adc67d9-ae49-4daa-8a48-67c279e2cdce	Chapte
 5e88d7d5-6610-4e29-99b8-b2eadeab0141	96cb717c-7856-4879-b4a2-30843238c7f5	Initiating thought	{"some paragraph text here"}	2026-01-12 11:37:23.342266+01	2026-01-12 11:37:23.342266+01	undecided	\N	\N	\N	1
 38520fb9-77ae-449e-b9cd-5d91c0aef2fd	902c4c24-a5f2-41d8-85ce-d3b8c95312ba	Chapter 1 - Journey into wilderness	{"Some text with some text","Another paragraph with some more text"}	2026-01-15 19:21:47.446813+01	2026-01-15 19:21:47.446813+01	undecided	\N	\N	\N	1
 b0b4ad69-a677-4ff5-b9fd-cb89959ac9bb	1e71f053-f465-44ec-94b1-b0fecbd4a773	Chapter	{""}	2026-01-21 12:23:46.104542+01	2026-01-21 12:23:46.104542+01	undecided	\N	\N	\N	1
+157c86cb-db6a-4f9d-adb0-55f29aa8fc39	579149a9-60d5-420e-a233-810a6e4eee63	And life goes on	{"as always, as it should, it would be rather unusual if it wouldn't, however such a story is also not entirely impossible. :)"}	2026-02-15 13:53:31.040577+01	2026-02-15 13:53:31.040577+01	undecided	\N	\N	\N	4
+0b6f37ad-d42e-493f-85c9-db22f6947303	579149a9-60d5-420e-a233-810a6e4eee63	The day I was conceived	{"Was a dark and cold one. It was rainy and windy outside - this however is not a problem for two people who are passionately in love."}	2026-02-15 13:53:31.040577+01	2026-02-15 13:53:31.040577+01	undecided	\N	\N	\N	1
+f86e4d88-4530-45df-a2fb-667643ba9488	579149a9-60d5-420e-a233-810a6e4eee63	The day I was born	{"was an amazing one."}	2026-02-15 13:53:31.040577+01	2026-02-15 13:53:31.040577+01	undecided	\N	\N	\N	2
+e67cb0e8-c034-461a-8270-134a91bc221b	579149a9-60d5-420e-a233-810a6e4eee63	Test chapter	{"test text"}	2026-02-15 13:53:31.040577+01	2026-02-15 13:53:31.040577+01	undecided	\N	\N	\N	3
+fb4c076b-9206-4f2c-a138-3f1b10ce56dc	579149a9-60d5-420e-a233-810a6e4eee63	It takes a village to raise a child	{"indeed so","Today on 23. December I add some changes on Crowdly web to see if the changes\nwill be syn-ed into the desktop app 11:36 is the local time here in Munich"}	2026-02-15 13:53:31.040577+01	2026-02-15 13:53:31.040577+01	undecided	\N	\N	\N	5
+2ff5b854-9304-4d96-bab9-d0f100d7fc55	579149a9-60d5-420e-a233-810a6e4eee63	Kindergarten	{"I do NOT like it. Here are TOO MANY children... and they are noisy.","Let's add something here before sync in the desktop app","Let's add something here on the crowdly web and see if it'll be syn-ed into the\ndesktop app","and now vice versa, if I add something here in the desktop app","and yes, it has worked out.","It is working. Hurray!"}	2026-02-15 13:53:31.040577+01	2026-02-15 13:53:31.040577+01	undecided	\N	\N	\N	6
+bb462d80-8570-4dbd-b9d8-ae2c5c33fb8f	579149a9-60d5-420e-a233-810a6e4eee63	School	{"Good and bad","Friends and enemies","School was somewhat ok, till I became teenager"}	2026-02-15 13:53:31.040577+01	2026-02-15 13:53:31.040577+01	undecided	\N	\N	\N	7
+dc30fe50-63b0-4e41-8e3a-50d6131d6897	579149a9-60d5-420e-a233-810a6e4eee63	Test from API 3	{Alpha,Beta}	2026-02-15 13:53:31.040577+01	2026-02-15 13:53:31.040577+01	undecided	\N	\N	\N	10
+f0345e7b-4d68-44b0-87c5-2116f0b8be20	579149a9-60d5-420e-a233-810a6e4eee63	Adult life	{"YEAH, YEah, Yeah... yeah... WTH...."}	2026-02-15 13:53:31.040577+01	2026-02-15 13:53:31.040577+01	undecided	\N	\N	\N	11
+1706983b-73cb-494d-8e0c-10a919ae9600	579149a9-60d5-420e-a233-810a6e4eee63	When one meest her	{"New text here"}	2026-02-15 13:53:31.040577+01	2026-02-15 13:53:31.040577+01	undecided	\N	\N	\N	12
+4ab4f0c1-4f60-4ca6-8708-eb6f80585eb3	579149a9-60d5-420e-a233-810a6e4eee63	It takes a village to raise a child, again	{"indeed so","now it is us who need to find that village","Now I'm adding another paragraph in the desktop app as the user test to see the\nbehaviour of both desktop app and Crowdly web"}	2026-02-15 13:53:31.040577+01	2026-02-15 13:53:31.040577+01	undecided	\N	\N	\N	13
 \.
 
 
@@ -2736,6 +3020,16 @@ ab1c8307-21cd-49c3-b236-c05db1eeaa45	aef37573-600e-4442-9ae1-63a05799d9a0	contri
 96cb717c-7856-4879-b4a2-30843238c7f5	cad23ca1-121d-448f-8947-ddd5048ecb15	owner	2026-01-12 11:37:23.355791+01
 902c4c24-a5f2-41d8-85ce-d3b8c95312ba	aef37573-600e-4442-9ae1-63a05799d9a0	owner	2026-01-15 19:21:47.483993+01
 1e71f053-f465-44ec-94b1-b0fecbd4a773	aef37573-600e-4442-9ae1-63a05799d9a0	owner	2026-01-21 12:23:46.126852+01
+579149a9-60d5-420e-a233-810a6e4eee63	aef37573-600e-4442-9ae1-63a05799d9a0	owner	2026-02-15 13:53:31.040577+01
+\.
+
+
+--
+-- Data for Name: story_access_rules; Type: TABLE DATA; Schema: public; Owner: lad
+--
+
+COPY public.story_access_rules (id, story_title_id, rule_type, grantee_user_id, grantee_group_id, created_at) FROM stdin;
+62a7c5f9-a077-4748-b6c2-57dd9d8ebcd6	3adc67d9-ae49-4daa-8a48-67c279e2cdce	view	6fe20d11-0118-43b4-8439-ecd9738c8226	\N	2026-02-16 08:38:10.301243+01
 \.
 
 
@@ -2786,33 +3080,34 @@ COPY public.story_spaces (id, story_title_id, space_id, role, created_at, update
 -- Data for Name: story_title; Type: TABLE DATA; Schema: public; Owner: lad
 --
 
-COPY public.story_title (story_title_id, title, created_at, updated_at, creator_id, visibility, published, genre, tags, creative_space_id) FROM stdin;
-d46656f3-b361-4acc-b36a-023bf97707bd	Love story 2	2025-06-15 15:09:53.239137+02	2025-06-15 15:09:53.239137+02	e28cf50b-29ce-4486-b1e6-085882b6dbe9	public	t	\N	\N	\N
-c88b45d6-f4ca-4646-b998-2b101e9ea937	Yet another story	2025-06-15 15:15:24.933726+02	2025-06-15 15:15:24.933726+02	e28cf50b-29ce-4486-b1e6-085882b6dbe9	public	t	\N	\N	\N
-7c07adb7-deb0-405e-8589-9954cd33edce	Yet another great Story of my LOVE life	2025-06-15 15:26:36.329198+02	2025-06-15 15:26:36.329198+02	e28cf50b-29ce-4486-b1e6-085882b6dbe9	public	t	\N	\N	\N
-e0f7de55-1d13-42c1-aecc-e0338ea81152	Story of my life	2025-12-10 12:34:01.715435+01	2025-12-10 12:34:01.715435+01	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	public	t	\N	\N	\N
-7b4cb567-de6c-4728-92d7-56a529c9970f	Story of my life (edited)	2025-12-10 13:36:45.724303+01	2025-12-10 13:36:45.724303+01	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	public	t	\N	\N	\N
-acab0a30-9f2c-423a-ad82-e86ab2818a01	Test Story	2025-12-10 13:34:38.554488+01	2025-12-10 13:34:38.554488+01	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	public	t	\N	\N	\N
-fb654feb-8547-4c58-8ba6-e11be576b846	Story of my life	2025-12-14 13:50:53.989809+01	2025-12-14 13:50:53.989809+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	\N
-84452f69-b0eb-478e-aa31-938a35ec6912	Story of my life	2025-12-14 13:59:32.373146+01	2025-12-14 13:59:32.373146+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	\N
-7a201a20-c9d7-41ad-8a04-09a4a3bd82bd	Story of my life	2025-12-14 14:02:52.173353+01	2025-12-14 14:02:52.173353+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	\N
-a6c76f24-d604-4ed2-8b83-74b5640df229	Story of my life	2025-12-14 14:04:07.489924+01	2025-12-14 14:04:07.489924+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	\N
-751c6c7b-d272-4853-b982-db29b911facc	Story of my life	2025-12-14 14:05:10.181065+01	2025-12-14 14:05:10.181065+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	\N
-1e6bb2d6-0430-439d-99cf-4616617dfbf8	New day New story	2025-12-29 15:07:39.093126+01	2025-12-29 15:16:54.42495+01	cad23ca1-121d-448f-8947-ddd5048ecb15	public	t	\N	\N	\N
-0bef9edd-18fd-4e1c-aa57-5ef9f8788ba9	Story of my life	2025-12-14 14:13:34.526026+01	2025-12-14 14:13:34.526026+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	\N
-19065447-aaf0-4e4f-8847-0869de1be7dd	Story of my life	2025-12-14 14:14:40.364576+01	2025-12-14 14:14:40.364576+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	\N
-e1ab0869-1759-441e-892d-de376789149b	Story of my life	2025-12-14 14:35:07.685379+01	2025-12-14 14:35:07.685379+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	\N
-ab1c8307-21cd-49c3-b236-c05db1eeaa45	Untitled	2025-12-10 14:32:23.583943+01	2025-12-10 14:32:23.583943+01	aef37573-600e-4442-9ae1-63a05799d9a0	private	t	\N	\N	\N
-10e2ca77-0b5c-4f72-aeee-965cbe4db67a	New story by Leo Love	2025-12-29 15:22:19.667271+01	2025-12-29 15:41:04.032155+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	\N
-6174fd71-525f-40c7-a6e1-3c40f3ea57d5	New story 2 by Leo Love	2025-12-29 15:42:57.61306+01	2025-12-29 15:43:02.589403+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	\N
-afc0ca9b-5a67-46a0-b01c-9da9d27ae642	Currently, the most active story	2025-12-14 14:05:33.645236+01	2025-12-29 15:48:06.022141+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	\N
-3adc67d9-ae49-4daa-8a48-67c279e2cdce	Untitled	2026-01-05 16:12:57.510378+01	2026-01-05 16:12:57.510378+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	\N
-0050799c-61c3-4d49-b255-52da44c9b156	Untitled	2026-01-05 16:34:01.465666+01	2026-01-05 16:34:01.465666+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	\N
-461dd478-6f96-4754-abaa-d033f592da12	Untitled	2026-01-06 23:22:44.240343+01	2026-01-06 23:22:44.240343+01	cad23ca1-121d-448f-8947-ddd5048ecb15	public	t	\N	\N	\N
-263cffb0-1899-44b9-8e2d-581114963274	Story of my amazing life	2025-12-10 13:54:58.980704+01	2025-12-23 12:14:16.371036+01	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	public	t	\N	\N	\N
-96cb717c-7856-4879-b4a2-30843238c7f5	Amazing story of developing Crowdly	2026-01-12 11:37:23.342266+01	2026-01-13 14:40:35.485399+01	cad23ca1-121d-448f-8947-ddd5048ecb15	public	t	\N	\N	\N
-902c4c24-a5f2-41d8-85ce-d3b8c95312ba	Title of the story	2026-01-15 19:21:47.446813+01	2026-01-15 22:03:37.648236+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	\N
-1e71f053-f465-44ec-94b1-b0fecbd4a773	Untitled	2026-01-21 12:23:46.104542+01	2026-01-21 12:23:46.104542+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	\N
+COPY public.story_title (story_title_id, title, created_at, updated_at, creator_id, visibility, published, genre, tags, creative_space_id, completion_status, clone_policy, export_policy) FROM stdin;
+d46656f3-b361-4acc-b36a-023bf97707bd	Love story 2	2025-06-15 15:09:53.239137+02	2025-06-15 15:09:53.239137+02	e28cf50b-29ce-4486-b1e6-085882b6dbe9	public	t	\N	\N	\N	draft	anyone	anyone
+c88b45d6-f4ca-4646-b998-2b101e9ea937	Yet another story	2025-06-15 15:15:24.933726+02	2025-06-15 15:15:24.933726+02	e28cf50b-29ce-4486-b1e6-085882b6dbe9	public	t	\N	\N	\N	draft	anyone	anyone
+7c07adb7-deb0-405e-8589-9954cd33edce	Yet another great Story of my LOVE life	2025-06-15 15:26:36.329198+02	2025-06-15 15:26:36.329198+02	e28cf50b-29ce-4486-b1e6-085882b6dbe9	public	t	\N	\N	\N	draft	anyone	anyone
+e0f7de55-1d13-42c1-aecc-e0338ea81152	Story of my life	2025-12-10 12:34:01.715435+01	2025-12-10 12:34:01.715435+01	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	public	t	\N	\N	\N	draft	anyone	anyone
+7b4cb567-de6c-4728-92d7-56a529c9970f	Story of my life (edited)	2025-12-10 13:36:45.724303+01	2025-12-10 13:36:45.724303+01	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	public	t	\N	\N	\N	draft	anyone	anyone
+afc0ca9b-5a67-46a0-b01c-9da9d27ae642	Currently, the most active story	2025-12-14 14:05:33.645236+01	2025-12-29 15:48:06.022141+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	\N	draft	none	anyone
+acab0a30-9f2c-423a-ad82-e86ab2818a01	Test Story	2025-12-10 13:34:38.554488+01	2025-12-10 13:34:38.554488+01	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	public	t	\N	\N	\N	draft	anyone	anyone
+fb654feb-8547-4c58-8ba6-e11be576b846	Story of my life	2025-12-14 13:50:53.989809+01	2025-12-14 13:50:53.989809+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	\N	draft	anyone	anyone
+84452f69-b0eb-478e-aa31-938a35ec6912	Story of my life	2025-12-14 13:59:32.373146+01	2025-12-14 13:59:32.373146+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	\N	draft	anyone	anyone
+7a201a20-c9d7-41ad-8a04-09a4a3bd82bd	Story of my life	2025-12-14 14:02:52.173353+01	2025-12-14 14:02:52.173353+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	\N	draft	anyone	anyone
+a6c76f24-d604-4ed2-8b83-74b5640df229	Story of my life	2025-12-14 14:04:07.489924+01	2025-12-14 14:04:07.489924+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	\N	draft	anyone	anyone
+751c6c7b-d272-4853-b982-db29b911facc	Story of my life	2025-12-14 14:05:10.181065+01	2025-12-14 14:05:10.181065+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	\N	draft	anyone	anyone
+1e6bb2d6-0430-439d-99cf-4616617dfbf8	New day New story	2025-12-29 15:07:39.093126+01	2025-12-29 15:16:54.42495+01	cad23ca1-121d-448f-8947-ddd5048ecb15	public	t	\N	\N	\N	draft	anyone	anyone
+0bef9edd-18fd-4e1c-aa57-5ef9f8788ba9	Story of my life	2025-12-14 14:13:34.526026+01	2025-12-14 14:13:34.526026+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	\N	draft	anyone	anyone
+19065447-aaf0-4e4f-8847-0869de1be7dd	Story of my life	2025-12-14 14:14:40.364576+01	2025-12-14 14:14:40.364576+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	\N	draft	anyone	anyone
+e1ab0869-1759-441e-892d-de376789149b	Story of my life	2025-12-14 14:35:07.685379+01	2025-12-14 14:35:07.685379+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	\N	draft	anyone	anyone
+ab1c8307-21cd-49c3-b236-c05db1eeaa45	Untitled	2025-12-10 14:32:23.583943+01	2025-12-10 14:32:23.583943+01	aef37573-600e-4442-9ae1-63a05799d9a0	private	t	\N	\N	\N	draft	anyone	anyone
+579149a9-60d5-420e-a233-810a6e4eee63	Currently, the most active story	2026-02-15 13:53:31.040577+01	2026-02-15 13:53:31.040577+01	aef37573-600e-4442-9ae1-63a05799d9a0	unlisted	t	\N	\N	\N	draft	none	none
+3adc67d9-ae49-4daa-8a48-67c279e2cdce	Untitled	2026-01-05 16:12:57.510378+01	2026-01-05 16:12:57.510378+01	aef37573-600e-4442-9ae1-63a05799d9a0	unlisted	t	\N	\N	\N	draft	anyone	anyone
+10e2ca77-0b5c-4f72-aeee-965cbe4db67a	New story by Leo Love	2025-12-29 15:22:19.667271+01	2025-12-29 15:41:04.032155+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	\N	draft	anyone	anyone
+6174fd71-525f-40c7-a6e1-3c40f3ea57d5	New story 2 by Leo Love	2025-12-29 15:42:57.61306+01	2025-12-29 15:43:02.589403+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	\N	draft	anyone	anyone
+0050799c-61c3-4d49-b255-52da44c9b156	Untitled	2026-01-05 16:34:01.465666+01	2026-01-05 16:34:01.465666+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	\N	draft	anyone	anyone
+461dd478-6f96-4754-abaa-d033f592da12	Untitled	2026-01-06 23:22:44.240343+01	2026-01-06 23:22:44.240343+01	cad23ca1-121d-448f-8947-ddd5048ecb15	public	t	\N	\N	\N	draft	anyone	anyone
+263cffb0-1899-44b9-8e2d-581114963274	Story of my amazing life	2025-12-10 13:54:58.980704+01	2025-12-23 12:14:16.371036+01	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	public	t	\N	\N	\N	draft	anyone	anyone
+96cb717c-7856-4879-b4a2-30843238c7f5	Amazing story of developing Crowdly	2026-01-12 11:37:23.342266+01	2026-01-13 14:40:35.485399+01	cad23ca1-121d-448f-8947-ddd5048ecb15	public	t	\N	\N	\N	draft	anyone	anyone
+902c4c24-a5f2-41d8-85ce-d3b8c95312ba	Title of the story	2026-01-15 19:21:47.446813+01	2026-01-15 22:03:37.648236+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	\N	draft	anyone	anyone
+1e71f053-f465-44ec-94b1-b0fecbd4a773	Untitled	2026-01-21 12:23:46.104542+01	2026-01-21 12:23:46.104542+01	aef37573-600e-4442-9ae1-63a05799d9a0	public	t	\N	\N	\N	draft	anyone	anyone
 \.
 
 
@@ -2864,6 +3159,7 @@ a11e31b0-6ce0-49c3-a112-b8bc5ca159e9	6174fd71-525f-40c7-a6e1-3c40f3ea57d5	New st
 348241ff-3351-47cb-b3a4-7f12e2a3779a	96cb717c-7856-4879-b4a2-30843238c7f5	Untitled	Amazing story of developing Crowdly	cad23ca1-121d-448f-8947-ddd5048ecb15	2026-01-12 11:44:01.95984+01	Desktop sync	en	2
 41d68984-3263-4c9d-8375-0cd6d9ff16f9	902c4c24-a5f2-41d8-85ce-d3b8c95312ba	\N	Title of the story	aef37573-600e-4442-9ae1-63a05799d9a0	2026-01-15 19:21:47.446813+01	Initial creation	en	1
 fc16b70b-4484-4feb-87ef-952f815b138d	1e71f053-f465-44ec-94b1-b0fecbd4a773	\N	Untitled	aef37573-600e-4442-9ae1-63a05799d9a0	2026-01-21 12:23:46.104542+01	Initial creation	en	1
+be9459bd-faba-4da2-9d8d-469d66e23427	579149a9-60d5-420e-a233-810a6e4eee63	\N	Currently, the most active story	aef37573-600e-4442-9ae1-63a05799d9a0	2026-02-15 13:53:31.040577+01	Cloned from story afc0ca9b-5a67-46a0-b01c-9da9d27ae642	en	1
 \.
 
 
@@ -2872,6 +3168,26 @@ fc16b70b-4484-4feb-87ef-952f815b138d	1e71f053-f465-44ec-94b1-b0fecbd4a773	\N	Unt
 --
 
 COPY public.subscribers (id, first_name, last_name, email, created_at, updated_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: user_group_members; Type: TABLE DATA; Schema: public; Owner: lad
+--
+
+COPY public.user_group_members (group_id, user_id, added_at) FROM stdin;
+\.
+
+
+--
+-- Data for Name: user_groups; Type: TABLE DATA; Schema: public; Owner: lad
+--
+
+COPY public.user_groups (id, name, owner_id, is_platform_group, created_at) FROM stdin;
+5e8695be-a002-4eef-95a4-780bba8c24a7	alpha readers	aef37573-600e-4442-9ae1-63a05799d9a0	f	2026-02-15 12:30:37.93094+01
+bf46ef19-cf94-4878-ad28-d6dcd2e1e0e1	beta readers	aef37573-600e-4442-9ae1-63a05799d9a0	f	2026-02-15 12:30:58.286886+01
+78c62345-778f-4ae9-a9dc-3cc3442c8549	russian.translators	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	t	2026-02-16 11:21:13.210125+01
+53805f69-8c9c-46e1-b5df-bb6ae74ff8d6	arabic.translators	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	t	2026-02-16 11:26:53.554184+01
 \.
 
 
@@ -2886,6 +3202,16 @@ f6dfca32-f9cb-4913-859b-638b0a080d48	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	platfo
 518af929-6626-4b53-bbf9-c98b0af36be3	cad23ca1-121d-448f-8947-ddd5048ecb15	consumer
 585c2d43-cd6b-4d2b-a97c-c950219ca0af	aef37573-600e-4442-9ae1-63a05799d9a0	consumer
 c07a7e7a-45ee-4a4a-965e-b796347342af	6fe20d11-0118-43b4-8439-ecd9738c8226	consumer
+aadae97e-73bd-469d-9197-a5e20d79c5ef	4b0fde23-9891-4c9a-80a0-f41646476bb0	consumer
+82db2e38-7388-4464-ba66-429fd534230a	c6e72e27-57bf-40df-8f99-1631201dc008	platform_supporter
+373ede02-59c8-48f8-bdd7-6befb6b66a26	0991b06f-e0f4-4cc1-bf2d-73188a1c6786	consumer
+9b5cc179-1bad-4898-ad62-fe49c7db47b3	0991b06f-e0f4-4cc1-bf2d-73188a1c6786	ui_translator
+e5635309-551a-4c03-a2ad-cf6143b4c84d	3ce90476-02ae-4f8e-8238-66f3bbd43929	consumer
+316d6d8b-e31e-4858-b58b-3459a713908e	3ce90476-02ae-4f8e-8238-66f3bbd43929	ui_translator
+34aa504e-67f8-406c-9983-051a6bd4245f	bd090d15-23fd-41aa-9775-e02b95462475	consumer
+8c408e51-e194-4946-a096-4cdead9d1f69	bd090d15-23fd-41aa-9775-e02b95462475	ui_translator
+31a6dd76-8675-4966-99b8-1f8c482dd29c	030d9299-d05c-4f81-b6e2-73d1decf1037	consumer
+1f308e6f-f46b-4d0d-bfab-77ec21b57044	030d9299-d05c-4f81-b6e2-73d1decf1037	ui_translator
 \.
 
 
@@ -3004,6 +3330,92 @@ a8fc8291-c49d-480b-8fad-6fc9ad3b158f	aef37573-600e-4442-9ae1-63a05799d9a0	story	
 9779d483-ddf1-4b2a-b7e3-f16f0c38ec18	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-01-30 07:58:36.267211+01	2026-01-30 07:58:36.267211+01
 29672416-9584-4d89-b1fe-0fc93d9810e5	aef37573-600e-4442-9ae1-63a05799d9a0	screenplay	\N	055b3e41-4f7d-490f-9b29-128b908c3552	f	t	f	2026-01-30 07:58:57.988036+01	2026-01-30 07:58:57.988036+01
 1b53e433-ac84-4744-87b9-ab53fed12baf	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-01-30 08:02:02.951003+01	2026-01-30 08:02:02.951003+01
+6ec73cf9-325c-4c6b-b3e8-8dec1914b05f	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-07 13:02:00.499651+01	2026-02-07 13:02:00.499651+01
+4dba37ea-0b9f-4e5f-997e-aa6e7e8610f5	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-07 13:06:56.650429+01	2026-02-07 13:06:56.650429+01
+26da34c2-8f5f-4146-9901-4ad4caa09a19	aef37573-600e-4442-9ae1-63a05799d9a0	screenplay	\N	055b3e41-4f7d-490f-9b29-128b908c3552	f	t	f	2026-02-07 14:56:47.488892+01	2026-02-07 14:56:47.488892+01
+b43e4781-13ca-400d-b0e9-9e631996bf3d	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-07 22:18:13.042659+01	2026-02-07 22:18:13.042659+01
+fc5d5c6d-ef7d-499b-88d3-86bdcb233d5d	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-07 22:18:16.901536+01	2026-02-07 22:18:16.901536+01
+416991fe-c140-4a27-8586-3d3fc34b4e5d	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-07 22:18:19.28358+01	2026-02-07 22:18:19.28358+01
+8feb0e71-4e57-4b62-a55f-af44dafbf6cf	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-07 22:22:53.888679+01	2026-02-07 22:22:53.888679+01
+66f726e1-2378-47df-a2a6-706ddd4fd865	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-07 22:22:58.325485+01	2026-02-07 22:22:58.325485+01
+46b9d308-eba0-446b-b83c-1a25b46a7ce9	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-07 22:23:00.070177+01	2026-02-07 22:23:00.070177+01
+9c9e01ac-76e9-42be-9e0a-a51e05f1f68e	aef37573-600e-4442-9ae1-63a05799d9a0	screenplay	\N	055b3e41-4f7d-490f-9b29-128b908c3552	f	t	f	2026-02-07 22:24:44.241935+01	2026-02-07 22:24:44.241935+01
+f27c6dd8-2a75-4159-895a-f2d2e9f47716	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-07 22:25:40.79074+01	2026-02-07 22:25:40.79074+01
+4c25d18b-b954-4f80-abcc-4e34b41afbf4	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-07 22:27:50.150602+01	2026-02-07 22:27:50.150602+01
+65a6a979-1883-43c6-bd20-df66a7a73f30	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-07 22:28:07.614799+01	2026-02-07 22:28:07.614799+01
+506bd362-9895-426a-bf1f-80013cbdebe9	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-08 12:12:54.309874+01	2026-02-08 12:12:54.309874+01
+736e6922-02e6-4710-bc77-c2e1a9187a33	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-08 12:55:42.560702+01	2026-02-08 12:55:42.560702+01
+c340aa37-300d-4e10-8cf3-294655523426	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-08 12:56:10.882839+01	2026-02-08 12:56:10.882839+01
+cd387ce9-3c49-4405-b341-c8ab31d8deee	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-08 12:56:14.789356+01	2026-02-08 12:56:14.789356+01
+32937ad2-ae0c-4ca1-af0d-c3f8a7ec1096	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-08 12:57:39.882173+01	2026-02-08 12:57:39.882173+01
+82a95262-8211-4ce0-a8c7-d3ab6ba88bf9	aef37573-600e-4442-9ae1-63a05799d9a0	screenplay	\N	055b3e41-4f7d-490f-9b29-128b908c3552	f	t	f	2026-02-08 12:58:25.668866+01	2026-02-08 12:58:25.668866+01
+e5f8ae2d-093d-4070-a121-a6d144824266	aef37573-600e-4442-9ae1-63a05799d9a0	screenplay	\N	055b3e41-4f7d-490f-9b29-128b908c3552	f	t	f	2026-02-08 14:14:00.622973+01	2026-02-08 14:14:00.622973+01
+d5f2ccd1-f070-4145-b48d-465f1a1b2fe0	aef37573-600e-4442-9ae1-63a05799d9a0	screenplay	\N	055b3e41-4f7d-490f-9b29-128b908c3552	f	t	f	2026-02-08 14:14:08.835629+01	2026-02-08 14:14:08.835629+01
+9d0fd037-3f7f-4698-af7c-8cec948695ee	aef37573-600e-4442-9ae1-63a05799d9a0	screenplay	\N	055b3e41-4f7d-490f-9b29-128b908c3552	f	t	f	2026-02-08 14:14:16.306129+01	2026-02-08 14:14:16.306129+01
+7cf3dee7-e8a2-4cbd-a5f4-f2fd45ceacd3	aef37573-600e-4442-9ae1-63a05799d9a0	screenplay	\N	055b3e41-4f7d-490f-9b29-128b908c3552	f	t	f	2026-02-08 14:14:20.398665+01	2026-02-08 14:14:20.398665+01
+0f1cbc85-385b-4d4d-a22a-090d62edee53	aef37573-600e-4442-9ae1-63a05799d9a0	screenplay	\N	055b3e41-4f7d-490f-9b29-128b908c3552	f	t	f	2026-02-08 14:14:45.474616+01	2026-02-08 14:14:45.474616+01
+8c53cefc-69f7-4e37-9a4d-c4e8b245564d	aef37573-600e-4442-9ae1-63a05799d9a0	screenplay	\N	055b3e41-4f7d-490f-9b29-128b908c3552	f	t	f	2026-02-08 14:14:54.270687+01	2026-02-08 14:14:54.270687+01
+8b3dd037-cbbf-4cd5-bb7d-e44fd045ec7c	aef37573-600e-4442-9ae1-63a05799d9a0	screenplay	\N	055b3e41-4f7d-490f-9b29-128b908c3552	f	t	f	2026-02-08 14:27:43.992448+01	2026-02-08 14:27:43.992448+01
+2a7fe0b3-5b9e-4e3a-84b2-3f53e885b03c	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	story	7b4cb567-de6c-4728-92d7-56a529c9970f	\N	f	t	f	2026-02-11 19:17:26.942426+01	2026-02-11 19:17:26.942426+01
+6bad5b67-6ae1-46e2-9d0a-494dce9e5327	6f542cd0-551b-4ec9-b2b0-61113dd7af2b	story	7b4cb567-de6c-4728-92d7-56a529c9970f	\N	f	t	f	2026-02-11 21:02:47.302847+01	2026-02-11 21:02:47.302847+01
+7dcf125a-1ddc-4bf7-98c8-64e534493f30	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-13 09:13:36.059563+01	2026-02-13 09:13:36.059563+01
+3773f693-0dbc-4316-beb2-e5ead8f5191a	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-14 10:53:08.611696+01	2026-02-14 10:53:08.611696+01
+b457511d-d3de-48ff-be13-de6bacd37dca	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-14 11:39:45.651006+01	2026-02-14 11:39:45.651006+01
+de05b9fe-903b-453f-bc1b-289f87b73e2b	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-14 11:39:51.217039+01	2026-02-14 11:39:51.217039+01
+fb360415-1fd4-432d-9a34-6f01c4f06129	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-14 11:46:05.38464+01	2026-02-14 11:46:05.38464+01
+0bac5f7a-46e0-4d1e-b597-b6fc08ac51b4	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-14 11:46:11.50262+01	2026-02-14 11:46:11.50262+01
+a8409205-2909-4240-8fa1-d57aa429cd61	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-14 13:12:10.085779+01	2026-02-14 13:12:10.085779+01
+365fca73-af3b-4725-9f77-8dd6d346698d	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-14 19:31:47.389168+01	2026-02-14 19:31:47.389168+01
+67686399-0481-46fa-a2dc-6f2a44c8024d	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-14 20:10:12.376325+01	2026-02-14 20:10:12.376325+01
+43c6f750-e83d-4fed-a7b6-7fc31810fa05	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-14 20:10:15.136966+01	2026-02-14 20:10:15.136966+01
+5b163ff9-9181-41b7-a035-daea99980288	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-14 20:10:19.236908+01	2026-02-14 20:10:19.236908+01
+6f2a2d52-93bb-47ba-b597-4790d1ab45fb	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-14 20:10:26.460253+01	2026-02-14 20:10:26.460253+01
+178d19b9-1c8e-4d1d-b88c-30189f95f512	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-14 20:10:33.724841+01	2026-02-14 20:10:33.724841+01
+01690bea-7417-4324-a13a-769b33e6f3a4	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-14 20:10:47.473458+01	2026-02-14 20:10:47.473458+01
+2d43f9be-ffc8-4752-8519-490f05ea8700	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-14 20:11:05.644132+01	2026-02-14 20:11:05.644132+01
+233d53d6-b861-4240-9b0f-13abb7deed1b	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-14 20:11:16.697025+01	2026-02-14 20:11:16.697025+01
+b4841c70-452e-4c28-a0d2-ea5ce97b0e7f	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-14 20:22:25.198632+01	2026-02-14 20:22:25.198632+01
+fbf0d72e-c559-425a-869b-5d545921ac72	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-14 20:29:57.89725+01	2026-02-14 20:29:57.89725+01
+394ae5ac-eb71-448a-886e-b13d6462aaf5	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-14 20:30:01.780004+01	2026-02-14 20:30:01.780004+01
+98be96d3-46e5-4f1e-a3ab-6c7921f08ae1	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-14 21:37:15.254149+01	2026-02-14 21:37:15.254149+01
+33bbbbd3-ed8f-4a28-b189-1d505293ba4d	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-15 13:51:52.460496+01	2026-02-15 13:51:52.460496+01
+ed82ddbe-d977-4fef-8ca5-a8746f51b34d	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-15 13:52:47.698658+01	2026-02-15 13:52:47.698658+01
+b94d58b3-9c92-4160-97b5-60fb17b48cd6	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-15 13:53:26.005583+01	2026-02-15 13:53:26.005583+01
+947d6c38-3bb5-4eb7-b12b-2a8e62c88db6	aef37573-600e-4442-9ae1-63a05799d9a0	story	579149a9-60d5-420e-a233-810a6e4eee63	\N	f	t	f	2026-02-15 13:53:31.150562+01	2026-02-15 13:53:31.150562+01
+2fecc9ef-5402-4a1b-8ad6-ec531a7270bd	c6e72e27-57bf-40df-8f99-1631201dc008	story	579149a9-60d5-420e-a233-810a6e4eee63	\N	f	t	f	2026-02-15 13:54:36.179138+01	2026-02-15 13:54:36.179138+01
+e95022b9-5ae7-41ae-944d-c20f6a8f475f	aef37573-600e-4442-9ae1-63a05799d9a0	story	579149a9-60d5-420e-a233-810a6e4eee63	\N	f	t	f	2026-02-15 13:55:38.142036+01	2026-02-15 13:55:38.142036+01
+fe350044-2ddb-45c8-bf3c-38d94679c99a	aef37573-600e-4442-9ae1-63a05799d9a0	story	579149a9-60d5-420e-a233-810a6e4eee63	\N	f	t	f	2026-02-15 13:56:03.247068+01	2026-02-15 13:56:03.247068+01
+446d424f-e889-4a4d-8815-dcc70c0308c8	aef37573-600e-4442-9ae1-63a05799d9a0	story	579149a9-60d5-420e-a233-810a6e4eee63	\N	f	t	f	2026-02-15 14:10:45.929008+01	2026-02-15 14:10:45.929008+01
+6964825e-4db8-4351-8ac3-3da7c3658b03	aef37573-600e-4442-9ae1-63a05799d9a0	story	579149a9-60d5-420e-a233-810a6e4eee63	\N	f	t	f	2026-02-15 14:10:58.880214+01	2026-02-15 14:10:58.880214+01
+0f273d45-0164-4b7e-b996-a6c29760bd9c	aef37573-600e-4442-9ae1-63a05799d9a0	story	579149a9-60d5-420e-a233-810a6e4eee63	\N	f	t	f	2026-02-15 14:11:22.913583+01	2026-02-15 14:11:22.913583+01
+c7c402b7-206a-4b19-b73b-7e4f364bc053	aef37573-600e-4442-9ae1-63a05799d9a0	story	579149a9-60d5-420e-a233-810a6e4eee63	\N	f	t	f	2026-02-15 14:11:26.494151+01	2026-02-15 14:11:26.494151+01
+6c5bb02c-3431-4ffb-bb5d-bb57ac72c3be	aef37573-600e-4442-9ae1-63a05799d9a0	story	579149a9-60d5-420e-a233-810a6e4eee63	\N	f	t	f	2026-02-15 14:11:31.008391+01	2026-02-15 14:11:31.008391+01
+930ed254-c397-416a-9617-65886feffc8c	aef37573-600e-4442-9ae1-63a05799d9a0	story	579149a9-60d5-420e-a233-810a6e4eee63	\N	f	t	f	2026-02-15 14:33:15.88782+01	2026-02-15 14:33:15.88782+01
+4c3c8c2a-2104-42be-b20c-7f4f85102057	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-15 14:34:33.587644+01	2026-02-15 14:34:33.587644+01
+23737220-46a6-4b5b-9b48-b1b70d25f1dd	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-15 14:42:16.28485+01	2026-02-15 14:42:16.28485+01
+21a4d48f-4300-4af4-ad0c-4b6934315e29	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-15 14:53:15.321375+01	2026-02-15 14:53:15.321375+01
+dc61b3e3-8638-4e12-9867-045294ab94fc	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-15 14:54:56.906502+01	2026-02-15 14:54:56.906502+01
+1b86a6f5-0d1b-443c-8caa-9c406b2ee6eb	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-15 15:12:55.177775+01	2026-02-15 15:12:55.177775+01
+f8b55e45-265e-439a-9c76-8643b952fd48	aef37573-600e-4442-9ae1-63a05799d9a0	story	afc0ca9b-5a67-46a0-b01c-9da9d27ae642	\N	f	t	f	2026-02-15 15:32:06.231699+01	2026-02-15 15:32:06.231699+01
+9198b906-552f-405c-87d0-4de7acb34294	aef37573-600e-4442-9ae1-63a05799d9a0	story	3adc67d9-ae49-4daa-8a48-67c279e2cdce	\N	f	t	f	2026-02-15 15:32:57.322529+01	2026-02-15 15:32:57.322529+01
+81e59bc6-43e5-48e9-9dae-2c4034a5790c	aef37573-600e-4442-9ae1-63a05799d9a0	story	3adc67d9-ae49-4daa-8a48-67c279e2cdce	\N	f	t	f	2026-02-15 19:38:04.934197+01	2026-02-15 19:38:04.934197+01
+ac5c64d0-dbc1-4d3d-a468-cbc2adac4cb9	aef37573-600e-4442-9ae1-63a05799d9a0	story	3adc67d9-ae49-4daa-8a48-67c279e2cdce	\N	f	t	f	2026-02-16 08:29:55.908455+01	2026-02-16 08:29:55.908455+01
+5dd5ec9b-7cf7-4511-8479-892c79d636f6	aef37573-600e-4442-9ae1-63a05799d9a0	story	3adc67d9-ae49-4daa-8a48-67c279e2cdce	\N	f	t	f	2026-02-16 08:34:28.199198+01	2026-02-16 08:34:28.199198+01
+ec1a9caa-3938-497a-81fb-f0d6d1f9a5dd	aef37573-600e-4442-9ae1-63a05799d9a0	story	3adc67d9-ae49-4daa-8a48-67c279e2cdce	\N	f	t	f	2026-02-16 08:37:36.470534+01	2026-02-16 08:37:36.470534+01
+3acbdf08-82e3-4ba5-8b3d-763d7ea44c1e	aef37573-600e-4442-9ae1-63a05799d9a0	story	3adc67d9-ae49-4daa-8a48-67c279e2cdce	\N	f	t	f	2026-02-16 08:37:42.647046+01	2026-02-16 08:37:42.647046+01
+907d5500-b8c9-4da0-80e1-7c47eaeb5524	6fe20d11-0118-43b4-8439-ecd9738c8226	story	3adc67d9-ae49-4daa-8a48-67c279e2cdce	\N	f	t	f	2026-02-16 08:41:40.557939+01	2026-02-16 08:41:40.557939+01
+\.
+
+
+--
+-- Data for Name: user_translator_languages; Type: TABLE DATA; Schema: public; Owner: lad
+--
+
+COPY public.user_translator_languages (id, user_id, locale_code, created_at) FROM stdin;
+1e09e98a-ba5d-4dc6-a4c4-0891dfb1c0ef	0991b06f-e0f4-4cc1-bf2d-73188a1c6786	ar	2026-02-15 16:14:06.191446+01
+1b9057ad-d7a2-45af-8171-93462dcb5db5	3ce90476-02ae-4f8e-8238-66f3bbd43929	ru	2026-02-15 16:15:21.378134+01
+175e15e2-375a-46dd-9a6d-89a5749fd818	bd090d15-23fd-41aa-9775-e02b95462475	zh-Hans	2026-02-16 11:23:34.783994+01
+7dabc08b-18fd-4099-b853-dd28d46aa924	030d9299-d05c-4f81-b6e2-73d1decf1037	zh-Hant	2026-02-16 11:25:48.924105+01
 \.
 
 
@@ -3012,6 +3424,46 @@ a8fc8291-c49d-480b-8fad-6fc9ad3b158f	aef37573-600e-4442-9ae1-63a05799d9a0	story	
 --
 
 SELECT pg_catalog.setval('public.crdt_changes_id_seq', 1, false);
+
+
+--
+-- Name: admin_messages admin_messages_pkey; Type: CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.admin_messages
+    ADD CONSTRAINT admin_messages_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: alpha_applications alpha_applications_pkey; Type: CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.alpha_applications
+    ADD CONSTRAINT alpha_applications_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: alpha_invitations alpha_invitations_email_key; Type: CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.alpha_invitations
+    ADD CONSTRAINT alpha_invitations_email_key UNIQUE (email);
+
+
+--
+-- Name: alpha_invitations alpha_invitations_invitation_code_key; Type: CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.alpha_invitations
+    ADD CONSTRAINT alpha_invitations_invitation_code_key UNIQUE (invitation_code);
+
+
+--
+-- Name: alpha_invitations alpha_invitations_pkey; Type: CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.alpha_invitations
+    ADD CONSTRAINT alpha_invitations_pkey PRIMARY KEY (id);
 
 
 --
@@ -3151,6 +3603,14 @@ ALTER TABLE ONLY public.feature_suggestions
 
 
 --
+-- Name: interface_translations interface_translations_pkey; Type: CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.interface_translations
+    ADD CONSTRAINT interface_translations_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: local_users local_users_email_key; Type: CONSTRAINT; Schema: public; Owner: lad
 --
 
@@ -3231,6 +3691,14 @@ ALTER TABLE ONLY public.screenplay_block
 
 
 --
+-- Name: screenplay_revisions screenplay_revisions_pkey; Type: CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.screenplay_revisions
+    ADD CONSTRAINT screenplay_revisions_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: screenplay_scene screenplay_scene_pkey; Type: CONSTRAINT; Schema: public; Owner: lad
 --
 
@@ -3260,6 +3728,14 @@ ALTER TABLE ONLY public.stories
 
 ALTER TABLE ONLY public.story_access
     ADD CONSTRAINT story_access_pkey PRIMARY KEY (story_title_id, user_id);
+
+
+--
+-- Name: story_access_rules story_access_rules_pkey; Type: CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.story_access_rules
+    ADD CONSTRAINT story_access_rules_pkey PRIMARY KEY (id);
 
 
 --
@@ -3335,6 +3811,22 @@ ALTER TABLE ONLY public.subscribers
 
 
 --
+-- Name: user_group_members user_group_members_pkey; Type: CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.user_group_members
+    ADD CONSTRAINT user_group_members_pkey PRIMARY KEY (group_id, user_id);
+
+
+--
+-- Name: user_groups user_groups_pkey; Type: CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.user_groups
+    ADD CONSTRAINT user_groups_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: user_roles user_roles_pkey; Type: CONSTRAINT; Schema: public; Owner: lad
 --
 
@@ -3356,6 +3848,22 @@ ALTER TABLE ONLY public.user_roles
 
 ALTER TABLE ONLY public.user_story_status
     ADD CONSTRAINT user_story_status_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: user_translator_languages user_translator_languages_pkey; Type: CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.user_translator_languages
+    ADD CONSTRAINT user_translator_languages_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: user_translator_languages user_translator_languages_user_id_locale_code_key; Type: CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.user_translator_languages
+    ADD CONSTRAINT user_translator_languages_user_id_locale_code_key UNIQUE (user_id, locale_code);
 
 
 --
@@ -3464,6 +3972,13 @@ CREATE INDEX idx_stories_story_title_id ON public.stories USING btree (story_tit
 
 
 --
+-- Name: interface_translations_unique_idx; Type: INDEX; Schema: public; Owner: lad
+--
+
+CREATE UNIQUE INDEX interface_translations_unique_idx ON public.interface_translations USING btree (page_path, element_id, language);
+
+
+--
 -- Name: reactions_screenplay_idx; Type: INDEX; Schema: public; Owner: lad
 --
 
@@ -3489,6 +4004,20 @@ CREATE INDEX screenplay_access_user_idx ON public.screenplay_access USING btree 
 --
 
 CREATE INDEX screenplay_block_screenplay_idx ON public.screenplay_block USING btree (screenplay_id, block_index);
+
+
+--
+-- Name: screenplay_revisions_scene_idx; Type: INDEX; Schema: public; Owner: lad
+--
+
+CREATE INDEX screenplay_revisions_scene_idx ON public.screenplay_revisions USING btree (scene_id);
+
+
+--
+-- Name: screenplay_revisions_title_idx; Type: INDEX; Schema: public; Owner: lad
+--
+
+CREATE INDEX screenplay_revisions_title_idx ON public.screenplay_revisions USING btree (screenplay_title_id);
 
 
 --
@@ -3559,6 +4088,45 @@ CREATE UNIQUE INDEX user_story_status_unique ON public.user_story_status USING b
 --
 
 CREATE INDEX user_story_status_user_idx ON public.user_story_status USING btree (user_id, content_type);
+
+
+--
+-- Name: user_translator_langs_user_idx; Type: INDEX; Schema: public; Owner: lad
+--
+
+CREATE INDEX user_translator_langs_user_idx ON public.user_translator_languages USING btree (user_id);
+
+
+--
+-- Name: admin_messages admin_messages_recipient_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.admin_messages
+    ADD CONSTRAINT admin_messages_recipient_id_fkey FOREIGN KEY (recipient_id) REFERENCES public.local_users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: admin_messages admin_messages_sender_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.admin_messages
+    ADD CONSTRAINT admin_messages_sender_id_fkey FOREIGN KEY (sender_id) REFERENCES public.local_users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: alpha_applications alpha_applications_processed_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.alpha_applications
+    ADD CONSTRAINT alpha_applications_processed_by_fkey FOREIGN KEY (processed_by) REFERENCES public.local_users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: alpha_invitations alpha_invitations_invited_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.alpha_invitations
+    ADD CONSTRAINT alpha_invitations_invited_by_fkey FOREIGN KEY (invited_by) REFERENCES public.local_users(id) ON DELETE SET NULL;
 
 
 --
@@ -3770,6 +4338,14 @@ ALTER TABLE ONLY public.creative_space_items
 
 
 --
+-- Name: interface_translations interface_translations_updated_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.interface_translations
+    ADD CONSTRAINT interface_translations_updated_by_fkey FOREIGN KEY (updated_by) REFERENCES public.local_users(id) ON DELETE SET NULL;
+
+
+--
 -- Name: paragraph_branches paragraph_branches_chapter_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lad
 --
 
@@ -3834,6 +4410,30 @@ ALTER TABLE ONLY public.screenplay_block
 
 
 --
+-- Name: screenplay_revisions screenplay_revisions_created_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.screenplay_revisions
+    ADD CONSTRAINT screenplay_revisions_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.local_users(id) ON DELETE SET NULL;
+
+
+--
+-- Name: screenplay_revisions screenplay_revisions_scene_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.screenplay_revisions
+    ADD CONSTRAINT screenplay_revisions_scene_id_fkey FOREIGN KEY (scene_id) REFERENCES public.screenplay_scene(scene_id) ON DELETE CASCADE;
+
+
+--
+-- Name: screenplay_revisions screenplay_revisions_screenplay_title_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.screenplay_revisions
+    ADD CONSTRAINT screenplay_revisions_screenplay_title_id_fkey FOREIGN KEY (screenplay_title_id) REFERENCES public.screenplay_title(screenplay_id) ON DELETE CASCADE;
+
+
+--
 -- Name: screenplay_scene screenplay_scene_screenplay_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lad
 --
 
@@ -3863,6 +4463,30 @@ ALTER TABLE ONLY public.stories
 
 ALTER TABLE ONLY public.stories
     ADD CONSTRAINT stories_story_title_id_fkey FOREIGN KEY (story_title_id) REFERENCES public.story_title(story_title_id) ON DELETE CASCADE;
+
+
+--
+-- Name: story_access_rules story_access_rules_grantee_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.story_access_rules
+    ADD CONSTRAINT story_access_rules_grantee_group_id_fkey FOREIGN KEY (grantee_group_id) REFERENCES public.user_groups(id) ON DELETE CASCADE;
+
+
+--
+-- Name: story_access_rules story_access_rules_grantee_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.story_access_rules
+    ADD CONSTRAINT story_access_rules_grantee_user_id_fkey FOREIGN KEY (grantee_user_id) REFERENCES public.local_users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: story_access_rules story_access_rules_story_title_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.story_access_rules
+    ADD CONSTRAINT story_access_rules_story_title_id_fkey FOREIGN KEY (story_title_id) REFERENCES public.story_title(story_title_id) ON DELETE CASCADE;
 
 
 --
@@ -3970,8 +4594,48 @@ ALTER TABLE ONLY public.story_title_revisions
 
 
 --
+-- Name: user_group_members user_group_members_group_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.user_group_members
+    ADD CONSTRAINT user_group_members_group_id_fkey FOREIGN KEY (group_id) REFERENCES public.user_groups(id) ON DELETE CASCADE;
+
+
+--
+-- Name: user_group_members user_group_members_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.user_group_members
+    ADD CONSTRAINT user_group_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.local_users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: user_groups user_groups_owner_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.user_groups
+    ADD CONSTRAINT user_groups_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.local_users(id) ON DELETE CASCADE;
+
+
+--
+-- Name: user_translator_languages user_translator_languages_locale_code_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.user_translator_languages
+    ADD CONSTRAINT user_translator_languages_locale_code_fkey FOREIGN KEY (locale_code) REFERENCES public.locales(code) ON DELETE CASCADE;
+
+
+--
+-- Name: user_translator_languages user_translator_languages_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: lad
+--
+
+ALTER TABLE ONLY public.user_translator_languages
+    ADD CONSTRAINT user_translator_languages_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.local_users(id) ON DELETE CASCADE;
+
+
+--
 -- PostgreSQL database dump complete
 --
 
-\unrestrict ixU8SRGlN80Q5DR9JmNrOi3qxXrUdaEGY7ou33xFQucKTrptQC5b2IcUnRt9tuC
+\unrestrict c8A2BMA1hzg0j1AIUDdNrYP2yNCYKRVVpsZZjm9BPvc4r7wEvuS21yqDhyJqzOj
 

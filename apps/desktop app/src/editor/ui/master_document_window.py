@@ -11,6 +11,7 @@ This module implements a dedicated full-window workspace for composing a
 
 from __future__ import annotations
 
+import uuid
 from pathlib import Path
 from typing import Dict
 from datetime import datetime
@@ -22,6 +23,7 @@ from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QDockWidget,
+    QFileDialog,
     QHBoxLayout,
     QLineEdit,
     QListWidget,
@@ -37,6 +39,9 @@ from PySide6.QtWidgets import (
 )
 
 from .. import storage
+from .. import file_metadata
+from ..format import story_markup, screenplay_markup
+from ..settings import save_settings
 from ..versioning import local_queue
 from .file_explorer_widget import FileExplorerWidget
 
@@ -1011,6 +1016,19 @@ class MasterDocumentWindow(QMainWindow):
         )
         self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self._explorer_dock)
 
+        # Save as menu: save the master document contents in different formats.
+        save_as_menu = self.menuBar().addMenu(self.tr("Save as"))
+        self._save_as_menu = save_as_menu
+        self._action_save_as_md = save_as_menu.addAction(
+            self.tr("as .md file"), self._save_as_md
+        )
+        self._action_save_as_story = save_as_menu.addAction(
+            self.tr("as .story file"), self._save_as_story
+        )
+        self._action_save_as_screenplay = save_as_menu.addAction(
+            self.tr("as .screenplay file"), self._save_as_screenplay
+        )
+
         # Simple menu bar with a View menu for toggling the explorer.
         self._view_menu = self.menuBar().addMenu(self.tr("View"))
         self._view_menu.addAction(self._explorer_dock.toggleViewAction())
@@ -1868,6 +1886,363 @@ class MasterDocumentWindow(QMainWindow):
             # Versioning must never interfere with core behaviour.
             pass
 
+    # ------------------------------------------------------------------
+    # Save as helpers
+    # ------------------------------------------------------------------
+
+    def _get_combined_content(self) -> str:
+        """Collect all container content into a single text string."""
+
+        parts: list[str] = []
+        for row in range(self._include_list.count()):
+            item = self._include_list.item(row)
+            if item is None:
+                continue
+            widget = self._include_list.itemWidget(item)
+            if not isinstance(widget, IncludeContainerWidget):
+                continue
+
+            title = widget._title_edit.text() if hasattr(widget, "_title_edit") else ""
+            content = widget._content.toPlainText() if hasattr(widget, "_content") else ""
+
+            title = (title or "").strip()
+            if title:
+                parts.append(f"# {title}")
+                parts.append("")
+
+            if content:
+                parts.append(content.rstrip())
+                parts.append("")
+
+        return "\n".join(parts).rstrip() + "\n"
+
+    def _is_path_inside_space(self, target_path: Path) -> bool:
+        """Return True if *target_path* is inside the current project space."""
+
+        if self._project_space is None:
+            return False
+
+        try:
+            space_resolved = self._project_space.resolve()
+            target_resolved = target_path.resolve()
+            return str(target_resolved).startswith(str(space_resolved) + "/") or target_resolved == space_resolved
+        except Exception:
+            return False
+
+    def _show_outside_space_dialog(self, file_type: str) -> str:
+        """Show a dialog when saving .story/.screenplay outside the current Space.
+
+        Returns:
+            "yes" - save outside space, reset space to None
+            "cancel" - abort the operation
+            "set_space" - user wants to set/create new space at target location
+        """
+
+        msg_box = QMessageBox(self)
+        msg_box.setWindowTitle(self.tr("Save outside Space"))
+        msg_box.setText(
+            self.tr(
+                "You're about to save the {file_type} file outside of a creative Space. "
+                "Do you really want to do that?"
+            ).format(file_type=file_type)
+        )
+
+        yes_btn = msg_box.addButton(self.tr("Yes"), QMessageBox.ButtonRole.AcceptRole)
+        cancel_btn = msg_box.addButton(self.tr("Cancel"), QMessageBox.ButtonRole.RejectRole)
+        set_space_btn = msg_box.addButton(
+            self.tr("Set | Create new Space"), QMessageBox.ButtonRole.ActionRole
+        )
+
+        msg_box.exec()
+
+        clicked = msg_box.clickedButton()
+        if clicked == yes_btn:
+            return "yes"
+        elif clicked == set_space_btn:
+            return "set_space"
+        else:
+            return "cancel"
+
+    def _save_as_md(self) -> None:  # pragma: no cover - UI wiring
+        """Save the combined master document content as a .md file."""
+
+        content = self._get_combined_content()
+        if not content.strip():
+            QMessageBox.information(
+                self,
+                self.tr("Save as"),
+                self.tr("The master document is empty; there is nothing to save."),
+            )
+            return
+
+        # Suggest a default filename based on master document path or timestamp
+        if self._master_path:
+            default_name = f"{self._master_path.stem}.md"
+        else:
+            timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+            default_name = f"master-export-{timestamp}.md"
+
+        start_dir = str(self._project_space) if self._project_space else ""
+        if start_dir:
+            initial = str(Path(start_dir) / default_name)
+        else:
+            initial = default_name
+
+        path_str, _ = QFileDialog.getSaveFileName(
+            self,
+            self.tr("Save as Markdown"),
+            initial,
+            self.tr("Markdown files (*.md);;All files (*)"),
+        )
+        if not path_str:
+            return
+
+        target_path = Path(path_str)
+        if target_path.suffix.lower() != ".md":
+            target_path = target_path.with_suffix(".md")
+
+        # Check if outside current Space
+        if not self._is_path_inside_space(target_path):
+            # For .md files, simply reset the Space to None without asking
+            if self._project_space is not None:
+                self._project_space = None
+                try:
+                    if self._settings is not None:
+                        self._settings.project_space = None
+                        save_settings(self._settings)
+                except Exception:
+                    pass
+
+        try:
+            storage.write_text(target_path, content)
+
+            bar = self.statusBar()
+            if bar is not None:
+                bar.showMessage(
+                    self.tr("Saved document to: {path}").format(path=target_path),
+                    5000,
+                )
+        except Exception:
+            import traceback
+            traceback.print_exc()
+            QMessageBox.critical(
+                self,
+                self.tr("Save failed"),
+                self.tr("An unexpected error occurred while saving the document."),
+            )
+
+    def _save_as_story(self) -> None:  # pragma: no cover - UI wiring
+        """Save the combined master document content as a .story file."""
+
+        content = self._get_combined_content()
+        if not content.strip():
+            QMessageBox.information(
+                self,
+                self.tr("Save as"),
+                self.tr("The master document is empty; there is nothing to save."),
+            )
+            return
+
+        # Suggest a default filename
+        if self._master_path:
+            default_name = f"{self._master_path.stem}.story"
+        else:
+            timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+            default_name = f"master-export-{timestamp}.story"
+
+        start_dir = str(self._project_space) if self._project_space else ""
+        if start_dir:
+            initial = str(Path(start_dir) / default_name)
+        else:
+            initial = default_name
+
+        path_str, _ = QFileDialog.getSaveFileName(
+            self,
+            self.tr("Save as Story"),
+            initial,
+            self.tr("Story files (*.story);;All files (*)"),
+        )
+        if not path_str:
+            return
+
+        target_path = Path(path_str)
+        if target_path.suffix.lower() != ".story":
+            target_path = target_path.with_suffix(".story")
+
+        # Check if outside current Space (or none set at all)
+        if not self._is_path_inside_space(target_path):
+            result = self._show_outside_space_dialog("story")
+            if result == "cancel":
+                return
+            elif result == "yes":
+                # Reset Space to None
+                self._project_space = None
+                try:
+                    if self._settings is not None:
+                        self._settings.project_space = None
+                        save_settings(self._settings)
+                except Exception:
+                    pass
+            elif result == "set_space":
+                # Set the target directory as the new Space
+                new_space = target_path.parent
+                self._project_space = new_space
+                try:
+                    if self._settings is not None:
+                        # Ensure the space is registered
+                        spaces = getattr(self._settings, "spaces", None) or []
+                        if not isinstance(spaces, list):
+                            spaces = []
+                        if new_space not in spaces:
+                            spaces.append(new_space)
+                            self._settings.spaces = spaces
+                        self._settings.project_space = new_space
+                        save_settings(self._settings)
+                except Exception:
+                    pass
+
+        try:
+            # Generate a new story_id
+            new_story_id = str(uuid.uuid4())
+
+            # Convert content to story DSL
+            try:
+                dsl_content = story_markup.markdown_to_dsl(content)
+            except Exception:
+                dsl_content = content
+
+            # Write the file
+            storage.write_text(target_path, dsl_content)
+
+            # Set the story metadata
+            file_metadata.set_attr(target_path, file_metadata.FIELD_STORY_ID, new_story_id)
+            file_metadata.set_attr(target_path, file_metadata.FIELD_BODY_FORMAT, "story_v1")
+            file_metadata.set_attr(target_path, file_metadata.FIELD_CREATION_DATE, file_metadata.now_human())
+            file_metadata.touch_change_date(target_path)
+
+            bar = self.statusBar()
+            if bar is not None:
+                bar.showMessage(
+                    self.tr("Saved story to: {path} (Story ID: {id})").format(
+                        path=target_path, id=new_story_id
+                    ),
+                    5000,
+                )
+        except Exception:
+            import traceback
+            traceback.print_exc()
+            QMessageBox.critical(
+                self,
+                self.tr("Save failed"),
+                self.tr("An unexpected error occurred while saving the story."),
+            )
+
+    def _save_as_screenplay(self) -> None:  # pragma: no cover - UI wiring
+        """Save the combined master document content as a .screenplay file."""
+
+        content = self._get_combined_content()
+        if not content.strip():
+            QMessageBox.information(
+                self,
+                self.tr("Save as"),
+                self.tr("The master document is empty; there is nothing to save."),
+            )
+            return
+
+        # Suggest a default filename
+        if self._master_path:
+            default_name = f"{self._master_path.stem}.screenplay"
+        else:
+            timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+            default_name = f"master-export-{timestamp}.screenplay"
+
+        start_dir = str(self._project_space) if self._project_space else ""
+        if start_dir:
+            initial = str(Path(start_dir) / default_name)
+        else:
+            initial = default_name
+
+        path_str, _ = QFileDialog.getSaveFileName(
+            self,
+            self.tr("Save as Screenplay"),
+            initial,
+            self.tr("Screenplay files (*.screenplay);;All files (*)"),
+        )
+        if not path_str:
+            return
+
+        target_path = Path(path_str)
+        if target_path.suffix.lower() != ".screenplay":
+            target_path = target_path.with_suffix(".screenplay")
+
+        # Check if outside current Space (or none set at all)
+        if not self._is_path_inside_space(target_path):
+            result = self._show_outside_space_dialog("screenplay")
+            if result == "cancel":
+                return
+            elif result == "yes":
+                # Reset Space to None
+                self._project_space = None
+                try:
+                    if self._settings is not None:
+                        self._settings.project_space = None
+                        save_settings(self._settings)
+                except Exception:
+                    pass
+            elif result == "set_space":
+                # Set the target directory as the new Space
+                new_space = target_path.parent
+                self._project_space = new_space
+                try:
+                    if self._settings is not None:
+                        # Ensure the space is registered
+                        spaces = getattr(self._settings, "spaces", None) or []
+                        if not isinstance(spaces, list):
+                            spaces = []
+                        if new_space not in spaces:
+                            spaces.append(new_space)
+                            self._settings.spaces = spaces
+                        self._settings.project_space = new_space
+                        save_settings(self._settings)
+                except Exception:
+                    pass
+
+        try:
+            # Generate a new screenplay_id
+            new_screenplay_id = str(uuid.uuid4())
+
+            # Convert content to screenplay DSL
+            try:
+                dsl_content = screenplay_markup.markdown_to_dsl(content)
+            except Exception:
+                dsl_content = content
+
+            # Write the file
+            storage.write_text(target_path, dsl_content)
+
+            # Set the screenplay metadata
+            file_metadata.set_attr(target_path, "screenplay_id", new_screenplay_id)
+            file_metadata.set_attr(target_path, file_metadata.FIELD_BODY_FORMAT, "screenplay_v1")
+            file_metadata.set_attr(target_path, file_metadata.FIELD_CREATION_DATE, file_metadata.now_human())
+            file_metadata.touch_change_date(target_path)
+
+            bar = self.statusBar()
+            if bar is not None:
+                bar.showMessage(
+                    self.tr("Saved screenplay to: {path} (Screenplay ID: {id})").format(
+                        path=target_path, id=new_screenplay_id
+                    ),
+                    5000,
+                )
+        except Exception:
+            import traceback
+            traceback.print_exc()
+            QMessageBox.critical(
+                self,
+                self.tr("Save failed"),
+                self.tr("An unexpected error occurred while saving the screenplay."),
+            )
+
     def closeEvent(self, event) -> None:  # pragma: no cover - UI wiring
         """Ensure pending changes are flushed before the window closes."""
 
@@ -1886,6 +2261,28 @@ class MasterDocumentWindow(QMainWindow):
             pass
         try:
             self._explorer_dock.setWindowTitle(self.tr("File explorer"))
+        except Exception:
+            pass
+
+        # Save as menu.
+        try:
+            if hasattr(self, "_save_as_menu"):
+                self._save_as_menu.setTitle(self.tr("Save as"))
+        except Exception:
+            pass
+        try:
+            if hasattr(self, "_action_save_as_md"):
+                self._action_save_as_md.setText(self.tr("as .md file"))
+        except Exception:
+            pass
+        try:
+            if hasattr(self, "_action_save_as_story"):
+                self._action_save_as_story.setText(self.tr("as .story file"))
+        except Exception:
+            pass
+        try:
+            if hasattr(self, "_action_save_as_screenplay"):
+                self._action_save_as_screenplay.setText(self.tr("as .screenplay file"))
         except Exception:
             pass
         try:

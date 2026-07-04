@@ -92,6 +92,22 @@
       <translation>Japanese</translation>
     </message>
     <message>
+      <source>French</source>
+      <translation>法語</translation>
+    </message>
+    <message>
+      <source>Spanish</source>
+      <translation>西班牙語</translation>
+    </message>
+    <message>
+      <source>German</source>
+      <translation>德語</translation>
+    </message>
+    <message>
+      <source>Hindi</source>
+      <translation>印地語</translation>
+    </message>
+    <message>
       <source>Quit</source>
       <translation>Quit</translation>
     </message>
@@ -126,6 +142,30 @@
     <message>
       <source>as odt</source>
       <translation>as odt</translation>
+    </message>
+    <message>
+      <source>as FDX</source>
+      <translation>as FDX</translation>
+    </message>
+    <message>
+      <source>as FOUNTAIN</source>
+      <translation>as FOUNTAIN</translation>
+    </message>
+    <message>
+      <source>Save as</source>
+      <translation>Save as</translation>
+    </message>
+    <message>
+      <source>as .md file</source>
+      <translation>as .md file</translation>
+    </message>
+    <message>
+      <source>as .story file</source>
+      <translation>as .story file</translation>
+    </message>
+    <message>
+      <source>as .screenplay file</source>
+      <translation>as .screenplay file</translation>
     </message>
     <message>
       <source>Import</source>
@@ -347,5 +387,64 @@ Details: {error}</translation>
       <source>Genre updated.</source>
       <translation>Genre updated.</translation>
     </message>
+    <message>
+      <source>Edit description</source>
+      <translation>編輯描述</translation>
+    </message>
+    <message>
+      <source>Description</source>
+      <translation>描述</translation>
+    </message>
+    <message>
+      <source>Enter description:</source>
+      <translation>輸入描述：</translation>
+    </message>
+    <message>
+      <source>Description updated.</source>
+      <translation>描述已更新。</translation>
+    </message>
+    <message>
+      <source>Description deleted.</source>
+      <translation>描述已刪除。</translation>
+    </message>
+    <message>
+      <source>Session control</source>
+      <translation>工作階段控制</translation>
+    </message>
+    <message>
+      <source>Here you can decide how the session control for closing of the app should work.</source>
+      <translation>您可以在此設定關閉應用程式時的工作階段控制方式。</translation>
+    </message>
+    <message>
+      <source>The app will:</source>
+      <translation>應用程式將：</translation>
+    </message>
+    <message>
+      <source>Close all its tabs and clear creative / project Space</source>
+      <translation>關閉所有分頁並清除創作空間/專案空間</translation>
+    </message>
+    <message>
+      <source>Keep the current session (saves all the opened tabs and windows, and the Space remains set)</source>
+      <translation>保留目前工作階段（儲存所有已開啟的分頁和視窗，空間設定保持不變）</translation>
+    </message>
+    <message>
+      <source>Save</source>
+      <translation>儲存</translation>
+    </message>
+    <message>
+      <source>Cancel</source>
+      <translation>取消</translation>
+    </message>
+    <message>
+        <source>No name</source>
+        <translation>未命名</translation>
+    </message>
   </context>
+<context>
+    <name>CompareRevisionsWindow</name>
+    <message>
+        <source>Show diff highlights</source>
+        <translation>顯示差異高亮</translation>
+    </message>
+</context>
 </TS>

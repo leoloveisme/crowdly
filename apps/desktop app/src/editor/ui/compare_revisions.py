@@ -14,6 +14,8 @@ per-directory ``.crowdly`` folder.
 
 from __future__ import annotations
 
+import difflib
+import html as html_mod
 import logging
 from dataclasses import dataclass
 from pathlib import Path
@@ -23,6 +25,7 @@ from PySide6.QtCore import Qt, QRectF, QSize, QEvent
 from PySide6.QtGui import QIcon, QPixmap, QPainter, QPen, QColor, QBrush
 from PySide6.QtWidgets import (
     QButtonGroup,
+    QCheckBox,
     QGridLayout,
     QHBoxLayout,
     QLabel,
@@ -164,6 +167,98 @@ _LAYOUTS: dict[int, List[List[tuple[int, int, int, int]]]] = {
 }
 
 
+def _plain_html(text: str) -> str:
+    """Wrap plain *text* in minimal HTML with a monospace font."""
+    escaped = html_mod.escape(text)
+    return (
+        "<html><body style='font-family: monospace; white-space: pre-wrap;'>"
+        + escaped
+        + "</body></html>"
+    )
+
+
+def _char_diff_lines(
+    old_block: list[str], new_block: list[str], side: str
+) -> list[str]:
+    """Return HTML lines with character-level highlighting for changed blocks.
+
+    *side* is ``"old"`` (deletions, red) or ``"new"`` (additions, green).
+    """
+    old_text = "".join(old_block)
+    new_text = "".join(new_block)
+    sm = difflib.SequenceMatcher(None, old_text, new_text)
+
+    if side == "old":
+        bg_char = "#ff9999"
+        result_chars: list[str] = []
+        for tag, i1, i2, j1, j2 in sm.get_opcodes():
+            chunk = html_mod.escape(old_text[i1:i2])
+            if tag == "equal":
+                result_chars.append(chunk)
+            elif tag in ("replace", "delete"):
+                result_chars.append(f"<span style='background:{bg_char}'>{chunk}</span>")
+            # "insert" has no old chars
+    else:
+        bg_char = "#99ff99"
+        result_chars = []
+        for tag, i1, i2, j1, j2 in sm.get_opcodes():
+            chunk = html_mod.escape(new_text[j1:j2])
+            if tag == "equal":
+                result_chars.append(chunk)
+            elif tag in ("replace", "insert"):
+                result_chars.append(f"<span style='background:{bg_char}'>{chunk}</span>")
+            # "delete" has no new chars
+
+    return ["".join(result_chars)]
+
+
+def _build_diff_html(old_md: str, new_md: str) -> tuple[str, str]:
+    """Build two HTML strings showing *old_md* vs *new_md* with diff highlights.
+
+    Returns ``(old_html, new_html)`` suitable for ``QTextEdit.setHtml()``.
+    """
+    old_lines = old_md.splitlines(keepends=True)
+    new_lines = new_md.splitlines(keepends=True)
+    sm = difflib.SequenceMatcher(None, old_lines, new_lines)
+
+    old_parts: list[str] = []
+    new_parts: list[str] = []
+
+    for tag, i1, i2, j1, j2 in sm.get_opcodes():
+        if tag == "equal":
+            for line in old_lines[i1:i2]:
+                escaped = html_mod.escape(line)
+                old_parts.append(escaped)
+                new_parts.append(escaped)
+        elif tag == "replace":
+            old_block = old_lines[i1:i2]
+            new_block = new_lines[j1:j2]
+            char_old = _char_diff_lines(old_block, new_block, "old")
+            char_new = _char_diff_lines(old_block, new_block, "new")
+            for line in char_old:
+                old_parts.append(f"<div style='background:#ffcccc'>{line}</div>")
+            for line in char_new:
+                new_parts.append(f"<div style='background:#ccffcc'>{line}</div>")
+        elif tag == "delete":
+            for line in old_lines[i1:i2]:
+                escaped = html_mod.escape(line)
+                old_parts.append(f"<div style='background:#ffcccc'>{escaped}</div>")
+        elif tag == "insert":
+            for line in new_lines[j1:j2]:
+                escaped = html_mod.escape(line)
+                new_parts.append(f"<div style='background:#ccffcc'>{escaped}</div>")
+
+    def wrap(parts: list[str]) -> str:
+        body = "".join(parts)
+        return (
+            "<html><body style='font-family: monospace; white-space: pre-wrap;'>"
+            + body
+            + "</body></html>"
+        )
+
+    return wrap(old_parts), wrap(new_parts)
+
+
 class CompareRevisionsWindow(QMainWindow):
     """Full-width, resizable window for comparing document revisions.
 
@@ -298,6 +393,12 @@ class CompareRevisionsWindow(QMainWindow):
         self._layout_buttons: list[QToolButton] = []
 
         toolbar_layout.addStretch(1)
+
+        self._diff_checkbox = QCheckBox(self.tr("Show diff highlights"), toolbar)
+        self._diff_checkbox.setChecked(True)
+        self._diff_checkbox.toggled.connect(self._on_diff_checkbox_toggled)
+        toolbar_layout.addWidget(self._diff_checkbox)
+
         right_layout.addWidget(toolbar)
 
         # Tiles container with up to 4 read-only text editors.
@@ -441,6 +542,11 @@ class CompareRevisionsWindow(QMainWindow):
             return
         self._apply_layout(layout_id, self._last_selected_indices)
 
+    def _on_diff_checkbox_toggled(self, checked: bool) -> None:  # pragma: no cover - UI wiring
+        if not self._last_selected_indices:
+            return
+        self._apply_layout(self._current_layout_index, self._last_selected_indices)
+
     def _apply_layout(self, layout_index: int, selected_indices: Sequence[int]) -> None:
         count = len(selected_indices)
         logger.debug(
@@ -459,14 +565,34 @@ class CompareRevisionsWindow(QMainWindow):
             if w is not None:
                 self._tiles_layout.removeWidget(w)
 
+        # Gather selected snapshots.
+        selected_snaps: list[RevisionSnapshot | None] = []
+        for i in range(count):
+            idx = selected_indices[i]
+            snap = self._snapshots[idx] if 0 <= idx < len(self._snapshots) else None
+            selected_snaps.append(snap)
+
+        show_diff = self._diff_checkbox.isChecked()
+
         # Configure tile editors with content and visibility.
         for i in range(4):
             editor = self._tile_editors[i]
             if i < count:
-                idx = selected_indices[i]
-                snap = self._snapshots[idx] if 0 <= idx < len(self._snapshots) else None
+                snap = selected_snaps[i]
                 if snap is not None:
-                    editor.setPlainText(snap.body_md)
+                    if show_diff and i > 0 and selected_snaps[i - 1] is not None:
+                        prev_snap = selected_snaps[i - 1]
+                        _, new_html = _build_diff_html(prev_snap.body_md, snap.body_md)
+                        editor.setHtml(new_html)
+                        # Also update the previous tile to show its side of the diff,
+                        # but only for the immediately preceding pair (tile i-1 vs i).
+                        # Tile 0 is always the baseline shown as plain text initially,
+                        # then updated when tile 1 is processed.
+                        if i == 1:
+                            old_html, _ = _build_diff_html(prev_snap.body_md, snap.body_md)
+                            self._tile_editors[0].setHtml(old_html)
+                    else:
+                        editor.setHtml(_plain_html(snap.body_md))
                 editor.setVisible(True)
             else:
                 editor.clear()
@@ -587,23 +713,22 @@ class CompareRevisionsWindow(QMainWindow):
                 return vsplit(editors[0], bottom)
 
             if idx == 13:
-                # 1,2 stacked on the left; 3 on top-right; 4 bottom-wide.
-                left = vsplit(editors[0], editors[1])
-                right = vsplit(editors[2], editors[3])
-                return hsplit(left, right)
+                # 1,2 stacked left; 3 tall right; 4 wide bottom.
+                top = hsplit(vsplit(editors[0], editors[1]), editors[2])
+                return vsplit(top, editors[3])
 
             if idx == 14:
-                # 1 tall on the left; 2 and 3 on top-right; 4 wide under 2+3.
+                # 1 tall left; 2,3 stacked right; 4 wide bottom.
+                top = hsplit(editors[0], vsplit(editors[1], editors[2]))
+                return vsplit(top, editors[3])
+
+            if idx == 15:
+                # 1 tall left; 2 and 3 side-by-side top-right; 4 wide bottom-right.
                 right = vsplit(hsplit(editors[1], editors[2]), editors[3])
                 return hsplit(editors[0], right)
 
-            if idx == 15:
-                # 1 tall on the left; emphasis on 4 as bottom-right.
-                right = vsplit(editors[1], hsplit(editors[2], editors[3]))
-                return hsplit(editors[0], right)
-
             if idx == 16:
-                # Similar to 15, but start with a wide area then split below.
+                # 1 tall left; 2 wide top-right; 3 and 4 side-by-side bottom-right.
                 right = vsplit(editors[1], hsplit(editors[2], editors[3]))
                 return hsplit(editors[0], right)
 
@@ -612,12 +737,11 @@ class CompareRevisionsWindow(QMainWindow):
                 left = vsplit(hsplit(editors[0], editors[1]), editors[3])
                 return hsplit(left, editors[2])
 
-        if idx == 18:
-                # 1 and 2 stacked on the left; 3 and 4 tall on the right.
-                left = vsplit(editors[0], editors[1])
-                right = vsplit(editors[2], editors[3])
-                return hsplit(left, right)
- 
+            if idx == 18:
+                # 1 wide top-left; 2 and 3 side-by-side bottom-left; 4 tall right.
+                left = vsplit(editors[0], hsplit(editors[1], editors[2]))
+                return hsplit(left, editors[3])
+
         return None
 
     def _retranslate_ui(self) -> None:
@@ -678,6 +802,12 @@ class CompareRevisionsWindow(QMainWindow):
                 if snap.saved_at:
                     label = f"{label} – {snap.saved_at}"
                 item.setText(label)
+        except Exception:
+            pass
+
+        # Diff checkbox.
+        try:
+            self._diff_checkbox.setText(self.tr("Show diff highlights"))
         except Exception:
             pass
 

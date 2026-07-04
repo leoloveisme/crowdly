@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import StoryTemplate from "./story template";
 import Header, { InterfaceLanguage } from "./Header";
+import { ImportPopup } from "../modules/import-export";
 
 type StoryKind = "story" | "screenplay";
 
@@ -142,6 +143,7 @@ const Index: React.FC = () => {
   const [authLoading, setAuthLoading] = useState(false);
 
   const [storyIdInput, setStoryIdInput] = useState("");
+  const [showImportPopup, setShowImportPopup] = useState(false);
 
   const isLoggedIn = !!authUser;
   const usernameForHeader = authUser?.email || username || "Guest";
@@ -421,187 +423,101 @@ const Index: React.FC = () => {
         onLoginClick={openLoginFromHeader}
         onLogoutClick={handleLogoutFromHeader}
         onRegisterClick={openRegisterFromHeader}
+        onCreateClick={() => setIsOpen(true)}
+        onImportClick={() => setShowImportPopup(true)}
+        onExportClick={() => {}}
+        isExportEnabled={false}
       />
 
-      <div
-        style={{
-          minHeight: "calc(100vh - 80px)",
-          backgroundColor: "#ffffff",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "16px",
-          boxSizing: "border-box",
-        }}
-      >
-        {/* Minimal hint content so the page is not literally empty, but still white and clean */}
-        <div style={{ maxWidth: 480, width: "100%" }}>
-          <p style={{ color: "#666", fontSize: "14px", textAlign: "center", marginBottom: 12 }}>
-            Right-click (desktop) or tap and hold (mobile) anywhere on the page to
-            choose what kind of story you would like to create.
+      <div className="landing-body">
+        {/* Hero section */}
+        <div className="landing-hero">
+          <h1 className="landing-hero-title">Crowdly Web App</h1>
+          <p className="landing-hero-subtitle">
+            Create, edit and collaborate on stories and screenplays
           </p>
+        </div>
 
-          <div
-            style={{
-              marginTop: 16,
-              padding: "10px 14px",
-              borderRadius: 12,
-              border: "1px solid rgba(0,0,0,0.12)",
-              backgroundColor: "#fafafa",
-              display: "flex",
-              flexDirection: "column",
-              gap: 8,
-            }}
-          >
-            <div style={{ fontSize: 13, fontWeight: 500, color: "#111" }}>
-              Go to story or screenplay
-            </div>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "row",
-                gap: 8,
-                alignItems: "center",
+        <p className="landing-hint">
+          Right-click (desktop) or tap and hold (mobile) anywhere on the page to
+          choose what kind of story you would like to create.
+        </p>
+
+        {/* Go to story / screenplay card */}
+        <div className="landing-goto-card">
+          <div className="landing-goto-card-title">
+            Go to story or screenplay
+          </div>
+          <div className="landing-goto-row">
+            <input
+              type="text"
+              className="landing-goto-input"
+              placeholder="Paste story or screenplay ID / URL here"
+              value={storyIdInput}
+              onChange={(e) => setStoryIdInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleGoToStory();
               }}
+            />
+            <button
+              type="button"
+              className="landing-goto-btn"
+              onClick={handleGoToStory}
             >
-              <input
-                type="text"
-                placeholder="Paste story or screenplay ID / URL here"
-                value={storyIdInput}
-                onChange={(e) => setStoryIdInput(e.target.value)}
-                style={{
-                  flex: 1,
-                  padding: "6px 8px",
-                  borderRadius: 8,
-                  border: "1px solid rgba(0,0,0,0.2)",
-                  fontSize: 13,
-                }}
-              />
-              <button
-                type="button"
-                onClick={handleGoToStory}
-                style={{
-                  padding: "6px 14px",
-                  borderRadius: 999,
-                  border: "1px solid #111",
-                  backgroundColor: "#111",
-                  color: "#fff",
-                  fontSize: 13,
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                Go
-              </button>
-            </div>
-            <div style={{ fontSize: 11, color: "#666" }}>
-              Accepted formats:
-              <ul style={{ margin: "4px 0 0", paddingLeft: "18px" }}>
-                <li>
-                  Story or screenplay ID:
-                  {" "}
-                  <code>055b3e41-4f7d-490f-9b29-128b908c3552</code>
-                </li>
-                <li>
-                  Crowdly URL:
-                  {" "}
-                  <code>http://localhost:8080/story/&lt;id&gt;</code>
-                  {" "}
-                  or
-                  {" "}
-                  <code>http://localhost:8080/screenplay/&lt;id&gt;</code>
-                </li>
-                <li>
-                  Web app URL:
-                  {" "}
-                  <code>http://localhost:5173/story/&lt;id&gt;</code>
-                  {" "}
-                  or
-                  {" "}
-                  <code>http://localhost:5173/screenplay/&lt;id&gt;</code>
-                </li>
-              </ul>
-            </div>
+              Go
+            </button>
+          </div>
+          <div className="landing-goto-hint">
+            Accepted formats:
+            <ul>
+              <li>
+                Story or screenplay ID:{" "}
+                <code>055b3e41-4f7d-490f-9b29-128b908c3552</code>
+              </li>
+              <li>
+                Crowdly URL:{" "}
+                <code>http://localhost:8080/story/&lt;id&gt;</code>{" "}
+                or{" "}
+                <code>http://localhost:8080/screenplay/&lt;id&gt;</code>
+              </li>
+              <li>
+                Web app URL:{" "}
+                <code>http://localhost:5173/story/&lt;id&gt;</code>{" "}
+                or{" "}
+                <code>http://localhost:5173/screenplay/&lt;id&gt;</code>
+              </li>
+            </ul>
           </div>
         </div>
       </div>
 
+      {/* "What kind of story" popup */}
       {isOpen && (
-        <div
-          onClick={closePopup}
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.4)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1000,
-          }}
-        >
+        <div className="landing-popup-overlay" onClick={closePopup}>
           <div
+            className="landing-popup-card"
             onClick={(e) => e.stopPropagation()}
-            style={{
-              backgroundColor: "#ffffff",
-              borderRadius: "12px",
-              padding: "24px 32px",
-              maxWidth: "420px",
-              width: "100%",
-              boxSizing: "border-box",
-              textAlign: "center",
-              boxShadow: "0 12px 30px rgba(0,0,0,0.18)",
-            }}
           >
-            <p
-              style={{
-                margin: "0 0 16px",
-                fontSize: "18px",
-                fontWeight: 500,
-                color: "#111",
-              }}
-            >
+            <p className="landing-popup-title">
               What kind of story would you like to create?
             </p>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "8px",
-                marginTop: "8px",
-              }}
-            >
+            <div className="landing-popup-options">
               <a
                 href="#"
+                className="landing-popup-option"
                 onClick={(e) => {
                   e.preventDefault();
                   handleChooseKind("story");
-                }}
-                style={{
-                  display: "block",
-                  padding: "10px 16px",
-                  borderRadius: "999px",
-                  border: "1px solid rgba(0,0,0,0.15)",
-                  textDecoration: "none",
-                  color: "#111",
-                  fontSize: "14px",
                 }}
               >
                 Regular (novel) story
               </a>
               <a
                 href="#"
+                className="landing-popup-option"
                 onClick={(e) => {
                   e.preventDefault();
                   handleChooseKind("screenplay");
-                }}
-                style={{
-                  display: "block",
-                  padding: "10px 16px",
-                  borderRadius: "999px",
-                  border: "1px solid rgba(0,0,0,0.15)",
-                  textDecoration: "none",
-                  color: "#111",
-                  fontSize: "14px",
                 }}
               >
                 Screenplay
@@ -609,16 +525,8 @@ const Index: React.FC = () => {
             </div>
             <button
               type="button"
+              className="landing-popup-close"
               onClick={closePopup}
-              style={{
-                marginTop: "20px",
-                padding: "6px 12px",
-                borderRadius: "999px",
-                border: "1px solid rgba(0,0,0,0.2)",
-                backgroundColor: "#f5f5f5",
-                cursor: "pointer",
-                fontSize: "13px",
-              }}
             >
               Close
             </button>
@@ -626,177 +534,74 @@ const Index: React.FC = () => {
         </div>
       )}
 
+      {/* Auth popup */}
       {authOpen && (
         <div
+          className="auth-popup-overlay"
           onClick={() => setAuthOpen(false)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(0, 0, 0, 0.45)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 1100,
-          }}
         >
           <div
+            className="auth-popup-card"
             onClick={(e) => e.stopPropagation()}
-            style={{
-              backgroundColor: "#ffffff",
-              borderRadius: "12px",
-              padding: "24px 28px",
-              maxWidth: "420px",
-              width: "100%",
-              boxSizing: "border-box",
-              textAlign: "center",
-              boxShadow: "0 12px 30px rgba(0,0,0,0.22)",
-            }}
           >
-            <p
-              style={{
-                margin: "0 0 16px",
-                fontSize: "18px",
-                fontWeight: 500,
-                color: "#111",
-              }}
-            >
+            <p className="auth-popup-title">
               You have to be logged in before you can create a story
             </p>
 
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                gap: "16px",
-                marginBottom: "16px",
-              }}
-            >
+            <div className="auth-tabs">
               <button
                 type="button"
+                className={`auth-tab ${authMode === "login" ? "active" : ""}`}
                 onClick={() => setAuthMode("login")}
-                style={{
-                  padding: "6px 12px",
-                  borderRadius: "999px",
-                  border:
-                    authMode === "login"
-                      ? "1px solid #111"
-                      : "1px solid rgba(0,0,0,0.25)",
-                  backgroundColor: authMode === "login" ? "#111" : "#f5f5f5",
-                  color: authMode === "login" ? "#fff" : "#111",
-                  cursor: "pointer",
-                  fontSize: "13px",
-                  minWidth: "80px",
-                }}
               >
                 Login
               </button>
               <button
                 type="button"
+                className={`auth-tab ${authMode === "register" ? "active" : ""}`}
                 onClick={() => setAuthMode("register")}
-                style={{
-                  padding: "6px 12px",
-                  borderRadius: "999px",
-                  border:
-                    authMode === "register"
-                      ? "1px solid #111"
-                      : "1px solid rgba(0,0,0,0.25)",
-                  backgroundColor:
-                    authMode === "register" ? "#111" : "#f5f5f5",
-                  color: authMode === "register" ? "#fff" : "#111",
-                  cursor: "pointer",
-                  fontSize: "13px",
-                  minWidth: "80px",
-                }}
               >
                 Register
               </button>
             </div>
 
-            <form onSubmit={handleAuthSubmit} style={{ textAlign: "center" }}>
-              <div style={{ marginBottom: "10px" }}>
+            <form onSubmit={handleAuthSubmit}>
+              <div style={{ marginBottom: 10 }}>
                 <input
                   type="text"
+                  className="auth-input"
                   placeholder="Username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   autoComplete="username"
-                  style={{
-                    width: "100%",
-                    padding: "8px 10px",
-                    borderRadius: "8px",
-                    border: "1px solid rgba(0,0,0,0.2)",
-                    fontSize: "14px",
-                    boxSizing: "border-box",
-                  }}
                 />
               </div>
-              <div
-                style={{
-                  marginBottom: "14px",
-                  position: "relative",
-                  display: "flex",
-                  alignItems: "center",
-                }}
-              >
+              <div className="auth-password-wrapper" style={{ marginBottom: 14 }}>
                 <input
                   type={showPassword ? "text" : "password"}
+                  className="auth-input"
                   placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete={authMode === "login" ? "current-password" : "new-password"}
-                  style={{
-                    width: "100%",
-                    padding: "8px 34px 8px 10px",
-                    borderRadius: "8px",
-                    border: "1px solid rgba(0,0,0,0.2)",
-                    fontSize: "14px",
-                    boxSizing: "border-box",
-                  }}
                 />
                 <button
                   type="button"
+                  className="auth-password-toggle"
                   onClick={() => setShowPassword((v) => !v)}
-                  style={{
-                    position: "absolute",
-                    right: "6px",
-                    border: "none",
-                    background: "transparent",
-                    cursor: "pointer",
-                    fontSize: "12px",
-                    padding: "2px 4px",
-                    color: "#555",
-                  }}
                 >
-                  {showPassword ? "Hide" : "Eye"}
+                  {showPassword ? "Hide" : "Show"}
                 </button>
               </div>
 
               {authError && (
-                <div
-                  style={{
-                    marginBottom: "10px",
-                    color: "#b00020",
-                    fontSize: "13px",
-                  }}
-                >
-                  {authError}
-                </div>
+                <div className="auth-error">{authError}</div>
               )}
 
               <button
                 type="submit"
+                className="auth-submit-btn"
                 disabled={authLoading}
-                style={{
-                  padding: "8px 16px",
-                  borderRadius: "999px",
-                  border: "1px solid #111",
-                  backgroundColor: authLoading ? "#555" : "#111",
-                  color: "#fff",
-                  cursor: authLoading ? "default" : "pointer",
-                  fontSize: "14px",
-                  minWidth: "120px",
-                  opacity: authLoading ? 0.9 : 1,
-                }}
               >
                 {authLoading
                   ? authMode === "login"
@@ -810,6 +615,11 @@ const Index: React.FC = () => {
           </div>
         </div>
       )}
+
+      <ImportPopup
+        open={showImportPopup}
+        onClose={() => setShowImportPopup(false)}
+      />
     </div>
   );
 };

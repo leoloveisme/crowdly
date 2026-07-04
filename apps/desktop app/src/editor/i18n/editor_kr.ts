@@ -92,6 +92,22 @@
       <translation>Japanese</translation>
     </message>
     <message>
+      <source>French</source>
+      <translation>프랑스어</translation>
+    </message>
+    <message>
+      <source>Spanish</source>
+      <translation>스페인어</translation>
+    </message>
+    <message>
+      <source>German</source>
+      <translation>독일어</translation>
+    </message>
+    <message>
+      <source>Hindi</source>
+      <translation>힌디어</translation>
+    </message>
+    <message>
       <source>Quit</source>
       <translation>Quit</translation>
     </message>
@@ -126,6 +142,30 @@
     <message>
       <source>as odt</source>
       <translation>as odt</translation>
+    </message>
+    <message>
+      <source>as FDX</source>
+      <translation>as FDX</translation>
+    </message>
+    <message>
+      <source>as FOUNTAIN</source>
+      <translation>as FOUNTAIN</translation>
+    </message>
+    <message>
+      <source>Save as</source>
+      <translation>Save as</translation>
+    </message>
+    <message>
+      <source>as .md file</source>
+      <translation>as .md file</translation>
+    </message>
+    <message>
+      <source>as .story file</source>
+      <translation>as .story file</translation>
+    </message>
+    <message>
+      <source>as .screenplay file</source>
+      <translation>as .screenplay file</translation>
     </message>
     <message>
       <source>Import</source>
@@ -347,5 +387,64 @@ Details: {error}</translation>
       <source>Genre updated.</source>
       <translation>Genre updated.</translation>
     </message>
+    <message>
+      <source>Edit description</source>
+      <translation>설명 편집</translation>
+    </message>
+    <message>
+      <source>Description</source>
+      <translation>설명</translation>
+    </message>
+    <message>
+      <source>Enter description:</source>
+      <translation>설명 입력:</translation>
+    </message>
+    <message>
+      <source>Description updated.</source>
+      <translation>설명이 업데이트되었습니다.</translation>
+    </message>
+    <message>
+      <source>Description deleted.</source>
+      <translation>설명이 삭제되었습니다.</translation>
+    </message>
+    <message>
+      <source>Session control</source>
+      <translation>세션 관리</translation>
+    </message>
+    <message>
+      <source>Here you can decide how the session control for closing of the app should work.</source>
+      <translation>앱 종료 시 세션 관리 방식을 설정할 수 있습니다.</translation>
+    </message>
+    <message>
+      <source>The app will:</source>
+      <translation>앱 동작:</translation>
+    </message>
+    <message>
+      <source>Close all its tabs and clear creative / project Space</source>
+      <translation>모든 탭을 닫고 크리에이티브/프로젝트 스페이스 초기화</translation>
+    </message>
+    <message>
+      <source>Keep the current session (saves all the opened tabs and windows, and the Space remains set)</source>
+      <translation>현재 세션 유지 (열려 있는 모든 탭과 창을 저장하고 스페이스 설정을 유지)</translation>
+    </message>
+    <message>
+      <source>Save</source>
+      <translation>저장</translation>
+    </message>
+    <message>
+      <source>Cancel</source>
+      <translation>취소</translation>
+    </message>
+    <message>
+        <source>No name</source>
+        <translation>이름 없음</translation>
+    </message>
   </context>
+<context>
+    <name>CompareRevisionsWindow</name>
+    <message>
+        <source>Show diff highlights</source>
+        <translation>차이점 강조 표시</translation>
+    </message>
+</context>
 </TS>

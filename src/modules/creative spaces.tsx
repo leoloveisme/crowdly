@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import EditableText from "@/components/EditableText";
 
 export type CreativeSpace = {
   id: string;
@@ -54,7 +55,7 @@ const CreativeSpacesModule: React.FC<CreativeSpacesProps> = ({
   if (isLoading) {
     return (
       <div className="border rounded-lg bg-white p-4 text-sm text-gray-500">
-        Loading creative spaces...
+        <EditableText id="spaces-mod-loading">Loading creative spaces...</EditableText>
       </div>
     );
   }
@@ -63,19 +64,19 @@ const CreativeSpacesModule: React.FC<CreativeSpacesProps> = ({
     return (
       <div className="border rounded-lg bg-white p-4 text-sm text-gray-500 flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <span className="font-medium">Space(s)</span>
+          <span className="font-medium"><EditableText id="spaces-mod-title">Space(s)</EditableText></span>
           {onCreate && (
             <button
               type="button"
               onClick={onCreate}
               className="px-2 py-1 text-xs rounded border border-dashed border-blue-300 text-blue-700 hover:bg-blue-50"
             >
-              + New creative space
+              <EditableText id="spaces-mod-new-btn">+ New creative space</EditableText>
             </button>
           )}
         </div>
         <div className="mt-1 text-gray-500 text-xs">
-          No active spaces here yet.
+          <EditableText id="spaces-mod-empty">No active spaces here yet.</EditableText>
         </div>
       </div>
     );
@@ -91,14 +92,14 @@ const CreativeSpacesModule: React.FC<CreativeSpacesProps> = ({
   return (
     <div className="border rounded-lg bg-white p-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold">Space(s)</h3>
+        <h3 className="text-sm font-semibold"><EditableText id="spaces-mod-list-title">Space(s)</EditableText></h3>
         {onCreate && (
           <button
             type="button"
             onClick={onCreate}
             className="px-2 py-1 text-xs rounded border border-dashed border-blue-300 text-blue-700 hover:bg-blue-50"
           >
-            + New creative space
+            <EditableText id="spaces-mod-new-btn-list">+ New creative space</EditableText>
           </button>
         )}
       </div>
@@ -130,7 +131,7 @@ const CreativeSpacesModule: React.FC<CreativeSpacesProps> = ({
                   to={`/creative_space/${space.id}`}
                   className="px-1 py-0.5 rounded hover:bg-purple-50 text-purple-700"
                 >
-                  Open
+                  <EditableText id="spaces-mod-open">Open</EditableText>
                 </Link>
                 {onShowStats && (
                   <button
@@ -138,7 +139,7 @@ const CreativeSpacesModule: React.FC<CreativeSpacesProps> = ({
                     onClick={() => onShowStats(space)}
                     className="px-1 py-0.5 rounded hover:bg-gray-100"
                   >
-                    Stats
+                    <EditableText id="spaces-mod-stats">Stats</EditableText>
                   </button>
                 )}
                 {onToggleVisibility && (
@@ -152,7 +153,7 @@ const CreativeSpacesModule: React.FC<CreativeSpacesProps> = ({
                     }
                     className="px-1 py-0.5 rounded hover:bg-gray-100"
                   >
-                    {space.visibility === "private" ? "Make public" : "Make private"}
+                    {space.visibility === "private" ? <EditableText id="spaces-mod-make-public">Make public</EditableText> : <EditableText id="spaces-mod-make-private">Make private</EditableText>}
                   </button>
                 )}
                 {onTogglePublished && (
@@ -161,7 +162,7 @@ const CreativeSpacesModule: React.FC<CreativeSpacesProps> = ({
                     onClick={() => onTogglePublished(space, !Boolean(space.published))}
                     className="px-1 py-0.5 rounded hover:bg-gray-100"
                   >
-                    {space.published ? "Unpublish" : "Publish"}
+                    {space.published ? <EditableText id="spaces-mod-unpublish">Unpublish</EditableText> : <EditableText id="spaces-mod-publish">Publish</EditableText>}
                   </button>
                 )}
                 {onRename && (
@@ -170,7 +171,7 @@ const CreativeSpacesModule: React.FC<CreativeSpacesProps> = ({
                     onClick={() => onRename(space)}
                     className="px-1 py-0.5 rounded hover:bg-gray-100"
                   >
-                    Rename
+                    <EditableText id="spaces-mod-rename">Rename</EditableText>
                   </button>
                 )}
                 {onClone && (
@@ -179,7 +180,7 @@ const CreativeSpacesModule: React.FC<CreativeSpacesProps> = ({
                     onClick={() => onClone(space)}
                     className="px-1 py-0.5 rounded hover:bg-gray-100"
                   >
-                    Clone
+                    <EditableText id="spaces-mod-clone">Clone</EditableText>
                   </button>
                 )}
                 {onDelete && (
@@ -188,7 +189,7 @@ const CreativeSpacesModule: React.FC<CreativeSpacesProps> = ({
                     onClick={() => onDelete(space)}
                     className="px-1 py-0.5 rounded hover:bg-red-50 text-red-600"
                   >
-                    Delete
+                    <EditableText id="spaces-mod-delete">Delete</EditableText>
                   </button>
                 )}
               </div>

@@ -283,6 +283,18 @@ function requireNative() {
       }
 
       }
+    } else if (process.arch === 'ppc64') {
+      try {
+        return require('./swc.linux-ppc64-gnu.node')
+      } catch (e) {
+        loadErrors.push(e)
+      }
+      try {
+        return require('@swc/core-linux-ppc64-gnu')
+      } catch (e) {
+        loadErrors.push(e)
+      }
+
     } else if (process.arch === 's390x') {
       try {
         return require('./swc.linux-s390x-gnu.node')
@@ -337,6 +349,7 @@ if (!nativeBinding) {
 
 module.exports.Compiler = nativeBinding.Compiler
 module.exports.JsCompiler = nativeBinding.JsCompiler
+module.exports.analyze = nativeBinding.analyze
 module.exports.bundle = nativeBinding.bundle
 module.exports.getTargetTriple = nativeBinding.getTargetTriple
 module.exports.initCustomTraceSubscriber = nativeBinding.initCustomTraceSubscriber

@@ -92,6 +92,22 @@
       <translation>Japanese</translation>
     </message>
     <message>
+      <source>French</source>
+      <translation>الفرنسية</translation>
+    </message>
+    <message>
+      <source>Spanish</source>
+      <translation>الإسبانية</translation>
+    </message>
+    <message>
+      <source>German</source>
+      <translation>الألمانية</translation>
+    </message>
+    <message>
+      <source>Hindi</source>
+      <translation>الهندية</translation>
+    </message>
+    <message>
       <source>Quit</source>
       <translation>Quit</translation>
     </message>
@@ -126,6 +142,30 @@
     <message>
       <source>as odt</source>
       <translation>as odt</translation>
+    </message>
+    <message>
+      <source>as FDX</source>
+      <translation>as FDX</translation>
+    </message>
+    <message>
+      <source>as FOUNTAIN</source>
+      <translation>as FOUNTAIN</translation>
+    </message>
+    <message>
+      <source>Save as</source>
+      <translation>Save as</translation>
+    </message>
+    <message>
+      <source>as .md file</source>
+      <translation>as .md file</translation>
+    </message>
+    <message>
+      <source>as .story file</source>
+      <translation>as .story file</translation>
+    </message>
+    <message>
+      <source>as .screenplay file</source>
+      <translation>as .screenplay file</translation>
     </message>
     <message>
       <source>Import</source>
@@ -347,5 +387,64 @@ Details: {error}</translation>
       <source>Genre updated.</source>
       <translation>Genre updated.</translation>
     </message>
+    <message>
+      <source>Edit description</source>
+      <translation>تعديل الوصف</translation>
+    </message>
+    <message>
+      <source>Description</source>
+      <translation>الوصف</translation>
+    </message>
+    <message>
+      <source>Enter description:</source>
+      <translation>أدخل الوصف:</translation>
+    </message>
+    <message>
+      <source>Description updated.</source>
+      <translation>تم تحديث الوصف.</translation>
+    </message>
+    <message>
+      <source>Description deleted.</source>
+      <translation>تم حذف الوصف.</translation>
+    </message>
+    <message>
+      <source>Session control</source>
+      <translation>التحكم بالجلسة</translation>
+    </message>
+    <message>
+      <source>Here you can decide how the session control for closing of the app should work.</source>
+      <translation>هنا يمكنك تحديد كيفية عمل التحكم بالجلسة عند إغلاق التطبيق.</translation>
+    </message>
+    <message>
+      <source>The app will:</source>
+      <translation>سيقوم التطبيق بـ:</translation>
+    </message>
+    <message>
+      <source>Close all its tabs and clear creative / project Space</source>
+      <translation>إغلاق جميع علامات التبويب ومسح المساحة الإبداعية / مساحة المشروع</translation>
+    </message>
+    <message>
+      <source>Keep the current session (saves all the opened tabs and windows, and the Space remains set)</source>
+      <translation>الاحتفاظ بالجلسة الحالية (يحفظ جميع علامات التبويب والنوافذ المفتوحة، وتبقى المساحة محددة)</translation>
+    </message>
+    <message>
+      <source>Save</source>
+      <translation>حفظ</translation>
+    </message>
+    <message>
+      <source>Cancel</source>
+      <translation>إلغاء</translation>
+    </message>
+    <message>
+        <source>No name</source>
+        <translation>بدون اسم</translation>
+    </message>
   </context>
+<context>
+    <name>CompareRevisionsWindow</name>
+    <message>
+        <source>Show diff highlights</source>
+        <translation>إظهار تمييز الفروقات</translation>
+    </message>
+</context>
 </TS>
