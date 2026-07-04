@@ -13,6 +13,12 @@ const API_BASE = import.meta.env.PROD
 
 export type SearchResultType = "story" | "screenplay" | "user";
 
+export const SEARCH_TYPE_LABELS: Record<SearchResultType, string> = {
+  story: "Story",
+  screenplay: "Screenplay",
+  user: "User",
+};
+
 export interface SearchResult {
   id: string;
   type: SearchResultType;
@@ -201,8 +207,14 @@ export const SearchBox: React.FC<SearchBoxProps> = ({
                   <span className="font-medium text-gray-900 dark:text-gray-50 truncate">
                     {result.title}
                   </span>
-                  <span className="ml-2 text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">
-                    {result.type}
+                  <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                    result.type === "user"
+                      ? "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300"
+                      : result.type === "story"
+                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                      : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"
+                  }`}>
+                    {SEARCH_TYPE_LABELS[result.type] || result.type}
                   </span>
                 </div>
                 {result.subtitle && (

@@ -1,9 +1,10 @@
 
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import crowdlyLogo from "@/components/images/crowdly.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Eye, Menu, X, LogOut, Bell, MessageSquare, User, Users, Heart, Gift, Settings, HelpCircle } from "lucide-react";
+import { Eye, Menu, X, LogOut, Bell, MessageSquare, User, Users, Heart, Gift, Settings, HelpCircle, UserPlus, Shield, FolderOpen, LifeBuoy } from "lucide-react";
 import { SearchBox } from "@/modules/search";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -38,7 +39,7 @@ const CrowdlyHeader = () => {
   const [notificationCount, setNotificationCount] = useState(3);
   const [messageCount, setMessageCount] = useState(5);
 
-  const { user, signIn, signOut } = useAuth();
+  const { user, signIn, signOut, hasRole } = useAuth();
   const { currentLanguage, setCurrentLanguage } = useEditableContent();
 
   const toggleMenu = () => {
@@ -100,9 +101,7 @@ const CrowdlyHeader = () => {
           {/* Logo/Title */}
           <div className="flex items-center gap-4">
             <Link to="/" className="group bg-white/80 dark:bg-slate-900/50 p-3 md:p-5 rounded-2xl shadow flex items-center justify-center border border-indigo-100 dark:border-indigo-900 hover:scale-105 transition">
-              <div className="text-2xl md:text-3xl font-bold bg-gradient-to-tr from-indigo-500 via-pink-500 to-violet-500 text-transparent bg-clip-text group-hover:brightness-125 transition">
-                LOGO
-              </div>
+              <img src={crowdlyLogo} alt="Crowdly" className="h-8 md:h-10 w-auto object-contain" />
             </Link>
             <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-900 via-pink-800 to-indigo-400 bg-clip-text text-transparent hidden md:block px-2">
               <EditableText id="header-title">
@@ -123,12 +122,17 @@ const CrowdlyHeader = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="English">English</SelectItem>
-                  <SelectItem value="Russian">Russian</SelectItem>
-                  <SelectItem value="Chinese">中文</SelectItem>
-                  <SelectItem value="Portuguese">Portuguese</SelectItem>
-                  <SelectItem value="Spanish">Spanish</SelectItem>
-                  <SelectItem value="French">French</SelectItem>
-                  <SelectItem value="Arabic">Arabic</SelectItem>
+                  <SelectItem value="Russian">Русский</SelectItem>
+                  <SelectItem value="Portuguese">Português</SelectItem>
+                  <SelectItem value="Korean">한국어</SelectItem>
+                  <SelectItem value="Arabic">العربية</SelectItem>
+                  <SelectItem value="Chinese (Simplified)">简体中文</SelectItem>
+                  <SelectItem value="Chinese (Traditional)">繁體中文</SelectItem>
+                  <SelectItem value="Japanese">日本語</SelectItem>
+                  <SelectItem value="French">Français</SelectItem>
+                  <SelectItem value="Spanish">Español</SelectItem>
+                  <SelectItem value="German">Deutsch</SelectItem>
+                  <SelectItem value="Hindi">हिन्दी</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -207,6 +211,32 @@ const CrowdlyHeader = () => {
                       </DropdownMenuGroup>
                       <DropdownMenuSeparator />
                       <DropdownMenuGroup>
+                        {hasRole("platform_admin") && (
+                          <DropdownMenuItem asChild>
+                            <Link to="/platform-admin" className="cursor-pointer flex items-center">
+                              <Shield className="mr-2 h-4 w-4" /> Platform Admin
+                            </Link>
+                          </DropdownMenuItem>
+                        )}
+                        {hasRole("platform_admin") && (
+                          <DropdownMenuItem asChild>
+                            <Link to="/admin/invite-users" className="cursor-pointer flex items-center">
+                              <UserPlus className="mr-2 h-4 w-4" /> Invite Users
+                            </Link>
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem asChild>
+                          <Link to="/admin" className="cursor-pointer flex items-center">
+                            <FolderOpen className="mr-2 h-4 w-4" /> My Content
+                          </Link>
+                        </DropdownMenuItem>
+                        {hasRole("platform_supporter") && (
+                          <DropdownMenuItem asChild>
+                            <Link to="/support" className="cursor-pointer flex items-center">
+                              <LifeBuoy className="mr-2 h-4 w-4" /> Support Dashboard
+                            </Link>
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem asChild>
                           <Link to="/account-administration" className="cursor-pointer flex items-center">
                             <Settings className="mr-2 h-4 w-4" /> Account settings
@@ -274,12 +304,17 @@ const CrowdlyHeader = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="English">English</SelectItem>
-                  <SelectItem value="Russian">Russian</SelectItem>
-                  <SelectItem value="Chinese">中文</SelectItem>
-                  <SelectItem value="Portuguese">Portuguese</SelectItem>
-                  <SelectItem value="Spanish">Spanish</SelectItem>
-                  <SelectItem value="French">French</SelectItem>
-                  <SelectItem value="Arabic">Arabic</SelectItem>
+                  <SelectItem value="Russian">Русский</SelectItem>
+                  <SelectItem value="Portuguese">Português</SelectItem>
+                  <SelectItem value="Korean">한국어</SelectItem>
+                  <SelectItem value="Arabic">العربية</SelectItem>
+                  <SelectItem value="Chinese (Simplified)">简体中文</SelectItem>
+                  <SelectItem value="Chinese (Traditional)">繁體中文</SelectItem>
+                  <SelectItem value="Japanese">日本語</SelectItem>
+                  <SelectItem value="French">Français</SelectItem>
+                  <SelectItem value="Spanish">Español</SelectItem>
+                  <SelectItem value="German">Deutsch</SelectItem>
+                  <SelectItem value="Hindi">हिन्दी</SelectItem>
                 </SelectContent>
               </Select>
               {user ? (
@@ -303,9 +338,27 @@ const CrowdlyHeader = () => {
                   <div className="flex items-center py-2">
                     <Gift className="h-4 w-4 mr-2" /> Friends' recommendations
                   </div>
-                  <div className="flex items-center py-2">
+                  {hasRole("platform_admin") && (
+                    <Link to="/platform-admin" className="flex items-center py-2 text-indigo-900 hover:underline">
+                      <Shield className="h-4 w-4 mr-2" /> Platform Admin
+                    </Link>
+                  )}
+                  {hasRole("platform_admin") && (
+                    <Link to="/admin/invite-users" className="flex items-center py-2 text-indigo-900 hover:underline">
+                      <UserPlus className="h-4 w-4 mr-2" /> Invite Users
+                    </Link>
+                  )}
+                  <Link to="/admin" className="flex items-center py-2 text-indigo-900 hover:underline">
+                    <FolderOpen className="h-4 w-4 mr-2" /> My Content
+                  </Link>
+                  {hasRole("platform_supporter") && (
+                    <Link to="/support" className="flex items-center py-2 text-indigo-900 hover:underline">
+                      <LifeBuoy className="h-4 w-4 mr-2" /> Support Dashboard
+                    </Link>
+                  )}
+                  <Link to="/account-administration" className="flex items-center py-2 text-indigo-900 hover:underline">
                     <Settings className="h-4 w-4 mr-2" /> Account settings
-                  </div>
+                  </Link>
                   <div className="flex items-center py-2">
                     <HelpCircle className="h-4 w-4 mr-2" /> Help
                   </div>

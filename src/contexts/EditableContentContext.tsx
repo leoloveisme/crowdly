@@ -1,9 +1,12 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { useLocation } from "react-router-dom";
+
+const API_BASE = import.meta.env.PROD
+  ? (import.meta.env.VITE_API_BASE_URL ?? "")
+  : "";
 
 interface EditableContent {
   [key: string]: {
@@ -19,7 +22,7 @@ interface EditableContentContextType {
   toggleEditingMode: () => void;
   startEditing: (elementId: string, content: string, original: string) => void;
   updateContent: (elementId: string, content: string) => void;
-  saveContent: (elementId: string) => Promise<void>;
+  saveContent: (elementId: string, contentOverride?: string) => Promise<void>;
   cancelEditing: (elementId: string) => void;
   isAdmin: boolean;
   currentLanguage: string;
@@ -34,22 +37,20 @@ export const EditableContentProvider: React.FC<{ children: ReactNode }> = ({ chi
   const [currentLanguage, setCurrentLanguage] = useState<string>("English");
   const { user, hasRole } = useAuth();
   const location = useLocation();
-  const isAdmin = user !== null && hasRole('platform_admin');
+  const isAdmin = user !== null && (hasRole('platform_admin') || hasRole('ui_translator'));
   const currentPath = location.pathname;
 
   // Handle language change
   const handleLanguageChange = (language: string) => {
-    console.log(`Language changed to: ${language}`);
-    
     // Clear existing content first
     setContents({});
-    
+
     // Set the new language
     setCurrentLanguage(language);
-    
+
     // Force a content refetch with the new language
     fetchEditableContent(currentPath, language);
-    
+
     // Display toast notification about language change
     toast({
       title: "Language changed",
@@ -63,29 +64,29 @@ export const EditableContentProvider: React.FC<{ children: ReactNode }> = ({ chi
     if (!path) return;
 
     try {
-      console.log(`Fetching content for path: ${path}, language: ${language}`);
-      const { data, error } = await supabase
-        .from('editable_content')
-        .select('*')
-        .eq('page_path', path)
-        .eq('language', language);
+      const params = new URLSearchParams({ page_path: path, language });
+      const res = await fetch(`${API_BASE}/interface-translations?${params}`);
 
-      if (error) {
-        console.error('Error fetching editable content:', error);
+      if (!res.ok) {
+        console.error('Error fetching editable content:', res.status);
         return;
       }
 
-      if (data) {
-        console.log(`Retrieved ${data.length} content items for ${language}`, data);
-        const contentMap: EditableContent = {};
-        data.forEach(item => {
-          contentMap[item.element_id] = {
-            content: item.content,
-            original: item.original_content || item.content,
-            isEditing: false
-          };
+      const data = await res.json();
+
+      if (data && Array.isArray(data)) {
+        setContents(prev => {
+          const updated: EditableContent = {};
+          data.forEach((item: { element_id: string; content: string; original_content: string | null }) => {
+            updated[item.element_id] = {
+              content: item.content,
+              original: item.original_content || item.content,
+              // Preserve isEditing flag if the element is currently being edited
+              isEditing: prev[item.element_id]?.isEditing || false
+            };
+          });
+          return updated;
         });
-        setContents(contentMap);
       }
     } catch (error) {
       console.error('Error in fetchEditableContent:', error);
@@ -99,9 +100,19 @@ export const EditableContentProvider: React.FC<{ children: ReactNode }> = ({ chi
 
   const toggleEditingMode = () => {
     if (!isAdmin) return;
-    
+
+    // Prevent enabling editing mode for English (source language)
+    if (!isEditingEnabled && currentLanguage === "English") {
+      toast({
+        title: "English is protected",
+        description: "English is the source language and cannot be edited. Switch to another language first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsEditingEnabled(prev => !prev);
-    
+
     // Exit all editing states when disabling editing mode
     if (isEditingEnabled) {
       setContents(prev => {
@@ -115,15 +126,17 @@ export const EditableContentProvider: React.FC<{ children: ReactNode }> = ({ chi
 
     toast({
       title: isEditingEnabled ? "Editing mode disabled" : "Editing mode enabled",
-      description: isEditingEnabled 
-        ? "Content is now in view-only mode" 
+      description: isEditingEnabled
+        ? "Content is now in view-only mode"
         : "You can now edit content by clicking on text elements",
     });
   };
 
   const startEditing = (elementId: string, content: string, original: string) => {
     if (!isAdmin || !isEditingEnabled) return;
-    
+    // English is the source language — block editing to prevent accidental changes
+    if (currentLanguage === "English") return;
+
     setContents(prev => ({
       ...prev,
       [elementId]: {
@@ -136,7 +149,7 @@ export const EditableContentProvider: React.FC<{ children: ReactNode }> = ({ chi
 
   const updateContent = (elementId: string, content: string) => {
     if (!isAdmin) return;
-    
+
     setContents(prev => ({
       ...prev,
       [elementId]: {
@@ -146,50 +159,45 @@ export const EditableContentProvider: React.FC<{ children: ReactNode }> = ({ chi
     }));
   };
 
-  const saveContent = async (elementId: string) => {
+  const saveContent = async (elementId: string, contentOverride?: string) => {
     if (!isAdmin || !currentPath) return;
-    
+
     try {
       const contentData = contents[elementId];
       if (!contentData) return;
-      
-      console.log(`Saving content for ${elementId} in ${currentLanguage}`);
 
-      // First try to delete any existing record to avoid duplicate key errors
-      await supabase
-        .from('editable_content')
-        .delete()
-        .eq('page_path', currentPath)
-        .eq('element_id', elementId)
-        .eq('language', currentLanguage);
-        
-      // Then insert the new record
-      const { error: insertError } = await supabase
-        .from('editable_content')
-        .insert({
+      // Use contentOverride if provided (avoids async state timing issues)
+      const finalContent = contentOverride ?? contentData.content;
+
+      const res = await fetch(`${API_BASE}/interface-translations`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user?.id,
           page_path: currentPath,
           element_id: elementId,
-          content: contentData.content,
+          language: currentLanguage,
+          content: finalContent,
           original_content: contentData.original,
-          updated_by: user?.id,
-          language: currentLanguage
-        });
-      
-      if (insertError) {
-        console.error('Error saving content:', insertError);
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
         toast({
           title: "Error saving content",
-          description: insertError.message,
+          description: data.error || "Failed to save translation",
           variant: "destructive"
         });
         return;
       }
 
-      // Turn off editing for this element
+      // Update locally — no refetch needed, avoids wiping other elements' state
       setContents(prev => ({
         ...prev,
         [elementId]: {
-          ...prev[elementId],
+          content: finalContent,
+          original: prev[elementId]?.original || finalContent,
           isEditing: false
         }
       }));
@@ -198,10 +206,7 @@ export const EditableContentProvider: React.FC<{ children: ReactNode }> = ({ chi
         title: "Content saved",
         description: `Your changes have been saved successfully in ${currentLanguage}`,
       });
-      
-      // Refresh content to ensure we have the latest
-      fetchEditableContent(currentPath, currentLanguage);
-      
+
     } catch (error) {
       console.error('Error in saveContent:', error);
       toast({
@@ -214,16 +219,16 @@ export const EditableContentProvider: React.FC<{ children: ReactNode }> = ({ chi
 
   const cancelEditing = (elementId: string) => {
     if (!isAdmin) return;
-    
+
     setContents(prev => {
       const elementData = prev[elementId];
       if (!elementData) return prev;
-      
+
       return {
         ...prev,
         [elementId]: {
           ...elementData,
-          content: elementData.content, // Keep the current content
+          content: elementData.original, // Restore original on cancel
           isEditing: false
         }
       };

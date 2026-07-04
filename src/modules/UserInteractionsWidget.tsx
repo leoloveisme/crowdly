@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Users } from "lucide-react";
+import EditableText from "@/components/EditableText";
 
 const API_BASE = import.meta.env.PROD
   ? (import.meta.env.VITE_API_BASE_URL ?? "")
@@ -124,11 +125,11 @@ const UserInteractionsWidget: React.FC<UserInteractionsWidgetProps> = ({
     <div className="space-y-3 text-sm">
       <div className="flex items-center gap-2 mb-1">
         <Users className="h-4 w-4 text-purple-600" />
-        <span className="font-medium">Selected users for this container</span>
+        <span className="font-medium"><EditableText id="user-interactions-title">Selected users for this container</EditableText></span>
       </div>
       <p className="text-xs text-gray-500">
-        Choose which users are allowed to see this container when visibility is
-        set to <span className="font-semibold">Selected users only</span>.
+        <EditableText id="user-interactions-desc">Choose which users are allowed to see this container when visibility is
+        set to</EditableText> <span className="font-semibold"><EditableText id="user-interactions-selected-only">Selected users only</EditableText></span>.
       </p>
 
       <Input
@@ -142,10 +143,10 @@ const UserInteractionsWidget: React.FC<UserInteractionsWidgetProps> = ({
 
       <div className="max-h-60 overflow-y-auto border rounded-md p-2 space-y-1 bg-white/80 dark:bg-slate-900/60">
         {loading && (
-          <div className="text-xs text-gray-500">Loading users...</div>
+          <div className="text-xs text-gray-500"><EditableText id="user-interactions-loading">Loading users...</EditableText></div>
         )}
         {!loading && users.length === 0 && (
-          <div className="text-xs text-gray-400 italic">No users found.</div>
+          <div className="text-xs text-gray-400 italic"><EditableText id="user-interactions-empty">No users found.</EditableText></div>
         )}
         {users.map((u) => (
           <label
@@ -175,7 +176,7 @@ const UserInteractionsWidget: React.FC<UserInteractionsWidgetProps> = ({
             disabled={page <= 1 || loading}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
           >
-            Prev
+            <EditableText id="user-interactions-prev">Prev</EditableText>
           </Button>
           <Button
             type="button"
@@ -184,7 +185,7 @@ const UserInteractionsWidget: React.FC<UserInteractionsWidgetProps> = ({
             disabled={!hasMore || loading}
             onClick={() => setPage((p) => p + 1)}
           >
-            Next
+            <EditableText id="user-interactions-next">Next</EditableText>
           </Button>
         </div>
       </div>

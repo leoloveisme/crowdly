@@ -96,6 +96,22 @@
         <translation >Japanese</translation>
     </message>
     <message>
+        <source>French</source>
+        <translation >French</translation>
+    </message>
+    <message>
+        <source>Spanish</source>
+        <translation >Spanish</translation>
+    </message>
+    <message>
+        <source>German</source>
+        <translation >German</translation>
+    </message>
+    <message>
+        <source>Hindi</source>
+        <translation >Hindi</translation>
+    </message>
+    <message>
         <source>Quit</source>
         <translation >Quit</translation>
     </message>
@@ -130,6 +146,30 @@
     <message>
         <source>as odt</source>
         <translation >as odt</translation>
+    </message>
+    <message>
+        <source>as FDX</source>
+        <translation >as FDX</translation>
+    </message>
+    <message>
+        <source>as FOUNTAIN</source>
+        <translation >as FOUNTAIN</translation>
+    </message>
+    <message>
+        <source>Save as</source>
+        <translation >Save as</translation>
+    </message>
+    <message>
+        <source>as .md file</source>
+        <translation >.md file</translation>
+    </message>
+    <message>
+        <source>as .story file</source>
+        <translation >.story file</translation>
+    </message>
+    <message>
+        <source>as .screenplay file</source>
+        <translation >.screenplay file</translation>
     </message>
     <message>
         <source>Import</source>
@@ -352,6 +392,26 @@ Details: {error}</translation>
         <translation >Genre updated.</translation>
     </message>
     <message>
+        <source>Edit description</source>
+        <translation >Edit description</translation>
+    </message>
+    <message>
+        <source>Description</source>
+        <translation >Description</translation>
+    </message>
+    <message>
+        <source>Enter description:</source>
+        <translation >Enter description:</translation>
+    </message>
+    <message>
+        <source>Description updated.</source>
+        <translation >Description updated.</translation>
+    </message>
+    <message>
+        <source>Description deleted.</source>
+        <translation >Description deleted.</translation>
+    </message>
+    <message>
         <source>Project space is not set</source>
         <translation >Project space is not set</translation>
     </message>
@@ -378,6 +438,38 @@ Details: {error}</translation>
     <message>
         <source>The document could not be saved. The operation has been cancelled.</source>
         <translation >The document could not be saved. The operation has been cancelled.</translation>
+    </message>
+    <message>
+        <source>Session control</source>
+        <translation>Session control</translation>
+    </message>
+    <message>
+        <source>Here you can decide how the session control for closing of the app should work.</source>
+        <translation>Here you can decide how the session control for closing of the app should work.</translation>
+    </message>
+    <message>
+        <source>The app will:</source>
+        <translation>The app will:</translation>
+    </message>
+    <message>
+        <source>Close all its tabs and clear creative / project Space</source>
+        <translation>Close all its tabs and clear creative / project Space</translation>
+    </message>
+    <message>
+        <source>Keep the current session (saves all the opened tabs and windows, and the Space remains set)</source>
+        <translation>Keep the current session (saves all the opened tabs and windows, and the Space remains set)</translation>
+    </message>
+    <message>
+        <source>Save</source>
+        <translation>Save</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Cancel</translation>
+    </message>
+    <message>
+        <source>No name</source>
+        <translation>No name</translation>
     </message>
 </context>
 <context>
@@ -535,6 +627,10 @@ Details: {error}</translation>
     <message>
         <source>Layout {index}</source>
         <translation>Layout {index}</translation>
+    </message>
+    <message>
+        <source>Show diff highlights</source>
+        <translation>Show diff highlights</translation>
     </message>
 </context>
 </TS>

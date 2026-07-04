@@ -45,6 +45,7 @@ const NewestScreenplaysOutput: React.FC = () => {
             createdAt: row.created_at,
             updatedAt: null,
             href: `/screenplay/${row.screenplay_id}`,
+            tags: row.tags || null,
           }));
           setItems(mapped);
         } else {

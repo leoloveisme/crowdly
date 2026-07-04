@@ -335,7 +335,7 @@ const StoryforConsumers = () => {
       <main className="flex-grow container mx-auto px-4 py-8">
         {/* Story Header Section */}
         <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center">
+          <div className="flex items-center gap-3">
             <Book className="h-6 w-6 mr-2" />
             <h1 className="text-2xl font-bold">
               <EditableText id="story-title">Story of my life</EditableText>
@@ -344,6 +344,9 @@ const StoryforConsumers = () => {
                       <EyeOff className="h-4 w-4" />
                     </Button>
             </h1>
+            <span className="px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
+              EN
+            </span>
           </div>
           <div>
             <span className="text-gray-600">

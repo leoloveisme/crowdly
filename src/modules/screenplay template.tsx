@@ -1,9 +1,12 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Heart } from "lucide-react";
+import { Heart, Download } from "lucide-react";
 import InteractionsWidget from "@/modules/InteractionsWidget";
+import { ExportDialog } from "@/modules/import-export";
+import CompareRevisionsContainer from "@/modules/compare revisions";
+import EditableText from "@/components/EditableText";
 
 // Use same-origin API base in development; dev server proxies to backend.
 // In production, VITE_API_BASE_URL can point at the deployed API.
@@ -63,6 +66,42 @@ const SceneComments: React.FC<SceneCommentsProps> = ({ sceneId, screenplayId }) 
   );
 };
 
+// Revisions sub-section with scene selector
+const ScreenplayRevisionsSection: React.FC<{
+  screenplayId: string;
+  scenes: ScreenplayScene[];
+}> = ({ screenplayId, scenes }) => {
+  const [selectedSceneId, setSelectedSceneId] = React.useState<string>("");
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <label htmlFor="rev-scene-select" className="text-sm font-medium">
+          <EditableText id="screenplay-rev-filter">Filter by scene:</EditableText>
+        </label>
+        <select
+          id="rev-scene-select"
+          value={selectedSceneId}
+          onChange={(e) => setSelectedSceneId(e.target.value)}
+          className="border rounded px-3 py-1.5 text-sm bg-white"
+        >
+          <option value="">{"All scenes"}</option>
+          {scenes.map((s) => (
+            <option key={s.scene_id} value={s.scene_id}>
+              Scene {s.scene_index}: {s.slugline}
+            </option>
+          ))}
+        </select>
+      </div>
+      <CompareRevisionsContainer
+        screenplayTitleId={screenplayId}
+        sceneId={selectedSceneId || undefined}
+        contentType="screenplay"
+      />
+    </div>
+  );
+};
+
 const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
   initialScreenplayId,
 }) => {
@@ -82,6 +121,7 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
 
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
 
   const canEdit = !!user;
 
@@ -775,10 +815,75 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
     blocksByScene.set(key, arr);
   }
 
+  // --- Export helpers ---
+  const getScreenplayContentHtml = useCallback((): string => {
+    if (!screenplayId || scenes.length === 0) return "";
+    let html = `<h1>${title}</h1>\n`;
+    for (const scene of scenes) {
+      html += `<h2>${scene.slugline || "UNTITLED SCENE"}</h2>\n`;
+      const sceneBlocks = blocks.filter((b) => b.scene_id === scene.scene_id);
+      sceneBlocks.sort((a, b) => a.block_index - b.block_index);
+      for (const block of sceneBlocks) {
+        const typeLabel = BLOCK_TYPE_LABELS.find((t) => t.value === block.block_type)?.label || block.block_type;
+        if (block.block_type === "scene_heading") {
+          html += `<h3>${block.text}</h3>\n`;
+        } else if (block.block_type === "character") {
+          html += `<p><strong>${block.text}</strong></p>\n`;
+        } else if (block.block_type === "dialogue") {
+          html += `<p style="margin-left:2em">${block.text}</p>\n`;
+        } else if (block.block_type === "parenthetical") {
+          html += `<p style="margin-left:2em"><em>${block.text}</em></p>\n`;
+        } else if (block.block_type === "transition") {
+          html += `<p style="text-align:right"><strong>${block.text}</strong></p>\n`;
+        } else {
+          html += `<p>${block.text}</p>\n`;
+        }
+      }
+    }
+    return html;
+  }, [screenplayId, title, scenes, blocks]);
+
+  const getScreenplayContentMarkdown = useCallback((): string => {
+    if (!screenplayId || scenes.length === 0) return "";
+    let md = `# ${title}\n\n`;
+    for (const scene of scenes) {
+      md += `## ${scene.slugline || "UNTITLED SCENE"}\n\n`;
+      const sceneBlocks = blocks.filter((b) => b.scene_id === scene.scene_id);
+      sceneBlocks.sort((a, b) => a.block_index - b.block_index);
+      for (const block of sceneBlocks) {
+        switch (block.block_type) {
+          case "scene_heading":
+            md += `## ${block.text}\n\n`;
+            break;
+          case "character":
+            md += `${block.text.toUpperCase()}\n`;
+            break;
+          case "dialogue":
+            md += `${block.text}\n\n`;
+            break;
+          case "parenthetical":
+            md += `(${block.text.replace(/^\(|\)$/g, "")})\n`;
+            break;
+          case "transition":
+            md += `${block.text.toUpperCase()}\n\n`;
+            break;
+          default: // action, shot, general
+            md += `${block.text}\n\n`;
+            break;
+        }
+      }
+    }
+    return md;
+  }, [screenplayId, title, scenes, blocks]);
+
+  const getScreenplayTitle = useCallback((): string => {
+    return title || "Untitled Screenplay";
+  }, [title]);
+
   if (!user) {
     return (
       <div className="border rounded-lg bg-white p-4 text-sm text-gray-600">
-        You must be logged in to create a screenplay.
+        <EditableText id="screenplay-login-required">You must be logged in to create a screenplay.</EditableText>
       </div>
     );
   }
@@ -830,7 +935,18 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
                   onClick={markAsLived}
                   className="inline-flex items-center px-2 py-1 rounded-full border border-dashed border-teal-300 text-[11px] text-teal-700 hover:bg-teal-50 ml-2"
                 >
-                  Mark as finished
+                  <EditableText id="screenplay-mark-finished">Mark as finished</EditableText>
+                </button>
+              )}
+              {user && screenplayId && (
+                <button
+                  type="button"
+                  onClick={() => setExportDialogOpen(true)}
+                  title="Export this screenplay"
+                  className="inline-flex items-center px-2 py-1 rounded-full border border-dashed border-indigo-300 text-[11px] text-indigo-700 hover:bg-indigo-50 ml-2"
+                >
+                  <Download className="h-3 w-3 mr-1" />
+                  <EditableText id="screenplay-export-btn">Export</EditableText>
                 </button>
               )}
             </div>
@@ -851,8 +967,8 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
       {!screenplayId && (
         <div className="border rounded-lg bg-white p-6 flex flex-col items-start gap-3">
           <p className="text-sm text-gray-600">
-            Start by creating a new screenplay. You will get an initial scene and a
-            few sample elements that demonstrate the formatting.
+            <EditableText id="screenplay-start-desc">Start by creating a new screenplay. You will get an initial scene and a
+            few sample elements that demonstrate the formatting.</EditableText>
           </p>
           <button
             type="button"
@@ -860,7 +976,7 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
             disabled={creating}
             className="px-4 py-2 text-sm rounded-full border border-dashed border-blue-300 text-blue-700 hover:bg-blue-50 disabled:opacity-60"
           >
-            {creating ? "Creating screenplay..." : "Create screenplay from template"}
+            {creating ? <EditableText id="screenplay-creating">Creating screenplay...</EditableText> : <EditableText id="screenplay-create-btn">Create screenplay from template</EditableText>}
           </button>
         </div>
       )}
@@ -868,22 +984,22 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
       {screenplayId && (
         <div className="border rounded-lg bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-gray-700">Scenes</h2>
+            <h2 className="text-sm font-semibold text-gray-700"><EditableText id="screenplay-scenes-heading">Scenes</EditableText></h2>
             <button
               type="button"
               onClick={handleAddScene}
               disabled={!canEdit || loading}
               className="px-3 py-1 text-xs rounded-full border border-dashed border-blue-300 text-blue-700 hover:bg-blue-50 disabled:opacity-60"
             >
-              Add scene
+              <EditableText id="screenplay-add-scene">Add scene</EditableText>
             </button>
           </div>
           {loading ? (
-            <div className="text-sm text-gray-500">Loading screenplay...</div>
+            <div className="text-sm text-gray-500"><EditableText id="screenplay-loading">Loading screenplay...</EditableText></div>
           ) : sortedScenes.length === 0 ? (
             <div className="text-sm text-gray-500">
-              No scenes yet. Use the "Add scene" button above to create your first
-              scene.
+              <EditableText id="screenplay-no-scenes">No scenes yet. Use the "Add scene" button above to create your first
+              scene.</EditableText>
             </div>
           ) : (
             <div className="space-y-8 font-mono text-[13px]">
@@ -926,14 +1042,14 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
                           onClick={() => handleCloneScene(scene)}
                           className="px-2 py-0.5 border border-dashed border-gray-300 rounded-full hover:bg-gray-50"
                         >
-                          Clone
+                          <EditableText id="screenplay-clone-scene">Clone</EditableText>
                         </button>
                         <button
                           type="button"
                           onClick={() => handleDeleteScene(scene)}
                           className="px-2 py-0.5 border border-dashed border-red-300 text-red-600 rounded-full hover:bg-red-50"
                         >
-                          Delete
+                          <EditableText id="screenplay-delete-scene">Delete</EditableText>
                         </button>
                       </div>
                     </div>
@@ -981,7 +1097,7 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
                                 disabled={!canEdit}
                                 className="ml-auto px-2 py-0.5 border border-dashed border-red-200 text-red-600 rounded-full hover:bg-red-50 disabled:opacity-50"
                               >
-                                Delete
+                                <EditableText id="screenplay-delete-block">Delete</EditableText>
                               </button>
                             </div>
                             <textarea
@@ -1012,11 +1128,11 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
                         disabled={!canEdit}
                         className="mt-2 inline-flex items-center px-3 py-1 text-[11px] rounded-full border border-dashed border-blue-300 text-blue-700 hover:bg-blue-50 disabled:opacity-50"
                       >
-                        Add element
+                        <EditableText id="screenplay-add-element">Add element</EditableText>
                       </button>
                       {/* Scene-specific comments */}
                       <div className="mt-4 border-t pt-3">
-                        <h4 className="text-[11px] font-semibold mb-1">Scene comments</h4>
+                        <h4 className="text-[11px] font-semibold mb-1"><EditableText id="screenplay-scene-comments">Scene comments</EditableText></h4>
                         <SceneComments sceneId={scene.scene_id} screenplayId={screenplayId} />
                       </div>
                     </div>
@@ -1026,6 +1142,30 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
             </div>
           )}
         </div>
+      )}
+
+      {/* Revisions — Compare Revisions */}
+      {screenplayId && (
+        <div className="border rounded-lg bg-white p-4 shadow-sm">
+          <h2 className="text-sm font-semibold text-gray-700 mb-4"><EditableText id="screenplay-revisions-heading">Revisions</EditableText></h2>
+          <ScreenplayRevisionsSection
+            screenplayId={screenplayId}
+            scenes={scenes}
+          />
+        </div>
+      )}
+
+      {/* Export Dialog */}
+      {screenplayId && (
+        <ExportDialog
+          open={exportDialogOpen}
+          onOpenChange={setExportDialogOpen}
+          getContentHtml={getScreenplayContentHtml}
+          getContentMarkdown={getScreenplayContentMarkdown}
+          getTitle={getScreenplayTitle}
+          contentType="screenplay"
+          contentId={screenplayId}
+        />
       )}
     </div>
   );

@@ -64,7 +64,6 @@ import EditableBio from "@/components/EditableBio";
 import { useToast } from "@/hooks/use-toast";
 import ResponsiveTabsTrigger from "@/components/ResponsiveTabsTrigger";
 import { useIsMobile } from "@/hooks/use-mobile";
-import RevisionComparison from "@/components/RevisionComparison";
 import CommunicationsSection from "@/components/CommunicationsSection";
 import StatsDisplay from "@/components/StatsDisplay";
 import CreativeSpacesModule, { CreativeSpace } from "@/modules/creative spaces";
@@ -74,6 +73,7 @@ import FavoriteStories from "@/modules/favorite stories";
 import LivingExperiencingStories from "@/modules/living-experiencing stories";
 import LivedExperiencedStories from "@/modules/lived-experienced stories";
 import UserInteractionsWidget from "@/modules/UserInteractionsWidget";
+import GroupsManager from "@/modules/groups";
 
 // Use same-origin API base in development; dev server proxies to backend.
 // In production, VITE_API_BASE_URL can point at the deployed API.
@@ -84,7 +84,7 @@ const API_BASE = import.meta.env.PROD
 const INITIAL_PROFILE = {
   first_name: "",
   last_name: "",
-  nickname: "",
+  profile_page_name: "",
   about: "",
   bio: "",
   interests: [],
@@ -95,6 +95,7 @@ const INITIAL_PROFILE = {
   social_snapchat: "",
   social_instagram: "",
   social_other: "",
+  social_other_links: [] as { name: string; address: string }[],
   telephone: "",
   notify_phone: false,
   notify_app: true,
@@ -173,13 +174,6 @@ const Profile = () => {
 
   // Responsive design
   const isMobile = useIsMobile();
-
-  // For the revision history
-  const revisions = [
-    { id: 1, text: "Text 1", time: "11:28" },
-    { id: 2, text: "Text 2", time: "12:15" },
-    { id: 3, text: "Text 3", time: "14:30" },
-  ];
 
   // Add contribution filter state
   const [contributionFilter, setContributionFilter] = useState<"total" | "approved" | "denied" | "undecided">("total");
@@ -1072,7 +1066,7 @@ const Profile = () => {
         <div className="mb-8">
           <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
             <Cloud className="h-5 w-5 text-purple-600" />
-            Space(s)
+            <EditableText id="profile-spaces-heading">Space(s)</EditableText>
           </h2>
           <CreativeSpacesModule
             spaces={creativeSpaces}
@@ -1123,7 +1117,7 @@ const Profile = () => {
         <div className="mb-8">
           <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
             <BookOpen className="h-5 w-5 text-purple-600" />
-            Stories I'm creating / co-creating
+            <EditableText id="profile-page-stories-creating">Stories I'm creating / co-creating</EditableText>
             {!previewMode && authUser?.id && (
               <Popover open={storiesSettingsOpen} onOpenChange={setStoriesSettingsOpen}>
                 <PopoverTrigger asChild>
@@ -1138,7 +1132,7 @@ const Profile = () => {
                 <PopoverContent className="w-80 p-3" align="start">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Visibility</span>
+                      <span className="text-sm font-medium"><EditableText id="profile-stories-vis-label">Visibility</EditableText></span>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -1169,7 +1163,7 @@ const Profile = () => {
                           className="flex items-center gap-1 cursor-pointer"
                         >
                           <Eye className="h-3 w-3 text-green-600" />
-                          <span>Make visible (Public)</span>
+                          <EditableText id="profile-stories-vis-public">Make visible (Public)</EditableText>
                         </Label>
                       </div>
                       <div className="flex items-center gap-2 cursor-pointer">
@@ -1179,7 +1173,7 @@ const Profile = () => {
                           className="flex items-center gap-1 cursor-pointer"
                         >
                           <EyeOff className="h-3 w-3 text-gray-600" />
-                          <span>Make invisible (Private)</span>
+                          <EditableText id="profile-stories-vis-private">Make invisible (Private)</EditableText>
                         </Label>
                       </div>
                       <div className="flex items-center gap-2 cursor-pointer">
@@ -1189,7 +1183,7 @@ const Profile = () => {
                           className="flex items-center gap-1 cursor-pointer"
                         >
                           <Users className="h-3 w-3 text-purple-600" />
-                          <span>Friends only</span>
+                          <EditableText id="profile-stories-vis-friends">Friends only</EditableText>
                         </Label>
                       </div>
                       <div className="flex flex-col gap-1">
@@ -1200,7 +1194,7 @@ const Profile = () => {
                             className="flex items-center gap-1 cursor-pointer"
                           >
                             <User className="h-3 w-3 text-purple-600" />
-                            <span>Selected users only</span>
+                            <EditableText id="profile-stories-vis-selected">Selected users only</EditableText>
                           </Label>
                         </div>
                         {getContainerVisibility("stories") === "selected" && (
@@ -1227,13 +1221,13 @@ const Profile = () => {
               to="/stories/spaces-migration"
               className="ml-auto text-xs text-blue-700 hover:underline"
             >
-              Manage story–Space assignments
+              <EditableText id="profile-manage-story-spaces">Manage story–Space assignments</EditableText>
             </Link>
           </h2>
           {storiesLoading ? (
-            <div className="text-gray-500 text-sm">Loading your stories...</div>
+            <div className="text-gray-500 text-sm"><EditableText id="profile-loading-stories">Loading your stories...</EditableText></div>
           ) : userStories.length === 0 ? (
-            <div className="text-gray-400 text-sm italic">You are not yet creating or co-creating any stories.</div>
+            <div className="text-gray-400 text-sm italic"><EditableText id="profile-no-stories">You are not yet creating or co-creating any stories.</EditableText></div>
           ) : (
             <ul className="space-y-1 text-sm">
               {userStories.map((s) => (
@@ -1257,7 +1251,7 @@ const Profile = () => {
         <div className="mb-8">
           <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
             <FileText className="h-5 w-5 text-purple-600" />
-            Screenplays I'm creating / co-creating
+            <EditableText id="profile-page-screenplays-creating">Screenplays I'm creating / co-creating</EditableText>
             {!previewMode && authUser?.id && (
               <Popover
                 open={screenplaysSettingsOpen}
@@ -1275,7 +1269,7 @@ const Profile = () => {
                 <PopoverContent className="w-80 p-3" align="start">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Visibility</span>
+                      <span className="text-sm font-medium"><EditableText id="profile-screenplays-vis-label">Visibility</EditableText></span>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -1306,7 +1300,7 @@ const Profile = () => {
                           className="flex items-center gap-1 cursor-pointer"
                         >
                           <Eye className="h-3 w-3 text-green-600" />
-                          <span>Make visible (Public)</span>
+                          <EditableText id="profile-screenplays-vis-public">Make visible (Public)</EditableText>
                         </Label>
                       </div>
                       <div className="flex items-center gap-2 cursor-pointer">
@@ -1316,7 +1310,7 @@ const Profile = () => {
                           className="flex items-center gap-1 cursor-pointer"
                         >
                           <EyeOff className="h-3 w-3 text-gray-600" />
-                          <span>Make invisible (Private)</span>
+                          <EditableText id="profile-screenplays-vis-private">Make invisible (Private)</EditableText>
                         </Label>
                       </div>
                       <div className="flex items-center gap-2 cursor-pointer">
@@ -1326,7 +1320,7 @@ const Profile = () => {
                           className="flex items-center gap-1 cursor-pointer"
                         >
                           <Users className="h-3 w-3 text-purple-600" />
-                          <span>Friends only</span>
+                          <EditableText id="profile-screenplays-vis-friends">Friends only</EditableText>
                         </Label>
                       </div>
                       <div className="flex flex-col gap-1">
@@ -1337,7 +1331,7 @@ const Profile = () => {
                             className="flex items-center gap-1 cursor-pointer"
                           >
                             <User className="h-3 w-3 text-purple-600" />
-                            <span>Selected users only</span>
+                            <EditableText id="profile-screenplays-vis-selected">Selected users only</EditableText>
                           </Label>
                         </div>
                         {getContainerVisibility("screenplays") === "selected" && (
@@ -1362,9 +1356,9 @@ const Profile = () => {
             )}
           </h2>
           {screenplaysLoading ? (
-            <div className="text-gray-500 text-sm">Loading your screenplays...</div>
+            <div className="text-gray-500 text-sm"><EditableText id="profile-loading-screenplays">Loading your screenplays...</EditableText></div>
           ) : userScreenplays.length === 0 ? (
-            <div className="text-gray-400 text-sm italic">You are not yet creating any screenplays.</div>
+            <div className="text-gray-400 text-sm italic"><EditableText id="profile-no-screenplays">You are not yet creating any screenplays.</EditableText></div>
           ) : (
             <ul className="space-y-1 text-sm">
               {userScreenplays.map((sp) => (
@@ -1397,7 +1391,7 @@ const Profile = () => {
           <section>
             <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
               <Heart className="h-5 w-5 text-pink-600" />
-              Favorites
+              <EditableText id="profile-page-favorites">Favorites</EditableText>
               {!previewMode && authUser?.id && (
                 <Popover open={favoritesSettingsOpen} onOpenChange={setFavoritesSettingsOpen}>
                   <PopoverTrigger asChild>
@@ -1412,7 +1406,7 @@ const Profile = () => {
                   <PopoverContent className="w-80 p-3" align="start">
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Visibility</span>
+                        <span className="text-sm font-medium"><EditableText id="profile-favorites-vis-label">Visibility</EditableText></span>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -1443,7 +1437,7 @@ const Profile = () => {
                             className="flex items-center gap-1 cursor-pointer"
                           >
                             <Eye className="h-3 w-3 text-green-600" />
-                            <span>Make visible (Public)</span>
+                            <EditableText id="profile-favorites-vis-public">Make visible (Public)</EditableText>
                           </Label>
                         </div>
                         <div className="flex items-center gap-2 cursor-pointer">
@@ -1453,7 +1447,7 @@ const Profile = () => {
                             className="flex items-center gap-1 cursor-pointer"
                           >
                             <EyeOff className="h-3 w-3 text-gray-600" />
-                            <span>Make invisible (Private)</span>
+                            <EditableText id="profile-favorites-vis-private">Make invisible (Private)</EditableText>
                           </Label>
                         </div>
                         <div className="flex items-center gap-2 cursor-pointer">
@@ -1463,7 +1457,7 @@ const Profile = () => {
                             className="flex items-center gap-1 cursor-pointer"
                           >
                             <Users className="h-3 w-3 text-purple-600" />
-                            <span>Friends only</span>
+                            <EditableText id="profile-favorites-vis-friends">Friends only</EditableText>
                           </Label>
                         </div>
                         <div className="flex flex-col gap-1">
@@ -1474,7 +1468,7 @@ const Profile = () => {
                               className="flex items-center gap-1 cursor-pointer"
                             >
                               <User className="h-3 w-3 text-purple-600" />
-                              <span>Selected users only</span>
+                              <EditableText id="profile-favorites-vis-selected">Selected users only</EditableText>
                             </Label>
                           </div>
                           {getContainerVisibility("favorites") === "selected" && (
@@ -1503,7 +1497,7 @@ const Profile = () => {
           <section>
             <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
               <Bookmark className="h-5 w-5 text-purple-600" />
-              Living / Experiencing the story(-ies)
+              <EditableText id="profile-page-living-stories">Living / Experiencing the story(-ies)</EditableText>
               {!previewMode && authUser?.id && (
                 <Popover open={livingSettingsOpen} onOpenChange={setLivingSettingsOpen}>
                   <PopoverTrigger asChild>
@@ -1518,7 +1512,7 @@ const Profile = () => {
                   <PopoverContent className="w-80 p-3" align="start">
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Visibility</span>
+                        <span className="text-sm font-medium"><EditableText id="profile-living-vis-label">Visibility</EditableText></span>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -1549,7 +1543,7 @@ const Profile = () => {
                             className="flex items-center gap-1 cursor-pointer"
                           >
                             <Eye className="h-3 w-3 text-green-600" />
-                            <span>Make visible (Public)</span>
+                            <EditableText id="profile-living-vis-public">Make visible (Public)</EditableText>
                           </Label>
                         </div>
                         <div className="flex items-center gap-2 cursor-pointer">
@@ -1559,7 +1553,7 @@ const Profile = () => {
                             className="flex items-center gap-1 cursor-pointer"
                           >
                             <EyeOff className="h-3 w-3 text-gray-600" />
-                            <span>Make invisible (Private)</span>
+                            <EditableText id="profile-living-vis-private">Make invisible (Private)</EditableText>
                           </Label>
                         </div>
                         <div className="flex items-center gap-2 cursor-pointer">
@@ -1569,7 +1563,7 @@ const Profile = () => {
                             className="flex items-center gap-1 cursor-pointer"
                           >
                             <Users className="h-3 w-3 text-purple-600" />
-                            <span>Friends only</span>
+                            <EditableText id="profile-living-vis-friends">Friends only</EditableText>
                           </Label>
                         </div>
                         <div className="flex flex-col gap-1">
@@ -1580,7 +1574,7 @@ const Profile = () => {
                               className="flex items-center gap-1 cursor-pointer"
                             >
                               <User className="h-3 w-3 text-purple-600" />
-                              <span>Selected users only</span>
+                              <EditableText id="profile-living-vis-selected">Selected users only</EditableText>
                             </Label>
                           </div>
                           {getContainerVisibility("living") === "selected" && (
@@ -1609,7 +1603,7 @@ const Profile = () => {
           <section>
             <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
               <BookOpen className="h-5 w-5 text-teal-600" />
-              Lived / Experienced those story(-ies)
+              <EditableText id="profile-page-lived-stories">Lived / Experienced those story(-ies)</EditableText>
               {!previewMode && authUser?.id && (
                 <Popover open={livedSettingsOpen} onOpenChange={setLivedSettingsOpen}>
                   <PopoverTrigger asChild>
@@ -1624,7 +1618,7 @@ const Profile = () => {
                   <PopoverContent className="w-80 p-3" align="start">
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Visibility</span>
+                        <span className="text-sm font-medium"><EditableText id="profile-lived-vis-label">Visibility</EditableText></span>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -1655,7 +1649,7 @@ const Profile = () => {
                             className="flex items-center gap-1 cursor-pointer"
                           >
                             <Eye className="h-3 w-3 text-green-600" />
-                            <span>Make visible (Public)</span>
+                            <EditableText id="profile-lived-vis-public">Make visible (Public)</EditableText>
                           </Label>
                         </div>
                         <div className="flex items-center gap-2 cursor-pointer">
@@ -1665,7 +1659,7 @@ const Profile = () => {
                             className="flex items-center gap-1 cursor-pointer"
                           >
                             <EyeOff className="h-3 w-3 text-gray-600" />
-                            <span>Make invisible (Private)</span>
+                            <EditableText id="profile-lived-vis-private">Make invisible (Private)</EditableText>
                           </Label>
                         </div>
                         <div className="flex items-center gap-2 cursor-pointer">
@@ -1675,7 +1669,7 @@ const Profile = () => {
                             className="flex items-center gap-1 cursor-pointer"
                           >
                             <Users className="h-3 w-3 text-purple-600" />
-                            <span>Friends only</span>
+                            <EditableText id="profile-lived-vis-friends">Friends only</EditableText>
                           </Label>
                         </div>
                         <div className="flex flex-col gap-1">
@@ -1686,7 +1680,7 @@ const Profile = () => {
                               className="flex items-center gap-1 cursor-pointer"
                             >
                               <User className="h-3 w-3 text-purple-600" />
-                              <span>Selected users only</span>
+                              <EditableText id="profile-lived-vis-selected">Selected users only</EditableText>
                             </Label>
                           </div>
                           {getContainerVisibility("lived") === "selected" && (
@@ -1715,6 +1709,16 @@ const Profile = () => {
         </div>
 
  
+        {/* My Groups Section - Only shown when not in preview mode */}
+        {!previewMode && authUser?.id && (
+          <div className="mb-12">
+            <h1 className="text-4xl font-bold mb-6 text-[#1A1F2C]">
+              <EditableText id="my-groups">My Groups</EditableText>
+            </h1>
+            <GroupsManager userId={authUser.id} />
+          </div>
+        )}
+
         {/* Stats & Activity Section - Only shown when not in preview mode */}
         {!previewMode && (
           <div className="mb-12 space-y-6">
@@ -1722,7 +1726,7 @@ const Profile = () => {
 
             <div>
               {contributionsLoading ? (
-                <div className="text-sm text-gray-500">Loading contributions...</div>
+                <div className="text-sm text-gray-500"><EditableText id="profile-loading-contributions">Loading contributions...</EditableText></div>
               ) : (
                 <ContributionsModule
                   contributions={contributions}
@@ -1735,15 +1739,6 @@ const Profile = () => {
           </div>
         )}
 
-        {/* Hide editing features in preview mode */}
-        {!previewMode && (
-          <>
-            {/* Revisions Section */}
-            <div className="mb-12">
-              <RevisionComparison revisions={revisions} />
-            </div>
-          </>
-        )}
 
         {/* Communications Section */}
         <div className="mb-12">
@@ -1761,7 +1756,7 @@ const Profile = () => {
             {/* MOVED: Notification checkboxes inline & styled horizontally */}
             <Label className="text-sm text-gray-500 flex items-center gap-2 mb-3">
               <Zap className="w-4 h-4 inline mb-1 mr-1" />
-              Notifications
+              <EditableText id="profile-notifications-label">Notifications</EditableText>
             </Label>
             <div className="flex items-center gap-6">
               <label className="flex items-center gap-2">
@@ -1770,7 +1765,7 @@ const Profile = () => {
                   disabled={previewMode}
                   onCheckedChange={val => handleNotifChange("notify_phone", Boolean(val))}
                 />
-                Phone
+                <EditableText id="profile-notif-phone">Phone</EditableText>
               </label>
               <label className="flex items-center gap-2">
                 <Checkbox
@@ -1778,7 +1773,7 @@ const Profile = () => {
                   disabled={previewMode}
                   onCheckedChange={val => handleNotifChange("notify_app", Boolean(val))}
                 />
-                App
+                <EditableText id="profile-notif-app">App</EditableText>
               </label>
               <label className="flex items-center gap-2">
                 <Checkbox
@@ -1786,7 +1781,7 @@ const Profile = () => {
                   disabled={previewMode}
                   onCheckedChange={val => handleNotifChange("notify_email", Boolean(val))}
                 />
-                Email
+                <EditableText id="profile-notif-email">Email</EditableText>
               </label>
             </div>
           </div>

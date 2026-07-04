@@ -13,6 +13,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { ImportDialog } from "@/modules/import-export";
 import FavoriteStories from "@/modules/favorite stories";
 import LivingExperiencingStories from "@/modules/living-experiencing stories";
 import LivedExperiencedStories from "@/modules/lived-experienced stories";
@@ -29,6 +30,8 @@ interface NewestStory {
   created_at: string;
   story_title: string;
   story_title_id: string;
+  language?: string;
+  cover_image_url?: string | null;
 }
 
 
@@ -39,6 +42,8 @@ interface MostActiveStory {
   story_title: string;
   story_title_id: string;
   last_activity_at: string;
+  language?: string;
+  cover_image_url?: string | null;
 }
 
 interface NewestScreenplay {
@@ -65,6 +70,8 @@ interface MostPopularStory {
   like_count: number;
   favorite_count: number;
   popularity_score: number;
+  language?: string;
+  cover_image_url?: string | null;
 }
 
 interface MostPopularScreenplay {
@@ -83,6 +90,7 @@ const Index = () => {
   const { user, hasRole, roles } = useAuth();
   const navigate = useNavigate();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   // Debug logging
   useEffect(() => {
@@ -140,6 +148,8 @@ const Index = () => {
               created_at: item.created_at,
               story_title_id: item.story_title_id,
               story_title: item.story_title || "Untitled Story",
+              language: item.language || null,
+              cover_image_url: item.cover_image_url || null,
             })),
           );
         }
@@ -174,6 +184,8 @@ const Index = () => {
               story_title_id: item.story_title_id,
               story_title: item.story_title || "Untitled Story",
               last_activity_at: item.last_activity_at || item.created_at,
+              language: item.language || null,
+              cover_image_url: item.cover_image_url || null,
             })),
           );
         }
@@ -275,6 +287,8 @@ const Index = () => {
               like_count: Number(item.like_count ?? 0),
               favorite_count: Number(item.favorite_count ?? 0),
               popularity_score: Number(item.popularity_score ?? 0),
+              language: item.language || null,
+              cover_image_url: item.cover_image_url || null,
             })),
           );
         }
@@ -348,87 +362,122 @@ const Index = () => {
                 <span className="bg-gradient-to-r from-pink-400 via-indigo-500 to-blue-700 bg-clip-text text-transparent">
                   Crowdly
                 </span>
-                <span className="text-lg md:text-xl font-normal text-gray-600 dark:text-gray-300 pl-2">
-                  <EditableText id="platform-slogan">Crowd-created stories that branch & grow—Experience, Create, Collaborate.</EditableText>
-                </span>
               </h1>
               <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-2xl mb-7 animate-fade-in">
-                <EditableText id="main-hero-description">
-                  Discover, create, and live amazing branching stories—rich in text, audio, and video—collaboratively built by the crowd, for the world. Versioned, multilingual, and unlimited.
+                <EditableText id="main-platform-description">
+Crowd-created stories that branch and grow — discover, experience, create, collaborate, and live amazing branching narratives rich in text, audio, and video, collectively crafted for the world — versioned, multilingual, and unlimited.
                 </EditableText>
               </p>
           {/* Create New Story Link - Now for EVERYONE, different link depending on logged in */}
-          <div className="mb-4 animate-fade-in">
+          <div className="mb-4 animate-fade-in flex flex-wrap items-center gap-4">
             {user ? (
-              <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-                <DialogTrigger asChild>
-                  <button
-                    type="button"
-                    className="group inline-flex items-center px-8 py-3 text-lg font-semibold rounded-2xl shadow-none focus:outline-none relative"
-                    style={{
-                      background: "linear-gradient(to right, #ff43b0 0%, #6c63ff 100%)",
-                    }}
-                  >
-                    {/* Bottom pink shadow effect */}
-                    <span
-                      aria-hidden
-                      className="absolute inset-0 rounded-2xl"
+              <>
+                <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+                  <DialogTrigger asChild>
+                    <button
+                      type="button"
+                      className="group inline-flex items-center px-8 py-3 text-lg font-semibold rounded-2xl shadow-none focus:outline-none relative"
                       style={{
-                        boxShadow: "0 6px 0 0 #f9a8d4", // tailwind's pink-300
-                        opacity: "0.44",
-                        zIndex: 0,
+                        background: "linear-gradient(to right, #ff43b0 0%, #6c63ff 100%)",
                       }}
-                    ></span>
-                    <span className="flex items-center z-10 relative text-white">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="mr-3"
-                        width="28"
-                        height="28"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                        strokeWidth={2}
-                      >
-                        <rect x="3" y="5" width="18" height="14" rx="2" stroke="white" strokeWidth="2" />
-                        <path d="M16 3v4M8 3v4" stroke="white" strokeWidth="2" strokeLinecap="round" />
-                      </svg>
-                      <span>
-                        <EditableText id="hero-create-new-story">
-                          Create a New Amazing Story
-                        </EditableText>
+                    >
+                      {/* Bottom pink shadow effect */}
+                      <span
+                        aria-hidden
+                        className="absolute inset-0 rounded-2xl"
+                        style={{
+                          boxShadow: "0 6px 0 0 #f9a8d4", // tailwind's pink-300
+                          opacity: "0.44",
+                          zIndex: 0,
+                        }}
+                      ></span>
+                      <span className="flex items-center z-10 relative text-white">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="mr-3"
+                          width="28"
+                          height="28"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <rect x="3" y="5" width="18" height="14" rx="2" stroke="white" strokeWidth="2" />
+                          <path d="M16 3v4M8 3v4" stroke="white" strokeWidth="2" strokeLinecap="round" />
+                        </svg>
+                        <span>
+                          <EditableText id="hero-create-new-story">
+                            Create a New Amazing Story
+                          </EditableText>
+                        </span>
                       </span>
-                    </span>
-                  </button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>What would you like to create?</DialogTitle>
-                  </DialogHeader>
-                  <div className="mt-4 flex flex-col gap-3">
-                    <button
-                      type="button"
-                      className="w-full px-4 py-2 rounded border bg-white hover:bg-gray-50 text-sm text-left"
-                      onClick={() => {
-                        setCreateDialogOpen(false);
-                        navigate("/new-story-template?type=story");
-                      }}
-                    >
-                      Regular story (novel)
                     </button>
-                    <button
-                      type="button"
-                      className="w-full px-4 py-2 rounded border bg-white hover:bg-gray-50 text-sm text-left"
-                      onClick={() => {
-                        setCreateDialogOpen(false);
-                        navigate("/new-story-template?type=screenplay");
-                      }}
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>What would you like to create?</DialogTitle>
+                    </DialogHeader>
+                    <div className="mt-4 flex flex-col gap-3">
+                      <button
+                        type="button"
+                        className="w-full px-4 py-2 rounded border bg-white hover:bg-gray-50 text-sm text-left"
+                        onClick={() => {
+                          setCreateDialogOpen(false);
+                          navigate("/new-story-template?type=story");
+                        }}
+                      >
+                        Regular story (novel)
+                      </button>
+                      <button
+                        type="button"
+                        className="w-full px-4 py-2 rounded border bg-white hover:bg-gray-50 text-sm text-left"
+                        onClick={() => {
+                          setCreateDialogOpen(false);
+                          navigate("/new-story-template?type=screenplay");
+                        }}
+                      >
+                        Screenplay story
+                      </button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
+                {/* Import an Amazing Story */}
+                <button
+                  type="button"
+                  onClick={() => setImportDialogOpen(true)}
+                  className="group inline-flex items-center px-8 py-3 text-lg font-semibold rounded-2xl shadow-none focus:outline-none relative"
+                  style={{
+                    background: "linear-gradient(to right, #6c63ff 0%, #00b4d8 100%)",
+                  }}
+                >
+                  <span
+                    aria-hidden
+                    className="absolute inset-0 rounded-2xl"
+                    style={{
+                      boxShadow: "0 6px 0 0 #93c5fd",
+                      opacity: "0.44",
+                      zIndex: 0,
+                    }}
+                  ></span>
+                  <span className="flex items-center z-10 relative text-white">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="mr-3"
+                      width="28"
+                      height="28"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
                     >
-                      Screenplay story
-                    </button>
-                  </div>
-                </DialogContent>
-              </Dialog>
+                      <path d="M12 3v12M12 15l-4-4M12 15l4-4" strokeLinecap="round" strokeLinejoin="round" />
+                      <path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" strokeLinecap="round" />
+                    </svg>
+                    <span><EditableText id="hero-import-amazing-story">Import an Amazing Story</EditableText></span>
+                  </span>
+                </button>
+              </>
             ) : (
               <Link
                 to="/login"
@@ -470,6 +519,9 @@ const Index = () => {
               </Link>
             )}
           </div>
+
+          {/* Import Dialog */}
+          <ImportDialog open={importDialogOpen} onOpenChange={setImportDialogOpen} />
             </div>
             {/* Hero Illustrative Side */}
             <div className="hidden md:block flex-1 relative">
@@ -571,9 +623,23 @@ const Index = () => {
                         className="block rounded-md bg-white dark:bg-slate-800/80 hover:bg-indigo-50 dark:hover:bg-indigo-900/40 transition p-4 shadow ring-1 ring-indigo-100 dark:ring-indigo-900/30 hover-scale group"
                         title={story.story_title}
                       >
-                        <div className="font-medium text-base mb-0.5 truncate text-indigo-700 dark:text-indigo-100 group-hover:underline">{story.story_title}</div>
-                        <div className="text-xs text-gray-700 dark:text-gray-300">{story.chapter_title}</div>
-                        <div className="text-[11px] text-gray-400 mt-1">{new Date(story.created_at).toLocaleString()}</div>
+                        <div className="flex items-start gap-3">
+                          {story.cover_image_url && (
+                            <img src={story.cover_image_url} alt="" className="h-12 w-12 rounded object-cover flex-shrink-0" />
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 mb-0.5">
+                              <span className="font-medium text-base truncate text-indigo-700 dark:text-indigo-100 group-hover:underline">{story.story_title}</span>
+                              {story.language && (
+                                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 flex-shrink-0">
+                                  {story.language.toUpperCase()}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-700 dark:text-gray-300">{story.chapter_title}</div>
+                            <div className="text-[11px] text-gray-400 mt-1">{new Date(story.created_at).toLocaleString()}</div>
+                          </div>
+                        </div>
                       </Link>
                     ))}
                   </div>
@@ -651,22 +717,36 @@ const Index = () => {
                         className="block rounded-md bg-white dark:bg-slate-800/80 hover:bg-amber-50 dark:hover:bg-amber-900/40 transition p-4 shadow ring-1 ring-amber-100 dark:ring-amber-900/30 hover-scale group"
                         title={story.story_title}
                       >
-                        <div className="font-medium text-base mb-0.5 truncate text-amber-700 dark:text-amber-100 group-hover:underline">
-                          {story.story_title}
-                        </div>
-                        <div className="text-xs text-gray-700 dark:text-gray-300">{story.chapter_title}</div>
-                        <div className="mt-2 flex items-center justify-between text-[11px] text-gray-400">
-                          <span>{new Date(story.created_at).toLocaleString()}</span>
-                          <span className="flex items-center gap-2">
-                            <span className="inline-flex items-center gap-1">
-                              <Heart className="h-3 w-3 text-pink-500" />
-                              <span>{story.like_count}</span>
-                            </span>
-                            <span className="inline-flex items-center gap-1">
-                              <Bookmark className="h-3 w-3 text-amber-500" />
-                              <span>{story.favorite_count}</span>
-                            </span>
-                          </span>
+                        <div className="flex items-start gap-3">
+                          {story.cover_image_url && (
+                            <img src={story.cover_image_url} alt="" className="h-12 w-12 rounded object-cover flex-shrink-0" />
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 mb-0.5">
+                              <span className="font-medium text-base truncate text-amber-700 dark:text-amber-100 group-hover:underline">
+                                {story.story_title}
+                              </span>
+                              {story.language && (
+                                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 flex-shrink-0">
+                                  {story.language.toUpperCase()}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-700 dark:text-gray-300">{story.chapter_title}</div>
+                            <div className="mt-2 flex items-center justify-between text-[11px] text-gray-400">
+                              <span>{new Date(story.created_at).toLocaleString()}</span>
+                              <span className="flex items-center gap-2">
+                                <span className="inline-flex items-center gap-1">
+                                  <Heart className="h-3 w-3 text-pink-500" />
+                                  <span>{story.like_count}</span>
+                                </span>
+                                <span className="inline-flex items-center gap-1">
+                                  <Bookmark className="h-3 w-3 text-amber-500" />
+                                  <span>{story.favorite_count}</span>
+                                </span>
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       </Link>
                     ))}
@@ -681,7 +761,7 @@ const Index = () => {
               <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/18 rounded-t-xl px-4 py-2">
                 <CardTitle className="flex items-center gap-1 text-lg font-semibold">
                   <Flame className="text-amber-600" size={18} />
-                  <EditableText id="mostPopularStories">Most Popular Screenplays</EditableText>
+                  <EditableText id="mostPopularScreenplays">Most Popular Screenplays</EditableText>
                 </CardTitle>
                 <CardDescription className="text-xs mt-0.5">Trending screenplays loved by the community</CardDescription>
               </CardHeader>
@@ -731,7 +811,7 @@ const Index = () => {
               <CardHeader className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/18 rounded-t-xl px-4 py-2">
                 <CardTitle className="flex items-center gap-1 text-lg font-semibold">
                   <Flame className="text-amber-600" size={18} />
-                  <EditableText id="mostPopularStories">Most Active Screenplays</EditableText>
+                  <EditableText id="mostActiveScreenplays">Most Active Screenplays</EditableText>
                 </CardTitle>
                 <CardDescription className="text-xs mt-0.5">Most active screenplays loved by the community</CardDescription>
               </CardHeader>
@@ -789,10 +869,24 @@ const Index = () => {
                         className="block rounded-md bg-white dark:bg-slate-800/80 hover:bg-emerald-50 dark:hover:bg-emerald-900/40 transition p-4 shadow ring-1 ring-emerald-100 dark:ring-emerald-900/30 hover-scale group"
                         title={story.story_title}
                       >
-                        <div className="font-medium text-base mb-0.5 truncate text-emerald-700 dark:text-emerald-100 group-hover:underline">{story.story_title}</div>
-                        <div className="text-xs text-gray-700 dark:text-gray-300">{story.chapter_title}</div>
-                        <div className="text-[11px] text-gray-400 mt-1">
-                          Last activity: {new Date(story.last_activity_at || story.created_at).toLocaleString()}
+                        <div className="flex items-start gap-3">
+                          {story.cover_image_url && (
+                            <img src={story.cover_image_url} alt="" className="h-12 w-12 rounded object-cover flex-shrink-0" />
+                          )}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 mb-0.5">
+                              <span className="font-medium text-base truncate text-emerald-700 dark:text-emerald-100 group-hover:underline">{story.story_title}</span>
+                              {story.language && (
+                                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200 flex-shrink-0">
+                                  {story.language.toUpperCase()}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-gray-700 dark:text-gray-300">{story.chapter_title}</div>
+                            <div className="text-[11px] text-gray-400 mt-1">
+                              Last activity: {new Date(story.last_activity_at || story.created_at).toLocaleString()}
+                            </div>
+                          </div>
                         </div>
                       </Link>
                     ))}

@@ -92,6 +92,22 @@
       <translation>Japanese</translation>
     </message>
     <message>
+      <source>French</source>
+      <translation>Francês</translation>
+    </message>
+    <message>
+      <source>Spanish</source>
+      <translation>Espanhol</translation>
+    </message>
+    <message>
+      <source>German</source>
+      <translation>Alemão</translation>
+    </message>
+    <message>
+      <source>Hindi</source>
+      <translation>Hindi</translation>
+    </message>
+    <message>
       <source>Quit</source>
       <translation>Quit</translation>
     </message>
@@ -126,6 +142,30 @@
     <message>
       <source>as odt</source>
       <translation>as odt</translation>
+    </message>
+    <message>
+      <source>as FDX</source>
+      <translation>as FDX</translation>
+    </message>
+    <message>
+      <source>as FOUNTAIN</source>
+      <translation>as FOUNTAIN</translation>
+    </message>
+    <message>
+      <source>Save as</source>
+      <translation>Save as</translation>
+    </message>
+    <message>
+      <source>as .md file</source>
+      <translation>as .md file</translation>
+    </message>
+    <message>
+      <source>as .story file</source>
+      <translation>as .story file</translation>
+    </message>
+    <message>
+      <source>as .screenplay file</source>
+      <translation>as .screenplay file</translation>
     </message>
     <message>
       <source>Import</source>
@@ -347,5 +387,64 @@ Details: {error}</translation>
       <source>Genre updated.</source>
       <translation>Genre updated.</translation>
     </message>
+    <message>
+      <source>Edit description</source>
+      <translation>Editar descrição</translation>
+    </message>
+    <message>
+      <source>Description</source>
+      <translation>Descrição</translation>
+    </message>
+    <message>
+      <source>Enter description:</source>
+      <translation>Inserir descrição:</translation>
+    </message>
+    <message>
+      <source>Description updated.</source>
+      <translation>Descrição atualizada.</translation>
+    </message>
+    <message>
+      <source>Description deleted.</source>
+      <translation>Descrição excluída.</translation>
+    </message>
+    <message>
+      <source>Session control</source>
+      <translation>Controlo de sessão</translation>
+    </message>
+    <message>
+      <source>Here you can decide how the session control for closing of the app should work.</source>
+      <translation>Aqui pode decidir como o controlo de sessão deve funcionar ao fechar a aplicação.</translation>
+    </message>
+    <message>
+      <source>The app will:</source>
+      <translation>A aplicação irá:</translation>
+    </message>
+    <message>
+      <source>Close all its tabs and clear creative / project Space</source>
+      <translation>Fechar todos os separadores e limpar o espaço criativo / espaço de projeto</translation>
+    </message>
+    <message>
+      <source>Keep the current session (saves all the opened tabs and windows, and the Space remains set)</source>
+      <translation>Manter a sessão atual (guarda todos os separadores e janelas abertos, e o espaço permanece definido)</translation>
+    </message>
+    <message>
+      <source>Save</source>
+      <translation>Guardar</translation>
+    </message>
+    <message>
+      <source>Cancel</source>
+      <translation>Cancelar</translation>
+    </message>
+    <message>
+        <source>No name</source>
+        <translation>Sem nome</translation>
+    </message>
   </context>
+<context>
+    <name>CompareRevisionsWindow</name>
+    <message>
+        <source>Show diff highlights</source>
+        <translation>Mostrar destaques de diferenças</translation>
+    </message>
+</context>
 </TS>

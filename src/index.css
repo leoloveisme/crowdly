@@ -131,4 +131,46 @@
       transform: translateX(0);
     }
   }
+
+  /* Hover scale effect for cards */
+  .hover-scale {
+    transition: transform 200ms ease, box-shadow 200ms ease;
+  }
+
+  .hover-scale:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  }
+}
+
+/* ===================================================================
+   Import / Export Dialog Enhancements (platform shadcn/ui modals)
+   =================================================================== */
+
+/* Dropzone styling for import dialog */
+.import-dropzone {
+  @apply border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors;
+  @apply border-gray-300 hover:border-gray-400;
+}
+
+.import-dropzone.drag-active {
+  @apply border-blue-400 bg-blue-50;
+}
+
+/* Export dialog space list */
+.export-space-list {
+  @apply max-h-[200px] overflow-y-auto border rounded-lg mb-2;
+}
+
+.export-space-item {
+  @apply block w-full px-3 py-2 text-left hover:bg-gray-50 border-b last:border-b-0 transition-colors;
+}
+
+.export-space-item:disabled {
+  @apply opacity-50 cursor-default;
+}
+
+/* Export button styling matching the platform action buttons */
+.export-action-btn {
+  @apply inline-flex items-center px-2 py-1 rounded-full border border-dashed border-indigo-300 text-[11px] text-indigo-700 hover:bg-indigo-50 transition-colors;
 }

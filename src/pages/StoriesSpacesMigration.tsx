@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import EditableText from "@/components/EditableText";
 
 const API_BASE = import.meta.env.PROD
   ? (import.meta.env.VITE_API_BASE_URL ?? "")
@@ -214,11 +215,11 @@ const StoriesSpacesMigration: React.FC = () => {
       <CrowdlyHeader />
       <main className="flex-1 container mx-auto px-4 pt-8 pb-16 max-w-4xl">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold mb-1">Story–Space migration</h1>
-          <p className="text-sm text-gray-600 max-w-2xl">
+          <EditableText id="migration-heading" as="h1" className="text-2xl font-bold mb-1">Story–Space migration</EditableText>
+          <EditableText id="migration-desc" as="p" className="text-sm text-gray-600 max-w-2xl">
             These are your stories that do not yet belong to any Creative Space. Assign them to
             Spaces so desktop project spaces and web stay aligned.
-          </p>
+          </EditableText>
         </div>
 
         {loading ? (
