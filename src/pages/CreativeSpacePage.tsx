@@ -315,8 +315,8 @@ const CreativeSpacePage: React.FC = () => {
       <CrowdlyHeader />
       <div className="container mx-auto px-4 pt-8 pb-16 flex-grow max-w-5xl space-y-6">
         <div className="text-xs mb-2">
-          <Link to="/profile" className="text-blue-700 hover:underline">
-            <EditableText id="space-back-profile">← Back to profile page</EditableText>
+          <Link to="/admin" className="text-blue-700 hover:underline">
+            <EditableText id="space-back-profile">← Back to My Content</EditableText>
           </Link>
         </div>
         <section className="bg-white/90 backdrop-blur border border-slate-200 rounded-2xl p-6 shadow-sm">
