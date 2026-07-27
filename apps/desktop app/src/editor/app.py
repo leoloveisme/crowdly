@@ -9,11 +9,52 @@ import sys
 from pathlib import Path
 import traceback
 
-from PySide6.QtCore import QTranslator
+from PySide6.QtCore import QEvent, QTranslator
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from . import settings
 from .ui.main_window import MainWindow
+
+
+class _CrowdlyApplication(QApplication):
+    """QApplication subclass that captures macOS "Open With" file requests.
+
+    On macOS, launching (or re-activating) the app by double-clicking a
+    file of a registered document type does not pass the file path via
+    ``sys.argv`` the way it does on Linux desktop environments. Instead the
+    OS sends an "Open Documents" Apple Event, which Qt surfaces as a
+    :class:`QFileOpenEvent` delivered to the application instance. We
+    override :meth:`event` to catch it: if the main window already exists
+    (the app was already running), the file is opened immediately; if not
+    (the file launched the app), the path is buffered in
+    ``pending_open_paths`` for :func:`main` to consume once the window has
+    been created.
+    """
+
+    def __init__(self, argv: list[str]) -> None:
+        super().__init__(argv)
+        self.pending_open_paths: list[str] = []
+        self._main_window: MainWindow | None = None
+
+    def set_main_window(self, window: MainWindow) -> None:
+        """Register the main window so further FileOpen events open live."""
+
+        self._main_window = window
+
+    def event(self, event) -> bool:  # pragma: no cover - platform-specific UI wiring
+        if event.type() == QEvent.Type.FileOpen:
+            path = event.file()
+            if path:
+                if self._main_window is not None:
+                    try:
+                        self._main_window._open_paths_from_cli([path])  # type: ignore[attr-defined]
+                    except Exception:
+                        # Never allow file-open handling to crash the app.
+                        pass
+                else:
+                    self.pending_open_paths.append(path)
+            return True
+        return super().event(event)
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -36,7 +77,7 @@ def main(argv: list[str] | None = None) -> None:
         # environments when opening .md files via a file manager).
         argv = sys.argv[1:]
 
-    app = QApplication(sys.argv)
+    app = _CrowdlyApplication(sys.argv)
 
     # Ensure unexpected exceptions in Qt callbacks are logged and surfaced.
     def _excepthook(exc_type, exc, tb):
@@ -61,14 +102,25 @@ def main(argv: list[str] | None = None) -> None:
 
     window = MainWindow(app_settings, translator=translator)
 
+    # Register the window so any FileOpen events arriving from now on (the
+    # app was already running and macOS delivered another "Open With"
+    # request) are opened immediately instead of being buffered.
+    app.set_main_window(window)
+
+    # Combine CLI-provided paths (Linux desktop environments) with any
+    # macOS FileOpen paths that arrived before the window existed (i.e. the
+    # file launched the app in the first place).
+    startup_paths = [*argv, *app.pending_open_paths]
+
     # If file paths were provided on the command line (e.g. when the editor is
-    # invoked as the handler for .md files), open them now so that the initial
-    # window reflects the requested documents.
+    # invoked as the handler for .md files) or via a macOS "Open With"
+    # request, open them now so that the initial window reflects the
+    # requested documents.
     # Otherwise, if the session was saved with "keep_session", restore the
     # previously open tabs.
-    if argv:
+    if startup_paths:
         try:
-            window._open_paths_from_cli(argv)  # type: ignore[attr-defined]
+            window._open_paths_from_cli(startup_paths)  # type: ignore[attr-defined]
         except Exception:
             # Never allow argument handling to prevent the UI from starting.
             pass
