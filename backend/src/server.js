@@ -1,17 +1,68 @@
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import { randomUUID } from 'crypto';
 import { pool } from './db.js';
-import { loginWithEmailPassword, registerWithEmailPassword, changePassword, deleteAccountWithPassword } from './auth.js';
+import { loginWithEmailPassword, registerWithEmailPassword, changePassword, deleteAccountWithPassword, getUserWithRoles } from './auth.js';
 import bcrypt from 'bcryptjs';
 import { sendInvitationEmail, sendApplicationConfirmationEmail, sendApplicationToInvitationEmail } from './email.js';
+import {
+  ensureSessionsTable,
+  createSession,
+  destroySession,
+  requireAuth,
+  SESSION_COOKIE_NAME,
+  SESSION_COOKIE_OPTIONS,
+} from './sessions.js';
+import friendsRouter, { ensureFriendRequestsTable } from './friends.js';
+import followsRouter, { ensureFollowsTable } from './follows.js';
+import notificationsRouter, { ensureNotificationsTable } from './notifications.js';
+import messagingRouter, {
+  ensureConversationsTable,
+  ensureMessagesTable,
+  ensureConversationReadsTable,
+} from './messaging.js';
+import { eventsHandler } from './events.js';
 
 dotenv.config();
 
 const app = express();
-app.use(cors());
+
+// Explicit origin allowlist (not a wildcard) so credentials: true is safe —
+// a wildcard origin cannot be combined with credentialed requests anyway,
+// and the session cookie below depends on this being correct.
+const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:8080,http://localhost:5173')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      // Same-origin requests (e.g. curl, server-to-server) have no Origin header.
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+  }),
+);
 app.use(express.json({ limit: '5mb' }));
+app.use(cookieParser());
+
+// Mounted under /api — the frontend has SPA pages at bare paths like
+// /friends and /communications, so the friends/messaging/notifications API
+// can't live at those same bare paths too (the dev proxy and the browser's
+// own top-level navigation can't tell "serve the app" from "hit the API"
+// apart at the same URL). The rest of this file's routes predate the SPA
+// pages that would collide with them, so they're left as-is.
+app.use('/api', friendsRouter);
+app.use('/api', followsRouter);
+app.use('/api', notificationsRouter);
+app.use('/api', messagingRouter);
+app.get('/api/events', requireAuth, eventsHandler);
 
 // Ensure auxiliary tables / columns exist (best-effort)
 async function ensureStoryAccessTable() {
@@ -1311,6 +1362,22 @@ ensureUserBannedColumn().catch((err) => {
 ensureAdminMessagesTable().catch((err) => {
   console.error('[init] ensureAdminMessagesTable unhandled error:', err);
 });
+
+// Awaited in sequence, unlike the fire-and-forget calls around it — each of
+// these tables has a foreign key into the one before it (conversations ->
+// friend_requests -> local_users), so creating them out of order can fail
+// on a fresh database.
+(async () => {
+  await ensureSessionsTable();
+  await ensureFriendRequestsTable();
+  await ensureFollowsTable();
+  await ensureConversationsTable();
+  await ensureMessagesTable();
+  await ensureConversationReadsTable();
+  await ensureNotificationsTable();
+})().catch((err) => {
+  console.error('[init] friends/messaging table setup unhandled error:', err);
+});
 ensureUserTranslatorLanguagesTable().catch((err) => {
   console.error('[init] ensureUserTranslatorLanguagesTable unhandled error:', err);
 });
@@ -1441,11 +1508,43 @@ app.post('/auth/login', async (req, res) => {
 
   try {
     const authResult = await loginWithEmailPassword(email, password);
+    const session = await createSession(authResult.id);
+    res.cookie(SESSION_COOKIE_NAME, session.token, SESSION_COOKIE_OPTIONS);
     res.json(authResult);
   } catch (err) {
     console.error('[auth/login] failed:', err);
     res.status(401).json({ error: 'Invalid email or password' });
   }
+});
+
+// Confirms the caller's session cookie is still valid server-side and
+// returns the current user — the frontend calls this on load instead of
+// trusting its cached localStorage user indefinitely, since that cache
+// survives session expiry/logout-elsewhere with nothing to invalidate it.
+app.get('/auth/me', requireAuth, async (req, res) => {
+  try {
+    const user = await getUserWithRoles(req.user.id);
+    if (!user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    res.json(user);
+  } catch (err) {
+    console.error('[auth/me] failed:', err);
+    res.status(500).json({ error: 'Failed to load current user' });
+  }
+});
+
+// Invalidates the session server-side (not just clearing the cookie
+// client-side) so a stolen cookie stops working immediately.
+app.post('/auth/logout', async (req, res) => {
+  const token = req.cookies?.[SESSION_COOKIE_NAME];
+  try {
+    await destroySession(token);
+  } catch (err) {
+    console.error('[auth/logout] failed to destroy session:', err);
+  }
+  res.clearCookie(SESSION_COOKIE_NAME, { path: SESSION_COOKIE_OPTIONS.path });
+  res.status(204).send();
 });
 
 // Change password for a logged-in user (local auth)

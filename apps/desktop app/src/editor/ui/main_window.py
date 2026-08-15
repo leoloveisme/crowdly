@@ -838,15 +838,40 @@ class MainWindow(QMainWindow):
             return True
 
         # Inform the user that their current in-memory input would be lost.
-        result = QMessageBox.question(
-            self,
-            self.tr("Unsaved input"),
-            self.tr("Your input will be lost. Do you want to save it?"),
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-            QMessageBox.StandardButton.Yes,
+        # A custom QMessageBox (rather than QMessageBox.question) is used so
+        # that a "Cancel" option can be offered alongside "Yes" / "No", each
+        # with its own hover tooltip explaining what it does.
+        confirm_box = QMessageBox(self)
+        confirm_box.setIcon(QMessageBox.Icon.Question)
+        confirm_box.setWindowTitle(self.tr("Unsaved input"))
+        confirm_box.setText(self.tr("Your input will be lost. Do you want to save it?"))
+
+        cancel_btn = confirm_box.addButton(
+            self.tr("Cancel"), QMessageBox.ButtonRole.RejectRole
+        )
+        cancel_btn.setToolTip(self.tr("This will close the pop-up window."))
+
+        no_btn = confirm_box.addButton(self.tr("No"), QMessageBox.ButtonRole.NoRole)
+        no_btn.setToolTip(
+            self.tr("This will close the window without saving your input.")
         )
 
-        if result == QMessageBox.StandardButton.Yes:
+        yes_btn = confirm_box.addButton(self.tr("Yes"), QMessageBox.ButtonRole.YesRole)
+        yes_btn.setToolTip(self.tr("You'll be able to save your input."))
+
+        confirm_box.setDefaultButton(yes_btn)
+        confirm_box.setEscapeButton(cancel_btn)
+
+        confirm_box.exec()
+        clicked = confirm_box.clickedButton()
+
+        if clicked is cancel_btn:
+            # Cancel the original action entirely and return the user to
+            # where they were; pressing Esc has the same effect via
+            # setEscapeButton() above.
+            return False
+
+        if clicked is yes_btn:
             # Let the user choose where to save the current document.
             default_name = datetime.now().strftime("untitled-%Y%m%d-%H%M%S.md")
             initial = str(Path.home() / default_name)
@@ -5638,8 +5663,13 @@ class MainWindow(QMainWindow):
     def _open_paths_from_cli(self, paths: list[str]) -> None:
         """Open one or more filesystem *paths* passed on the command line.
 
-        The first valid path is loaded into the existing initial tab. Any
-        additional valid paths are opened in new tabs so that multiple
+        The first valid path is loaded into the current tab only when that
+        tab has no content yet (e.g. the blank initial tab on startup).
+        Otherwise -- for example when a file is opened via Finder/the file
+        explorer while the app is already running with a document open --
+        a new tab is created instead, so existing (possibly unsaved) content
+        in the active tab is never silently discarded. Any additional valid
+        paths are always opened in their own new tabs so that multiple
         documents can be viewed side by side. All existing project-space
         behaviour applies because this delegates to :meth:`_load_document_from_path`.
         """
@@ -5679,7 +5709,13 @@ class MainWindow(QMainWindow):
         if not normal_paths:
             return
 
-        # Open the first *non-master* file in the current tab.
+        # Open the first *non-master* file. Reuse the current tab only if it
+        # has no content yet; otherwise open a new tab so we never silently
+        # replace whatever the user was already working on there.
+        current_has_content = bool((getattr(self._document, "content", "") or "").strip())
+        if current_has_content:
+            self._new_tab()
+
         self._load_document_from_path(normal_paths[0])
         try:
             self._tab_widget.setTabText(self._current_tab_index, normal_paths[0].name)

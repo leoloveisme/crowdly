@@ -1,391 +1,257 @@
-
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  MessageSquare, 
-  Heart, 
-  Reply, 
-  Trash2, 
-  FolderUp, 
-  FileSymlink, 
-  Copy, 
-  MoreVertical, 
-  Send 
-} from "lucide-react";
-import EditableText from "@/components/EditableText";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Send, Loader2 } from "lucide-react";
+import EditableText from "@/components/EditableText";
+import { useAuth } from "@/contexts/AuthContext";
+import { useLiveUpdates } from "@/contexts/LiveUpdatesContext";
+import {
+  ConversationSummary,
+  Message,
+  listConversations,
+  listMessages,
+  sendMessage,
+  markConversationRead,
+  openConversationWith,
+} from "@/lib/messagesApi";
+import { toast } from "@/hooks/use-toast";
+import { errorMessage } from "@/lib/apiBase";
 
-interface Message {
-  id: number;
-  user: {
-    name: string;
-    avatar?: string;
-  };
-  content: string;
-  date: string;
-  liked: boolean;
-  likes: number;
+function getInitials(name: string) {
+  return name.trim().charAt(0).toUpperCase() || "U";
 }
 
-const initialMessages: Message[] = [
-  {
-    id: 1,
-    user: {
-      name: "John Doe",
-      avatar: ""
-    },
-    content: "This is a message from another user discussing the story development",
-    date: "2023-05-01 14:30",
-    liked: false,
-    likes: 5
-  },
-  {
-    id: 2,
-    user: {
-      name: "Jane Smith",
-      avatar: ""
-    },
-    content: "I really enjoyed the plot twist in chapter 3, it was unexpected but fit perfectly with the character development",
-    date: "2023-05-02 09:15",
-    liked: true,
-    likes: 3
-  }
-];
+interface CommunicationsSectionProps {
+  // Deep-link into a specific friend's thread (used by the header's message
+  // icon and the Friends page's "Message" button). Opens/creates the
+  // conversation lazily via GET /conversations/with/:friendUserId.
+  initialFriendId?: string;
+}
 
-const initialComments: Message[] = [
-  {
-    id: 3,
-    user: {
-      name: "Alex Johnson",
-      avatar: ""
-    },
-    content: "This is a comment on a specific part of the story, highlighting a detail that was particularly well written",
-    date: "2023-05-03 11:45",
-    liked: false,
-    likes: 2
-  },
-  {
-    id: 4,
-    user: {
-      name: "Sam Wilson",
-      avatar: ""
-    },
-    content: "I think the pacing in this section could be improved to build more tension",
-    date: "2023-05-03 16:20",
-    liked: false,
-    likes: 1
-  }
-];
+const CommunicationsSection: React.FC<CommunicationsSectionProps> = ({ initialFriendId }) => {
+  const { user } = useAuth();
+  const { lastMessageEvent, refresh: refreshLiveUpdates } = useLiveUpdates();
 
-const CommunicationsSection = () => {
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
-  const [comments, setComments] = useState<Message[]>(initialComments);
-  const [newMessage, setNewMessage] = useState('');
-  const [newComment, setNewComment] = useState('');
-  const [replyingTo, setReplyingTo] = useState<number | null>(null);
-  const [replyContent, setReplyContent] = useState('');
-  
-  const handleLike = (id: number, type: 'message' | 'comment') => {
-    if (type === 'message') {
-      setMessages(prev => prev.map(message => {
-        if (message.id === id) {
-          return {
-            ...message,
-            liked: !message.liked,
-            likes: message.liked ? message.likes - 1 : message.likes + 1
-          };
-        }
-        return message;
-      }));
-    } else {
-      setComments(prev => prev.map(comment => {
-        if (comment.id === id) {
-          return {
-            ...comment,
-            liked: !comment.liked,
-            likes: comment.liked ? comment.likes - 1 : comment.likes + 1
-          };
-        }
-        return comment;
-      }));
+  const [conversations, setConversations] = useState<ConversationSummary[] | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Message[] | null>(null);
+  const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  const loadConversations = useCallback(async () => {
+    try {
+      const data = await listConversations();
+      setConversations(data.conversations);
+      setLoadError(false);
+    } catch (err) {
+      console.error("Failed to load conversations", err);
+      setLoadError(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadConversations();
+  }, [loadConversations]);
+
+  useEffect(() => {
+    if (!initialFriendId) return;
+    openConversationWith(initialFriendId)
+      .then((data) => setSelectedId(data.conversation.id))
+      .catch((err) => {
+        console.error("Failed to open conversation", err);
+        toast({ title: "Couldn't open conversation", description: "You may not be friends with this user.", variant: "destructive" });
+      });
+  }, [initialFriendId]);
+
+  useEffect(() => {
+    if (!selectedId) {
+      setMessages(null);
+      return;
+    }
+    let cancelled = false;
+    setMessages(null);
+    listMessages(selectedId)
+      .then((data) => {
+        if (!cancelled) setMessages(data.messages);
+      })
+      .catch((err) => console.error("Failed to load messages", err));
+    markConversationRead(selectedId)
+      .then(refreshLiveUpdates)
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedId, refreshLiveUpdates]);
+
+  // Live message arrival: append to the open thread if it matches, and
+  // always refresh the list so previews/ordering stay current.
+  useEffect(() => {
+    if (!lastMessageEvent) return;
+    if (lastMessageEvent.conversationId === selectedId) {
+      setMessages((prev) => (prev ? [...prev, lastMessageEvent.message] : prev));
+      markConversationRead(selectedId).then(refreshLiveUpdates).catch(() => {});
+    }
+    loadConversations();
+  }, [lastMessageEvent, selectedId, loadConversations, refreshLiveUpdates]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleSend = async () => {
+    const body = draft.trim();
+    if (!body || !selectedId) return;
+    setSending(true);
+    try {
+      const { message } = await sendMessage(selectedId, body);
+      setMessages((prev) => (prev ? [...prev, message] : [message]));
+      setDraft("");
+      loadConversations();
+    } catch (err) {
+      toast({ title: "Couldn't send message", description: errorMessage(err), variant: "destructive" });
+    } finally {
+      setSending(false);
     }
   };
-  
-  const handleDelete = (id: number, type: 'message' | 'comment') => {
-    if (type === 'message') {
-      setMessages(prev => prev.filter(message => message.id !== id));
-    } else {
-      setComments(prev => prev.filter(comment => comment.id !== id));
-    }
-  };
-  
-  const handleReply = (id: number) => {
-    setReplyingTo(replyingTo === id ? null : id);
-    setReplyContent('');
-  };
-  
-  const submitReply = (id: number, type: 'message' | 'comment') => {
-    if (!replyContent.trim()) return;
-    
-    const newReply = {
-      id: Date.now(),
-      user: {
-        name: "You",
-        avatar: ""
-      },
-      content: `Replying to #${id}: ${replyContent}`,
-      date: new Date().toISOString().split('T')[0] + ' ' + new Date().toTimeString().slice(0, 5),
-      liked: false,
-      likes: 0
-    };
-    
-    if (type === 'message') {
-      setMessages(prev => [...prev, newReply]);
-    } else {
-      setComments(prev => [...prev, newReply]);
-    }
-    
-    setReplyingTo(null);
-    setReplyContent('');
-  };
-  
-  const handleSendMessage = () => {
-    if (!newMessage.trim()) return;
-    
-    const message = {
-      id: Date.now(),
-      user: {
-        name: "You",
-        avatar: ""
-      },
-      content: newMessage,
-      date: new Date().toISOString().split('T')[0] + ' ' + new Date().toTimeString().slice(0, 5),
-      liked: false,
-      likes: 0
-    };
-    
-    setMessages(prev => [...prev, message]);
-    setNewMessage('');
-  };
-  
-  const handleSendComment = () => {
-    if (!newComment.trim()) return;
-    
-    const comment = {
-      id: Date.now(),
-      user: {
-        name: "You",
-        avatar: ""
-      },
-      content: newComment,
-      date: new Date().toISOString().split('T')[0] + ' ' + new Date().toTimeString().slice(0, 5),
-      liked: false,
-      likes: 0
-    };
-    
-    setComments(prev => [...prev, comment]);
-    setNewComment('');
-  };
-  
-  const MessageItem = ({ message, type }: { message: Message, type: 'message' | 'comment' }) => {
-    const isReplying = replyingTo === message.id;
-    
-    const getInitials = (name: string) => {
-      return name.split(' ').map(n => n[0]).join('').toUpperCase();
-    };
-    
-    return (
-      <Card className="mb-4">
-        <CardContent className="p-4">
-          <div className="flex justify-between items-start">
-            <div className="flex items-start space-x-3">
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={message.user.avatar} />
-                <AvatarFallback className="bg-purple-100 text-purple-600">
-                  {getInitials(message.user.name)}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <div className="flex items-center">
-                  <h3 className="font-medium">{message.user.name}</h3>
-                  <span className="text-xs text-gray-500 ml-2">{message.date}</span>
-                </div>
-                <p className="text-gray-700 mt-1">{message.content}</p>
-              </div>
-            </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleLike(message.id, type)}>
-                  <Heart className={`h-4 w-4 mr-2 ${message.liked ? 'text-red-500' : ''}`} />
-                  Like{message.liked ? 'd' : ''}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleReply(message.id)}>
-                  <Reply className="h-4 w-4 mr-2" />
-                  Reply
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => handleDelete(message.id, type)}>
-                  <Trash2 className="h-4 w-4 mr-2 text-red-500" />
-                  Delete
-                </DropdownMenuItem>
-                {type === 'message' && (
-                  <DropdownMenuItem>
-                    <FolderUp className="h-4 w-4 mr-2" />
-                    Move to folder
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem>
-                  <FileSymlink className="h-4 w-4 mr-2" />
-                  Clone into chapter
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Copy className="h-4 w-4 mr-2" />
-                  Copy into branch
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-          
-          <div className="flex items-center mt-3 space-x-2">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className={`text-sm px-2 py-0 h-auto ${message.liked ? 'text-red-500' : 'text-gray-500'}`}
-              onClick={() => handleLike(message.id, type)}
-            >
-              <Heart className={`h-4 w-4 mr-1 ${message.liked ? 'fill-red-500' : ''}`} />
-              {message.likes}
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="text-sm px-2 py-0 h-auto text-gray-500"
-              onClick={() => handleReply(message.id)}
-            >
-              <Reply className="h-4 w-4 mr-1" />
-              Reply
-            </Button>
-          </div>
-          
-          {isReplying && (
-            <div className="mt-3 flex items-center space-x-2">
-              <Input 
-                placeholder="Write a reply..."
-                value={replyContent}
-                onChange={(e) => setReplyContent(e.target.value)}
-                className="flex-grow"
-              />
-              <Button 
-                size="sm" 
-                onClick={() => submitReply(message.id, type)}
-                disabled={!replyContent.trim()}
-              >
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    );
-  };
+
+  const selectedConversation = conversations?.find((c) => c.conversationId === selectedId) ?? null;
 
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold mb-6 text-[#1A1F2C]">
-        <EditableText id="communication">
-          Communication
-        </EditableText>
+        <EditableText id="communication">Communication</EditableText>
       </h1>
-      
-      <Tabs defaultValue="discussions" className="w-full">
-        <TabsList className="grid grid-cols-2 w-full md:w-[400px] mb-4">
-          <TabsTrigger value="discussions" className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4" />
-            <EditableText id="discussions">
-              Discussions / Messages
-            </EditableText>
-          </TabsTrigger>
-          <TabsTrigger value="comments" className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4" />
-            <EditableText id="comments">
-              Comments
-            </EditableText>
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="discussions" className="space-y-4">
-          <div className="flex items-center space-x-2 mb-4">
-            <Input 
-              placeholder="Write a message..." 
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              className="flex-grow"
-            />
-            <Button onClick={handleSendMessage} disabled={!newMessage.trim()}>
-              <Send className="h-4 w-4 mr-2" />
-              Send
-            </Button>
-          </div>
-          
-          {messages.length > 0 ? (
-            <div>
-              {messages.map(message => (
-                <MessageItem key={message.id} message={message} type="message" />
-              ))}
-            </div>
-          ) : (
-            <p className="text-center text-gray-500 my-8">
-              <EditableText id="no-messages">
-                No messages yet. Start a discussion!
-              </EditableText>
+
+      {loadError ? (
+        <Card>
+          <CardContent className="p-6 text-center">
+            <p className="text-muted-foreground mb-3">
+              <EditableText id="communications-load-error">Couldn't load your messages. Please try again.</EditableText>
             </p>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="comments" className="space-y-4">
-          <div className="flex items-center space-x-2 mb-4">
-            <Input 
-              placeholder="Write a comment..." 
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              className="flex-grow"
-            />
-            <Button onClick={handleSendComment} disabled={!newComment.trim()}>
-              <Send className="h-4 w-4 mr-2" />
-              Send
+            <Button onClick={loadConversations}>
+              <EditableText id="communications-retry">Retry</EditableText>
             </Button>
-          </div>
-          
-          {comments.length > 0 ? (
-            <div>
-              {comments.map(comment => (
-                <MessageItem key={comment.id} message={comment} type="comment" />
-              ))}
-            </div>
-          ) : (
-            <p className="text-center text-gray-500 my-8">
-              <EditableText id="no-comments">
-                No comments yet. Be the first to comment!
-              </EditableText>
-            </p>
-          )}
-        </TabsContent>
-      </Tabs>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid md:grid-cols-[280px_1fr] gap-4">
+          <Card className="md:h-[520px] md:overflow-y-auto">
+            <CardContent className="p-2">
+              {conversations === null ? (
+                <div className="space-y-2 p-2">
+                  <Skeleton className="h-14 w-full" />
+                  <Skeleton className="h-14 w-full" />
+                </div>
+              ) : conversations.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8 px-2">
+                  <EditableText id="no-conversations">
+                    No conversations yet.
+                  </EditableText>{" "}
+                  <Link to="/friends" className="text-indigo-600 hover:underline">
+                    Add friends
+                  </Link>{" "}
+                  to start messaging.
+                </p>
+              ) : (
+                conversations.map((conv) => (
+                  <button
+                    key={conv.conversationId}
+                    onClick={() => setSelectedId(conv.conversationId)}
+                    className={`w-full flex items-center gap-3 p-2 rounded-lg text-left hover:bg-muted transition ${
+                      selectedId === conv.conversationId ? "bg-muted" : ""
+                    }`}
+                  >
+                    <Avatar className="h-9 w-9 shrink-0">
+                      <AvatarFallback className="bg-indigo-100 text-indigo-700">
+                        {getInitials(conv.with.displayName)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <div className={`text-sm truncate ${conv.unread ? "font-semibold" : "font-medium"}`}>
+                        {conv.with.displayName}
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {conv.lastMessage?.body ?? "No messages yet"}
+                      </div>
+                    </div>
+                    {conv.unread && <span className="h-2 w-2 rounded-full bg-pink-500 shrink-0" aria-label="Unread" />}
+                  </button>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="md:h-[520px] flex flex-col">
+            {!selectedConversation && !initialFriendId ? (
+              <CardContent className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
+                <EditableText id="communications-select-prompt">Select a conversation to start chatting.</EditableText>
+              </CardContent>
+            ) : (
+              <>
+                <CardContent className="flex-1 overflow-y-auto p-4 space-y-3">
+                  {messages === null ? (
+                    <>
+                      <Skeleton className="h-10 w-2/3" />
+                      <Skeleton className="h-10 w-1/2 ml-auto" />
+                    </>
+                  ) : messages.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-8">
+                      <EditableText id="communications-thread-empty">
+                        No messages yet. Say hello!
+                      </EditableText>
+                    </p>
+                  ) : (
+                    messages.map((msg) => {
+                      const mine = msg.sender_id === user?.id;
+                      return (
+                        <div key={msg.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                          <div
+                            className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm ${
+                              mine ? "bg-indigo-600 text-white" : "bg-muted"
+                            }`}
+                          >
+                            <p className="whitespace-pre-wrap break-words">{msg.body}</p>
+                            <p className={`text-[10px] mt-1 ${mine ? "text-indigo-100" : "text-muted-foreground"}`}>
+                              {formatDistanceToNow(new Date(msg.created_at), { addSuffix: true })}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                  <div ref={bottomRef} />
+                </CardContent>
+                <div className="p-3 border-t flex items-center gap-2">
+                  <Input
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSend();
+                      }
+                    }}
+                    placeholder="Write a message..."
+                    aria-label="Write a message"
+                    maxLength={5000}
+                    className="flex-grow"
+                  />
+                  <Button onClick={handleSend} disabled={!draft.trim() || sending} aria-label="Send message">
+                    {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </>
+            )}
+          </Card>
+        </div>
+      )}
     </div>
   );
 };

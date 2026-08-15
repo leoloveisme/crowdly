@@ -6,6 +6,9 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-route
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { AlphaProvider, useAlpha } from "./contexts/AlphaContext";
 import { EditableContentProvider } from "./contexts/EditableContentContext";
+import { LiveUpdatesProvider } from "./contexts/LiveUpdatesContext";
+import Friends from "./pages/Friends";
+import Communications from "./pages/Communications";
 import Index from "./pages/Index";
 import SuggestFeature from "./pages/SuggestFeature";
 import FeatureSuggestions from "./pages/FeatureSuggestions";
@@ -68,6 +71,7 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
+            <LiveUpdatesProvider>
             <AlphaProvider>
               <EditableContentProvider>
                 <Routes>
@@ -94,6 +98,8 @@ const App = () => {
                   <Route path="/admin" element={<AlphaGuard><Admin /></AlphaGuard>} />
                   <Route path="/support" element={<AlphaGuard><Support /></AlphaGuard>} />
                   <Route path="/admin/invite-users" element={<AlphaGuard><InviteUsers /></AlphaGuard>} />
+                  <Route path="/friends" element={<AlphaGuard><Friends /></AlphaGuard>} />
+                  <Route path="/communications" element={<AlphaGuard><Communications /></AlphaGuard>} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="/search" element={<AlphaGuard><SearchPage /></AlphaGuard>} />
                   <Route path="/story/:story_id" element={<AlphaGuard><Story /></AlphaGuard>} />
@@ -113,6 +119,7 @@ const App = () => {
                 <EditingModeToggle />
               </EditableContentProvider>
             </AlphaProvider>
+            </LiveUpdatesProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
