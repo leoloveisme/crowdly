@@ -1,0 +1,135 @@
+# Companion to "deploy strategy for Crowdly VPS.md" (Phase 2) — see that
+# doc for the full reasoning behind each step below.
+#
+# THIS FILE IS NOW LIVE: it's in .github/workflows/, so the next push to
+# `alpha` WILL trigger it. Phase 1 (the VPS restructure — /opt/crowdly-backend
+# holds the checkout, /var/www/crowdly holds only the built frontend) is
+# done and confirmed working as of 2026-08-17.
+#
+# Still missing, as of this commit:
+#   1. A dedicated deploy SSH key (not the personal `lad` key) with its
+#      public half in the deploy user's ~/.ssh/authorized_keys on the VPS.
+#   2. That deploy user able to run `sudo systemctl restart crowdly-backend`
+#      without a password (scoped /etc/sudoers.d entry — see README.md in
+#      /deploy for the exact line).
+#   3. Four repo secrets (Settings -> Secrets and variables -> Actions):
+#      VPS_HOST, VPS_USER, VPS_SSH_KEY (private key, PEM format), and
+#      optionally VPS_SSH_PORT (defaults to 22 if unset).
+#
+# Until those exist, a push to `alpha` will run the build job successfully,
+# then fail cleanly at the SSH setup step in `deploy` (empty secrets ->
+# ssh-keyscan against nothing -> job fails). That's a noisy but harmless
+# failure — no connection to the VPS is attempted, nothing on the VPS is
+# touched. Still, better to finish the prerequisites first so the first
+# real run isn't a known-failing one.
+
+name: Deploy Crowdly (alpha)
+
+on:
+  push:
+    branches: [alpha]
+
+# Only one deploy at a time; if a second push lands mid-deploy, let the
+# first one finish rather than interleaving two rsync/restart sequences.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+# Default GITHUB_TOKEN to read-only — this workflow doesn't need write
+# access to the repo (no comments, no releases, no pushes), so don't grant it.
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      # Gate the deploy on the same checks you'd want to pass locally
+      # before merging. If these fail, nothing below runs and nothing on
+      # the VPS is touched.
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Build frontend
+        run: npm run build
+
+      # Hand the built dist/ off to the deploy job. Jobs run on fresh,
+      # unconnected runners, so this artifact upload/download is how the
+      # build output crosses from one job to the other.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: dist/
+          retention-days: 1
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: dist
+
+      - name: Set up deploy SSH key
+        run: |
+          set -eu
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "${{ secrets.VPS_SSH_PORT || 22 }}" "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
+
+      # Ships the built frontend only — never the backend source or .git —
+      # to the (post-Phase-1) frontend-only web root. --delete makes the
+      # web root mirror dist/ exactly, removing anything stale.
+      - name: Deploy frontend build
+        run: |
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.VPS_SSH_PORT || 22 }}" \
+            dist/ "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/crowdly/"
+
+      # Backend deploy is a separate step, over the same connection:
+      # fast-forward the checkout to exactly what's on origin/alpha,
+      # reinstall deps, restart the service. `git reset --hard` (not
+      # `pull`) so the VPS checkout can never drift into a merge conflict.
+      - name: Update backend and restart service
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "${{ secrets.VPS_SSH_PORT || 22 }}" \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" '
+              set -e
+              cd /opt/crowdly-backend
+              git fetch origin alpha
+              git reset --hard origin/alpha
+              npm ci --omit=dev --prefix backend
+              sudo systemctl restart crowdly-backend
+            '
+
+      # The backend self-migrates its schema on every boot (the
+      # ensure*Table() calls in server.js), so a healthy /health response
+      # here also confirms the DB connection and schema migration succeeded
+      # — not just that the process started.
+      - name: Health check
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "${{ secrets.VPS_SSH_PORT || 22 }}" \
+            "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" '
+              sleep 2
+              curl -fsS http://127.0.0.1:4000/health
+            '
+
+      - name: Remove deploy key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
