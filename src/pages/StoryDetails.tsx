@@ -10,6 +10,8 @@ import EditableText from "@/components/EditableText";
 import DescriptionEditor from "@/components/DescriptionEditor";
 import TagBadge from "@/components/TagBadge";
 import TagInput from "@/components/TagInput";
+import ImageGallery from "@/components/ImageGallery";
+import GalleryUpload from "@/components/GalleryUpload";
 
 const API_BASE = import.meta.env.PROD
   ? (import.meta.env.VITE_API_BASE_URL ?? "")
@@ -58,6 +60,7 @@ const StoryDetails: React.FC = () => {
   const [savingSpace, setSavingSpace] = useState(false);
   const [actionSpaceId, setActionSpaceId] = useState<string | "none">("none");
   const [creatingSpace, setCreatingSpace] = useState(false);
+  const [galleryRefreshToken, setGalleryRefreshToken] = useState(0);
 
   const isOwner = !!(user && story && story.creator_id === user.id);
 
@@ -579,6 +582,41 @@ const StoryDetails: React.FC = () => {
               </div>
             )}
           </div>
+        </section>
+
+        {/* Fan/community gallery — separate from canon chapter illustrations,
+            open to any authenticated user, moderated by the story owner. */}
+        <section className="border rounded-lg bg-white p-4 space-y-3">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <h2 className="text-sm font-semibold"><EditableText id="story-details-gallery-title">Gallery</EditableText></h2>
+          </div>
+          <ImageGallery
+            storyTitleId={story.story_title_id}
+            kindFilter={["fan_art", "gallery"]}
+            currentUserId={user?.id ?? null}
+            canModerate={isOwner}
+            idPrefix="story-details-gallery"
+            refreshToken={galleryRefreshToken}
+          />
+          {user && (
+            <div className="pt-2 border-t">
+              <h3 className="text-xs font-semibold mb-1">
+                {isOwner ? (
+                  <EditableText id="story-details-gallery-upload-label-owner">Add to gallery</EditableText>
+                ) : (
+                  <EditableText id="story-details-gallery-upload-label-fan">
+                    Submit fan art (reviewed by the story owner)
+                  </EditableText>
+                )}
+              </h3>
+              <GalleryUpload
+                storyTitleId={story.story_title_id}
+                kind={isOwner ? "gallery" : "fan_art"}
+                idPrefix="story-details-gallery-upload"
+                onUploaded={() => setGalleryRefreshToken((t) => t + 1)}
+              />
+            </div>
+          )}
         </section>
 
         <section className="border rounded-lg bg-white p-4 space-y-3">

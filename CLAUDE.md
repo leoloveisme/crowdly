@@ -6,10 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Crowdly is a multi-creator, crowd-created entertainment platform combining features of YouTube, Audible, Netflix, Goodreads, GitHub, and Wattpad. It supports text, pictures, audio, and video content with versioning and branching of crowd-created stories.
 
-The project consists of three applications:
-- **Web platform** (React/TypeScript/Vite) - main frontend at root
+The project consists of four applications:
+- **Web platform** (React/TypeScript/Vite) - the main Crowdly platform (browsing, publishing, social features) at root
 - **Backend API** (Node.js/Express) - in `backend/`
-- **Desktop app** (Python/PySide6) - in `apps/desktop app/`
+- **Desktop app** (Python/PySide6) - the native story/screenplay editor, in `apps/desktop/`
+- **Web editor** (React/TypeScript/Vite) - a standalone, lightweight browser-based companion to the desktop editor for editing stories and creative spaces from any browser without installing anything ("all you need is a browser"); it is not a replacement for the main web platform, in `apps/web/`
 
 ## Development Commands
 
@@ -27,12 +28,18 @@ npm run start    # Production start
 npm run create-admin  # Create admin user
 ```
 
-### Desktop App (apps/desktop app/)
+### Desktop App (apps/desktop/)
 ```bash
 python -m venv .venv # Install virtual environment
 source .venv/bin/activate # activate virtual environment
 pip install -e .   # Install in development mode
 python -m editor   # Run the editor
+```
+
+### Web Editor (apps/web/)
+```bash
+npm run dev      # Start Vite dev server
+npm run build    # Production build
 ```
 
 ## Architecture
@@ -91,7 +98,7 @@ PORT=4000
 
 ## Desktop App — Mandatory Checklist for Menu Changes
 
-Whenever you add, rename, or modify a menu item or action in the desktop app (`apps/desktop app/`), you **must** also:
+Whenever you add, rename, or modify a menu item or action in the desktop app (`apps/desktop/`), you **must** also:
 
 1. **Update `_retranslate_ui()`** in `main_window.py` — add a `setText()` / `setTitle()` call for the new or changed action/menu so the text is refreshed when the user switches language at runtime.
 2. **Update ALL `.ts` translation files** in `src/editor/i18n/` — add the corresponding `<message>` entry with the source string and a proper translation for every language file (`editor_en.ts`, `editor_ru.ts`, `editor_ar.ts`, `editor_zh-Hans.ts`, `editor_zh-Hant.ts`, `editor_ja.ts`, `editor_kr.ts`, `editor_pt.ts`).

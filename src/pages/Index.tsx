@@ -415,7 +415,9 @@ Crowd-created stories that branch and grow — discover, experience, create, col
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>What would you like to create?</DialogTitle>
+                      <DialogTitle>
+                        <EditableText id="hero-create-dialog-title">What would you like to create?</EditableText>
+                      </DialogTitle>
                     </DialogHeader>
                     <div className="mt-4 flex flex-col gap-3">
                       <button
@@ -426,7 +428,7 @@ Crowd-created stories that branch and grow — discover, experience, create, col
                           navigate("/new-story-template?type=story");
                         }}
                       >
-                        Regular story (novel)
+                        <EditableText id="hero-create-option-story">Regular story (novel)</EditableText>
                       </button>
                       <button
                         type="button"
@@ -436,7 +438,17 @@ Crowd-created stories that branch and grow — discover, experience, create, col
                           navigate("/new-story-template?type=screenplay");
                         }}
                       >
-                        Screenplay story
+                        <EditableText id="hero-create-option-screenplay">Screenplay story</EditableText>
+                      </button>
+                      <button
+                        type="button"
+                        className="w-full px-4 py-2 rounded border bg-white hover:bg-gray-50 text-sm text-left"
+                        onClick={() => {
+                          setCreateDialogOpen(false);
+                          navigate("/new-comic-template");
+                        }}
+                      >
+                        <EditableText id="hero-create-option-comic">Comic / manga</EditableText>
                       </button>
                     </div>
                   </DialogContent>

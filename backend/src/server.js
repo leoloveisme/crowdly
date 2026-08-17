@@ -23,7 +23,10 @@ import messagingRouter, {
   ensureMessagesTable,
   ensureConversationReadsTable,
 } from './messaging.js';
+import galleryRouter, { ensureStoryGalleryImagesTable, UPLOADS_ROOT } from './gallery.js';
+import comicsRouter, { ensureComicTables } from './comics.js';
 import { eventsHandler } from './events.js';
+import path from 'path';
 
 dotenv.config();
 
@@ -63,6 +66,13 @@ app.use('/api', followsRouter);
 app.use('/api', notificationsRouter);
 app.use('/api', messagingRouter);
 app.get('/api/events', requireAuth, eventsHandler);
+
+// Gallery routes live at bare paths (/stories/:id/gallery, /gallery-images/:id),
+// same as the rest of the story routes below — not under /api.
+app.use(galleryRouter);
+app.use(comicsRouter);
+// Uploaded gallery/comic-page images, served statically for both the dev proxy and prod.
+app.use('/uploads', express.static(UPLOADS_ROOT));
 
 // Ensure auxiliary tables / columns exist (best-effort)
 async function ensureStoryAccessTable() {
@@ -1268,6 +1278,12 @@ ensurePgcryptoExtension().catch((err) => {
 });
 ensureStoryAccessTable().catch((err) => {
   console.error('[init] ensureStoryAccessTable unhandled error:', err);
+});
+ensureStoryGalleryImagesTable().catch((err) => {
+  console.error('[init] ensureStoryGalleryImagesTable unhandled error:', err);
+});
+ensureComicTables().catch((err) => {
+  console.error('[init] ensureComicTables unhandled error:', err);
 });
 ensureStoryTitlePublishedColumn().catch((err) => {
   console.error('[init] ensureStoryTitlePublishedColumn unhandled error:', err);

@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, BookOpen } from "lucide-react";
 import EditableText from "@/components/EditableText";
 import TagBadge from "@/components/TagBadge";
 
@@ -14,6 +14,9 @@ export type StoriesOutputItem = {
   language?: string | null;
   coverImageUrl?: string | null;
   tags?: string[] | null;
+  // Populated for comics/manga listings — a hover-style preview strip of the
+  // first few page images, shown under the cover art when present.
+  filmstripUrls?: string[] | null;
 };
 
 export type StoriesOutputSortKey = "name" | "createdAt" | "updatedAt";
@@ -148,94 +151,90 @@ export const StoriesOutput: React.FC<StoriesOutputProps> = ({
       )}
 
       {!loading && !error && totalItems > 0 && (
-        <div className="border rounded-lg overflow-hidden bg-white dark:bg-gray-900 shadow-sm">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-800">
-              <tr>
-                <th className="px-4 py-3 text-left border-b border-gray-200 dark:border-gray-700 w-10">
-                  <span className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-200">
-                    <EditableText id="stories-output-th-cover">Cover</EditableText>
-                  </span>
-                </th>
-                <th className="px-4 py-3 text-left border-b border-gray-200 dark:border-gray-700">
-                  {renderSortLabel("name", "Story name")}
-                </th>
-                <th className="px-4 py-3 text-left border-b border-gray-200 dark:border-gray-700 text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-200">
-                  <EditableText id="stories-output-th-authors">Author(s)</EditableText>
-                </th>
-                <th className="px-4 py-3 text-left border-b border-gray-200 dark:border-gray-700 text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-200">
-                  <EditableText id="stories-output-th-tags">Tags</EditableText>
-                </th>
-                <th className="px-4 py-3 text-left border-b border-gray-200 dark:border-gray-700 text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-200">
-                  <EditableText id="stories-output-th-language">Language</EditableText>
-                </th>
-                <th className="px-4 py-3 text-left border-b border-gray-200 dark:border-gray-700">
-                  {renderSortLabel("createdAt", "Creation date")}
-                </th>
-                <th className="px-4 py-3 text-left border-b border-gray-200 dark:border-gray-700">
-                  {renderSortLabel("updatedAt", "Last modification date")}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {pageItems.map((item) => (
-                <tr
-                  key={item.id}
-                  className="odd:bg-white even:bg-gray-50/50 dark:odd:bg-gray-900 dark:even:bg-gray-800/60 hover:bg-blue-50/60 dark:hover:bg-blue-900/30 transition-colors"
-                >
-                  <td className="px-4 py-3 align-top w-10">
+        <div className="space-y-4">
+          <div className="flex items-center gap-4 text-xs">
+            {renderSortLabel("name", "Story name")}
+            {renderSortLabel("createdAt", "Creation date")}
+            {renderSortLabel("updatedAt", "Last modification date")}
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {pageItems.map((item) => {
+              const card = (
+                <>
+                  <div className="relative aspect-[2/3] bg-gradient-to-br from-blue-200 via-sky-200 to-purple-200 dark:from-slate-700 dark:via-slate-800 dark:to-slate-900">
                     {item.coverImageUrl ? (
                       <img
                         src={item.coverImageUrl}
                         alt=""
-                        className="h-10 w-10 rounded object-cover"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                       />
                     ) : (
-                      <div className="h-10 w-10 rounded bg-gray-200 dark:bg-gray-700" />
+                      <div className="w-full h-full flex items-center justify-center">
+                        <BookOpen className="h-10 w-10 text-white/80" />
+                      </div>
                     )}
-                  </td>
-                  <td className="px-4 py-3 align-top">
-                    {item.href ? (
-                      <Link
-                        to={item.href}
-                        className="text-blue-700 dark:text-blue-300 hover:underline font-medium"
-                      >
-                        {item.name}
-                      </Link>
-                    ) : (
-                      <span className="font-medium text-gray-900 dark:text-gray-100">{item.name}</span>
+                    {item.language && (
+                      <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-medium bg-black/60 text-white">
+                        {item.language.toUpperCase()}
+                      </span>
                     )}
-                  </td>
-                  <td className="px-4 py-3 align-top text-gray-700 dark:text-gray-200">
-                    {item.authors || "\u2014"}
-                  </td>
-                  <td className="px-4 py-3 align-top text-gray-700 dark:text-gray-200">
-                    {item.tags && item.tags.length > 0 ? (
-                      <div className="flex flex-wrap gap-1">
-                        {item.tags.map((tag) => (
+                    {item.filmstripUrls && item.filmstripUrls.length > 0 && (
+                      <div className="absolute bottom-0 left-0 right-0 flex gap-0.5 p-1 bg-gradient-to-t from-black/60 to-transparent">
+                        {item.filmstripUrls.slice(0, 4).map((url, i) => (
+                          <img
+                            key={i}
+                            src={url}
+                            alt=""
+                            className="h-8 w-8 object-cover rounded-sm ring-1 ring-white/50"
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-3">
+                    <div className="font-medium text-sm text-gray-900 dark:text-gray-100 line-clamp-2 group-hover:underline">
+                      {item.name}
+                    </div>
+                    {item.authors && (
+                      <div className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                        {item.authors}
+                      </div>
+                    )}
+                    <div className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">
+                      {formatDate(item.updatedAt ?? item.createdAt)}
+                    </div>
+                    {item.tags && item.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {item.tags.slice(0, 3).map((tag) => (
                           <TagBadge key={tag} tag={tag} />
                         ))}
                       </div>
-                    ) : "\u2014"}
-                  </td>
-                  <td className="px-4 py-3 align-top text-gray-700 dark:text-gray-200">
-                    {item.language ? (
-                      <span className="px-2 py-0.5 rounded-full text-xs bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">
-                        {item.language.toUpperCase()}
-                      </span>
-                    ) : "\u2014"}
-                  </td>
-                  <td className="px-4 py-3 align-top text-gray-700 dark:text-gray-200">
-                    {formatDate(item.createdAt)}
-                  </td>
-                  <td className="px-4 py-3 align-top text-gray-700 dark:text-gray-200">
-                    {formatDate(item.updatedAt)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                    )}
+                  </div>
+                </>
+              );
+
+              return item.href ? (
+                <Link
+                  key={item.id}
+                  to={item.href}
+                  className="group block rounded-lg overflow-hidden bg-white dark:bg-gray-900 shadow-sm ring-1 ring-gray-100 dark:ring-gray-800 hover-scale"
+                >
+                  {card}
+                </Link>
+              ) : (
+                <div
+                  key={item.id}
+                  className="group block rounded-lg overflow-hidden bg-white dark:bg-gray-900 shadow-sm ring-1 ring-gray-100 dark:ring-gray-800"
+                >
+                  {card}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-lg">
             <div className="text-xs text-gray-600 dark:text-gray-300">
               Showing {totalItems === 0 ? 0 : startIndex + 1}‑{endIndex} of {totalItems}
             </div>

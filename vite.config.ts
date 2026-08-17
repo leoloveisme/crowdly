@@ -71,6 +71,22 @@ export default defineConfig(({ mode }) => ({
         target: "http://localhost:4000",
         changeOrigin: true,
       },
+      "/gallery-images": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/uploads": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/comics": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/comic-pages": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
       "/users": {
         target: "http://localhost:4000",
         changeOrigin: true,

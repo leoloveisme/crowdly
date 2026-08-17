@@ -21,6 +21,10 @@ import CoverImageUpload from "@/components/CoverImageUpload";
 import DescriptionEditor from "@/components/DescriptionEditor";
 import TagBadge from "@/components/TagBadge";
 import TagInput from "@/components/TagInput";
+import ImageGallery from "@/components/ImageGallery";
+import GalleryUpload from "@/components/GalleryUpload";
+import { listGalleryImages, type GalleryImage } from "@/lib/galleryApi";
+import { ImagePlus } from "lucide-react";
 
 // Use same-origin API base in development; dev server proxies to backend.
 // In production, VITE_API_BASE_URL can point at the deployed API.
@@ -251,6 +255,14 @@ const Story = () => {
     return cleaned.split(/\s+/).length;
   };
   const [chapters, setChapters] = useState<any[]>([]);
+  // Inline chapter illustrations (kind='inline_illustration'), keyed for lookup
+  // by chapter + paragraph anchor when rendering.
+  const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
+  const [illustrationTarget, setIllustrationTarget] = useState<{ chapterId: string; anchorIndex: number } | null>(null);
+  // Prominent, always-visible cover editor (Goodreads-style), separate from
+  // the buried CoverImageUpload further down in the owner settings row.
+  const [coverEditorOpen, setCoverEditorOpen] = useState(false);
+  const [galleryRefreshToken, setGalleryRefreshToken] = useState(0);
   const [loading, setLoading] = useState(true);
   const [storyError, setStoryError] = useState<{ status: number; message: string } | null>(null);
   const [contributors, setContributors] = useState<Contributor[]>([]);
@@ -491,6 +503,17 @@ const Story = () => {
     }
     // eslint-disable-next-line
   }, [story_id, user?.id]);
+
+  const reloadInlineIllustrations = useCallback(() => {
+    if (!story_id) return;
+    listGalleryImages(story_id)
+      .then((rows) => setGalleryImages(rows.filter((r) => r.kind === "inline_illustration" && r.status === "approved")))
+      .catch(() => setGalleryImages([]));
+  }, [story_id]);
+
+  useEffect(() => {
+    reloadInlineIllustrations();
+  }, [reloadInlineIllustrations]);
 
   // Keep currentChapterId in sync with loaded chapters and optional chapter_id param
   useEffect(() => {
@@ -2188,15 +2211,50 @@ const Story = () => {
                 )}
               </div>
 
-              {story.cover_image_url && (
-                <div className="mt-3 mb-3">
-                  <img
-                    src={story.cover_image_url}
-                    alt="Story cover"
-                    className="max-h-48 rounded-md object-contain"
-                  />
+              {/* Cover art — always visible (placeholder when absent), with a
+                  direct click-to-change affordance for the owner. This is the
+                  primary, discoverable way to set/replace a story's cover;
+                  the CoverImageUpload further down in the settings row still
+                  works too. */}
+              <div className="mt-3 mb-3 flex items-start gap-3">
+                <div className="relative w-28 h-40 shrink-0 rounded-md overflow-hidden bg-gradient-to-br from-blue-200 via-sky-200 to-purple-200 dark:from-slate-700 dark:via-slate-800 dark:to-slate-900 group/cover">
+                  {story.cover_image_url ? (
+                    <img
+                      src={story.cover_image_url}
+                      alt="Story cover"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <BookOpen className="h-8 w-8 text-white/80" />
+                    </div>
+                  )}
+                  {isOwner && (
+                    <button
+                      type="button"
+                      onClick={() => setCoverEditorOpen((v) => !v)}
+                      className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover/cover:bg-black/50 opacity-0 group-hover/cover:opacity-100 transition-all text-white text-xs font-medium"
+                    >
+                      {story.cover_image_url ? (
+                        <EditableText id="story-cover-change-btn">Change cover</EditableText>
+                      ) : (
+                        <EditableText id="story-cover-add-btn">Add cover</EditableText>
+                      )}
+                    </button>
+                  )}
                 </div>
-              )}
+                {isOwner && coverEditorOpen && (
+                  <div className="max-w-xs">
+                    <CoverImageUpload
+                      value={story.cover_image_url || null}
+                      onChange={(url) => {
+                        updateStorySetting("cover_image_url", url || "");
+                        setCoverEditorOpen(false);
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
 
               {story.description && (
                 <p className="text-sm text-gray-600 whitespace-pre-wrap mt-2 mb-2">
@@ -2210,6 +2268,44 @@ const Story = () => {
                   ))}
                 </div>
               )}
+
+              {/* Gallery — cover variants, chapter illustrations submitted as
+                  fan art, and community photos. Open to every visitor (not
+                  just the owner), matching the backend's moderation rules:
+                  the owner/contributors publish directly, everyone else's
+                  uploads go to a pending queue for review. */}
+              <div className="mt-4 mb-4 border rounded-lg p-4 bg-white dark:bg-gray-900">
+                <h2 className="text-sm font-semibold mb-2">
+                  <EditableText id="story-gallery-heading">Gallery</EditableText>
+                </h2>
+                <ImageGallery
+                  storyTitleId={story.story_title_id}
+                  kindFilter={["fan_art", "gallery"]}
+                  currentUserId={user?.id ?? null}
+                  canModerate={!!isOwner}
+                  idPrefix="story-page-gallery"
+                  refreshToken={galleryRefreshToken}
+                />
+                {user && (
+                  <div className="mt-3 pt-3 border-t max-w-sm">
+                    <h3 className="text-xs font-semibold mb-1">
+                      {isOwner ? (
+                        <EditableText id="story-gallery-upload-label-owner">Add to gallery</EditableText>
+                      ) : (
+                        <EditableText id="story-gallery-upload-label-fan">
+                          Submit fan art (reviewed by the story owner)
+                        </EditableText>
+                      )}
+                    </h3>
+                    <GalleryUpload
+                      storyTitleId={story.story_title_id}
+                      kind={isOwner ? "gallery" : "fan_art"}
+                      idPrefix="story-page-gallery-upload"
+                      onUploaded={() => setGalleryRefreshToken((t) => t + 1)}
+                    />
+                  </div>
+                )}
+              </div>
 
               {/* Unified reactions + comments for this story */}
               <InteractionsWidget kind="story" storyTitleId={story.story_title_id} />
@@ -2236,40 +2332,88 @@ const Story = () => {
                               (p.target_path ?? "") === String(idx),
                           );
 
-                          return (
-                            <div key={idx} className="mb-3">
-                              {lines.map((line, lineIdx) => (
-                                <p key={`${idx}-${lineIdx}`} className="mb-1">
-                                  {line}
-                                </p>
-                              ))}
+                          // Illustrations anchor to a paragraph index at insertion time; there
+                          // are no stable paragraph IDs in this data model, so an illustration
+                          // can drift if paragraphs are later inserted/removed above it.
+                          const illustrationsHere = galleryImages.filter(
+                            (g) => g.chapter_id === currentChapter.chapter_id && g.anchor_index === idx,
+                          );
 
-                              {paragraphProposals.length > 0 && (
-                                <div className="mt-1 space-y-1">
-                                  {paragraphProposals.map((p) => (
-                                    <div
-                                      key={p.id}
-                                      className="text-xs text-purple-900 bg-purple-50 border border-dashed border-purple-200 rounded px-2 py-1"
-                                    >
-                                      <div className="whitespace-pre-wrap">
-                                        {p.proposed_text || (
-                                          <span className="italic text-purple-500">
-                                            (Proposed deletion of this paragraph)
-                                          </span>
-                                        )}
+                          return (
+                            <React.Fragment key={idx}>
+                              <div className="mb-3">
+                                {lines.map((line, lineIdx) => (
+                                  <p key={`${idx}-${lineIdx}`} className="mb-1">
+                                    {line}
+                                  </p>
+                                ))}
+
+                                {paragraphProposals.length > 0 && (
+                                  <div className="mt-1 space-y-1">
+                                    {paragraphProposals.map((p) => (
+                                      <div
+                                        key={p.id}
+                                        className="text-xs text-purple-900 bg-purple-50 border border-dashed border-purple-200 rounded px-2 py-1"
+                                      >
+                                        <div className="whitespace-pre-wrap">
+                                          {p.proposed_text || (
+                                            <span className="italic text-purple-500">
+                                              (Proposed deletion of this paragraph)
+                                            </span>
+                                          )}
+                                        </div>
+                                        <div className="mt-0.5 text-[10px] text-purple-500">
+                                          Proposed by {p.author_email || "Unknown user"} ·{" "}
+                                          {new Date(p.created_at).toLocaleString()}
+                                        </div>
                                       </div>
-                                      <div className="mt-0.5 text-[10px] text-purple-500">
-                                        Proposed by {p.author_email || "Unknown user"} ·{" "}
-                                        {new Date(p.created_at).toLocaleString()}
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+
+                              {illustrationsHere.map((img) => (
+                                <figure key={img.id} className="my-4">
+                                  <img
+                                    src={img.image_url}
+                                    alt={img.caption ?? ""}
+                                    className="max-w-full max-h-[32rem] rounded-md object-contain mx-auto"
+                                  />
+                                  {img.caption && (
+                                    <figcaption className="text-xs text-gray-500 text-center mt-1">
+                                      {img.caption}
+                                    </figcaption>
+                                  )}
+                                </figure>
+                              ))}
+                            </React.Fragment>
                           );
                         })
                       : null}
+                    {(() => {
+                      const paragraphCount = Array.isArray(currentChapter.paragraphs)
+                        ? currentChapter.paragraphs.length
+                        : 0;
+                      const overflowIllustrations = galleryImages.filter(
+                        (g) =>
+                          g.chapter_id === currentChapter.chapter_id &&
+                          (g.anchor_index === null || g.anchor_index >= paragraphCount),
+                      );
+                      return overflowIllustrations.map((img) => (
+                        <figure key={img.id} className="my-4">
+                          <img
+                            src={img.image_url}
+                            alt={img.caption ?? ""}
+                            className="max-w-full max-h-[32rem] rounded-md object-contain mx-auto"
+                          />
+                          {img.caption && (
+                            <figcaption className="text-xs text-gray-500 text-center mt-1">
+                              {img.caption}
+                            </figcaption>
+                          )}
+                        </figure>
+                      ));
+                    })()}
                   </div>
                 )}
                 {chapters.length === 0 && (
@@ -2759,8 +2903,56 @@ const Story = () => {
                                       <svg width="16" height="16" stroke="currentColor" fill="none" viewBox="0 0 24 24"><path strokeWidth="2" d="M6 3v6a6 6 0 006 6h6"></path><path strokeWidth="2" d="M18 21v-6a6 6 0 00-6-6H6"></path></svg>
                                       Create Branch
                                     </button>
+                                    {isOwner && (
+                                      <button
+                                        className="opacity-0 group-hover/paragraph:opacity-100 transition-opacity border rounded px-2 py-1 text-xs font-medium flex items-center gap-1 bg-white hover:bg-gray-100 shadow hover:shadow-md"
+                                        type="button"
+                                        onClick={() =>
+                                          setIllustrationTarget((prev) =>
+                                            prev && prev.chapterId === chapter.chapter_id && prev.anchorIndex === idx
+                                              ? null
+                                              : { chapterId: chapter.chapter_id, anchorIndex: idx },
+                                          )
+                                        }
+                                      >
+                                        <ImagePlus className="h-3.5 w-3.5" />
+                                        <EditableText id="story-insert-illustration">Insert illustration</EditableText>
+                                      </button>
+                                    )}
                                   </div>
                                 </div>
+
+                                {/* Illustrations already anchored to this paragraph */}
+                                {galleryImages
+                                  .filter((g) => g.chapter_id === chapter.chapter_id && g.anchor_index === idx)
+                                  .map((img) => (
+                                    <figure key={img.id} className="my-3">
+                                      <img
+                                        src={img.image_url}
+                                        alt={img.caption ?? ""}
+                                        className="max-w-full max-h-96 rounded-md object-contain mx-auto"
+                                      />
+                                    </figure>
+                                  ))}
+
+                                {isOwner &&
+                                  illustrationTarget &&
+                                  illustrationTarget.chapterId === chapter.chapter_id &&
+                                  illustrationTarget.anchorIndex === idx && (
+                                    <div className="my-3 max-w-sm">
+                                      <GalleryUpload
+                                        storyTitleId={story.story_title_id}
+                                        kind="inline_illustration"
+                                        chapterId={chapter.chapter_id}
+                                        anchorIndex={idx}
+                                        idPrefix="story-illustration-upload"
+                                        onUploaded={() => {
+                                          setIllustrationTarget(null);
+                                          reloadInlineIllustrations();
+                                        }}
+                                      />
+                                    </div>
+                                  )}
 
                                 {/* Inline branches created under this base paragraph */}
                                 {inlineBranches

@@ -14,6 +14,7 @@ import SuggestFeature from "./pages/SuggestFeature";
 import FeatureSuggestions from "./pages/FeatureSuggestions";
 import AccountAdministration from "./pages/AccountAdministration";
 import NewStoryTemplate from "./pages/NewStoryTemplate";
+import NewComicTemplate from "./pages/NewComicTemplate";
 import StoryforConsumers from "./pages/StoryforConsumers";
 import StoryToLiveToExperience from "./pages/StoryToLiveToExperience";
 import Profile from "./pages/Profile";
@@ -36,6 +37,8 @@ import NewestStoriesOutput from "./pages/NewestStoriesOutput";
 import LivingStoriesOutput from "./pages/LivingStoriesOutput";
 import LivedStoriesOutput from "./pages/LivedStoriesOutput";
 import NewestScreenplaysOutput from "./pages/NewestScreenplaysOutput";
+import NewestComicsOutput from "./pages/NewestComicsOutput";
+import Comic from "./pages/Comic";
 import SearchPage from "./pages/Search";
 import AlphaGate from "./pages/AlphaGate";
 import InviteUsers from "./pages/InviteUsers";
@@ -84,6 +87,7 @@ const App = () => {
                   <Route path="/feature-suggestions" element={<AlphaGuard><FeatureSuggestions /></AlphaGuard>} />
                   <Route path="/account-administration" element={<AlphaGuard><AccountAdministration /></AlphaGuard>} />
                   <Route path="/new-story-template" element={<AlphaGuard><NewStoryTemplate /></AlphaGuard>} />
+                  <Route path="/new-comic-template" element={<AlphaGuard><NewComicTemplate /></AlphaGuard>} />
                   <Route path="/story-for-consumers" element={<AlphaGuard><StoryforConsumers /></AlphaGuard>} />
                   <Route path="/story-to-live" element={<AlphaGuard><StoryToLiveToExperience /></AlphaGuard>} />
                   <Route path="/profile" element={<AlphaGuard><Profile /></AlphaGuard>} />
@@ -110,6 +114,8 @@ const App = () => {
                   <Route path="/favorites" element={<AlphaGuard><FavoritesOutput /></AlphaGuard>} />
                   <Route path="/newest_stories" element={<AlphaGuard><NewestStoriesOutput /></AlphaGuard>} />
                   <Route path="/newest_screenplays" element={<AlphaGuard><NewestScreenplaysOutput /></AlphaGuard>} />
+                  <Route path="/newest_comics" element={<AlphaGuard><NewestComicsOutput /></AlphaGuard>} />
+                  <Route path="/comic/:comic_id" element={<AlphaGuard><Comic /></AlphaGuard>} />
                   <Route path="/living_stories" element={<AlphaGuard><LivingStoriesOutput /></AlphaGuard>} />
                   <Route path="/lived_stories" element={<AlphaGuard><LivedStoriesOutput /></AlphaGuard>} />
                   {/* Public user page, e.g. /leolove */}
