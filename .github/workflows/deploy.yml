@@ -89,6 +89,23 @@ jobs:
           name: frontend-dist
           path: dist
 
+      # TEMPORARY — diagnosing the "Set up SSH key" step timing out after
+      # exactly 5s (ssh-keyscan's default per-host timeout) on every prior
+      # run. VPS-side firewall/nftables/fail2ban are all confirmed clean, so
+      # this checks the two things that can't be checked from the VPS: what
+      # IP this runner actually connects FROM, and what VPS_HOST actually
+      # resolves TO (using the raw resolved IP, not the secret, so nothing
+      # gets masked). Remove this step once the cause is found.
+      - name: Debug connectivity
+        run: |
+          echo "Runner's outbound public IP:"
+          curl -s https://api.ipify.org
+          echo
+          echo "What VPS_HOST resolves to:"
+          getent hosts "${{ secrets.VPS_HOST }}" || echo "(resolution failed)"
+          echo "Raw TCP test against the known-good IP (72.62.60.100), bypassing DNS entirely:"
+          (echo > /dev/tcp/72.62.60.100/22) 2>&1 && echo "TCP connect: SUCCESS" || echo "TCP connect: FAILED"
+
       - name: Set up deploy SSH key
         run: |
           set -eu
