@@ -1,27 +1,17 @@
 # Companion to "deploy strategy for Crowdly VPS.md" (Phase 2) — see that
 # doc for the full reasoning behind each step below.
 #
-# THIS FILE IS NOW LIVE: it's in .github/workflows/, so the next push to
-# `alpha` WILL trigger it. Phase 1 (the VPS restructure — /opt/crowdly-backend
-# holds the checkout, /var/www/crowdly holds only the built frontend) is
-# done and confirmed working as of 2026-08-17.
+# LIVE since 2026-08-17: full pipeline (build, lint, typecheck, build
+# frontend, rsync to /var/www/crowdly, backend update + restart via the
+# dedicated `deploy` user, health check) confirmed working end-to-end
+# against production. Runs on every push to `alpha`.
 #
-# Still missing, as of this commit:
-#   1. A dedicated deploy SSH key (not the personal `lad` key) with its
-#      public half in the deploy user's ~/.ssh/authorized_keys on the VPS.
-#   2. That deploy user able to run `sudo systemctl restart crowdly-backend`
-#      without a password (scoped /etc/sudoers.d entry — see README.md in
-#      /deploy for the exact line).
-#   3. Four repo secrets (Settings -> Secrets and variables -> Actions):
-#      VPS_HOST, VPS_USER, VPS_SSH_KEY (private key, PEM format), and
-#      optionally VPS_SSH_PORT (defaults to 22 if unset).
-#
-# Until those exist, a push to `alpha` will run the build job successfully,
-# then fail cleanly at the SSH setup step in `deploy` (empty secrets ->
-# ssh-keyscan against nothing -> job fails). That's a noisy but harmless
-# failure — no connection to the VPS is attempted, nothing on the VPS is
-# touched. Still, better to finish the prerequisites first so the first
-# real run isn't a known-failing one.
+# One known quirk: the SSH setup step occasionally times out (~5s,
+# ssh-keyscan's default per-host timeout) on an otherwise-healthy run —
+# traced to a transient issue with some GitHub-hosted runner IPs, not
+# anything VPS-side (firewall/nftables/fail2ban all confirmed clean). If a
+# run fails there with no other changes, just re-run it:
+#   gh run rerun <run-id> --failed
 
 name: Deploy Crowdly (alpha)
 
