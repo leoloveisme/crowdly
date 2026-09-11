@@ -1,0 +1,61 @@
+.gitignore
+
+.vite
+.vite/*
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+node_modules/
+node_modules/*
+dist
+dist/
+dist/*
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+.claude
+
+# other directories
+Crowdly.cloud/
+Crowdly.cloud/*
+Archive/*
+Next\ steps/*
+To\ be\ done\ -\ backlog/* 
+'To be done - backlog'/
+'To be done - backlog'/*
+.venv/*
+.crowdly/
+.crowdly/*
+apps/desktop\ app/push_new_app_version_to_crowdly_in_opt
+apps/desktop\ app/push_new_app_version_to_crowdly_in_opt_2
+.env.example
+
+# Local secrets (DB credentials, SMTP, etc.) - never commit these.
+# backend/.env was previously tracked with a real DB password; this stops
+# any *new* commits from including it (existing history is untouched).
+.env
+.env.local
+.env.*.local
+
+# Locally-stored uploaded gallery/comic images (Phase 1 storage decision: local disk for now)
+backend/uploads/
+
