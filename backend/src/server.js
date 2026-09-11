@@ -12,6 +12,7 @@ import {
   createSession,
   destroySession,
   requireAuth,
+  getSessionUser,
   SESSION_COOKIE_NAME,
   SESSION_COOKIE_OPTIONS,
 } from './sessions.js';
@@ -27,10 +28,34 @@ import galleryRouter, { ensureStoryGalleryImagesTable, UPLOADS_ROOT } from './ga
 import comicsRouter, { ensureComicTables } from './comics.js';
 import { eventsHandler } from './events.js';
 import path from 'path';
+import http from 'http';
+import { ensureCrdtDocChunksTable } from './crdt/postgresStorageAdapter.js';
+import {
+  createCrdtRepo,
+  attachCrdtWebSocketServer,
+  authorizeDocAccess,
+  changeAttribution,
+  buildRevisionHistory,
+  restoreHandleToHeads,
+  applyContentToHandle,
+  CRDT_WS_PATH,
+} from './crdt/repo.js';
+import {
+  CRDT_DOC_TYPE_COLUMN,
+  CRDT_DOC_TYPE_SEEDERS,
+  userCanAccessCrdtEntity,
+} from './crdt/seeders.js';
 
 dotenv.config();
 
 const app = express();
+
+// Populated by createCrdtRepo() near the bottom of this file, before the
+// HTTP server starts listening. Declared here (module scope) so the
+// /crdt/docs/* route handlers above can close over it even though it's
+// assigned later in the file — they only read it once a request actually
+// arrives, by which point startup has finished.
+let crdtRepo;
 
 // Explicit origin allowlist (not a wildcard) so credentials: true is safe —
 // a wildcard origin cannot be combined with credentialed requests anyway,
@@ -483,10 +508,10 @@ async function ensurePgcryptoExtension() {
   }
 }
 
-// CRDT document and change storage, following the high-level plan in
-// further revisioning plans.md. This initial implementation focuses on
-// storing changes (as opaque binary patches) and basic metadata; the
-// server does not yet reconstruct or interpret Automerge docs itself.
+// CRDT document catalog: maps a chapter/scene/story-title/screenplay-title
+// to an automerge-repo DocumentId (doc_key). Real-time sync, history, and
+// restore are implemented in ./crdt/repo.js and ./crdt/postgresStorageAdapter.js
+// — this function only owns table/column bootstrapping.
 async function ensureCrdtDocumentsTables() {
   try {
     await pool.query(`
@@ -514,6 +539,45 @@ async function ensureCrdtDocumentsTables() {
       'CREATE INDEX IF NOT EXISTS crdt_documents_branch_idx ON crdt_documents(branch_id)',
     );
 
+    // Real-time collaboration extension: chapter/story_title docs above
+    // predate screenplays. Add nullable FKs so a crdt_documents row can also
+    // catalog a screenplay scene or screenplay title doc (doc_type
+    // 'scene' | 'screenplay_title', alongside the existing
+    // 'chapter' | 'story_title').
+    await pool.query(
+      "ALTER TABLE crdt_documents ADD COLUMN IF NOT EXISTS screenplay_id uuid NULL REFERENCES screenplay_title(screenplay_id) ON DELETE CASCADE",
+    );
+    await pool.query(
+      "ALTER TABLE crdt_documents ADD COLUMN IF NOT EXISTS scene_id uuid NULL REFERENCES screenplay_scene(scene_id) ON DELETE CASCADE",
+    );
+    await pool.query(
+      'CREATE INDEX IF NOT EXISTS crdt_documents_screenplay_idx ON crdt_documents(screenplay_id)',
+    );
+    await pool.query(
+      'CREATE INDEX IF NOT EXISTS crdt_documents_scene_idx ON crdt_documents(scene_id)',
+    );
+    // One live doc per entity: prevents POST /crdt/docs/ensure from racing
+    // itself into two docs for the same chapter/scene/title.
+    await pool.query(
+      'CREATE UNIQUE INDEX IF NOT EXISTS crdt_documents_chapter_unique ON crdt_documents(chapter_id) WHERE doc_type = \'chapter\'',
+    );
+    await pool.query(
+      'CREATE UNIQUE INDEX IF NOT EXISTS crdt_documents_scene_unique ON crdt_documents(scene_id) WHERE doc_type = \'scene\'',
+    );
+    await pool.query(
+      'CREATE UNIQUE INDEX IF NOT EXISTS crdt_documents_story_title_unique ON crdt_documents(story_title_id) WHERE doc_type = \'story_title\'',
+    );
+    await pool.query(
+      'CREATE UNIQUE INDEX IF NOT EXISTS crdt_documents_screenplay_title_unique ON crdt_documents(screenplay_id) WHERE doc_type = \'screenplay_title\'',
+    );
+
+    // Chunked binary doc storage for automerge-repo's PostgresStorageAdapter.
+    // Superseses crdt_changes (see below) as the real storage path — that
+    // table's flat ordered-log shape was never wired up (0 rows in
+    // production) and doesn't fit automerge-repo's chunked snapshot +
+    // incremental-changes model.
+    await ensureCrdtDocChunksTable(pool);
+
     await pool.query(`
       CREATE TABLE IF NOT EXISTS crdt_changes (
         id           bigserial PRIMARY KEY,
@@ -530,7 +594,7 @@ async function ensureCrdtDocumentsTables() {
       'CREATE INDEX IF NOT EXISTS crdt_changes_doc_ts_idx ON crdt_changes(doc_id, ts)',
     );
 
-    console.log('[init] ensured crdt_documents and crdt_changes tables exist');
+    console.log('[init] ensured crdt_documents, crdt_doc_chunks, and (legacy) crdt_changes tables exist');
   } catch (err) {
     console.error('[init] failed to ensure CRDT tables:', err);
   }
@@ -2957,6 +3021,25 @@ app.post('/screenplays/:screenplayId/sync-desktop', async (req, res) => {
       [newTitle, newFormatType, screenplayId],
     );
 
+    // Capture the scenes/blocks about to be destroyed so a revision trail
+    // can be written below — this sync destroys and recreates every scene
+    // with a fresh scene_id each time, so a scene-scoped revision row would
+    // itself get cascade-deleted on the very next sync (screenplay_revisions.scene_id
+    // is ON DELETE CASCADE). A title-scoped row (scene_id NULL) below survives
+    // that and is what closes this route's previously-zero revision trail.
+    const prevStateRes = await client.query(
+      `SELECT sc.scene_index, sc.slugline, sc.location, sc.time_of_day, sc.is_interior, sc.synopsis,
+              COALESCE(json_agg(json_build_object('blockType', b.block_type, 'text', b.text) ORDER BY b.block_index)
+                       FILTER (WHERE b.block_id IS NOT NULL), '[]') AS blocks
+       FROM screenplay_scene sc
+       LEFT JOIN screenplay_block b ON b.scene_id = sc.scene_id
+       WHERE sc.screenplay_id = $1
+       GROUP BY sc.scene_id
+       ORDER BY sc.scene_index`,
+      [screenplayId],
+    );
+    const prevScenes = prevStateRes.rows;
+
     // Replace scenes and blocks in a simple, deterministic way.
     await client.query('DELETE FROM screenplay_block WHERE screenplay_id = $1', [screenplayId]);
     await client.query('DELETE FROM screenplay_scene WHERE screenplay_id = $1', [screenplayId]);
@@ -3009,7 +3092,44 @@ app.post('/screenplays/:screenplayId/sync-desktop', async (req, res) => {
       }
     }
 
+    // Best-effort: record this desktop sync in the revision trail (title-scoped,
+    // scene_id NULL — see the prevStateRes comment above for why). A failure
+    // here must not block the sync itself, same as every other revision
+    // insert in this file. Runs on `client` (this same transaction) — safe
+    // to do before COMMIT, unlike ensureScreenplayAccessRow below.
+    try {
+      const nextRev = await getNextScreenplayRevisionNumber(screenplayId, null);
+      await client.query(
+        `INSERT INTO screenplay_revisions
+           (screenplay_title_id, scene_id, prev_content, new_content, created_by, revision_number, revision_reason)
+         VALUES ($1, NULL, $2, $3, $4, $5, $6)`,
+        [
+          screenplayId,
+          JSON.stringify({ scenes: prevScenes }),
+          JSON.stringify({ scenes }),
+          userId || null,
+          nextRev,
+          'Desktop sync',
+        ],
+      );
+    } catch (errRev) {
+      console.error(
+        '[POST /screenplays/:screenplayId/sync-desktop] failed to insert screenplay_revisions row:',
+        errRev,
+      );
+    }
+
+    await client.query('COMMIT');
+
     // Best-effort: ensure the syncing user shows up as a collaborator.
+    // Must run AFTER commit, not before: ensureScreenplayAccessRow uses the
+    // plain `pool` (a different connection than `client`), and its INSERT
+    // needs a FOR KEY SHARE lock on the screenplay_title row to validate the
+    // FK — which deadlocks against this same request's own `FOR UPDATE` lock
+    // on that row (taken above) for as long as this transaction stays open.
+    // This was a pre-existing bug (every real desktop sync call hung here
+    // indefinitely) surfaced while adding the revision-trail write above;
+    // fixed as part of the same change since both touch this call site.
     try {
       await ensureScreenplayAccessRow(screenplayId, userId, 'contributor');
     } catch (errAccess) {
@@ -3018,8 +3138,6 @@ app.post('/screenplays/:screenplayId/sync-desktop', async (req, res) => {
         errAccess,
       );
     }
-
-    await client.query('COMMIT');
 
     return res.json({
       ok: true,
@@ -6086,118 +6204,167 @@ app.get('/reactions', async (req, res) => {
   }
 });
 
-// Simple CRDT document APIs. These are intentionally conservative:
-// they store opaque binary patches (e.g. Automerge changes) and return
-// them to clients, but do not attempt to reconstruct or interpret docs
-// on the server yet.
+// Real-time CRDT document APIs. Live sync itself happens over the
+// /crdt-sync WebSocket (see crdtRepo setup near the bottom of this file,
+// close to where the http.Server is created) — these REST endpoints cover
+// the three things a WS sync channel can't: minting/looking up a doc_key
+// for a given entity (with access control, since sharePolicy alone can't
+// authorize a document that doesn't exist yet), reading a human-facing
+// revision list, and restoring to a past revision.
 
-// Get CRDT document metadata and all changes by docKey
-app.get('/crdt/docs/:docKey', async (req, res) => {
-  const { docKey } = req.params;
 
-  try {
-    const { rows: docs } = await pool.query(
-      'SELECT * FROM crdt_documents WHERE doc_key = $1',
-      [docKey],
-    );
-    if (docs.length === 0) {
-      return res.status(404).json({ error: 'Doc not found' });
-    }
-    const doc = docs[0];
-
-    const { rows: changes } = await pool.query(
-      'SELECT id, actor_id, seq, ts, encode(patch, \'base64\') AS patch, is_snapshot FROM crdt_changes WHERE doc_id = $1 ORDER BY id ASC',
-      [doc.id],
-    );
-
-    res.json({ doc, changes });
-  } catch (err) {
-    console.error('[GET /crdt/docs/:docKey] failed:', err);
-    res.status(500).json({ error: 'Failed to load CRDT document' });
+// Look up (or, if the requester has access, create) the automerge-repo
+// DocumentId for a given entity. This is the one place doc creation is
+// gated by story_access/screenplay_access — once catalogued, the WS
+// sharePolicy in crdt/repo.js re-checks the same access on every sync.
+app.post('/crdt/docs/ensure', requireAuth, async (req, res) => {
+  const { docType, chapterId, sceneId, storyTitleId, screenplayId } = req.body ?? {};
+  const entityColumn = CRDT_DOC_TYPE_COLUMN[docType];
+  const seeder = CRDT_DOC_TYPE_SEEDERS[docType];
+  if (!entityColumn || !seeder) {
+    return res.status(400).json({ error: 'docType must be one of chapter | scene | story_title | screenplay_title' });
   }
-});
-
-// Append CRDT changes to a document, creating it if needed.
-// Body: { actorId, changes: string[base64], docType?, storyTitleId?, chapterId?, branchId?, isCanonical?, ownerUserId? }
-app.post('/crdt/docs/:docKey/changes', async (req, res) => {
-  const { docKey } = req.params;
-  const {
-    actorId,
-    changes,
-    docType,
-    storyTitleId,
-    chapterId,
-    branchId,
-    isCanonical,
-    ownerUserId,
-  } = req.body ?? {};
-
-  if (!Array.isArray(changes) || changes.length === 0) {
-    return res.status(400).json({ error: 'changes[] (base64) is required' });
+  const entityId = { chapter: chapterId, scene: sceneId, story_title: storyTitleId, screenplay_title: screenplayId }[docType];
+  if (!entityId) {
+    return res.status(400).json({ error: `${entityColumn} is required for docType "${docType}"` });
   }
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
-    let docRes = await client.query(
-      'SELECT * FROM crdt_documents WHERE doc_key = $1 FOR UPDATE',
-      [docKey],
+    const existing = await client.query(
+      `SELECT doc_key FROM crdt_documents WHERE doc_type = $1 AND ${entityColumn} = $2`,
+      [docType, entityId],
     );
-    let doc = docRes.rows[0];
-
-    if (!doc) {
-      if (!docType || !storyTitleId) {
-        await client.query('ROLLBACK');
-        return res
-          .status(400)
-          .json({ error: 'docType and storyTitleId are required when creating a new CRDT doc' });
-      }
-
-      const insertRes = await client.query(
-        `INSERT INTO crdt_documents
-           (doc_key, story_title_id, chapter_id, branch_id, doc_type, is_canonical, owner_user_id, created_by)
-         VALUES ($1, $2, $3, $4, $5, COALESCE($6, true), $7, $8)
-         RETURNING *`,
-        [
-          docKey,
-          storyTitleId,
-          chapterId || null,
-          branchId || null,
-          docType,
-          typeof isCanonical === 'boolean' ? isCanonical : true,
-          ownerUserId || null,
-          actorId || null,
-        ],
-      );
-      doc = insertRes.rows[0];
+    if (existing.rows.length > 0) {
+      await client.query('COMMIT');
+      return res.json({ docKey: existing.rows[0].doc_key });
     }
 
-    const seqBaseRes = await client.query(
-      'SELECT COALESCE(MAX(seq), 0) AS max_seq FROM crdt_changes WHERE doc_id = $1',
-      [doc.id],
-    );
-    let seq = Number(seqBaseRes.rows[0]?.max_seq ?? 0);
-
-    for (const c of changes) {
-      seq += 1;
-      if (typeof c !== 'string') continue;
-      const buf = Buffer.from(c, 'base64');
-      await client.query(
-        `INSERT INTO crdt_changes (doc_id, actor_id, seq, patch, is_snapshot)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [doc.id, actorId || null, seq, buf, false],
-      );
+    const seeded = await seeder(client, entityId);
+    if (!seeded) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Entity not found' });
     }
+
+    const canAccess = await userCanAccessCrdtEntity(client, req.user, docType, seeded.entity);
+    if (!canAccess) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'You do not have access to this content' });
+    }
+
+    const handle = crdtRepo.create(seeded.value);
+    handle.change((d) => { Object.assign(d, seeded.value); }, {
+      message: changeAttribution(req.user),
+      time: Math.floor(Date.now() / 1000),
+    });
+    // repo.create() already applies the initial value as the first change;
+    // the extra no-op change above just attaches an attributed message to
+    // it so the very first history entry has an author, same as every
+    // change after it.
+
+    await client.query(
+      `INSERT INTO crdt_documents
+         (doc_key, story_title_id, chapter_id, branch_id, screenplay_id, scene_id, doc_type, is_canonical, owner_user_id, created_by)
+       VALUES ($1, $2, $3, NULL, $4, $5, $6, true, $7, $7)`,
+      [
+        handle.documentId,
+        seeded.entity.storyTitleId || null,
+        seeded.entity.chapterId || null,
+        seeded.entity.screenplayId || null,
+        seeded.entity.sceneId || null,
+        docType,
+        req.user.id,
+      ],
+    );
 
     await client.query('COMMIT');
-    res.status(204).send();
+    res.json({ docKey: handle.documentId });
   } catch (err) {
     await client.query('ROLLBACK');
-    console.error('[POST /crdt/docs/:docKey/changes] failed:', err);
-    res.status(500).json({ error: 'Failed to append CRDT changes' });
+    console.error('[POST /crdt/docs/ensure] failed:', err);
+    res.status(500).json({ error: 'Failed to ensure CRDT document' });
   } finally {
     client.release();
+  }
+});
+
+// Human-facing revision list for a doc (grouped changes — see
+// buildRevisionHistory), same RevisionSnapshot-ish shape the frontend's
+// RevisionComparison component already expects.
+app.get('/crdt/docs/:docKey/history', requireAuth, async (req, res) => {
+  const { docKey } = req.params;
+  try {
+    const allowed = await authorizeDocAccess(`rest:${req.user.id}`, docKey, {
+      sockets: { [`rest:${req.user.id}`]: { crowdlyUser: req.user } },
+    }, pool);
+    if (!allowed) return res.status(403).json({ error: 'You do not have access to this document' });
+
+    const handle = await crdtRepo.find(docKey);
+    await handle.whenReady();
+    const doc = handle.doc();
+    if (!doc) return res.status(404).json({ error: 'Doc not found' });
+
+    const history = buildRevisionHistory(doc);
+    res.json({ docKey, revisions: history });
+  } catch (err) {
+    console.error('[GET /crdt/docs/:docKey/history] failed:', err);
+    res.status(500).json({ error: 'Failed to load document history' });
+  }
+});
+
+// Restore a doc's live content to a historical revision, expressed as a new
+// forward change (see restoreHandleToHeads) — never a truncation.
+app.post('/crdt/docs/:docKey/restore', requireAuth, async (req, res) => {
+  const { docKey } = req.params;
+  const { toHeads } = req.body ?? {};
+  if (!Array.isArray(toHeads) || toHeads.length === 0) {
+    return res.status(400).json({ error: 'toHeads (string[]) is required' });
+  }
+  try {
+    const allowed = await authorizeDocAccess(`rest:${req.user.id}`, docKey, {
+      sockets: { [`rest:${req.user.id}`]: { crowdlyUser: req.user } },
+    }, pool);
+    if (!allowed) return res.status(403).json({ error: 'You do not have access to this document' });
+
+    const handle = await crdtRepo.find(docKey);
+    await handle.whenReady();
+    restoreHandleToHeads(handle, toHeads, req.user);
+    res.json({ docKey, heads: handle.heads() });
+  } catch (err) {
+    console.error('[POST /crdt/docs/:docKey/restore] failed:', err);
+    res.status(500).json({ error: 'Failed to restore document' });
+  }
+});
+
+// Applies whole-document content as a single attributed change — the sync
+// path for clients with no native CRDT of their own (the desktop app: no
+// maintained Automerge binding exists for Python). Every "Web sync:
+// enabled" trigger point in the desktop app should call this alongside its
+// existing full-content sync, so what previously only reached
+// stories.paragraphs/screenplay_block also reaches the doc's history (see
+// docs/mobile-crdt-spec.md for why native/mobile clients should prefer real
+// operational changes over this coarser path once they can).
+app.post('/crdt/docs/:docKey/apply-content', requireAuth, async (req, res) => {
+  const { docKey } = req.params;
+  const { value, source } = req.body ?? {};
+  if (!value || typeof value !== 'object') {
+    return res.status(400).json({ error: 'value (object) is required' });
+  }
+  try {
+    const allowed = await authorizeDocAccess(`rest:${req.user.id}`, docKey, {
+      sockets: { [`rest:${req.user.id}`]: { crowdlyUser: req.user } },
+    }, pool);
+    if (!allowed) return res.status(403).json({ error: 'You do not have access to this document' });
+
+    const handle = await crdtRepo.find(docKey);
+    await handle.whenReady();
+    applyContentToHandle(handle, value, req.user, typeof source === 'string' ? source : undefined);
+    res.json({ docKey, heads: handle.heads() });
+  } catch (err) {
+    console.error('[POST /crdt/docs/:docKey/apply-content] failed:', err);
+    res.status(500).json({ error: 'Failed to apply content to document' });
   }
 });
 
@@ -8471,6 +8638,20 @@ ensureUiTranslatorRole();
 const port = Number(process.env.PORT) || 4000;
 const host = process.env.HOST || '0.0.0.0';
 
-app.listen(port, host, () => {
+// Real-time CRDT collaboration: an http.Server wraps `app` so the same port
+// serves both plain REST (unchanged) and the /crdt-sync WebSocket upgrade.
+// Every existing app.use/app.get/app.post route above keeps working exactly
+// as before — this only adds a new upgrade path alongside them.
+const httpServer = http.createServer(app);
+
+const { repo, wss } = createCrdtRepo({
+  pool,
+  authorizeDocAccess: (peerId, documentId, wsAdapter) => authorizeDocAccess(peerId, documentId, wsAdapter, pool),
+});
+crdtRepo = repo;
+attachCrdtWebSocketServer(httpServer, { wss, getSessionUser });
+
+httpServer.listen(port, host, () => {
   console.log(`Crowdly backend listening on http://${host === '0.0.0.0' ? 'localhost' : host}:${port}`);
+  console.log(`Crowdly real-time CRDT sync listening on ws://${host === '0.0.0.0' ? 'localhost' : host}:${port}${CRDT_WS_PATH}`);
 });

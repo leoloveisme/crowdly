@@ -29,391 +29,58 @@ import { Info, Maximize2, Minimize2, X } from "lucide-react";
 import type { RevisionSnapshot, ContentType } from "@/types/revisions";
 import { buildDiffHtml } from "@/lib/diff-utils";
 
-// ---------------------------------------------------------------------------
-// Layout presets — ported from desktop compare_revisions.py
-// ---------------------------------------------------------------------------
-
-// Each layout is described as a tree of splits for nested ResizablePanelGroup.
-// A "leaf" holds a tile index; a "split" holds direction + children.
-
-type LayoutLeaf = { type: "leaf"; tileIndex: number };
-type LayoutSplit = {
-  type: "split";
-  direction: "horizontal" | "vertical";
-  children: LayoutNode[];
-  sizes?: number[]; // default panel sizes (percentages)
-};
-type LayoutNode = LayoutLeaf | LayoutSplit;
-
-interface LayoutPreset {
-  label: string;
-  tree: LayoutNode;
-}
-
-const LAYOUTS: Record<number, LayoutPreset[]> = {
-  2: [
-    {
-      label: "Side by side",
-      tree: {
-        type: "split",
-        direction: "horizontal",
-        children: [
-          { type: "leaf", tileIndex: 0 },
-          { type: "leaf", tileIndex: 1 },
-        ],
-      },
-    },
-    {
-      label: "Top / bottom",
-      tree: {
-        type: "split",
-        direction: "vertical",
-        children: [
-          { type: "leaf", tileIndex: 0 },
-          { type: "leaf", tileIndex: 1 },
-        ],
-      },
-    },
-  ],
-  3: [
-    {
-      label: "One top, two below",
-      tree: {
-        type: "split",
-        direction: "vertical",
-        children: [
-          { type: "leaf", tileIndex: 0 },
-          {
-            type: "split",
-            direction: "horizontal",
-            children: [
-              { type: "leaf", tileIndex: 1 },
-              { type: "leaf", tileIndex: 2 },
-            ],
-          },
-        ],
-      },
-    },
-    {
-      label: "Two top, one below",
-      tree: {
-        type: "split",
-        direction: "vertical",
-        children: [
-          {
-            type: "split",
-            direction: "horizontal",
-            children: [
-              { type: "leaf", tileIndex: 0 },
-              { type: "leaf", tileIndex: 1 },
-            ],
-          },
-          { type: "leaf", tileIndex: 2 },
-        ],
-      },
-    },
-    {
-      label: "Two left, one right",
-      tree: {
-        type: "split",
-        direction: "horizontal",
-        children: [
-          {
-            type: "split",
-            direction: "vertical",
-            children: [
-              { type: "leaf", tileIndex: 0 },
-              { type: "leaf", tileIndex: 1 },
-            ],
-          },
-          { type: "leaf", tileIndex: 2 },
-        ],
-      },
-    },
-    {
-      label: "One left, two right",
-      tree: {
-        type: "split",
-        direction: "horizontal",
-        children: [
-          { type: "leaf", tileIndex: 0 },
-          {
-            type: "split",
-            direction: "vertical",
-            children: [
-              { type: "leaf", tileIndex: 1 },
-              { type: "leaf", tileIndex: 2 },
-            ],
-          },
-        ],
-      },
-    },
-  ],
-  4: [
-    {
-      label: "2x2 grid",
-      tree: {
-        type: "split",
-        direction: "vertical",
-        children: [
-          {
-            type: "split",
-            direction: "horizontal",
-            children: [
-              { type: "leaf", tileIndex: 0 },
-              { type: "leaf", tileIndex: 1 },
-            ],
-          },
-          {
-            type: "split",
-            direction: "horizontal",
-            children: [
-              { type: "leaf", tileIndex: 2 },
-              { type: "leaf", tileIndex: 3 },
-            ],
-          },
-        ],
-      },
-    },
-    {
-      label: "4 columns",
-      tree: {
-        type: "split",
-        direction: "horizontal",
-        children: [
-          { type: "leaf", tileIndex: 0 },
-          { type: "leaf", tileIndex: 1 },
-          { type: "leaf", tileIndex: 2 },
-          { type: "leaf", tileIndex: 3 },
-        ],
-      },
-    },
-    {
-      label: "4 rows",
-      tree: {
-        type: "split",
-        direction: "vertical",
-        children: [
-          { type: "leaf", tileIndex: 0 },
-          { type: "leaf", tileIndex: 1 },
-          { type: "leaf", tileIndex: 2 },
-          { type: "leaf", tileIndex: 3 },
-        ],
-      },
-    },
-    {
-      label: "Two wide top, two below",
-      tree: {
-        type: "split",
-        direction: "vertical",
-        children: [
-          { type: "leaf", tileIndex: 0 },
-          { type: "leaf", tileIndex: 1 },
-          {
-            type: "split",
-            direction: "horizontal",
-            children: [
-              { type: "leaf", tileIndex: 2 },
-              { type: "leaf", tileIndex: 3 },
-            ],
-          },
-        ],
-        sizes: [33, 33, 34],
-      },
-    },
-    {
-      label: "Two top, two wide below",
-      tree: {
-        type: "split",
-        direction: "vertical",
-        children: [
-          {
-            type: "split",
-            direction: "horizontal",
-            children: [
-              { type: "leaf", tileIndex: 0 },
-              { type: "leaf", tileIndex: 1 },
-            ],
-          },
-          { type: "leaf", tileIndex: 2 },
-          { type: "leaf", tileIndex: 3 },
-        ],
-        sizes: [34, 33, 33],
-      },
-    },
-    {
-      label: "One tall left, three right",
-      tree: {
-        type: "split",
-        direction: "horizontal",
-        children: [
-          { type: "leaf", tileIndex: 0 },
-          {
-            type: "split",
-            direction: "vertical",
-            children: [
-              { type: "leaf", tileIndex: 1 },
-              { type: "leaf", tileIndex: 2 },
-              { type: "leaf", tileIndex: 3 },
-            ],
-          },
-        ],
-      },
-    },
-    {
-      label: "Three left, one tall right",
-      tree: {
-        type: "split",
-        direction: "horizontal",
-        children: [
-          {
-            type: "split",
-            direction: "vertical",
-            children: [
-              { type: "leaf", tileIndex: 0 },
-              { type: "leaf", tileIndex: 1 },
-              { type: "leaf", tileIndex: 2 },
-            ],
-          },
-          { type: "leaf", tileIndex: 3 },
-        ],
-      },
-    },
-  ],
-};
+import {
+  REVISION_LAYOUTS as LAYOUTS,
+  type LayoutNode,
+} from "@/lib/revision-layouts";
 
 // ---------------------------------------------------------------------------
-// Layout thumbnail SVGs
+// Layout thumbnails — a generic recursive renderer replaces one hand-drawn
+// SVG per preset (was only feasible for 7 presets; REVISION_LAYOUTS now
+// defines 19 four-tile presets to match the desktop editor exactly, see
+// src/lib/revision-layouts.ts). Draws the same box+divider-lines look by
+// walking the same split tree the resizable-panel renderer below uses, so
+// a thumbnail can never drift out of sync with what selecting it produces.
 // ---------------------------------------------------------------------------
 
-function LayoutSvg2Col() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="3" width="18" height="18" />
-      <line x1="12" y1="3" x2="12" y2="21" />
-    </svg>
-  );
+function collectDividerLines(
+  node: LayoutNode,
+  rect: { x: number; y: number; w: number; h: number },
+  lines: Array<{ x1: number; y1: number; x2: number; y2: number }>,
+): void {
+  if (node.type === "leaf") return;
+  const sizes = node.sizes || Array(node.children.length).fill(100 / node.children.length);
+  const boundaries = [0];
+  sizes.forEach((s) => boundaries.push(boundaries[boundaries.length - 1] + s));
+
+  node.children.forEach((child, i) => {
+    const startFrac = boundaries[i] / 100;
+    const endFrac = boundaries[i + 1] / 100;
+    let childRect;
+    if (node.direction === "horizontal") {
+      childRect = { x: rect.x + rect.w * startFrac, y: rect.y, w: rect.w * (endFrac - startFrac), h: rect.h };
+      if (i > 0) lines.push({ x1: childRect.x, y1: rect.y, x2: childRect.x, y2: rect.y + rect.h });
+    } else {
+      childRect = { x: rect.x, y: rect.y + rect.h * startFrac, w: rect.w, h: rect.h * (endFrac - startFrac) };
+      if (i > 0) lines.push({ x1: rect.x, y1: childRect.y, x2: rect.x + rect.w, y2: childRect.y });
+    }
+    collectDividerLines(child, childRect, lines);
+  });
 }
-function LayoutSvg2Row() {
+
+function LayoutIcon({ tree }: { tree: LayoutNode }) {
+  const lines: Array<{ x1: number; y1: number; x2: number; y2: number }> = [];
+  collectDividerLines(tree, { x: 3, y: 3, w: 18, h: 18 }, lines);
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <rect x="3" y="3" width="18" height="18" />
-      <line x1="3" y1="12" x2="21" y2="12" />
-    </svg>
-  );
-}
-function LayoutSvg1Top2Bot() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="3" width="18" height="18" />
-      <line x1="3" y1="12" x2="21" y2="12" />
-      <line x1="12" y1="12" x2="12" y2="21" />
-    </svg>
-  );
-}
-function LayoutSvg2Top1Bot() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="3" width="18" height="18" />
-      <line x1="3" y1="12" x2="21" y2="12" />
-      <line x1="12" y1="3" x2="12" y2="12" />
-    </svg>
-  );
-}
-function LayoutSvg2Left1Right() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="3" width="18" height="18" />
-      <line x1="12" y1="3" x2="12" y2="21" />
-      <line x1="3" y1="12" x2="12" y2="12" />
-    </svg>
-  );
-}
-function LayoutSvg1Left2Right() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="3" width="18" height="18" />
-      <line x1="12" y1="3" x2="12" y2="21" />
-      <line x1="12" y1="12" x2="21" y2="12" />
-    </svg>
-  );
-}
-function LayoutSvg2x2() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="3" width="18" height="18" />
-      <line x1="12" y1="3" x2="12" y2="21" />
-      <line x1="3" y1="12" x2="21" y2="12" />
-    </svg>
-  );
-}
-function LayoutSvg4Col() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="3" width="18" height="18" />
-      <line x1="7.5" y1="3" x2="7.5" y2="21" />
-      <line x1="12" y1="3" x2="12" y2="21" />
-      <line x1="16.5" y1="3" x2="16.5" y2="21" />
-    </svg>
-  );
-}
-function LayoutSvg4Row() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="3" width="18" height="18" />
-      <line x1="3" y1="7.5" x2="21" y2="7.5" />
-      <line x1="3" y1="12" x2="21" y2="12" />
-      <line x1="3" y1="16.5" x2="21" y2="16.5" />
-    </svg>
-  );
-}
-function LayoutSvg2Wide2Bot() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="3" width="18" height="18" />
-      <line x1="3" y1="9" x2="21" y2="9" />
-      <line x1="3" y1="15" x2="21" y2="15" />
-      <line x1="12" y1="15" x2="12" y2="21" />
-    </svg>
-  );
-}
-function LayoutSvg2Top2Wide() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="3" width="18" height="18" />
-      <line x1="12" y1="3" x2="12" y2="9" />
-      <line x1="3" y1="9" x2="21" y2="9" />
-      <line x1="3" y1="15" x2="21" y2="15" />
-    </svg>
-  );
-}
-function LayoutSvg1Tall3Right() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="3" width="18" height="18" />
-      <line x1="12" y1="3" x2="12" y2="21" />
-      <line x1="12" y1="9" x2="21" y2="9" />
-      <line x1="12" y1="15" x2="21" y2="15" />
-    </svg>
-  );
-}
-function LayoutSvg3Left1Tall() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="3" width="18" height="18" />
-      <line x1="12" y1="3" x2="12" y2="21" />
-      <line x1="3" y1="9" x2="12" y2="9" />
-      <line x1="3" y1="15" x2="12" y2="15" />
+      {lines.map((l, i) => (
+        <line key={i} x1={l.x1} y1={l.y1} x2={l.x2} y2={l.y2} />
+      ))}
     </svg>
   );
 }
 
-// Map layout presets to their SVG icons
-const LAYOUT_ICONS: Record<number, React.FC[]> = {
-  2: [LayoutSvg2Col, LayoutSvg2Row],
-  3: [LayoutSvg1Top2Bot, LayoutSvg2Top1Bot, LayoutSvg2Left1Right, LayoutSvg1Left2Right],
-  4: [LayoutSvg2x2, LayoutSvg4Col, LayoutSvg4Row, LayoutSvg2Wide2Bot, LayoutSvg2Top2Wide, LayoutSvg1Tall3Right, LayoutSvg3Left1Tall],
-};
 
 // ---------------------------------------------------------------------------
 // Diff tile renderer
@@ -518,13 +185,35 @@ export interface RevisionComparisonProps {
   contentType?: ContentType;
   /** If true, show "show all" toggle for auto-saves vs manual saves */
   showFilterToggle?: boolean;
+  /**
+   * Restores content to this revision (a new forward change, never a
+   * truncation — the restored-from and restored-to revisions both stay in
+   * history). Only called for revisions that carry `docKey`/`heads` (i.e.
+   * ones sourced from the CRDT history endpoint) — the restore button is
+   * hidden for legacy-endpoint revisions since there's nothing to restore
+   * them through yet.
+   */
+  onRestore?: (revision: RevisionSnapshot) => void | Promise<void>;
 }
 
 const RevisionComparison: React.FC<RevisionComparisonProps> = ({
   revisions,
   className,
   showFilterToggle = true,
+  onRestore,
 }) => {
+  const [restoringId, setRestoringId] = useState<string | null>(null);
+
+  const handleRestoreClick = async (rev: RevisionSnapshot) => {
+    if (!onRestore || restoringId) return;
+    setRestoringId(rev.id);
+    try {
+      await onRestore(rev);
+    } finally {
+      setRestoringId(null);
+    }
+  };
+
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [compareOpen, setCompareOpen] = useState(false);
   const [activeLayout, setActiveLayout] = useState(0);
@@ -555,7 +244,6 @@ const RevisionComparison: React.FC<RevisionComparisonProps> = ({
 
   const count = selectedRevisions.length;
   const layouts = LAYOUTS[count] || [];
-  const icons = LAYOUT_ICONS[count] || [];
 
   // Reset layout index when count changes
   const safeLayout = activeLayout < layouts.length ? activeLayout : 0;
@@ -567,7 +255,6 @@ const RevisionComparison: React.FC<RevisionComparisonProps> = ({
         <span className="text-sm font-medium">Layout:</span>
         <div className="flex gap-1">
           {layouts.map((preset, i) => {
-            const IconComp = icons[i];
             return (
               <TooltipProvider key={i}>
                 <Tooltip>
@@ -576,7 +263,7 @@ const RevisionComparison: React.FC<RevisionComparisonProps> = ({
                       onClick={() => setActiveLayout(i)}
                       className={`border p-1.5 rounded ${safeLayout === i ? "border-blue-500 bg-blue-50" : "border-gray-300"}`}
                     >
-                      {IconComp ? <IconComp /> : <span className="text-xs px-1">{i + 1}</span>}
+                      <LayoutIcon tree={preset.tree} />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -685,17 +372,30 @@ const RevisionComparison: React.FC<RevisionComparisonProps> = ({
                     onCheckedChange={() => toggleSelection(rev.id)}
                   />
                 </TableCell>
+                <TableCell className="w-24">
+                  {onRestore && rev.docKey && rev.heads && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
+                      disabled={restoringId !== null}
+                      onClick={() => handleRestoreClick(rev)}
+                    >
+                      {restoringId === rev.id ? "Restoring..." : "Restore"}
+                    </Button>
+                  )}
+                </TableCell>
               </TableRow>
             ))}
             {filteredRevisions.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-gray-400 text-sm text-center">
+                <TableCell colSpan={7} className="text-gray-400 text-sm text-center">
                   No revisions available.
                 </TableCell>
               </TableRow>
             )}
             <TableRow>
-              <TableCell colSpan={6}>
+              <TableCell colSpan={7}>
                 <div className="flex justify-between items-center">
                   <Button
                     variant="link"

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Header, { InterfaceLanguage } from "./Header";
 import { ImportPopup, ExportPopup } from "../modules/import-export";
 import { parseTags } from "./tag-utils";
+import RevisionsPanel from "./RevisionsPanel";
 
 // In this standalone editor, talk directly to the Crowdly backend.
 // Prefer VITE_API_BASE_URL if provided; otherwise fall back to using
@@ -1139,6 +1140,7 @@ const ScreenplayEditor: React.FC = () => {
                           Add element
                         </button>
                       </div>
+                      <RevisionsPanel docType="scene" sceneId={scene.scene_id} screenplayId={screenplayId ?? undefined} />
                     </section>
                   );
                 })}

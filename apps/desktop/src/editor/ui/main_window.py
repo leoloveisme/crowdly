@@ -6865,6 +6865,15 @@ class MainWindow(QMainWindow):
                     return
                 raise
 
+            # Push this sync into the real-time CRDT revisioning system too
+            # (best-effort — see CrowdlyClient.sync_revision_history_for_screenplay)
+            # so it shows up in "Compare revisions" everywhere else in Crowdly,
+            # not just as an overwrite of screenplay_scene/screenplay_block.
+            try:
+                client.sync_revision_history_for_screenplay(screenplay_id)
+            except Exception as exc:
+                print(f"[web-sync][screenplay] sync_revision_history_for_screenplay failed: {exc}", file=sys.stderr)
+
             # On success, mark last_sync_date for this screenplay file.
             try:
                 file_metadata.touch_last_sync_date(path)
@@ -7393,6 +7402,16 @@ class _StorySyncThread(QThread):
                 self._sync_attachments_to_space(client)
             except Exception:
                 # Attachment sync must never break the main story sync pipeline.
+                pass
+
+            # Push this sync into the real-time CRDT revisioning system too
+            # (best-effort — see CrowdlyClient.sync_revision_history_for_story)
+            # so every "Web sync: enabled" sync shows up in "Compare
+            # revisions" everywhere else in Crowdly, not just as an
+            # overwrite of stories.paragraphs.
+            try:
+                client.sync_revision_history_for_story(self._story_id)
+            except Exception:
                 pass
 
             payload = {

@@ -93,7 +93,7 @@ import { useToast } from "@/hooks/use-toast";
 import EditableText from "@/components/EditableText";
 import ChapterEditor from "@/components/ChapterEditor";
 import LayoutOptionButtons from "@/components/LayoutOptionButtons";
-import RevisionCheckboxCell from "@/components/RevisionCheckboxCell";
+import CompareRevisionsContainer from "@/modules/compare revisions";
 import { useAuth } from "@/contexts/AuthContext";
 import StorySelector from "@/components/StorySelector";
 import NewStoryDialog from "@/components/NewStoryDialog";
@@ -149,15 +149,11 @@ const NewStoryTemplate = () => {
   const [layoutOptionsOpen, setLayoutOptionsOpen] = useState(true);
   const [branchesOpen, setBranchesOpen] = useState(true);
   const [isPublished, setIsPublished] = useState(false);
-  const [compareOpen, setCompareOpen] = useState(false);
-  const [selectedRevisions, setSelectedRevisions] = useState<number[]>([]);
-  const [columnChecked, setColumnChecked] = useState<number[]>([]);
   const [activeLayoutOption, setActiveLayoutOption] = useState<number | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [savingTitle, setSavingTitle] = useState(false);
-  const [storyTitleRevisions, setStoryTitleRevisions] = useState<any[]>([]);
   const [stories, setStories] = useState<any[]>([]); // List of all user's stories
   const [editingChapterId, setEditingChapterId] = useState<string | null>(null);
   const [spaces, setSpaces] = useState<CreativeSpaceRow[]>([]);
@@ -219,33 +215,6 @@ const NewStoryTemplate = () => {
     });
   };
 
-  const toggleCompare = () => {
-    setCompareOpen(!compareOpen);
-  };
-
-  const toggleRevisionSelection = (revisionId: number) => {
-    setSelectedRevisions(prev => {
-      if (prev.includes(revisionId)) {
-        return prev.filter(id => id !== revisionId);
-      } else {
-        if (prev.length >= 4) {
-          return [...prev.slice(1), revisionId];
-        }
-        return [...prev, revisionId];
-      }
-    });
-  };
-
-  const toggleColumnCheckbox = (revisionId: number) => {
-    setColumnChecked(prev => {
-      if (prev.includes(revisionId)) {
-        return prev.filter(id => id !== revisionId);
-      } else {
-        return [...prev, revisionId];
-      }
-    });
-  };
-  
   const handleEditClick = (section: string) => {
     toast({
       title: "Edit mode activated",
@@ -331,7 +300,6 @@ const NewStoryTemplate = () => {
           setMainTitle(data.title);
 
           await fetchAllUserStories();
-          fetchStoryTitleRevisions(data.storyTitleId);
 
           const params = new URLSearchParams({ storyTitleId: data.storyTitleId });
           const chaptersRes = await fetch(`${API_BASE}/chapters?${params.toString()}`);
@@ -403,18 +371,6 @@ const NewStoryTemplate = () => {
     return () => clearTimeout(handle);
   }, [dirty, storyTitleId, chapterId, newChapterTitle, initialParagraphText, mainTitle, user]);
   
-  // Fetch story title revisions
-  const fetchStoryTitleRevisions = async (storyTitleId: string) => {
-    try {
-      const res = await fetch(`${API_BASE}/story-title-revisions/${storyTitleId}`);
-      if (!res.ok) return;
-      const data = await res.json();
-      setStoryTitleRevisions(data || []);
-    } catch (err) {
-      console.error('Failed to fetch story title revisions', err);
-    }
-  };
-
   // Fetch all user stories (Story List)
   const fetchAllUserStories = async () => {
     if (!user) return;
@@ -548,7 +504,6 @@ const NewStoryTemplate = () => {
       await fetchAllUserStories();
       setStoryTitleId(inserted.storyTitleId);
       setMainTitle(inserted.title);
-      fetchStoryTitleRevisions(inserted.storyTitleId);
       navigate(`/story/${inserted.storyTitleId}`);
     } catch (err) {
       console.error('Failed to create story', err);
@@ -570,12 +525,11 @@ const NewStoryTemplate = () => {
     fetchForUser();
   }, [user]);
 
-  // On storyTitleId change, load that story's title and revisions
+  // On storyTitleId change, load that story's title
   useEffect(() => {
     if (!storyTitleId) return;
     const story = stories.find((s) => s.story_title_id === storyTitleId);
     if (story) setMainTitle(story.title);
-    fetchStoryTitleRevisions(storyTitleId);
   }, [storyTitleId]);
 
   // Helper: fetch story title by ID and update mainTitle state
@@ -1385,6 +1339,28 @@ const NewStoryTemplate = () => {
                                 </div>
                               </div>
                             )}
+
+                            <div className="mt-3">
+                              <button
+                                type="button"
+                                className="text-xs text-blue-600 hover:underline"
+                                onClick={() => toggleSection('revisions')}
+                              >
+                                {revisionsOpen ? (
+                                  <EditableText id="new-story-hide-revisions-btn">Hide revisions</EditableText>
+                                ) : (
+                                  <EditableText id="new-story-show-revisions-btn">Show revisions</EditableText>
+                                )}
+                              </button>
+                              {revisionsOpen && (
+                                <div className="mt-2 border rounded p-3 bg-gray-50/50">
+                                  <CompareRevisionsContainer
+                                    chapterId={chapter.chapter_id}
+                                    contentType="story"
+                                  />
+                                </div>
+                              )}
+                            </div>
                           </div>
                         ))}
 

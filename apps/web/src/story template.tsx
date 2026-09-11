@@ -3,6 +3,7 @@ import "./app.css";
 import Header, { InterfaceLanguage } from "./Header";
 import { ImportPopup, ExportPopup } from "../modules/import-export";
 import { parseTags, formatTags } from "./tag-utils";
+import RevisionsPanel from "./RevisionsPanel";
 
 type BlockKind = "title" | "chapter" | "paragraph";
 
@@ -1415,6 +1416,21 @@ const App: React.FC = () => {
           );
         })}
       </div>
+
+      {storyTitleId && (
+        <div style={{ maxWidth: 480 }}>
+          {/*
+            Story-title-level revisioning only (title/genre/tags/description) —
+            this editor's blocks are local DOM state synced wholesale via
+            sync-desktop rather than tracked per-chapter with stable ids client-side
+            (see the Block type above), so true per-chapter live revisioning here
+            needs the bigger edit-loop rewrite onto automerge-repo described for
+            this app, not a drop-in addition. Screenplay editor.tsx has real
+            per-scene ids already and gets full scene-level revisioning instead.
+          */}
+          <RevisionsPanel docType="story_title" storyTitleId={storyTitleId} />
+        </div>
+      )}
 
       <div className="story-id-footer">
         Story ID{" "}

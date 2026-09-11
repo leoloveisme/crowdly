@@ -924,10 +924,6 @@ const StoryforConsumers = () => {
                             <div className="font-medium">{revision.description}</div>
                             <div className="text-gray-500 text-sm">{revision.timestamp}</div>
                           </div>
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4 mr-1" />
-                            <EditableText id="view-revision-btn">View</EditableText>
-                          </Button>
                         </div>
                       ))}
                     </div>

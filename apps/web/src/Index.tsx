@@ -346,6 +346,12 @@ const Index: React.FC = () => {
       const path = authMode === "login" ? "/auth/login" : "/auth/register";
       const res = await fetch(`${API_BASE}${path}`, {
         method: "POST",
+        // Establishes the httpOnly session cookie the backend's requireAuth
+        // middleware checks (see backend/src/sessions.js) — without this,
+        // a cross-origin request (this app runs on :5173, the backend on
+        // :4000) never stores or sends it, so nothing session-gated (e.g.
+        // the real-time CRDT revisioning endpoints) is reachable from here.
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: username, password }),
       });

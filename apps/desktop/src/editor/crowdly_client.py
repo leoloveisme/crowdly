@@ -23,10 +23,14 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 from urllib.parse import urlparse, urlencode
+import http.cookiejar
 import json
+import logging
 import re
 import urllib.request
 import urllib.error
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -138,6 +142,15 @@ class CrowdlyClient:
         self.timeout_seconds = timeout_seconds
         self._credentials = credentials
         self._user_id: str | None = None
+        # Captures the httpOnly session cookie /auth/login sets, so the
+        # real-time CRDT revisioning endpoints (requireAuth-gated, see
+        # backend/src/sessions.js) are reachable after login() — every other
+        # method on this client was written against plain userId-in-payload
+        # auth and doesn't need this, but /crdt/docs/* does.
+        self._cookie_jar = http.cookiejar.CookieJar()
+        self._opener = urllib.request.build_opener(
+            urllib.request.HTTPCookieProcessor(self._cookie_jar)
+        )
 
     def login(self) -> str:
         """Log in to Crowdly backend and return the user_id.
@@ -544,6 +557,157 @@ class CrowdlyClient:
             payload,
         )
 
+    def sync_revision_history_for_story(self, story_id: str) -> None:
+        """Push each chapter's post-sync content into the real-time CRDT
+        revisioning system, so a "Web sync: enabled" sync is a revision too —
+        not just a stories.paragraphs overwrite invisible to the "Compare
+        revisions" UI everywhere else in Crowdly. Call this right after a
+        successful :meth:`sync_desktop_story`.
+
+        Best-effort end to end: this app has no native CRDT of its own (no
+        maintained Automerge binding exists for Python), so each chapter's
+        current full text is posted as one attributed change via
+        POST /crdt/docs/:docKey/apply-content rather than true operational
+        (keystroke-level) sync — see backend/src/crdt/repo.js's
+        applyContentToHandle docstring. Any failure here is logged and
+        swallowed; it must never surface as a sync failure to the user, same
+        as ensureScreenplayAccessRow-style best-effort calls on the backend.
+        """
+
+        try:
+            if self._credentials is None:
+                return
+            self.login()
+            chapters_url = f"{self.base_url}/chapters?" + urlencode({"storyTitleId": story_id})
+            chapters = self._http_get_json(chapters_url)
+            if not isinstance(chapters, list):
+                return
+            for ch in chapters:
+                if not isinstance(ch, dict):
+                    continue
+                chapter_id = ch.get("chapter_id")
+                if not chapter_id:
+                    continue
+                try:
+                    self._sync_chapter_revision(story_id, chapter_id, ch)
+                except Exception as exc:  # noqa: BLE001 - best-effort, log and continue
+                    logger.warning(
+                        "sync_revision_history_for_story: failed for chapter %s: %s",
+                        chapter_id,
+                        exc,
+                    )
+        except Exception as exc:  # noqa: BLE001 - never block the caller's sync flow
+            logger.warning("sync_revision_history_for_story failed for story %s: %s", story_id, exc)
+
+    def _sync_chapter_revision(self, story_id: str, chapter_id: str, chapter_row: dict[str, Any]) -> None:
+        doc = self._http_post_json(
+            f"{self.base_url}/crdt/docs/ensure",
+            {"docType": "chapter", "chapterId": chapter_id},
+        )
+        doc_key = doc.get("docKey") if isinstance(doc, dict) else None
+        if not doc_key:
+            return
+        value = {
+            "chapterId": chapter_id,
+            "storyTitleId": story_id,
+            "title": chapter_row.get("chapter_title") or "",
+            "paragraphs": chapter_row.get("paragraphs") or [],
+            "branches": {},
+            "meta": {},
+        }
+        self._http_post_json(
+            f"{self.base_url}/crdt/docs/{doc_key}/apply-content",
+            {"value": value, "source": "desktop-sync"},
+        )
+
+    def sync_revision_history_for_screenplay(self, screenplay_id: str) -> None:
+        """Screenplay counterpart to :meth:`sync_revision_history_for_story` —
+        see that method's docstring for the full rationale. Call this right
+        after a successful :meth:`sync_desktop_screenplay`.
+        """
+
+        try:
+            if self._credentials is None:
+                return
+            self.login()
+            scenes_url = (
+                f"{self.base_url}/screenplays/{screenplay_id}/scenes?"
+                + urlencode({"includeBlocks": "true"})
+            )
+            data = self._http_get_json(scenes_url)
+            scenes = data.get("scenes") if isinstance(data, dict) else None
+            blocks = data.get("blocks") if isinstance(data, dict) else None
+            if not isinstance(scenes, list):
+                return
+            blocks_by_scene: dict[str, list[dict[str, Any]]] = {}
+            if isinstance(blocks, list):
+                for b in blocks:
+                    if not isinstance(b, dict):
+                        continue
+                    blocks_by_scene.setdefault(b.get("scene_id"), []).append(b)
+
+            for scene in scenes:
+                if not isinstance(scene, dict):
+                    continue
+                scene_id = scene.get("scene_id")
+                if not scene_id:
+                    continue
+                try:
+                    self._sync_scene_revision(
+                        screenplay_id, scene_id, scene, blocks_by_scene.get(scene_id, [])
+                    )
+                except Exception as exc:  # noqa: BLE001 - best-effort, log and continue
+                    logger.warning(
+                        "sync_revision_history_for_screenplay: failed for scene %s: %s",
+                        scene_id,
+                        exc,
+                    )
+        except Exception as exc:  # noqa: BLE001 - never block the caller's sync flow
+            logger.warning(
+                "sync_revision_history_for_screenplay failed for screenplay %s: %s",
+                screenplay_id,
+                exc,
+            )
+
+    def _sync_scene_revision(
+        self,
+        screenplay_id: str,
+        scene_id: str,
+        scene_row: dict[str, Any],
+        blocks_in: list[dict[str, Any]],
+    ) -> None:
+        doc = self._http_post_json(
+            f"{self.base_url}/crdt/docs/ensure",
+            {"docType": "scene", "sceneId": scene_id},
+        )
+        doc_key = doc.get("docKey") if isinstance(doc, dict) else None
+        if not doc_key:
+            return
+        value = {
+            "sceneId": scene_id,
+            "screenplayId": screenplay_id,
+            "sceneIndex": scene_row.get("scene_index"),
+            "slugline": scene_row.get("slugline") or "",
+            "location": scene_row.get("location"),
+            "timeOfDay": scene_row.get("time_of_day"),
+            "isInterior": scene_row.get("is_interior"),
+            "synopsis": scene_row.get("synopsis") or "",
+            "blocks": [
+                {
+                    "blockId": b.get("block_id"),
+                    "blockType": b.get("block_type"),
+                    "text": b.get("text") or "",
+                    "metadata": b.get("metadata"),
+                }
+                for b in blocks_in
+                if isinstance(b, dict)
+            ],
+        }
+        self._http_post_json(
+            f"{self.base_url}/crdt/docs/{doc_key}/apply-content",
+            {"value": value, "source": "desktop-sync"},
+        )
+
     def _http_post_json(self, url: str, payload: dict[str, Any]) -> Any:
         raw = json.dumps(payload).encode("utf-8")
         req = urllib.request.Request(
@@ -558,7 +722,7 @@ class CrowdlyClient:
         )
 
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout_seconds) as resp:
+            with self._opener.open(req, timeout=self.timeout_seconds) as resp:
                 content_type = (resp.headers.get_content_type() or "").lower()
                 charset = resp.headers.get_content_charset() or "utf-8"
                 body = resp.read().decode(charset, errors="replace")
@@ -594,7 +758,7 @@ class CrowdlyClient:
         )
 
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout_seconds) as resp:
+            with self._opener.open(req, timeout=self.timeout_seconds) as resp:
                 content_type = (resp.headers.get_content_type() or "").lower()
                 charset = resp.headers.get_content_charset() or "utf-8"
                 raw_text = resp.read().decode(charset, errors="replace")
