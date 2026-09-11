@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Zap, Film, BookOpen } from "lucide-react";
+import EditableText from "@/components/EditableText";
 
 const API_BASE = import.meta.env.PROD
   ? (import.meta.env.VITE_API_BASE_URL ?? "")
@@ -69,7 +70,7 @@ const LivingExperiencingStories: React.FC<LivingExperiencingStoriesProps> = ({
   if (!userId) {
     return (
       <div className="text-sm text-gray-500 mt-4">
-        Login to see which stories and screenplays you are currently experiencing.
+        <EditableText id="living-login-msg">Login to see which stories and screenplays you are currently experiencing.</EditableText>
       </div>
     );
   }
@@ -78,7 +79,7 @@ const LivingExperiencingStories: React.FC<LivingExperiencingStoriesProps> = ({
     return (
       <div className="text-sm text-gray-400 mt-4 flex items-center gap-2">
         <Zap className="h-4 w-4 text-green-600" />
-        Loading your currently experienced titles...
+        <EditableText id="living-loading">Loading your currently experienced titles...</EditableText>
       </div>
     );
   }
@@ -94,7 +95,7 @@ const LivingExperiencingStories: React.FC<LivingExperiencingStoriesProps> = ({
   if (items.length === 0) {
     return (
       <div className="text-sm text-gray-400 mt-4 italic">
-        You are not currently living / experiencing any stories.
+        <EditableText id="living-empty">You are not currently living / experiencing any stories.</EditableText>
       </div>
     );
   }

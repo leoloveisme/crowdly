@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { useExport } from "@/hooks/useExport";
 import { ExportFormat } from "@/types/import-export";
 import { importDocument } from "@/lib/import";
+import EditableText from "@/components/EditableText";
 
 // ---------------------------------------------------------------------------
 // API base – same pattern used across the platform
@@ -556,10 +557,10 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onOpenChange }
         {step === "choose-type" && (
           <>
             <DialogHeader>
-              <DialogTitle>Import</DialogTitle>
+              <DialogTitle><EditableText id="import-title">Import</EditableText></DialogTitle>
             </DialogHeader>
             <p className="text-sm text-gray-500 mb-4">
-              What would you like to import the file as?
+              <EditableText id="import-choose-type-desc">What would you like to import the file as?</EditableText>
             </p>
             <div className="flex flex-col gap-3">
               <Button
@@ -567,14 +568,14 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onOpenChange }
                 className="w-full justify-start"
                 onClick={() => handleChooseType("story")}
               >
-                Import as regular (novel) story
+                <EditableText id="import-as-story">Import as regular (novel) story</EditableText>
               </Button>
               <Button
                 variant="outline"
                 className="w-full justify-start"
                 onClick={() => handleChooseType("screenplay")}
               >
-                Import as screenplay
+                <EditableText id="import-as-screenplay">Import as screenplay</EditableText>
               </Button>
             </div>
           </>
@@ -594,7 +595,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onOpenChange }
 
             {importing ? (
               <div className="text-center py-6">
-                <p className="text-sm text-gray-600">Importing...</p>
+                <p className="text-sm text-gray-600"><EditableText id="import-importing">Importing...</EditableText></p>
               </div>
             ) : (
               <div
@@ -618,7 +619,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onOpenChange }
               >
                 <div className="text-3xl mb-2">&#128196;</div>
                 <div className="text-sm text-gray-600">
-                  Drag and drop a file here, or click to browse
+                  <EditableText id="import-drag-drop">Drag and drop a file here, or click to browse</EditableText>
                 </div>
                 <div className="text-xs text-gray-400 mt-1">
                   {importKind === "screenplay"
@@ -648,14 +649,14 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onOpenChange }
                   setError(null);
                 }}
               >
-                Back
+                <EditableText id="import-back">Back</EditableText>
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => onOpenChange(false)}
               >
-                Cancel
+                <EditableText id="import-cancel">Cancel</EditableText>
               </Button>
             </div>
           </>
@@ -893,10 +894,10 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
         {step === "choose-action" && (
           <>
             <DialogHeader>
-              <DialogTitle>Export</DialogTitle>
+              <DialogTitle><EditableText id="export-title">Export</EditableText></DialogTitle>
             </DialogHeader>
             <p className="text-sm text-gray-500 mb-4">
-              How would you like to export this {contentType}?
+              <EditableText id="export-choose-action-desc">How would you like to export this content?</EditableText>
             </p>
             <div className="flex flex-col gap-3">
               <Button
@@ -904,7 +905,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
                 className="w-full justify-start"
                 onClick={() => setStep("choose-format")}
               >
-                Save file on this device
+                <EditableText id="export-save-device">Save file on this device</EditableText>
               </Button>
               <Button
                 variant="outline"
@@ -914,7 +915,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
                   loadSpaces();
                 }}
               >
-                Save to a Space
+                <EditableText id="export-save-space">Save to a Space</EditableText>
               </Button>
             </div>
           </>
@@ -924,29 +925,29 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
         {step === "choose-format" && (
           <>
             <DialogHeader>
-              <DialogTitle>Save to device</DialogTitle>
+              <DialogTitle><EditableText id="export-save-device-title">Save to device</EditableText></DialogTitle>
             </DialogHeader>
-            <p className="text-sm text-gray-500 mb-4">Choose a file format:</p>
+            <p className="text-sm text-gray-500 mb-4"><EditableText id="export-choose-format">Choose a file format:</EditableText></p>
             <div className="flex flex-col gap-3">
               <Button
                 variant="outline"
                 className="w-full justify-start"
                 onClick={() => handleSaveToDevice("html")}
               >
-                HTML (web page with formatting)
+                <EditableText id="export-html">HTML (web page with formatting)</EditableText>
               </Button>
               <Button
                 variant="outline"
                 className="w-full justify-start"
                 onClick={() => handleSaveToDevice("txt")}
               >
-                Plain Text (simple text without formatting)
+                <EditableText id="export-plain-text">Plain Text (simple text without formatting)</EditableText>
               </Button>
 
               {getContentMarkdown && (
                 <>
                   <div className="text-xs text-gray-400 uppercase tracking-wide mt-2">
-                    Document Formats
+                    <EditableText id="export-doc-formats">Document Formats</EditableText>
                   </div>
                   <Button
                     variant="outline"
@@ -984,7 +985,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
                   {contentType === "screenplay" && (
                     <>
                       <div className="text-xs text-gray-400 uppercase tracking-wide mt-2">
-                        Screenplay Formats
+                        <EditableText id="export-screenplay-formats">Screenplay Formats</EditableText>
                       </div>
                       <Button
                         variant="outline"
@@ -1018,14 +1019,14 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
                 size="sm"
                 onClick={() => setStep("choose-action")}
               >
-                Back
+                <EditableText id="export-format-back">Back</EditableText>
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => onOpenChange(false)}
               >
-                Cancel
+                <EditableText id="export-format-cancel">Cancel</EditableText>
               </Button>
             </div>
           </>
@@ -1035,21 +1036,21 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
         {step === "choose-space" && (
           <>
             <DialogHeader>
-              <DialogTitle>Save to a Space</DialogTitle>
+              <DialogTitle><EditableText id="export-save-space-title">Save to a Space</EditableText></DialogTitle>
             </DialogHeader>
             <p className="text-sm text-gray-500 mb-4">
-              Choose an existing space or create a new one:
+              <EditableText id="export-choose-space-desc">Choose an existing space or create a new one:</EditableText>
             </p>
 
             {spacesLoading ? (
               <div className="py-3 text-center text-sm text-gray-500">
-                Loading spaces...
+                <EditableText id="export-loading-spaces">Loading spaces...</EditableText>
               </div>
             ) : spacesError ? (
               <div className="py-3 text-sm text-red-600">{spacesError}</div>
             ) : spaces.length === 0 ? (
               <div className="py-3 text-sm text-gray-500">
-                You have no spaces yet. Create one below.
+                <EditableText id="export-no-spaces">You have no spaces yet. Create one below.</EditableText>
               </div>
             ) : (
               <div className="max-h-[200px] overflow-y-auto border rounded-lg mb-2">
@@ -1080,7 +1081,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
                 setStep("create-space");
               }}
             >
-              + Create a new Space
+              <EditableText id="export-create-space-btn">+ Create a new Space</EditableText>
             </Button>
 
             {saveError && (
@@ -1089,7 +1090,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
 
             {saving && (
               <div className="mt-2 text-center text-sm text-gray-600">
-                Saving...
+                <EditableText id="export-saving">Saving...</EditableText>
               </div>
             )}
 
@@ -1099,14 +1100,14 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
                 size="sm"
                 onClick={() => setStep("choose-action")}
               >
-                Back
+                <EditableText id="export-space-back">Back</EditableText>
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => onOpenChange(false)}
               >
-                Cancel
+                <EditableText id="export-space-cancel">Cancel</EditableText>
               </Button>
             </div>
           </>
@@ -1116,10 +1117,10 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
         {step === "create-space" && (
           <>
             <DialogHeader>
-              <DialogTitle>Create a new Space</DialogTitle>
+              <DialogTitle><EditableText id="export-create-space-title">Create a new Space</EditableText></DialogTitle>
             </DialogHeader>
             <p className="text-sm text-gray-500 mb-4">
-              Enter a name for the new space. The exported file will be saved to it.
+              <EditableText id="export-create-space-desc">Enter a name for the new space. The exported file will be saved to it.</EditableText>
             </p>
             <Input
               placeholder="Space name"
@@ -1134,7 +1135,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
               disabled={saving || !newSpaceName.trim()}
               onClick={handleCreateSpace}
             >
-              {saving ? "Creating & Saving..." : "Create Space & Save"}
+              {saving ? <EditableText id="export-creating-saving">Creating & Saving...</EditableText> : <EditableText id="export-create-save">Create Space & Save</EditableText>}
             </Button>
 
             {saveError && (
@@ -1150,14 +1151,14 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
                   setStep("choose-space");
                 }}
               >
-                Back
+                <EditableText id="export-newspace-back">Back</EditableText>
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => onOpenChange(false)}
               >
-                Cancel
+                <EditableText id="export-newspace-cancel">Cancel</EditableText>
               </Button>
             </div>
           </>

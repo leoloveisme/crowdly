@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Loader2, Users, Clock, GitBranch, BookOpen, Heart, Download } from "lucide-react";
+import { Loader2, Users, Clock, GitBranch, BookOpen, Heart, Download, Search, User, X } from "lucide-react";
 import CrowdlyHeader from "@/components/CrowdlyHeader";
 import CrowdlyFooter from "@/components/CrowdlyFooter";
 import EditableText from "@/components/EditableText";
@@ -14,6 +14,17 @@ import StoryBranchList from "@/components/StoryBranchList";
 import ContributionsModule, { ContributionRow } from "@/modules/contributions";
 import InteractionsWidget from "@/modules/InteractionsWidget";
 import { ExportDialog } from "@/modules/import-export";
+import UserGroupPicker from "@/modules/user-group-picker";
+import CompareRevisionsContainer from "@/modules/compare revisions";
+import StoryLanguageSelect from "@/components/StoryLanguageSelect";
+import CoverImageUpload from "@/components/CoverImageUpload";
+import DescriptionEditor from "@/components/DescriptionEditor";
+import TagBadge from "@/components/TagBadge";
+import TagInput from "@/components/TagInput";
+import ImageGallery from "@/components/ImageGallery";
+import GalleryUpload from "@/components/GalleryUpload";
+import { listGalleryImages, type GalleryImage } from "@/lib/galleryApi";
+import { ImagePlus } from "lucide-react";
 
 // Use same-origin API base in development; dev server proxies to backend.
 // In production, VITE_API_BASE_URL can point at the deployed API.
@@ -42,6 +53,27 @@ type Proposal = {
   created_at: string;
   author_email?: string;
 };
+
+type StoryCollaborator = {
+  user_id: string;
+  role: "author" | "coauthor";
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+  nickname?: string;
+};
+
+type UserSearchResult = {
+  id: string;
+  email: string;
+  first_name?: string;
+  last_name?: string;
+};
+
+function collabDisplayName(u: { email?: string; first_name?: string; last_name?: string; nickname?: string }) {
+  const name = [u.first_name, u.last_name].filter(Boolean).join(" ");
+  return name || u.email || "";
+}
 
 // --- Modular components for each section ---
 const ContributorsSection = ({
@@ -77,71 +109,106 @@ const RevisionsSection = ({
   storyTitleRevisions,
   chapterRevisions,
   chapterRevisionsLoading,
+  chapters,
 }: {
   storyTitleRevisions: any[];
   chapterRevisions: any[];
   chapterRevisionsLoading: boolean;
-}) => (
-  <div className="p-6 space-y-6">
-    <div>
-      <h2 className="text-2xl font-semibold mb-4">Story Title Revisions</h2>
-      <div className="bg-white border rounded p-6 shadow-sm space-y-2">
-        {storyTitleRevisions.length === 0 ? (
-          <div className="text-gray-400 text-sm">No title revisions recorded yet.</div>
-        ) : (
-          <ul className="space-y-1 text-sm">
-            {storyTitleRevisions.map((rev) => (
-              <li key={rev.id ?? `${rev.story_title_id}-${rev.revision_number}`}>
-                <span className="font-medium">{rev.new_title}</span>{" "}
-                <span className="text-xs text-gray-500">
-                  (rev {rev.revision_number} at {new Date(rev.created_at).toLocaleString()})
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </div>
+  chapters: any[];
+}) => {
+  const [compareChapterId, setCompareChapterId] = React.useState<string>("");
 
-    {/* Placeholder block for chapter title revisions (UI only, no data yet) */}
-    <div>
-      <h2 className="text-2xl font-semibold mb-4">Chapter Title Revisions</h2>
-      <div className="bg-white border rounded p-6 shadow-sm space-y-2">
-        <div className="text-gray-400 text-sm">No chapter revisions recorded yet.</div>
-      </div>
-    </div>
-
-    <div>
-      <h2 className="text-2xl font-semibold mb-4">Chapter Revisions</h2>
-      <div className="bg-white border rounded p-6 shadow-sm space-y-2">
-        {chapterRevisionsLoading ? (
-          <div className="text-gray-500 text-sm">Loading chapter revisions...</div>
-        ) : chapterRevisions.length === 0 ? (
-          <div className="text-gray-400 text-sm">No chapter revisions recorded yet.</div>
-        ) : (
-          <ul className="space-y-1 text-sm">
-            {chapterRevisions.map((rev) => (
-              <li
-                key={rev.id}
-                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1"
-              >
-                <div>
-                  <span className="font-medium">{rev.chapter_title}</span>{" "}
+  return (
+    <div className="p-6 space-y-6">
+      <div>
+        <h2 className="text-2xl font-semibold mb-4">Story Title Revisions</h2>
+        <div className="bg-white border rounded p-6 shadow-sm space-y-2">
+          {storyTitleRevisions.length === 0 ? (
+            <div className="text-gray-400 text-sm">No title revisions recorded yet.</div>
+          ) : (
+            <ul className="space-y-1 text-sm">
+              {storyTitleRevisions.map((rev) => (
+                <li key={rev.id ?? `${rev.story_title_id}-${rev.revision_number}`}>
+                  <span className="font-medium">{rev.new_title}</span>{" "}
                   <span className="text-xs text-gray-500">
                     (rev {rev.revision_number} at {new Date(rev.created_at).toLocaleString()})
                   </span>
-                </div>
-                <div className="text-xs text-gray-500">
-                  {rev.revision_reason || 'Chapter updated'}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
+      <div>
+        <h2 className="text-2xl font-semibold mb-4">Chapter Revisions</h2>
+        <div className="bg-white border rounded p-6 shadow-sm space-y-2">
+          {chapterRevisionsLoading ? (
+            <div className="text-gray-500 text-sm">Loading chapter revisions...</div>
+          ) : chapterRevisions.length === 0 ? (
+            <div className="text-gray-400 text-sm">No chapter revisions recorded yet.</div>
+          ) : (
+            <ul className="space-y-1 text-sm">
+              {chapterRevisions.map((rev) => (
+                <li
+                  key={rev.id}
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1"
+                >
+                  <div>
+                    <span className="font-medium">{rev.chapter_title}</span>{" "}
+                    <span className="text-xs text-gray-500">
+                      (rev {rev.revision_number} at {new Date(rev.created_at).toLocaleString()})
+                    </span>
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {rev.revision_reason || 'Chapter updated'}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
+      {/* Compare Revisions */}
+      <div>
+        <h2 className="text-2xl font-semibold mb-4">Compare Chapter Revisions</h2>
+        <div className="bg-white border rounded p-6 shadow-sm space-y-4">
+          {chapters.length === 0 ? (
+            <div className="text-gray-400 text-sm">No chapters available for comparison.</div>
+          ) : (
+            <>
+              <div className="flex items-center gap-3">
+                <label htmlFor="compare-chapter-select" className="text-sm font-medium">
+                  Select chapter:
+                </label>
+                <select
+                  id="compare-chapter-select"
+                  value={compareChapterId}
+                  onChange={(e) => setCompareChapterId(e.target.value)}
+                  className="border rounded px-3 py-1.5 text-sm bg-white"
+                >
+                  <option value="">-- Choose a chapter --</option>
+                  {chapters.map((ch: any) => (
+                    <option key={ch.chapter_id} value={ch.chapter_id}>
+                      {ch.chapter_title || `Chapter ${ch.chapter_index ?? ''}`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {compareChapterId && (
+                <CompareRevisionsContainer
+                  chapterId={compareChapterId}
+                  contentType="story"
+                />
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 const BranchesSection = ({ storyId }: { storyId: string }) => (
   <div className="p-6">
     <h2 className="text-2xl font-semibold mb-4">Story Branches</h2>
@@ -161,6 +228,16 @@ const Story = () => {
     creator_id?: string;
     visibility?: string;
     published?: boolean;
+    completion_status?: string;
+    clone_policy?: string;
+    export_policy?: string;
+    can_clone?: boolean;
+    can_export?: boolean;
+    language?: string;
+    cover_image_url?: string | null;
+    description?: string | null;
+    tags?: string[] | null;
+    genre?: string | null;
   } | null>(null);
 
   // Helper: count "words" in a paragraph in a way that ignores
@@ -178,6 +255,14 @@ const Story = () => {
     return cleaned.split(/\s+/).length;
   };
   const [chapters, setChapters] = useState<any[]>([]);
+  // Inline chapter illustrations (kind='inline_illustration'), keyed for lookup
+  // by chapter + paragraph anchor when rendering.
+  const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
+  const [illustrationTarget, setIllustrationTarget] = useState<{ chapterId: string; anchorIndex: number } | null>(null);
+  // Prominent, always-visible cover editor (Goodreads-style), separate from
+  // the buried CoverImageUpload further down in the owner settings row.
+  const [coverEditorOpen, setCoverEditorOpen] = useState(false);
+  const [galleryRefreshToken, setGalleryRefreshToken] = useState(0);
   const [loading, setLoading] = useState(true);
   const [storyError, setStoryError] = useState<{ status: number; message: string } | null>(null);
   const [contributors, setContributors] = useState<Contributor[]>([]);
@@ -229,6 +314,39 @@ const Story = () => {
 
   // Export dialog state
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+
+  // Access rules picker state
+  const [accessPickerOpen, setAccessPickerOpen] = useState(false);
+  const [accessPickerRuleType, setAccessPickerRuleType] = useState<"view" | "clone" | "export">("view");
+
+  // Collaborators state
+  const [collaborators, setCollaborators] = useState<StoryCollaborator[]>([]);
+  const [collaboratorsLoading, setCollaboratorsLoading] = useState(false);
+
+  // Transfer ownership state
+  const [transferQuery, setTransferQuery] = useState("");
+  const [transferResults, setTransferResults] = useState<UserSearchResult[]>([]);
+  const [transferTarget, setTransferTarget] = useState<UserSearchResult | null>(null);
+  const [transferring, setTransferring] = useState(false);
+  const [showTransferDropdown, setShowTransferDropdown] = useState(false);
+  const transferDropdownRef = useRef<HTMLDivElement>(null);
+  const transferDebounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Add author state
+  const [authorQuery, setAuthorQuery] = useState("");
+  const [authorResults, setAuthorResults] = useState<UserSearchResult[]>([]);
+  const [showAuthorDropdown, setShowAuthorDropdown] = useState(false);
+  const [addingAuthor, setAddingAuthor] = useState(false);
+  const authorDropdownRef = useRef<HTMLDivElement>(null);
+  const authorDebounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Add co-author state
+  const [coauthorQuery, setCoauthorQuery] = useState("");
+  const [coauthorResults, setCoauthorResults] = useState<UserSearchResult[]>([]);
+  const [showCoauthorDropdown, setShowCoauthorDropdown] = useState(false);
+  const [addingCoauthor, setAddingCoauthor] = useState(false);
+  const coauthorDropdownRef = useRef<HTMLDivElement>(null);
+  const coauthorDebounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Minimal inline "add chapter" UI in contribute mode
   const [addChapterMode, setAddChapterMode] = useState(false);
@@ -352,6 +470,23 @@ const Story = () => {
       } finally {
         setContributorsLoading(false);
       }
+
+      // Collaborators (authors & co-authors, best-effort)
+      try {
+        setCollaboratorsLoading(true);
+        const collabRes = await fetch(`${API_BASE}/stories/${story_id}/collaborators`);
+        if (collabRes.ok) {
+          const data = await collabRes.json();
+          setCollaborators(Array.isArray(data) ? data : []);
+        } else {
+          setCollaborators([]);
+        }
+      } catch (err) {
+        console.error('Failed to fetch collaborators', err);
+        setCollaborators([]);
+      } finally {
+        setCollaboratorsLoading(false);
+      }
     } catch (err) {
       console.error("Failed to fetch story and chapters", err);
       setStory(null);
@@ -368,6 +503,17 @@ const Story = () => {
     }
     // eslint-disable-next-line
   }, [story_id, user?.id]);
+
+  const reloadInlineIllustrations = useCallback(() => {
+    if (!story_id) return;
+    listGalleryImages(story_id)
+      .then((rows) => setGalleryImages(rows.filter((r) => r.kind === "inline_illustration" && r.status === "approved")))
+      .catch(() => setGalleryImages([]));
+  }, [story_id]);
+
+  useEffect(() => {
+    reloadInlineIllustrations();
+  }, [reloadInlineIllustrations]);
 
   // Keep currentChapterId in sync with loaded chapters and optional chapter_id param
   useEffect(() => {
@@ -413,6 +559,79 @@ const Story = () => {
     return () => window.clearTimeout(timeout);
   }, [chapter_id, chapters]);
 
+  // Debounced user search for transfer-ownership
+  useEffect(() => {
+    if (transferDebounceRef.current) clearTimeout(transferDebounceRef.current);
+    if (!transferQuery.trim()) { setTransferResults([]); return; }
+    transferDebounceRef.current = setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({ q: transferQuery });
+        if (user?.id) params.set("excludeUserId", user.id);
+        const res = await fetch(`${API_BASE}/users/search?${params}`);
+        if (res.ok) {
+          const data = await res.json();
+          const list: UserSearchResult[] = Array.isArray(data) ? data : Array.isArray(data.users) ? data.users : [];
+          setTransferResults(list);
+          setShowTransferDropdown(true);
+        }
+      } catch { /* ignore */ }
+    }, 300);
+    return () => { if (transferDebounceRef.current) clearTimeout(transferDebounceRef.current); };
+  }, [transferQuery, user?.id]);
+
+  // Debounced user search for adding authors
+  useEffect(() => {
+    if (authorDebounceRef.current) clearTimeout(authorDebounceRef.current);
+    if (!authorQuery.trim()) { setAuthorResults([]); return; }
+    const existingIds = collaborators.filter(c => c.role === "author").map(c => c.user_id);
+    authorDebounceRef.current = setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({ q: authorQuery });
+        if (user?.id) params.set("excludeUserId", user.id);
+        const res = await fetch(`${API_BASE}/users/search?${params}`);
+        if (res.ok) {
+          const data = await res.json();
+          const list: UserSearchResult[] = Array.isArray(data) ? data : Array.isArray(data.users) ? data.users : [];
+          setAuthorResults(list.filter(u => !existingIds.includes(u.id)));
+          setShowAuthorDropdown(true);
+        }
+      } catch { /* ignore */ }
+    }, 300);
+    return () => { if (authorDebounceRef.current) clearTimeout(authorDebounceRef.current); };
+  }, [authorQuery, user?.id, collaborators]);
+
+  // Debounced user search for adding co-authors
+  useEffect(() => {
+    if (coauthorDebounceRef.current) clearTimeout(coauthorDebounceRef.current);
+    if (!coauthorQuery.trim()) { setCoauthorResults([]); return; }
+    const existingIds = collaborators.filter(c => c.role === "coauthor").map(c => c.user_id);
+    coauthorDebounceRef.current = setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({ q: coauthorQuery });
+        if (user?.id) params.set("excludeUserId", user.id);
+        const res = await fetch(`${API_BASE}/users/search?${params}`);
+        if (res.ok) {
+          const data = await res.json();
+          const list: UserSearchResult[] = Array.isArray(data) ? data : Array.isArray(data.users) ? data.users : [];
+          setCoauthorResults(list.filter(u => !existingIds.includes(u.id)));
+          setShowCoauthorDropdown(true);
+        }
+      } catch { /* ignore */ }
+    }, 300);
+    return () => { if (coauthorDebounceRef.current) clearTimeout(coauthorDebounceRef.current); };
+  }, [coauthorQuery, user?.id, collaborators]);
+
+  // Close collaborator dropdowns on click outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (transferDropdownRef.current && !transferDropdownRef.current.contains(e.target as Node)) setShowTransferDropdown(false);
+      if (authorDropdownRef.current && !authorDropdownRef.current.contains(e.target as Node)) setShowAuthorDropdown(false);
+      if (coauthorDropdownRef.current && !coauthorDropdownRef.current.contains(e.target as Node)) setShowCoauthorDropdown(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
   // Permission checks
   const isOwner = user && story && story.creator_id === user.id;
   const canDeleteStory =
@@ -446,6 +665,119 @@ const Story = () => {
     } catch (err) {
       console.error("Failed to delete story", err);
       toast({ title: "Error", description: "Could not delete story", variant: "destructive" });
+    }
+  };
+
+  // Transfer ownership handler
+  const handleTransferOwnership = async () => {
+    if (!story || !transferTarget || !user) return;
+    if (!window.confirm(`Transfer ownership of this story to ${collabDisplayName(transferTarget) || transferTarget.email}? You will no longer be the owner.`)) return;
+    setTransferring(true);
+    try {
+      const res = await fetch(`${API_BASE}/stories/${story.story_title_id}/transfer-ownership`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newOwnerId: transferTarget.id, requestingUserId: user.id }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setStory(updated);
+        setTransferTarget(null);
+        setTransferQuery("");
+        toast({ title: "Ownership transferred", description: `Story is now owned by ${collabDisplayName(transferTarget) || transferTarget.email}` });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast({ title: "Error", description: err.error || "Failed to transfer ownership", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Network error", variant: "destructive" });
+    }
+    setTransferring(false);
+  };
+
+  // Add author handler
+  const handleAddAuthor = async (targetUser: UserSearchResult) => {
+    if (!story || !user) return;
+    setAddingAuthor(true);
+    try {
+      const res = await fetch(`${API_BASE}/stories/${story.story_title_id}/authors`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: targetUser.id, requestingUserId: user.id }),
+      });
+      if (res.ok) {
+        const newCollab: StoryCollaborator = await res.json();
+        setCollaborators(prev => [...prev.filter(c => c.user_id !== targetUser.id), newCollab]);
+        setAuthorQuery("");
+        setAuthorResults([]);
+        setShowAuthorDropdown(false);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast({ title: "Error", description: err.error || "Failed to add author", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Network error", variant: "destructive" });
+    }
+    setAddingAuthor(false);
+  };
+
+  // Remove author handler
+  const handleRemoveAuthor = async (userId: string) => {
+    if (!story || !user) return;
+    try {
+      const params = new URLSearchParams({ requestingUserId: user.id });
+      const res = await fetch(`${API_BASE}/stories/${story.story_title_id}/authors/${userId}?${params}`, { method: "DELETE" });
+      if (res.ok) {
+        setCollaborators(prev => prev.filter(c => !(c.user_id === userId && c.role === "author")));
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast({ title: "Error", description: err.error || "Failed to remove author", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Network error", variant: "destructive" });
+    }
+  };
+
+  // Add co-author handler
+  const handleAddCoauthor = async (targetUser: UserSearchResult) => {
+    if (!story || !user) return;
+    setAddingCoauthor(true);
+    try {
+      const res = await fetch(`${API_BASE}/stories/${story.story_title_id}/coauthors`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: targetUser.id, requestingUserId: user.id }),
+      });
+      if (res.ok) {
+        const newCollab: StoryCollaborator = await res.json();
+        setCollaborators(prev => [...prev.filter(c => c.user_id !== targetUser.id), newCollab]);
+        setCoauthorQuery("");
+        setCoauthorResults([]);
+        setShowCoauthorDropdown(false);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast({ title: "Error", description: err.error || "Failed to add co-author", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Network error", variant: "destructive" });
+    }
+    setAddingCoauthor(false);
+  };
+
+  // Remove co-author handler
+  const handleRemoveCoauthor = async (userId: string) => {
+    if (!story || !user) return;
+    try {
+      const params = new URLSearchParams({ requestingUserId: user.id });
+      const res = await fetch(`${API_BASE}/stories/${story.story_title_id}/coauthors/${userId}?${params}`, { method: "DELETE" });
+      if (res.ok) {
+        setCollaborators(prev => prev.filter(c => !(c.user_id === userId && c.role === "coauthor")));
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast({ title: "Error", description: err.error || "Failed to remove co-author", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Network error", variant: "destructive" });
     }
   };
 
@@ -768,7 +1100,7 @@ const Story = () => {
   // UPDATE
   const handleUpdateChapter = async (
     chapter_id: string,
-    patch: { chapter_title?: string; paragraphs?: string[] }
+    patch: { chapter_title?: string; paragraphs?: string[]; tags?: string[]; paragraphTags?: Record<string, string[]> }
   ) => {
     try {
       const res = await fetch(`${API_BASE}/chapters/${chapter_id}`, {
@@ -777,6 +1109,8 @@ const Story = () => {
         body: JSON.stringify({
           chapterTitle: patch.chapter_title,
           paragraphs: patch.paragraphs,
+          tags: patch.tags,
+          paragraphTags: patch.paragraphTags,
           userId: user?.id,
         }),
       });
@@ -1465,9 +1799,11 @@ const Story = () => {
     }
   };
 
-  const toggleVisibility = async () => {
+  const cycleVisibility = async () => {
     if (!story) return;
-    const nextVisibility = story.visibility === 'private' ? 'public' : 'private';
+    const current = story.visibility ?? 'public';
+    const nextMap: Record<string, string> = { public: 'unlisted', unlisted: 'private', private: 'public' };
+    const nextVisibility = nextMap[current] ?? 'public';
     try {
       const res = await fetch(`${API_BASE}/story-titles/${story.story_title_id}/settings`, {
         method: "PATCH",
@@ -1481,9 +1817,65 @@ const Story = () => {
       }
       setStory(body);
       toast({ title: "Visibility updated", description: `Story is now ${nextVisibility}.` });
+      // If set to unlisted, open user/group picker for view rules
+      if (nextVisibility === 'unlisted') {
+        setAccessPickerRuleType("view");
+        setAccessPickerOpen(true);
+      }
     } catch (err) {
       console.error('Failed to toggle visibility', err);
       toast({ title: "Error", description: "Failed to update visibility", variant: "destructive" });
+    }
+  };
+
+  const updateStorySetting = async (field: string, value: string | boolean) => {
+    if (!story) return;
+    try {
+      const res = await fetch(`${API_BASE}/story-titles/${story.story_title_id}/settings`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: value }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast({ title: "Error", description: body.error || `Failed to update ${field}`, variant: "destructive" });
+        return;
+      }
+      setStory(body);
+    } catch (err) {
+      console.error(`Failed to update ${field}`, err);
+      toast({ title: "Error", description: `Failed to update ${field}`, variant: "destructive" });
+    }
+  };
+
+  const toggleCompletionStatus = () => {
+    if (!story) return;
+    const next = (story.completion_status ?? 'draft') === 'draft' ? 'completed' : 'draft';
+    updateStorySetting('completion_status', next);
+    toast({ title: next === 'completed' ? "Marked as completed" : "Marked as draft" });
+  };
+
+  const cycleClonePolicy = () => {
+    if (!story) return;
+    const current = story.clone_policy ?? 'anyone';
+    const nextMap: Record<string, string> = { anyone: 'restricted', restricted: 'none', none: 'anyone' };
+    const next = nextMap[current] ?? 'anyone';
+    updateStorySetting('clone_policy', next);
+    if (next === 'restricted') {
+      setAccessPickerRuleType("clone");
+      setAccessPickerOpen(true);
+    }
+  };
+
+  const cycleExportPolicy = () => {
+    if (!story) return;
+    const current = story.export_policy ?? 'anyone';
+    const nextMap: Record<string, string> = { anyone: 'restricted', restricted: 'none', none: 'anyone' };
+    const next = nextMap[current] ?? 'anyone';
+    updateStorySetting('export_policy', next);
+    if (next === 'restricted') {
+      setAccessPickerRuleType("export");
+      setAccessPickerOpen(true);
     }
   };
 
@@ -1760,15 +2152,31 @@ const Story = () => {
                     className={`px-2 py-1 rounded-full text-xs ${
                       story.visibility === 'private'
                         ? 'bg-yellow-100 text-yellow-800'
+                        : story.visibility === 'unlisted'
+                        ? 'bg-blue-100 text-blue-800'
                         : 'bg-green-100 text-green-800'
                     }`}
                   >
-                    {story.visibility === 'private' ? 'Private' : 'Public'}
+                    {story.visibility === 'private' ? 'Private' : story.visibility === 'unlisted' ? 'Unlisted' : 'Public'}
                   </span>
                 )}
                 {story.published === false && (
                   <span className="px-2 py-1 rounded-full text-xs bg-gray-200 text-gray-700">
                     Unpublished
+                  </span>
+                )}
+                <span
+                  className={`px-2 py-1 rounded-full text-xs ${
+                    (story.completion_status ?? 'draft') === 'completed'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-orange-100 text-orange-800'
+                  }`}
+                >
+                  {(story.completion_status ?? 'draft') === 'completed' ? 'Completed' : 'Draft'}
+                </span>
+                {story.language && (
+                  <span className="px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
+                    {story.language.toUpperCase()}
                   </span>
                 )}
                 {user && (
@@ -1780,7 +2188,17 @@ const Story = () => {
                     Mark as finished
                   </button>
                 )}
-                {user && (
+                {user && (story.can_clone !== false) && (
+                  <button
+                    type="button"
+                    onClick={handleCloneStory}
+                    title="Clone this story"
+                    className="ml-2 inline-flex items-center px-2 py-1 rounded-full border border-dashed border-gray-300 text-[11px] text-gray-700 hover:bg-gray-50"
+                  >
+                    Clone
+                  </button>
+                )}
+                {user && (story.can_export !== false) && (
                   <button
                     type="button"
                     onClick={() => setExportDialogOpen(true)}
@@ -1790,6 +2208,102 @@ const Story = () => {
                     <Download className="h-3 w-3 mr-1" />
                     Export
                   </button>
+                )}
+              </div>
+
+              {/* Cover art — always visible (placeholder when absent), with a
+                  direct click-to-change affordance for the owner. This is the
+                  primary, discoverable way to set/replace a story's cover;
+                  the CoverImageUpload further down in the settings row still
+                  works too. */}
+              <div className="mt-3 mb-3 flex items-start gap-3">
+                <div className="relative w-28 h-40 shrink-0 rounded-md overflow-hidden bg-gradient-to-br from-blue-200 via-sky-200 to-purple-200 dark:from-slate-700 dark:via-slate-800 dark:to-slate-900 group/cover">
+                  {story.cover_image_url ? (
+                    <img
+                      src={story.cover_image_url}
+                      alt="Story cover"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <BookOpen className="h-8 w-8 text-white/80" />
+                    </div>
+                  )}
+                  {isOwner && (
+                    <button
+                      type="button"
+                      onClick={() => setCoverEditorOpen((v) => !v)}
+                      className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover/cover:bg-black/50 opacity-0 group-hover/cover:opacity-100 transition-all text-white text-xs font-medium"
+                    >
+                      {story.cover_image_url ? (
+                        <EditableText id="story-cover-change-btn">Change cover</EditableText>
+                      ) : (
+                        <EditableText id="story-cover-add-btn">Add cover</EditableText>
+                      )}
+                    </button>
+                  )}
+                </div>
+                {isOwner && coverEditorOpen && (
+                  <div className="max-w-xs">
+                    <CoverImageUpload
+                      value={story.cover_image_url || null}
+                      onChange={(url) => {
+                        updateStorySetting("cover_image_url", url || "");
+                        setCoverEditorOpen(false);
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {story.description && (
+                <p className="text-sm text-gray-600 whitespace-pre-wrap mt-2 mb-2">
+                  {story.description}
+                </p>
+              )}
+              {story.tags && story.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2 mb-2">
+                  {story.tags.map((tag) => (
+                    <TagBadge key={tag} tag={tag} />
+                  ))}
+                </div>
+              )}
+
+              {/* Gallery — cover variants, chapter illustrations submitted as
+                  fan art, and community photos. Open to every visitor (not
+                  just the owner), matching the backend's moderation rules:
+                  the owner/contributors publish directly, everyone else's
+                  uploads go to a pending queue for review. */}
+              <div className="mt-4 mb-4 border rounded-lg p-4 bg-white dark:bg-gray-900">
+                <h2 className="text-sm font-semibold mb-2">
+                  <EditableText id="story-gallery-heading">Gallery</EditableText>
+                </h2>
+                <ImageGallery
+                  storyTitleId={story.story_title_id}
+                  kindFilter={["fan_art", "gallery"]}
+                  currentUserId={user?.id ?? null}
+                  canModerate={!!isOwner}
+                  idPrefix="story-page-gallery"
+                  refreshToken={galleryRefreshToken}
+                />
+                {user && (
+                  <div className="mt-3 pt-3 border-t max-w-sm">
+                    <h3 className="text-xs font-semibold mb-1">
+                      {isOwner ? (
+                        <EditableText id="story-gallery-upload-label-owner">Add to gallery</EditableText>
+                      ) : (
+                        <EditableText id="story-gallery-upload-label-fan">
+                          Submit fan art (reviewed by the story owner)
+                        </EditableText>
+                      )}
+                    </h3>
+                    <GalleryUpload
+                      storyTitleId={story.story_title_id}
+                      kind={isOwner ? "gallery" : "fan_art"}
+                      idPrefix="story-page-gallery-upload"
+                      onUploaded={() => setGalleryRefreshToken((t) => t + 1)}
+                    />
+                  </div>
                 )}
               </div>
 
@@ -1818,40 +2332,88 @@ const Story = () => {
                               (p.target_path ?? "") === String(idx),
                           );
 
-                          return (
-                            <div key={idx} className="mb-3">
-                              {lines.map((line, lineIdx) => (
-                                <p key={`${idx}-${lineIdx}`} className="mb-1">
-                                  {line}
-                                </p>
-                              ))}
+                          // Illustrations anchor to a paragraph index at insertion time; there
+                          // are no stable paragraph IDs in this data model, so an illustration
+                          // can drift if paragraphs are later inserted/removed above it.
+                          const illustrationsHere = galleryImages.filter(
+                            (g) => g.chapter_id === currentChapter.chapter_id && g.anchor_index === idx,
+                          );
 
-                              {paragraphProposals.length > 0 && (
-                                <div className="mt-1 space-y-1">
-                                  {paragraphProposals.map((p) => (
-                                    <div
-                                      key={p.id}
-                                      className="text-xs text-purple-900 bg-purple-50 border border-dashed border-purple-200 rounded px-2 py-1"
-                                    >
-                                      <div className="whitespace-pre-wrap">
-                                        {p.proposed_text || (
-                                          <span className="italic text-purple-500">
-                                            (Proposed deletion of this paragraph)
-                                          </span>
-                                        )}
+                          return (
+                            <React.Fragment key={idx}>
+                              <div className="mb-3">
+                                {lines.map((line, lineIdx) => (
+                                  <p key={`${idx}-${lineIdx}`} className="mb-1">
+                                    {line}
+                                  </p>
+                                ))}
+
+                                {paragraphProposals.length > 0 && (
+                                  <div className="mt-1 space-y-1">
+                                    {paragraphProposals.map((p) => (
+                                      <div
+                                        key={p.id}
+                                        className="text-xs text-purple-900 bg-purple-50 border border-dashed border-purple-200 rounded px-2 py-1"
+                                      >
+                                        <div className="whitespace-pre-wrap">
+                                          {p.proposed_text || (
+                                            <span className="italic text-purple-500">
+                                              (Proposed deletion of this paragraph)
+                                            </span>
+                                          )}
+                                        </div>
+                                        <div className="mt-0.5 text-[10px] text-purple-500">
+                                          Proposed by {p.author_email || "Unknown user"} ·{" "}
+                                          {new Date(p.created_at).toLocaleString()}
+                                        </div>
                                       </div>
-                                      <div className="mt-0.5 text-[10px] text-purple-500">
-                                        Proposed by {p.author_email || "Unknown user"} ·{" "}
-                                        {new Date(p.created_at).toLocaleString()}
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+
+                              {illustrationsHere.map((img) => (
+                                <figure key={img.id} className="my-4">
+                                  <img
+                                    src={img.image_url}
+                                    alt={img.caption ?? ""}
+                                    className="max-w-full max-h-[32rem] rounded-md object-contain mx-auto"
+                                  />
+                                  {img.caption && (
+                                    <figcaption className="text-xs text-gray-500 text-center mt-1">
+                                      {img.caption}
+                                    </figcaption>
+                                  )}
+                                </figure>
+                              ))}
+                            </React.Fragment>
                           );
                         })
                       : null}
+                    {(() => {
+                      const paragraphCount = Array.isArray(currentChapter.paragraphs)
+                        ? currentChapter.paragraphs.length
+                        : 0;
+                      const overflowIllustrations = galleryImages.filter(
+                        (g) =>
+                          g.chapter_id === currentChapter.chapter_id &&
+                          (g.anchor_index === null || g.anchor_index >= paragraphCount),
+                      );
+                      return overflowIllustrations.map((img) => (
+                        <figure key={img.id} className="my-4">
+                          <img
+                            src={img.image_url}
+                            alt={img.caption ?? ""}
+                            className="max-w-full max-h-[32rem] rounded-md object-contain mx-auto"
+                          />
+                          {img.caption && (
+                            <figcaption className="text-xs text-gray-500 text-center mt-1">
+                              {img.caption}
+                            </figcaption>
+                          )}
+                        </figure>
+                      ));
+                    })()}
                   </div>
                 )}
                 {chapters.length === 0 && (
@@ -1946,17 +2508,72 @@ const Story = () => {
                         {isOwner && (
                           <>
                             <button
-                              onClick={toggleVisibility}
+                              onClick={cycleVisibility}
                               className="px-2 py-1 rounded border hover:bg-gray-50 border-gray-300"
+                              title="Cycle: Public → Unlisted → Private"
                             >
-                              {story.visibility === 'private' ? 'Make public' : 'Make private'}
+                              {story.visibility === 'private' ? 'Private' : story.visibility === 'unlisted' ? 'Unlisted' : 'Public'}
                             </button>
+                            {story.visibility === 'unlisted' && (
+                              <button
+                                onClick={() => { setAccessPickerRuleType("view"); setAccessPickerOpen(true); }}
+                                className="px-2 py-1 rounded border hover:bg-gray-50 border-blue-300 text-blue-700"
+                              >
+                                Viewers
+                              </button>
+                            )}
                             <button
                               onClick={togglePublished}
                               className="px-2 py-1 rounded border hover:bg-gray-50 border-gray-300"
                             >
                               {story.published === false ? 'Publish' : 'Unpublish'}
                             </button>
+                            <button
+                              onClick={toggleCompletionStatus}
+                              className="px-2 py-1 rounded border hover:bg-gray-50 border-gray-300"
+                            >
+                              {(story.completion_status ?? 'draft') === 'draft' ? 'Mark completed' : 'Mark draft'}
+                            </button>
+                            <button
+                              onClick={cycleClonePolicy}
+                              className="px-2 py-1 rounded border hover:bg-gray-50 border-gray-300"
+                              title="Cycle: Cloneable → Restricted → Not cloneable"
+                            >
+                              Clone: {story.clone_policy === 'none' ? 'Off' : story.clone_policy === 'restricted' ? 'Restricted' : 'On'}
+                            </button>
+                            {story.clone_policy === 'restricted' && (
+                              <button
+                                onClick={() => { setAccessPickerRuleType("clone"); setAccessPickerOpen(true); }}
+                                className="px-2 py-1 rounded border hover:bg-gray-50 border-blue-300 text-blue-700"
+                              >
+                                Cloners
+                              </button>
+                            )}
+                            <button
+                              onClick={cycleExportPolicy}
+                              className="px-2 py-1 rounded border hover:bg-gray-50 border-gray-300"
+                              title="Cycle: Exportable → Restricted → Not exportable"
+                            >
+                              Export: {story.export_policy === 'none' ? 'Off' : story.export_policy === 'restricted' ? 'Restricted' : 'On'}
+                            </button>
+                            {story.export_policy === 'restricted' && (
+                              <button
+                                onClick={() => { setAccessPickerRuleType("export"); setAccessPickerOpen(true); }}
+                                className="px-2 py-1 rounded border hover:bg-gray-50 border-blue-300 text-blue-700"
+                              >
+                                Exporters
+                              </button>
+                            )}
+                            <div className="flex items-center gap-2">
+                              <StoryLanguageSelect
+                                value={story.language || 'en'}
+                                onChange={(code) => updateStorySetting('language', code)}
+                              />
+                            </div>
+                            <CoverImageUpload
+                              value={story.cover_image_url || null}
+                              onChange={(url) => updateStorySetting('cover_image_url', url || '')}
+                            />
                           </>
                         )}
                         {canDeleteStory && (
@@ -1970,6 +2587,206 @@ const Story = () => {
                       </div>
                     )}
                   </div>
+
+                  {/* Description & Tags (contribute mode) */}
+                  {isOwner && (
+                    <div className="mb-4 space-y-2">
+                      <div>
+                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                          <EditableText id="story-description-label">Description</EditableText>
+                        </span>
+                        <DescriptionEditor
+                          description={story.description || null}
+                          onSave={async (desc) => { updateStorySetting('description', desc); }}
+                        />
+                      </div>
+                      <div>
+                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                          <EditableText id="story-tags-label">Tags</EditableText>
+                        </span>
+                        <TagInput
+                          tags={story.tags || []}
+                          onChange={(newTags) => updateStorySetting('tags', newTags as any)}
+                          className="mt-1 border border-gray-200 rounded-md p-2"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {/* Collaborators management (owner only) */}
+                  {isOwner && (
+                    <div className="mb-4 space-y-3">
+                      <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                        <EditableText id="story-collaborators-label">Collaborators</EditableText>
+                      </span>
+
+                      {/* Transfer Ownership */}
+                      <div className="border rounded-md p-3 bg-gray-50 space-y-2">
+                        <div className="text-xs font-semibold text-gray-600">
+                          <EditableText id="story-transfer-ownership-label">Transfer ownership to</EditableText>
+                        </div>
+                        {transferTarget ? (
+                          <div className="flex items-center gap-2">
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-orange-100 text-orange-800">
+                              <User className="h-3 w-3" />
+                              {collabDisplayName(transferTarget) || transferTarget.email}
+                              <button type="button" onClick={() => setTransferTarget(null)} className="ml-0.5 hover:text-red-600">
+                                <X className="h-3 w-3" />
+                              </button>
+                            </span>
+                            <button
+                              type="button"
+                              disabled={transferring}
+                              onClick={handleTransferOwnership}
+                              className="px-3 py-1 text-xs rounded bg-orange-500 text-white font-semibold hover:bg-orange-700 disabled:opacity-50 transition"
+                            >
+                              {transferring ? <EditableText id="story-transfer-btn-ing">Transferring…</EditableText> : <EditableText id="story-transfer-btn">Transfer</EditableText>}
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="relative" ref={transferDropdownRef}>
+                            <div className="relative">
+                              <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-gray-400" />
+                              <input
+                                type="text"
+                                placeholder="Search users…"
+                                value={transferQuery}
+                                onChange={(e) => setTransferQuery(e.target.value)}
+                                onFocus={() => transferResults.length > 0 && setShowTransferDropdown(true)}
+                                className="w-full pl-7 pr-2 py-1.5 text-xs border rounded-md focus:outline-none focus:ring-1 focus:ring-orange-300 bg-white"
+                              />
+                            </div>
+                            {showTransferDropdown && transferResults.length > 0 && (
+                              <div className="absolute z-50 mt-1 w-full bg-white border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                                {transferResults.map((u) => (
+                                  <button
+                                    key={u.id}
+                                    type="button"
+                                    className="w-full text-left px-3 py-2 text-xs hover:bg-orange-50 flex items-center gap-2"
+                                    onClick={() => { setTransferTarget(u); setTransferQuery(""); setShowTransferDropdown(false); }}
+                                  >
+                                    <User className="h-3 w-3 text-gray-400 shrink-0" />
+                                    <span>{collabDisplayName(u) || u.email}</span>
+                                    {u.first_name && <span className="text-gray-400 ml-auto text-xs">{u.email}</span>}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Authors */}
+                      <div className="border rounded-md p-3 bg-gray-50 space-y-2">
+                        <div className="text-xs font-semibold text-gray-600">
+                          <EditableText id="story-authors-label">Authors</EditableText>
+                        </div>
+                        {collaborators.filter(c => c.role === "author").length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {collaborators.filter(c => c.role === "author").map((c) => (
+                              <span key={c.user_id} className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                                <User className="h-3 w-3" />
+                                {collabDisplayName(c) || c.user_id}
+                                <button type="button" onClick={() => handleRemoveAuthor(c.user_id)} className="ml-0.5 hover:text-red-600">
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <div className="relative" ref={authorDropdownRef}>
+                          <div className="relative">
+                            <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-gray-400" />
+                            <input
+                              type="text"
+                              placeholder="Add author…"
+                              value={authorQuery}
+                              onChange={(e) => setAuthorQuery(e.target.value)}
+                              onFocus={() => authorResults.length > 0 && setShowAuthorDropdown(true)}
+                              className="w-full pl-7 pr-2 py-1.5 text-xs border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-300 bg-white"
+                            />
+                          </div>
+                          {showAuthorDropdown && authorResults.length > 0 && (
+                            <div className="absolute z-50 mt-1 w-full bg-white border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                              {authorResults.map((u) => (
+                                <button
+                                  key={u.id}
+                                  type="button"
+                                  disabled={addingAuthor}
+                                  className="w-full text-left px-3 py-2 text-xs hover:bg-blue-50 flex items-center gap-2 disabled:opacity-50"
+                                  onClick={() => handleAddAuthor(u)}
+                                >
+                                  <User className="h-3 w-3 text-gray-400 shrink-0" />
+                                  <span>{collabDisplayName(u) || u.email}</span>
+                                  {u.first_name && <span className="text-gray-400 ml-auto text-xs">{u.email}</span>}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Co-authors */}
+                      <div className="border rounded-md p-3 bg-gray-50 space-y-2">
+                        <div className="text-xs font-semibold text-gray-600">
+                          <EditableText id="story-coauthors-label">Co-authors</EditableText>
+                        </div>
+                        {collaborators.filter(c => c.role === "coauthor").length > 0 && (
+                          <div className="flex flex-wrap gap-1.5">
+                            {collaborators.filter(c => c.role === "coauthor").map((c) => (
+                              <span key={c.user_id} className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
+                                <User className="h-3 w-3" />
+                                {collabDisplayName(c) || c.user_id}
+                                <button type="button" onClick={() => handleRemoveCoauthor(c.user_id)} className="ml-0.5 hover:text-red-600">
+                                  <X className="h-3 w-3" />
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <div className="relative" ref={coauthorDropdownRef}>
+                          <div className="relative">
+                            <Search className="absolute left-2 top-2.5 h-3.5 w-3.5 text-gray-400" />
+                            <input
+                              type="text"
+                              placeholder="Add co-author…"
+                              value={coauthorQuery}
+                              onChange={(e) => setCoauthorQuery(e.target.value)}
+                              onFocus={() => coauthorResults.length > 0 && setShowCoauthorDropdown(true)}
+                              className="w-full pl-7 pr-2 py-1.5 text-xs border rounded-md focus:outline-none focus:ring-1 focus:ring-purple-300 bg-white"
+                            />
+                          </div>
+                          {showCoauthorDropdown && coauthorResults.length > 0 && (
+                            <div className="absolute z-50 mt-1 w-full bg-white border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                              {coauthorResults.map((u) => (
+                                <button
+                                  key={u.id}
+                                  type="button"
+                                  disabled={addingCoauthor}
+                                  className="w-full text-left px-3 py-2 text-xs hover:bg-purple-50 flex items-center gap-2 disabled:opacity-50"
+                                  onClick={() => handleAddCoauthor(u)}
+                                >
+                                  <User className="h-3 w-3 text-gray-400 shrink-0" />
+                                  <span>{collabDisplayName(u) || u.email}</span>
+                                  {u.first_name && <span className="text-gray-400 ml-auto text-xs">{u.email}</span>}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {!isOwner && story.description && (
+                    <p className="text-sm text-gray-600 whitespace-pre-wrap mb-2">{story.description}</p>
+                  )}
+                  {!isOwner && story.tags && story.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                      {story.tags.map((tag) => (
+                        <TagBadge key={tag} tag={tag} />
+                      ))}
+                    </div>
+                  )}
 
                   {/* CHAPTERS CRUD & branching (web-editor style) */}
                   {canCRUDChapters ? (
@@ -2038,6 +2855,21 @@ const Story = () => {
                               </button>
                             </div>
                           </div>
+                          {/* Chapter tags */}
+                          {isOwner ? (
+                            <div className="mb-2">
+                              <TagInput
+                                tags={chapter.tags || []}
+                                onChange={(newTags) => handleUpdateChapter(chapter.chapter_id, { tags: newTags })}
+                                placeholder="#chapter-tag"
+                                className="border border-gray-100 rounded p-1.5 text-xs"
+                              />
+                            </div>
+                          ) : (chapter.tags && chapter.tags.length > 0) ? (
+                            <div className="flex flex-wrap gap-1 mb-2">
+                              {chapter.tags.map((t: string) => <TagBadge key={t} tag={t} />)}
+                            </div>
+                          ) : null}
                           {Array.isArray(chapter.paragraphs) && chapter.paragraphs.length > 0 ? (
                             chapter.paragraphs.map((paragraph, idx) => (
                               <div key={idx} className="mb-4">
@@ -2071,8 +2903,56 @@ const Story = () => {
                                       <svg width="16" height="16" stroke="currentColor" fill="none" viewBox="0 0 24 24"><path strokeWidth="2" d="M6 3v6a6 6 0 006 6h6"></path><path strokeWidth="2" d="M18 21v-6a6 6 0 00-6-6H6"></path></svg>
                                       Create Branch
                                     </button>
+                                    {isOwner && (
+                                      <button
+                                        className="opacity-0 group-hover/paragraph:opacity-100 transition-opacity border rounded px-2 py-1 text-xs font-medium flex items-center gap-1 bg-white hover:bg-gray-100 shadow hover:shadow-md"
+                                        type="button"
+                                        onClick={() =>
+                                          setIllustrationTarget((prev) =>
+                                            prev && prev.chapterId === chapter.chapter_id && prev.anchorIndex === idx
+                                              ? null
+                                              : { chapterId: chapter.chapter_id, anchorIndex: idx },
+                                          )
+                                        }
+                                      >
+                                        <ImagePlus className="h-3.5 w-3.5" />
+                                        <EditableText id="story-insert-illustration">Insert illustration</EditableText>
+                                      </button>
+                                    )}
                                   </div>
                                 </div>
+
+                                {/* Illustrations already anchored to this paragraph */}
+                                {galleryImages
+                                  .filter((g) => g.chapter_id === chapter.chapter_id && g.anchor_index === idx)
+                                  .map((img) => (
+                                    <figure key={img.id} className="my-3">
+                                      <img
+                                        src={img.image_url}
+                                        alt={img.caption ?? ""}
+                                        className="max-w-full max-h-96 rounded-md object-contain mx-auto"
+                                      />
+                                    </figure>
+                                  ))}
+
+                                {isOwner &&
+                                  illustrationTarget &&
+                                  illustrationTarget.chapterId === chapter.chapter_id &&
+                                  illustrationTarget.anchorIndex === idx && (
+                                    <div className="my-3 max-w-sm">
+                                      <GalleryUpload
+                                        storyTitleId={story.story_title_id}
+                                        kind="inline_illustration"
+                                        chapterId={chapter.chapter_id}
+                                        anchorIndex={idx}
+                                        idPrefix="story-illustration-upload"
+                                        onUploaded={() => {
+                                          setIllustrationTarget(null);
+                                          reloadInlineIllustrations();
+                                        }}
+                                      />
+                                    </div>
+                                  )}
 
                                 {/* Inline branches created under this base paragraph */}
                                 {inlineBranches
@@ -2399,6 +3279,7 @@ const Story = () => {
             storyTitleRevisions={storyTitleRevisions}
             chapterRevisions={chapterRevisions}
             chapterRevisionsLoading={chapterRevisionsLoading}
+            chapters={chapters}
           />
         )}
         {activeTab === "branches" && <BranchesSection storyId={story.story_title_id} />}
@@ -2414,6 +3295,14 @@ const Story = () => {
         getTitle={getStoryTitle}
         contentType="story"
         contentId={story.story_title_id}
+      />
+
+      {/* User/Group Access Picker */}
+      <UserGroupPicker
+        storyTitleId={story.story_title_id}
+        ruleType={accessPickerRuleType}
+        open={accessPickerOpen}
+        onClose={() => setAccessPickerOpen(false)}
       />
     </div>
   );

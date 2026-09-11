@@ -12,6 +12,7 @@ import { Link } from "react-router-dom";
 import { CalendarIcon, ThumbsUp, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
+import EditableText from "@/components/EditableText";
 
 interface FeatureSuggestion {
   id: string;
@@ -78,21 +79,21 @@ const FeatureSuggestions = () => {
       
       <div className="flex-grow container mx-auto px-4 py-8 max-w-6xl">
         <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-[#1A1F2C]">Suggested features</h1>
+          <EditableText id="features-heading" as="h1" className="text-4xl font-bold text-[#1A1F2C]">Suggested features</EditableText>
           <Button 
             asChild 
             className="bg-indigo-600 hover:bg-indigo-700"
           >
             <Link to="/suggest-feature">
-              Suggest a Feature
+              <EditableText id="features-suggest-btn">Suggest a Feature</EditableText>
             </Link>
           </Button>
         </div>
-        
+
         <div className="mb-8">
-          <p className="text-gray-600">
+          <EditableText id="features-browse-desc" as="p" className="text-gray-600">
             Browse through feature suggestions from our community or submit your own ideas to help us improve.
-          </p>
+          </EditableText>
         </div>
         
         {isLoading ? (
@@ -150,7 +151,7 @@ const FeatureSuggestions = () => {
                   
                   {suggestion.attachments && suggestion.attachments.length > 0 && (
                     <div className="mt-4">
-                      <p className="font-semibold text-sm mb-2">Attachments:</p>
+                      <EditableText id="features-attachments-label" as="p" className="font-semibold text-sm mb-2">Attachments:</EditableText>
                       <div className="flex flex-wrap gap-2">
                         {suggestion.attachments.map((attachment, idx) => (
                           <Badge variant="secondary" key={idx} className="flex items-center">
@@ -163,16 +164,16 @@ const FeatureSuggestions = () => {
                 </CardContent>
                 <CardFooter className="flex justify-between items-center border-t pt-4">
                   <div className="text-sm text-gray-500">
-                    Suggested by: <span className="font-medium">{getAuthorName(suggestion)}</span>
+                    <EditableText id="features-suggested-by">Suggested by:</EditableText> <span className="font-medium">{getAuthorName(suggestion)}</span>
                   </div>
                   <div className="flex space-x-2">
                     <Button size="sm" variant="outline" className="flex items-center">
                       <ThumbsUp className="h-4 w-4 mr-1" />
-                      <span>Vote</span>
+                      <EditableText id="features-vote">Vote</EditableText>
                     </Button>
                     <Button size="sm" variant="outline" className="flex items-center">
                       <MessageSquare className="h-4 w-4 mr-1" />
-                      <span>Comment</span>
+                      <EditableText id="features-comment">Comment</EditableText>
                     </Button>
                   </div>
                 </CardFooter>
@@ -181,10 +182,10 @@ const FeatureSuggestions = () => {
           </div>
         ) : (
           <div className="text-center py-20">
-            <h3 className="text-2xl font-semibold mb-2">No suggestions yet</h3>
-            <p className="text-gray-500 mb-6">Be the first to suggest a feature!</p>
+            <EditableText id="features-no-suggestions" as="h3" className="text-2xl font-semibold mb-2">No suggestions yet</EditableText>
+            <EditableText id="features-be-first" as="p" className="text-gray-500 mb-6">Be the first to suggest a feature!</EditableText>
             <Button asChild className="bg-indigo-600 hover:bg-indigo-700">
-              <Link to="/suggest-feature">Suggest a Feature</Link>
+              <Link to="/suggest-feature"><EditableText id="features-suggest-btn-2">Suggest a Feature</EditableText></Link>
             </Button>
           </div>
         )}

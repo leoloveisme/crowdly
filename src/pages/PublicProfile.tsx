@@ -1,12 +1,23 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { UserPlus, Check, Clock, Users, Loader2 } from "lucide-react";
 import CrowdlyHeader from "@/components/CrowdlyHeader";
 import CrowdlyFooter from "@/components/CrowdlyFooter";
 import EditableText from "@/components/EditableText";
+import { Button } from "@/components/ui/button";
 import FavoriteStories from "@/modules/favorite stories";
 import LivingExperiencingStories from "@/modules/living-experiencing stories";
 import LivedExperiencedStories from "@/modules/lived-experienced stories";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "@/hooks/use-toast";
+import {
+  getFriendStatus,
+  sendFriendRequest,
+  acceptFriendRequest,
+  type FriendStatus,
+} from "@/lib/friendsApi";
+import { getFollowStatus, followUser, unfollowUser } from "@/lib/followApi";
+import { errorMessage } from "@/lib/apiBase";
 
 const API_BASE = import.meta.env.PROD
   ? (import.meta.env.VITE_API_BASE_URL ?? "")
@@ -60,6 +71,11 @@ const PublicProfile: React.FC = () => {
   const [screenplays, setScreenplays] = useState<PublicScreenplay[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [friendStatus, setFriendStatus] = useState<FriendStatus | null>(null);
+  const [friendRequestId, setFriendRequestId] = useState<string | null>(null);
+  const [friendActionLoading, setFriendActionLoading] = useState(false);
+  const [following, setFollowing] = useState<boolean | null>(null);
+  const [followActionLoading, setFollowActionLoading] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -115,6 +131,98 @@ const PublicProfile: React.FC = () => {
   }, [username]);
 
   const viewerId = viewer?.id ?? null;
+
+  useEffect(() => {
+    if (!profile || !viewerId || viewerId === profile.id) {
+      setFriendStatus(null);
+      setFriendRequestId(null);
+      setFollowing(null);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const [friendRes, followRes] = await Promise.all([
+          getFriendStatus(profile.id),
+          getFollowStatus(profile.id),
+        ]);
+        if (cancelled) return;
+        setFriendStatus(friendRes.status);
+        setFriendRequestId(friendRes.requestId ?? null);
+        setFollowing(followRes.following);
+      } catch (err) {
+        console.error("[PublicProfile] failed to load relationship status", err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [profile, viewerId]);
+
+  const handleAddFriend = async () => {
+    if (!profile) return;
+    setFriendActionLoading(true);
+    try {
+      const result = await sendFriendRequest(profile.id);
+      if (result.autoAccepted) {
+        setFriendStatus("friends");
+        toast({ title: "You're now friends" });
+      } else {
+        setFriendStatus("pending_outgoing");
+        toast({ title: "Friend request sent" });
+      }
+    } catch (err) {
+      toast({
+        title: "Couldn't send friend request",
+        description: errorMessage(err),
+        variant: "destructive",
+      });
+    } finally {
+      setFriendActionLoading(false);
+    }
+  };
+
+  const handleAcceptFriendRequest = async () => {
+    if (!friendRequestId) return;
+    setFriendActionLoading(true);
+    try {
+      await acceptFriendRequest(friendRequestId);
+      setFriendStatus("friends");
+      toast({ title: "Friend request accepted" });
+    } catch (err) {
+      toast({
+        title: "Couldn't accept friend request",
+        description: errorMessage(err),
+        variant: "destructive",
+      });
+    } finally {
+      setFriendActionLoading(false);
+    }
+  };
+
+  const handleToggleFollow = async () => {
+    if (!profile) return;
+    setFollowActionLoading(true);
+    try {
+      if (following) {
+        await unfollowUser(profile.id);
+        setFollowing(false);
+      } else {
+        await followUser(profile.id);
+        setFollowing(true);
+      }
+    } catch (err) {
+      toast({
+        title: "Couldn't update follow status",
+        description: errorMessage(err),
+        variant: "destructive",
+      });
+    } finally {
+      setFollowActionLoading(false);
+    }
+  };
 
   const resolveVisibility = (
     container: "favorites" | "living" | "lived",
@@ -251,17 +359,83 @@ const PublicProfile: React.FC = () => {
       <CrowdlyHeader />
       <main className="flex-1">
         <div className="container mx-auto px-4 pt-10 pb-16">
-          <header className="mb-8">
-            <h1 className="text-3xl font-bold mb-1">
-              <EditableText id="public-profile-heading">
-                {displayName}
-              </EditableText>
-            </h1>
-            <p className="text-sm text-gray-500 mb-2">@{profile.username}</p>
-            {profile.bio && (
-              <p className="text-gray-700 max-w-2xl whitespace-pre-line">
-                {profile.bio}
-              </p>
+          <header className="mb-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold mb-1">
+                <EditableText id="public-profile-heading">
+                  {displayName}
+                </EditableText>
+              </h1>
+              <p className="text-sm text-gray-500 mb-2">@{profile.username}</p>
+              {profile.bio && (
+                <p className="text-gray-700 max-w-2xl whitespace-pre-line">
+                  {profile.bio}
+                </p>
+              )}
+            </div>
+
+            {viewerId && !isOwner && (
+              <div className="flex items-center gap-2 shrink-0">
+                {friendStatus === "friends" ? (
+                  <Button variant="outline" size="sm" disabled>
+                    <Users />
+                    <EditableText id="public-profile-friends-label" as="span">
+                      Friends
+                    </EditableText>
+                  </Button>
+                ) : friendStatus === "pending_outgoing" ? (
+                  <Button variant="outline" size="sm" disabled>
+                    <Clock />
+                    <EditableText id="public-profile-request-sent-label" as="span">
+                      Request sent
+                    </EditableText>
+                  </Button>
+                ) : friendStatus === "pending_incoming" ? (
+                  <Button
+                    size="sm"
+                    onClick={handleAcceptFriendRequest}
+                    disabled={friendActionLoading}
+                  >
+                    {friendActionLoading ? (
+                      <Loader2 className="animate-spin" />
+                    ) : (
+                      <Check />
+                    )}
+                    <EditableText id="public-profile-accept-friend-btn" as="span">
+                      Accept request
+                    </EditableText>
+                  </Button>
+                ) : (
+                  <Button size="sm" onClick={handleAddFriend} disabled={friendActionLoading}>
+                    {friendActionLoading ? (
+                      <Loader2 className="animate-spin" />
+                    ) : (
+                      <UserPlus />
+                    )}
+                    <EditableText id="public-profile-add-friend-btn" as="span">
+                      Add friend
+                    </EditableText>
+                  </Button>
+                )}
+
+                <Button
+                  variant={following ? "outline" : "secondary"}
+                  size="sm"
+                  onClick={handleToggleFollow}
+                  disabled={followActionLoading || following === null}
+                >
+                  {followActionLoading && <Loader2 className="animate-spin" />}
+                  {following ? (
+                    <EditableText id="public-profile-following-btn" as="span">
+                      Following
+                    </EditableText>
+                  ) : (
+                    <EditableText id="public-profile-follow-btn" as="span">
+                      Follow
+                    </EditableText>
+                  )}
+                </Button>
+              </div>
             )}
           </header>
 

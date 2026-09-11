@@ -380,7 +380,7 @@ export type Database = {
           interests: string[] | null
           languages: string[] | null
           last_name: string | null
-          nickname: string | null
+          profile_page_name: string | null
           notify_app: boolean | null
           notify_email: boolean | null
           notify_phone: boolean | null

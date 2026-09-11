@@ -57,7 +57,7 @@ export async function registerWithEmailPassword(email, password) {
  */
 export async function loginWithEmailPassword(email, password) {
   const { rows } = await pool.query(
-    'SELECT id, email, password_hash FROM local_users WHERE email = $1',
+    'SELECT id, email, password_hash, is_banned FROM local_users WHERE email = $1',
     [email]
   );
 
@@ -66,6 +66,10 @@ export async function loginWithEmailPassword(email, password) {
   }
 
   const user = rows[0];
+
+  if (user.is_banned) {
+    throw new Error('Your account has been suspended');
+  }
 
   const ok = await bcrypt.compare(password, user.password_hash);
   if (!ok) {
@@ -83,6 +87,28 @@ export async function loginWithEmailPassword(email, password) {
     id: user.id,
     email: user.email,
     roles,
+  };
+}
+
+/**
+ * Load the { id, email, roles } shape for an already-authenticated user
+ * (session token verified by requireAuth upstream) — used by GET /auth/me
+ * so the frontend can confirm a restored session is still valid instead of
+ * trusting a locally-cached user indefinitely.
+ */
+export async function getUserWithRoles(userId) {
+  const { rows } = await pool.query('SELECT id, email FROM local_users WHERE id = $1', [userId]);
+  if (rows.length === 0) return null;
+  const user = rows[0];
+
+  const { rows: roleRows } = await pool.query('SELECT role FROM user_roles WHERE user_id = $1', [
+    userId,
+  ]);
+
+  return {
+    id: user.id,
+    email: user.email,
+    roles: roleRows.map((r) => r.role),
   };
 }
 

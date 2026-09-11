@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
-import { X, PencilLine, Smartphone, Languages, Facebook, Instagram, User } from "lucide-react";
+import { X, PencilLine, Smartphone, Languages, Facebook, Instagram, User, Plus, Trash2 } from "lucide-react";
 import EditableText from "@/components/EditableText";
 import ProfilePictureUpload from "@/components/ProfilePictureUpload";
 
@@ -22,12 +22,14 @@ const ProfileInformation: React.FC<ProfileInformationProps> = ({
   const [editingField, setEditingField] = useState<string | null>(null);
   const [tempValue, setTempValue] = useState<string>("");
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  const [pageNameError, setPageNameError] = useState<string | null>(null);
   const [newLanguage, setNewLanguage] = useState("");
 
   const startEditing = (field: string, value: string | null | undefined) => {
     if (previewMode) return;
     setEditingField(field);
     setTempValue(value ?? "");
+    if (field === "profile_page_name") setPageNameError(null);
   };
 
   const handleBlur = async (field: string) => {
@@ -35,12 +37,35 @@ const ProfileInformation: React.FC<ProfileInformationProps> = ({
     const original = (profile && profile[field]) ?? "";
     const next = tempValue;
 
-    setEditingField(null);
-
     // If nothing was entered and/or value did not change, just close.
     if (String(next ?? "").trim() === String(original ?? "").trim()) {
+      setEditingField(null);
+      setPageNameError(null);
       return;
     }
+
+    // For profile_page_name, check uniqueness before saving.
+    if (field === "profile_page_name" && next.trim()) {
+      try {
+        const apiBase = import.meta.env.PROD
+          ? (import.meta.env.VITE_API_BASE_URL ?? "")
+          : "";
+        const res = await fetch(
+          `${apiBase}/profiles/check-profile-page-name/${encodeURIComponent(next.trim())}?exclude=${profile?.id ?? ""}`,
+        );
+        const data = await res.json();
+        if (!data.available) {
+          setPageNameError("This profile page name is already taken. Please choose a different one.");
+          return; // keep editing open so user can fix it
+        }
+      } catch (err) {
+        console.error("[ProfileInformation] Profile page name check failed", err);
+        // Allow save to proceed; backend will enforce uniqueness as well.
+      }
+    }
+
+    setEditingField(null);
+    setPageNameError(null);
 
     try {
       await onSaveField(field, next);
@@ -207,41 +232,46 @@ const ProfileInformation: React.FC<ProfileInformationProps> = ({
             )}
           </div>
 
-          {/* Profile name (used as public profile URL / handle) */}
+          {/* Profile page name (used as public profile URL / handle) */}
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <Label className="text-sm text-gray-500">
-                <EditableText id="profile-name-label">Profile name</EditableText>
+                <EditableText id="profile-name-label">Profile page name</EditableText>
               </Label>
               {!previewMode && !editingField && (
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => startEditing("nickname", profile?.nickname)}
+                  onClick={() => startEditing("profile_page_name", profile?.profile_page_name)}
                   className="h-6 p-0 text-purple-600 hover:text-purple-800 hover:bg-transparent"
                 >
                   <EditableText id="edit-profile-name-button">Edit</EditableText>
                 </Button>
               )}
             </div>
-            {editingField === "nickname" ? (
-              <Input
-                value={tempValue}
-                onChange={(e) => setTempValue(e.target.value)}
-                onBlur={() => handleBlur("nickname")}
-                className="mt-1"
-                autoFocus
-              />
+            {editingField === "profile_page_name" ? (
+              <>
+                <Input
+                  value={tempValue}
+                  onChange={(e) => { setTempValue(e.target.value); setPageNameError(null); }}
+                  onBlur={() => handleBlur("profile_page_name")}
+                  className={`mt-1 ${pageNameError ? "border-red-500" : ""}`}
+                  autoFocus
+                />
+                {pageNameError && (
+                  <p className="text-sm text-red-600 mt-1">{pageNameError}</p>
+                )}
+              </>
             ) : (
               <div
                 className="font-medium text-gray-800 cursor-text"
-                onClick={() => !previewMode && startEditing("nickname", profile?.nickname)}
+                onClick={() => !previewMode && startEditing("profile_page_name", profile?.profile_page_name)}
               >
-                {profile?.nickname ? (
-                  profile.nickname
+                {profile?.profile_page_name ? (
+                  profile.profile_page_name
                 ) : (
                   <span className="text-gray-400 italic">
-                    <EditableText id="no-profile-name-text">No profile name set</EditableText>
+                    <EditableText id="no-profile-name-text">No profile page name set</EditableText>
                   </span>
                 )}
               </div>
@@ -291,7 +321,7 @@ const ProfileInformation: React.FC<ProfileInformationProps> = ({
 
           {/* Birthday */}
           <div className="space-y-1">
-            <Label className="text-sm text-gray-500">Birthday (optional)</Label>
+            <Label className="text-sm text-gray-500"><EditableText id="profile-birthday-label">Birthday (optional)</EditableText></Label>
             {editingField === "birthday" ? (
               <Input
                 type="date"
@@ -309,7 +339,7 @@ const ProfileInformation: React.FC<ProfileInformationProps> = ({
                   {profile?.birthday ? (
                     new Date(profile.birthday).toLocaleDateString()
                   ) : (
-                    <span className="text-gray-400 italic">No birthday set</span>
+                    <span className="text-gray-400 italic"><EditableText id="profile-no-birthday">No birthday set</EditableText></span>
                   )}
                 </div>
               </div>
@@ -319,7 +349,7 @@ const ProfileInformation: React.FC<ProfileInformationProps> = ({
           {/* Telephone */}
           <div className="space-y-1">
             <Label className="text-sm text-gray-500">
-              <Smartphone className="w-4 h-4 inline mb-1 mr-1" /> Telephone (optional)
+              <Smartphone className="w-4 h-4 inline mb-1 mr-1" /> <EditableText id="profile-telephone-label">Telephone (optional)</EditableText>
             </Label>
             {editingField === "telephone" ? (
               <Input
@@ -338,7 +368,7 @@ const ProfileInformation: React.FC<ProfileInformationProps> = ({
                   {profile?.telephone ? (
                     profile.telephone
                   ) : (
-                    <span className="text-gray-400 italic">No telephone set</span>
+                    <span className="text-gray-400 italic"><EditableText id="profile-no-telephone">No telephone set</EditableText></span>
                   )}
                 </div>
               </div>
@@ -348,7 +378,7 @@ const ProfileInformation: React.FC<ProfileInformationProps> = ({
           {/* Languages */}
           <div className="space-y-1">
             <Label className="text-sm text-gray-500">
-              <Languages className="w-4 h-4 inline mb-1 mr-1" /> Languages (optional)
+              <Languages className="w-4 h-4 inline mb-1 mr-1" /> <EditableText id="profile-languages-label">Languages (optional)</EditableText>
             </Label>
             {!previewMode && (
               <div className="flex gap-2">
@@ -396,7 +426,7 @@ const ProfileInformation: React.FC<ProfileInformationProps> = ({
           {/* Socials */}
           <div className="space-y-1">
             <Label className="text-sm text-gray-500">
-              <Facebook className="w-4 h-4 inline mb-1 mr-1" /> Facebook
+              <Facebook className="w-4 h-4 inline mb-1 mr-1" /> <EditableText id="profile-facebook-label">Facebook</EditableText>
             </Label>
             <Input
               value={profile?.social_facebook || ""}
@@ -405,7 +435,7 @@ const ProfileInformation: React.FC<ProfileInformationProps> = ({
               disabled={previewMode}
             />
             <Label className="text-sm text-gray-500">
-              <Instagram className="w-4 h-4 inline mb-1 mr-1" /> Instagram
+              <Instagram className="w-4 h-4 inline mb-1 mr-1" /> <EditableText id="profile-instagram-label">Instagram</EditableText>
             </Label>
             <Input
               value={profile?.social_instagram || ""}
@@ -413,20 +443,80 @@ const ProfileInformation: React.FC<ProfileInformationProps> = ({
               placeholder="Instagram username/url"
               disabled={previewMode}
             />
-            <Label className="text-sm text-gray-500">Snapchat</Label>
+            <Label className="text-sm text-gray-500"><EditableText id="profile-snapchat-label">Snapchat</EditableText></Label>
             <Input
               value={profile?.social_snapchat || ""}
               onChange={(e) => onSaveField("social_snapchat", e.target.value)}
               placeholder="Snapchat"
               disabled={previewMode}
             />
-            <Label className="text-sm text-gray-500">Other Social</Label>
-            <Input
-              value={profile?.social_other || ""}
-              onChange={(e) => onSaveField("social_other", e.target.value)}
-              placeholder="Other social"
-              disabled={previewMode}
-            />
+            <Label className="text-sm text-gray-500"><EditableText id="profile-other-social-label">Other Social</EditableText></Label>
+            <div className="space-y-2">
+              {(Array.isArray(profile?.social_other_links) ? profile.social_other_links : []).map(
+                (link: { name: string; address: string }, idx: number) => (
+                  <div key={idx} className="flex items-center gap-2">
+                    <Input
+                      value={link.name}
+                      onChange={(e) => {
+                        const links = [...(profile?.social_other_links || [])];
+                        links[idx] = { ...links[idx], name: e.target.value };
+                        onSaveField("social_other_links", links);
+                      }}
+                      placeholder="Name"
+                      disabled={previewMode}
+                      className="flex-1"
+                      maxLength={100}
+                    />
+                    <Input
+                      value={link.address}
+                      onChange={(e) => {
+                        const links = [...(profile?.social_other_links || [])];
+                        links[idx] = { ...links[idx], address: e.target.value };
+                        onSaveField("social_other_links", links);
+                      }}
+                      placeholder="https://..."
+                      disabled={previewMode}
+                      className="flex-1"
+                      maxLength={500}
+                    />
+                    {!previewMode && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700"
+                        onClick={() => {
+                          const links = (profile?.social_other_links || []).filter(
+                            (_: unknown, i: number) => i !== idx,
+                          );
+                          onSaveField("social_other_links", links);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                ),
+              )}
+              {!previewMode && (profile?.social_other_links || []).length < 20 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const links = [...(profile?.social_other_links || []), { name: "", address: "" }];
+                    onSaveField("social_other_links", links);
+                  }}
+                  className="text-purple-600 border-purple-300 hover:bg-purple-50"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  <EditableText id="profile-add-social-link">Add</EditableText>
+                </Button>
+              )}
+              {!previewMode && (profile?.social_other_links || []).length >= 20 && (
+                <p className="text-xs text-gray-400">
+                  <EditableText id="profile-max-social-links">Maximum of 20 social links reached.</EditableText>
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>

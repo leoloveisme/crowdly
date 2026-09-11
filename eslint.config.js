@@ -5,7 +5,9 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist"] },
+  // apps/web is a separate standalone app (its own package.json, no lint
+  // script of its own) — not part of this repo's build/deploy pipeline.
+  { ignores: ["dist", "apps/web"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],

@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MessageCircle, ThumbsUp, ThumbsDown } from "lucide-react";
+import EditableText from "@/components/EditableText";
 
 // Use same-origin API base in development; dev server proxies to backend.
 // In production, VITE_API_BASE_URL can point at the deployed API.
@@ -282,7 +283,7 @@ const InteractionsWidget: React.FC<InteractionsWidgetProps> = (props) => {
   };
 
   if (loading) {
-    return <div className="text-xs text-gray-400">Loading interactions...</div>;
+    return <div className="text-xs text-gray-400"><EditableText id="interactions-loading">Loading interactions...</EditableText></div>;
   }
 
   const likeCount = reactions.find((r) => r.reaction_type === "like")?.count ?? 0;
@@ -304,7 +305,7 @@ const InteractionsWidget: React.FC<InteractionsWidgetProps> = (props) => {
           <ThumbsDown size={14} /> {dislikeCount}
         </button>
         <div className="flex items-center gap-1 ml-2 text-blue-500 text-xs">
-          <MessageCircle size={13} /> {comments.length} Comments
+          <MessageCircle size={13} /> {comments.length} <EditableText id="interactions-comments-label">Comments</EditableText>
         </div>
       </div>
       <div>
@@ -316,13 +317,13 @@ const InteractionsWidget: React.FC<InteractionsWidgetProps> = (props) => {
             className="flex-1"
           />
           <Button size="sm" type="submit" disabled={!commentInput.trim()}>
-            Post
+            <EditableText id="interactions-post-btn">Post</EditableText>
           </Button>
         </form>
       </div>
       <div className="mt-2 max-h-44 overflow-y-auto space-y-2">
         {comments.length === 0 ? (
-          <div className="text-xs text-gray-500">No comments yet.</div>
+          <div className="text-xs text-gray-500"><EditableText id="interactions-no-comments">No comments yet.</EditableText></div>
         ) : (
           comments.map((cmt) => (
             <div key={cmt.id} className="bg-white p-2 rounded border text-sm">

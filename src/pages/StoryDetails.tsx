@@ -6,6 +6,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import EditableText from "@/components/EditableText";
+import DescriptionEditor from "@/components/DescriptionEditor";
+import TagBadge from "@/components/TagBadge";
+import TagInput from "@/components/TagInput";
+import ImageGallery from "@/components/ImageGallery";
+import GalleryUpload from "@/components/GalleryUpload";
 
 const API_BASE = import.meta.env.PROD
   ? (import.meta.env.VITE_API_BASE_URL ?? "")
@@ -32,6 +38,8 @@ interface StoryWithSpace {
   published?: boolean;
   creative_space_id?: string | null;
   attachments?: StoryAttachment[];
+  description?: string | null;
+  tags?: string[] | null;
 }
 
 interface CreativeSpaceSummary {
@@ -52,8 +60,29 @@ const StoryDetails: React.FC = () => {
   const [savingSpace, setSavingSpace] = useState(false);
   const [actionSpaceId, setActionSpaceId] = useState<string | "none">("none");
   const [creatingSpace, setCreatingSpace] = useState(false);
+  const [galleryRefreshToken, setGalleryRefreshToken] = useState(0);
 
   const isOwner = !!(user && story && story.creator_id === user.id);
+
+  const updateStorySetting = async (field: string, value: unknown) => {
+    if (!story) return;
+    try {
+      const res = await fetch(`${API_BASE}/story-titles/${story.story_title_id}/settings`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [field]: value }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast({ title: "Error", description: body.error || `Failed to update ${field}`, variant: "destructive" });
+        return;
+      }
+      setStory(body as StoryWithSpace);
+    } catch (err) {
+      console.error(`Failed to update ${field}`, err);
+      toast({ title: "Error", description: `Failed to update ${field}`, variant: "destructive" });
+    }
+  };
 
   useEffect(() => {
     const loadStory = async () => {
@@ -466,7 +495,7 @@ const StoryDetails: React.FC = () => {
       <div className="min-h-screen flex flex-col">
         <CrowdlyHeader />
         <div className="flex-1 flex items-center justify-center">
-          <p className="text-gray-500 text-sm">Loading story details...</p>
+          <EditableText id="story-details-loading" as="p" className="text-gray-500 text-sm">Loading story details...</EditableText>
         </div>
         <CrowdlyFooter />
       </div>
@@ -478,10 +507,10 @@ const StoryDetails: React.FC = () => {
       <div className="min-h-screen flex flex-col">
         <CrowdlyHeader />
         <div className="flex-1 flex flex-col items-center justify-center text-center px-4">
-          <h1 className="text-2xl font-bold mb-2">Story details</h1>
+          <EditableText id="story-details-heading" as="h1" className="text-2xl font-bold mb-2">Story details</EditableText>
           <p className="text-sm text-gray-600 mb-4">{error || "Story not found"}</p>
           <Button variant="outline" onClick={() => navigate(story_id ? `/story/${story_id}` : "/")}>
-            Back to story
+            <EditableText id="story-details-back">Back to story</EditableText>
           </Button>
         </div>
         <CrowdlyFooter />
@@ -519,20 +548,86 @@ const StoryDetails: React.FC = () => {
               className="text-xs h-auto px-2 py-1"
               onClick={() => navigate(`/story/${story.story_title_id}`)}
             >
-              Back to story
+              <EditableText id="story-details-back">Back to story</EditableText>
             </Button>
           </div>
         </div>
 
+        {/* Description & Tags */}
+        <section className="border rounded-lg bg-white p-4 space-y-3">
+          <div>
+            <h2 className="text-sm font-semibold mb-1"><EditableText id="story-details-description-label">Description</EditableText></h2>
+            {isOwner ? (
+              <DescriptionEditor
+                description={story.description || null}
+                onSave={async (desc) => { updateStorySetting('description', desc); }}
+              />
+            ) : (
+              <p className="text-sm text-gray-600 whitespace-pre-wrap">{story.description || "—"}</p>
+            )}
+          </div>
+          <div>
+            <h2 className="text-sm font-semibold mb-1"><EditableText id="story-details-tags-label">Tags</EditableText></h2>
+            {isOwner ? (
+              <TagInput
+                tags={story.tags || []}
+                onChange={(newTags) => updateStorySetting('tags', newTags)}
+                className="border border-gray-200 rounded-md p-2"
+              />
+            ) : (
+              <div className="flex flex-wrap gap-1.5">
+                {(story.tags || []).length > 0
+                  ? (story.tags || []).map((tag) => <TagBadge key={tag} tag={tag} />)
+                  : <span className="text-sm text-gray-400">—</span>}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Fan/community gallery — separate from canon chapter illustrations,
+            open to any authenticated user, moderated by the story owner. */}
         <section className="border rounded-lg bg-white p-4 space-y-3">
           <div className="flex items-center justify-between gap-2 mb-1">
-            <h2 className="text-sm font-semibold">Creative Space</h2>
+            <h2 className="text-sm font-semibold"><EditableText id="story-details-gallery-title">Gallery</EditableText></h2>
+          </div>
+          <ImageGallery
+            storyTitleId={story.story_title_id}
+            kindFilter={["fan_art", "gallery"]}
+            currentUserId={user?.id ?? null}
+            canModerate={isOwner}
+            idPrefix="story-details-gallery"
+            refreshToken={galleryRefreshToken}
+          />
+          {user && (
+            <div className="pt-2 border-t">
+              <h3 className="text-xs font-semibold mb-1">
+                {isOwner ? (
+                  <EditableText id="story-details-gallery-upload-label-owner">Add to gallery</EditableText>
+                ) : (
+                  <EditableText id="story-details-gallery-upload-label-fan">
+                    Submit fan art (reviewed by the story owner)
+                  </EditableText>
+                )}
+              </h3>
+              <GalleryUpload
+                storyTitleId={story.story_title_id}
+                kind={isOwner ? "gallery" : "fan_art"}
+                idPrefix="story-details-gallery-upload"
+                onUploaded={() => setGalleryRefreshToken((t) => t + 1)}
+              />
+            </div>
+          )}
+        </section>
+
+        <section className="border rounded-lg bg-white p-4 space-y-3">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <h2 className="text-sm font-semibold"><EditableText id="story-details-space-title">Creative Space</EditableText></h2>
             {currentSpace && (
               <Link
                 to={`/creative_space/${currentSpace.id}`}
                 className="text-xs text-purple-700 hover:underline"
               >
-                Open Space
+                <EditableText id="story-details-open-space">Open Space</EditableText>
               </Link>
             )}
           </div>
@@ -599,7 +694,7 @@ const StoryDetails: React.FC = () => {
 
         <section className="border rounded-lg bg-white p-4">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-sm font-semibold">Attachments</h2>
+            <h2 className="text-sm font-semibold"><EditableText id="story-details-attachments">Attachments</EditableText></h2>
           </div>
           {renderAttachments()}
         </section>

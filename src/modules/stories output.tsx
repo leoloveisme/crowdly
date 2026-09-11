@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, BookOpen } from "lucide-react";
+import EditableText from "@/components/EditableText";
+import TagBadge from "@/components/TagBadge";
 
 export type StoriesOutputItem = {
   id: string;
@@ -9,6 +11,12 @@ export type StoriesOutputItem = {
   createdAt?: string | null;
   updatedAt?: string | null;
   href?: string | null;
+  language?: string | null;
+  coverImageUrl?: string | null;
+  tags?: string[] | null;
+  // Populated for comics/manga listings — a hover-style preview strip of the
+  // first few page images, shown under the cover art when present.
+  filmstripUrls?: string[] | null;
 };
 
 export type StoriesOutputSortKey = "name" | "createdAt" | "updatedAt";
@@ -94,7 +102,7 @@ export const StoriesOutput: React.FC<StoriesOutputProps> = ({
 
   const renderDisplayControl = () => (
     <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
-      <span>Display:</span>
+      <EditableText id="stories-output-display">Display:</EditableText>
       <select
         className="border rounded-md px-2 py-1 bg-white dark:bg-gray-900 dark:border-gray-700"
         value={pageSize === Infinity ? "all" : String(pageSize)}
@@ -131,7 +139,7 @@ export const StoriesOutput: React.FC<StoriesOutputProps> = ({
       </div>
 
       {loading && (
-        <div className="text-sm text-gray-500">Loading...</div>
+        <EditableText id="stories-output-loading" as="div" className="text-sm text-gray-500">Loading...</EditableText>
       )}
 
       {error && !loading && (
@@ -139,60 +147,94 @@ export const StoriesOutput: React.FC<StoriesOutputProps> = ({
       )}
 
       {!loading && !error && totalItems === 0 && (
-        <div className="text-sm text-gray-500 italic">No items found.</div>
+        <EditableText id="stories-output-no-items" as="div" className="text-sm text-gray-500 italic">No items found.</EditableText>
       )}
 
       {!loading && !error && totalItems > 0 && (
-        <div className="border rounded-lg overflow-hidden bg-white dark:bg-gray-900 shadow-sm">
-          <table className="min-w-full text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-800">
-              <tr>
-                <th className="px-4 py-3 text-left border-b border-gray-200 dark:border-gray-700">
-                  {renderSortLabel("name", "Story name")}
-                </th>
-                <th className="px-4 py-3 text-left border-b border-gray-200 dark:border-gray-700 text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-200">
-                  Author(s)
-                </th>
-                <th className="px-4 py-3 text-left border-b border-gray-200 dark:border-gray-700">
-                  {renderSortLabel("createdAt", "Creation date")}
-                </th>
-                <th className="px-4 py-3 text-left border-b border-gray-200 dark:border-gray-700">
-                  {renderSortLabel("updatedAt", "Last modification date")}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {pageItems.map((item) => (
-                <tr
-                  key={item.id}
-                  className="odd:bg-white even:bg-gray-50/50 dark:odd:bg-gray-900 dark:even:bg-gray-800/60 hover:bg-blue-50/60 dark:hover:bg-blue-900/30 transition-colors"
-                >
-                  <td className="px-4 py-3 align-top">
-                    {item.href ? (
-                      <Link
-                        to={item.href}
-                        className="text-blue-700 dark:text-blue-300 hover:underline font-medium"
-                      >
-                        {item.name}
-                      </Link>
+        <div className="space-y-4">
+          <div className="flex items-center gap-4 text-xs">
+            {renderSortLabel("name", "Story name")}
+            {renderSortLabel("createdAt", "Creation date")}
+            {renderSortLabel("updatedAt", "Last modification date")}
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {pageItems.map((item) => {
+              const card = (
+                <>
+                  <div className="relative aspect-[2/3] bg-gradient-to-br from-blue-200 via-sky-200 to-purple-200 dark:from-slate-700 dark:via-slate-800 dark:to-slate-900">
+                    {item.coverImageUrl ? (
+                      <img
+                        src={item.coverImageUrl}
+                        alt=""
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      />
                     ) : (
-                      <span className="font-medium text-gray-900 dark:text-gray-100">{item.name}</span>
+                      <div className="w-full h-full flex items-center justify-center">
+                        <BookOpen className="h-10 w-10 text-white/80" />
+                      </div>
                     )}
-                  </td>
-                  <td className="px-4 py-3 align-top text-gray-700 dark:text-gray-200">
-                    {item.authors || "—"}
-                  </td>
-                  <td className="px-4 py-3 align-top text-gray-700 dark:text-gray-200">
-                    {formatDate(item.createdAt)}
-                  </td>
-                  <td className="px-4 py-3 align-top text-gray-700 dark:text-gray-200">
-                    {formatDate(item.updatedAt)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                    {item.language && (
+                      <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-medium bg-black/60 text-white">
+                        {item.language.toUpperCase()}
+                      </span>
+                    )}
+                    {item.filmstripUrls && item.filmstripUrls.length > 0 && (
+                      <div className="absolute bottom-0 left-0 right-0 flex gap-0.5 p-1 bg-gradient-to-t from-black/60 to-transparent">
+                        {item.filmstripUrls.slice(0, 4).map((url, i) => (
+                          <img
+                            key={i}
+                            src={url}
+                            alt=""
+                            className="h-8 w-8 object-cover rounded-sm ring-1 ring-white/50"
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-3">
+                    <div className="font-medium text-sm text-gray-900 dark:text-gray-100 line-clamp-2 group-hover:underline">
+                      {item.name}
+                    </div>
+                    {item.authors && (
+                      <div className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">
+                        {item.authors}
+                      </div>
+                    )}
+                    <div className="text-[11px] text-gray-400 dark:text-gray-500 mt-1">
+                      {formatDate(item.updatedAt ?? item.createdAt)}
+                    </div>
+                    {item.tags && item.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {item.tags.slice(0, 3).map((tag) => (
+                          <TagBadge key={tag} tag={tag} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              );
+
+              return item.href ? (
+                <Link
+                  key={item.id}
+                  to={item.href}
+                  className="group block rounded-lg overflow-hidden bg-white dark:bg-gray-900 shadow-sm ring-1 ring-gray-100 dark:ring-gray-800 hover-scale"
+                >
+                  {card}
+                </Link>
+              ) : (
+                <div
+                  key={item.id}
+                  className="group block rounded-lg overflow-hidden bg-white dark:bg-gray-900 shadow-sm ring-1 ring-gray-100 dark:ring-gray-800"
+                >
+                  {card}
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-lg">
             <div className="text-xs text-gray-600 dark:text-gray-300">
               Showing {totalItems === 0 ? 0 : startIndex + 1}‑{endIndex} of {totalItems}
             </div>
@@ -203,7 +245,7 @@ export const StoriesOutput: React.FC<StoriesOutputProps> = ({
                 disabled={currentPage === 1}
                 className="px-2 py-1 text-xs border rounded disabled:opacity-50 disabled:cursor-not-allowed bg-white dark:bg-gray-900 dark:border-gray-700"
               >
-                Previous
+                <EditableText id="stories-output-prev">Previous</EditableText>
               </button>
               <span className="text-xs text-gray-600 dark:text-gray-300">
                 Page {currentPage} of {totalPages}
@@ -214,7 +256,7 @@ export const StoriesOutput: React.FC<StoriesOutputProps> = ({
                 disabled={currentPage === totalPages}
                 className="px-2 py-1 text-xs border rounded disabled:opacity-50 disabled:cursor-not-allowed bg-white dark:bg-gray-900 dark:border-gray-700"
               >
-                Next
+                <EditableText id="stories-output-next">Next</EditableText>
               </button>
               {renderDisplayControl()}
             </div>

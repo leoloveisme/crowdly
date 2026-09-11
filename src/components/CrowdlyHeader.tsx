@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import crowdlyLogo from "@/components/images/crowdly.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Eye, Menu, X, LogOut, Bell, MessageSquare, User, Users, Heart, Gift, Settings, HelpCircle } from "lucide-react";
+import { Eye, Menu, X, LogOut, Bell, MessageSquare, User, Users, Heart, Gift, Settings, HelpCircle, UserPlus, Shield, FolderOpen, LifeBuoy, Check, Loader2 } from "lucide-react";
 import { SearchBox } from "@/modules/search";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -14,18 +14,20 @@ import {
 } from "@/components/ui/popover";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEditableContent } from "@/contexts/EditableContentContext";
+import { useLiveUpdates } from "@/contexts/LiveUpdatesContext";
 import { toast } from "@/hooks/use-toast";
 import EditableText from "@/components/EditableText";
 import LoginForm from "@/components/LoginForm";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuGroup, 
-  DropdownMenuItem, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
+import { acceptFriendRequest, declineFriendRequest } from "@/lib/friendsApi";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 
 const CrowdlyHeader = () => {
@@ -36,11 +38,57 @@ const CrowdlyHeader = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showPopover, setShowPopover] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [notificationCount, setNotificationCount] = useState(3);
-  const [messageCount, setMessageCount] = useState(5);
+  const [busyRequestIds, setBusyRequestIds] = useState<Set<string>>(new Set());
 
-  const { user, signIn, signOut } = useAuth();
+  const { user, signIn, signOut, hasRole } = useAuth();
   const { currentLanguage, setCurrentLanguage } = useEditableContent();
+  const {
+    notifications,
+    unreadNotificationCount,
+    unreadMessageCount,
+    markNotificationRead,
+    markAllNotificationsRead,
+    refresh: refreshLiveUpdates,
+  } = useLiveUpdates();
+
+  const notificationText = (n: (typeof notifications)[number]) =>
+    n.type === "friend_request"
+      ? `${n.payload.fromEmail ?? "Someone"} sent you a friend request`
+      : `${n.payload.byEmail ?? "Someone"} accepted your friend request`;
+
+  const handleAcceptFromBell = async (requestId: string, notificationId: string) => {
+    setBusyRequestIds((prev) => new Set(prev).add(requestId));
+    try {
+      await acceptFriendRequest(requestId);
+      await markNotificationRead(notificationId);
+      toast({ title: "Friend request accepted" });
+      refreshLiveUpdates();
+    } catch (error) {
+      toast({ title: "Couldn't accept request", variant: "destructive" });
+    } finally {
+      setBusyRequestIds((prev) => {
+        const next = new Set(prev);
+        next.delete(requestId);
+        return next;
+      });
+    }
+  };
+
+  const handleDeclineFromBell = async (requestId: string, notificationId: string) => {
+    setBusyRequestIds((prev) => new Set(prev).add(requestId));
+    try {
+      await declineFriendRequest(requestId);
+      await markNotificationRead(notificationId);
+    } catch (error) {
+      toast({ title: "Couldn't decline request", variant: "destructive" });
+    } finally {
+      setBusyRequestIds((prev) => {
+        const next = new Set(prev);
+        next.delete(requestId);
+        return next;
+      });
+    }
+  };
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -122,12 +170,17 @@ const CrowdlyHeader = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="English">English</SelectItem>
-                  <SelectItem value="Russian">Russian</SelectItem>
-                  <SelectItem value="Chinese">中文</SelectItem>
-                  <SelectItem value="Portuguese">Portuguese</SelectItem>
-                  <SelectItem value="Spanish">Spanish</SelectItem>
-                  <SelectItem value="French">French</SelectItem>
-                  <SelectItem value="Arabic">Arabic</SelectItem>
+                  <SelectItem value="Russian">Русский</SelectItem>
+                  <SelectItem value="Portuguese">Português</SelectItem>
+                  <SelectItem value="Korean">한국어</SelectItem>
+                  <SelectItem value="Arabic">العربية</SelectItem>
+                  <SelectItem value="Chinese (Simplified)">简体中文</SelectItem>
+                  <SelectItem value="Chinese (Traditional)">繁體中文</SelectItem>
+                  <SelectItem value="Japanese">日本語</SelectItem>
+                  <SelectItem value="French">Français</SelectItem>
+                  <SelectItem value="Spanish">Español</SelectItem>
+                  <SelectItem value="German">Deutsch</SelectItem>
+                  <SelectItem value="Hindi">हिन्दी</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -139,23 +192,103 @@ const CrowdlyHeader = () => {
             <div className="hidden md:flex items-center gap-2">
               {user ? (
                 <div className="flex items-center gap-2">
-                  {/* Notification Bell Icon */}
-                  <Button variant="ghost" size="icon" className="relative bg-white/60 dark:bg-gray-950/70 shadow rounded-full">
-                    <Bell className="h-5 w-5 text-indigo-500" />
-                    {notificationCount > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-pink-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center border-2 border-white">
-                        {notificationCount}
-                      </span>
-                    )}
-                  </Button>
+                  {/* Notification Bell */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="relative bg-white/60 dark:bg-gray-950/70 shadow rounded-full"
+                        aria-label={`Notifications${unreadNotificationCount > 0 ? `, ${unreadNotificationCount} unread` : ""}`}
+                      >
+                        <Bell className="h-5 w-5 text-indigo-500" />
+                        {unreadNotificationCount > 0 && (
+                          <span className="absolute -top-1 -right-1 bg-pink-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center border-2 border-white">
+                            {unreadNotificationCount > 9 ? "9+" : unreadNotificationCount}
+                          </span>
+                        )}
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-80 mt-2 bg-white/95 shadow-lg border rounded-xl backdrop-blur-xl" align="end">
+                      <div className="flex items-center justify-between p-2">
+                        <DropdownMenuLabel className="p-0">
+                          <EditableText id="header-notifications-heading">Notifications</EditableText>
+                        </DropdownMenuLabel>
+                        {unreadNotificationCount > 0 && (
+                          <button
+                            onClick={() => markAllNotificationsRead()}
+                            className="text-xs text-indigo-600 hover:underline"
+                          >
+                            Mark all read
+                          </button>
+                        )}
+                      </div>
+                      <DropdownMenuSeparator />
+                      {notifications.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-6 px-2">
+                          <EditableText id="header-notifications-empty">No notifications yet.</EditableText>
+                        </p>
+                      ) : (
+                        <div className="max-h-80 overflow-y-auto">
+                          {notifications.map((n) => {
+                            const requestId = n.payload.requestId;
+                            const busy = requestId ? busyRequestIds.has(requestId) : false;
+                            return (
+                              <div
+                                key={n.id}
+                                className={`px-3 py-2 text-sm border-b last:border-0 ${!n.read_at ? "bg-indigo-50/60 dark:bg-indigo-900/20" : ""}`}
+                              >
+                                <p>{notificationText(n)}</p>
+                                {n.type === "friend_request" && !n.read_at && requestId && (
+                                  <div className="flex gap-2 mt-2">
+                                    <Button
+                                      size="sm"
+                                      className="h-7 px-2"
+                                      disabled={busy}
+                                      onClick={() => handleAcceptFromBell(requestId, n.id)}
+                                    >
+                                      {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-7 px-2"
+                                      disabled={busy}
+                                      onClick={() => handleDeclineFromBell(requestId, n.id)}
+                                    >
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link to="/friends" className="cursor-pointer justify-center text-indigo-600">
+                          View all friend requests
+                        </Link>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                   {/* Message Icon */}
-                  <Button variant="ghost" size="icon" className="relative bg-white/60 dark:bg-gray-950/70 shadow rounded-full">
-                    <MessageSquare className="h-5 w-5 text-indigo-500" />
-                    {messageCount > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-pink-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center border-2 border-white">
-                        {messageCount}
-                      </span>
-                    )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="relative bg-white/60 dark:bg-gray-950/70 shadow rounded-full"
+                    aria-label={`Messages${unreadMessageCount > 0 ? `, ${unreadMessageCount} unread` : ""}`}
+                    asChild
+                  >
+                    <Link to="/communications">
+                      <MessageSquare className="h-5 w-5 text-indigo-500" />
+                      {unreadMessageCount > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-pink-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center border-2 border-white">
+                          {unreadMessageCount > 9 ? "9+" : unreadMessageCount}
+                        </span>
+                      )}
+                    </Link>
                   </Button>
                   {/* User Profile Dropdown */}
                   <DropdownMenu>
@@ -188,14 +321,18 @@ const CrowdlyHeader = () => {
                             <User className="mr-2 h-4 w-4" /> Profile
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Users className="mr-2 h-4 w-4" /> Friends
+                        <DropdownMenuItem asChild>
+                          <Link to="/friends" className="cursor-pointer flex items-center">
+                            <Users className="mr-2 h-4 w-4" /> Friends
+                          </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem>
                           <Users className="mr-2 h-4 w-4" /> Groups
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <MessageSquare className="mr-2 h-4 w-4" /> Communications
+                        <DropdownMenuItem asChild>
+                          <Link to="/communications" className="cursor-pointer flex items-center">
+                            <MessageSquare className="mr-2 h-4 w-4" /> Communications
+                          </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem>
                           <Heart className="mr-2 h-4 w-4" /> Favorites
@@ -206,6 +343,32 @@ const CrowdlyHeader = () => {
                       </DropdownMenuGroup>
                       <DropdownMenuSeparator />
                       <DropdownMenuGroup>
+                        {hasRole("platform_admin") && (
+                          <DropdownMenuItem asChild>
+                            <Link to="/platform-admin" className="cursor-pointer flex items-center">
+                              <Shield className="mr-2 h-4 w-4" /> Platform Admin
+                            </Link>
+                          </DropdownMenuItem>
+                        )}
+                        {hasRole("platform_admin") && (
+                          <DropdownMenuItem asChild>
+                            <Link to="/admin/invite-users" className="cursor-pointer flex items-center">
+                              <UserPlus className="mr-2 h-4 w-4" /> Invite Users
+                            </Link>
+                          </DropdownMenuItem>
+                        )}
+                        <DropdownMenuItem asChild>
+                          <Link to="/admin" className="cursor-pointer flex items-center">
+                            <FolderOpen className="mr-2 h-4 w-4" /> My Content
+                          </Link>
+                        </DropdownMenuItem>
+                        {hasRole("platform_supporter") && (
+                          <DropdownMenuItem asChild>
+                            <Link to="/support" className="cursor-pointer flex items-center">
+                              <LifeBuoy className="mr-2 h-4 w-4" /> Support Dashboard
+                            </Link>
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem asChild>
                           <Link to="/account-administration" className="cursor-pointer flex items-center">
                             <Settings className="mr-2 h-4 w-4" /> Account settings
@@ -273,12 +436,17 @@ const CrowdlyHeader = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="English">English</SelectItem>
-                  <SelectItem value="Russian">Russian</SelectItem>
-                  <SelectItem value="Chinese">中文</SelectItem>
-                  <SelectItem value="Portuguese">Portuguese</SelectItem>
-                  <SelectItem value="Spanish">Spanish</SelectItem>
-                  <SelectItem value="French">French</SelectItem>
-                  <SelectItem value="Arabic">Arabic</SelectItem>
+                  <SelectItem value="Russian">Русский</SelectItem>
+                  <SelectItem value="Portuguese">Português</SelectItem>
+                  <SelectItem value="Korean">한국어</SelectItem>
+                  <SelectItem value="Arabic">العربية</SelectItem>
+                  <SelectItem value="Chinese (Simplified)">简体中文</SelectItem>
+                  <SelectItem value="Chinese (Traditional)">繁體中文</SelectItem>
+                  <SelectItem value="Japanese">日本語</SelectItem>
+                  <SelectItem value="French">Français</SelectItem>
+                  <SelectItem value="Spanish">Español</SelectItem>
+                  <SelectItem value="German">Deutsch</SelectItem>
+                  <SelectItem value="Hindi">हिन्दी</SelectItem>
                 </SelectContent>
               </Select>
               {user ? (
@@ -287,24 +455,52 @@ const CrowdlyHeader = () => {
                   <Link to="/profile" className="flex items-center py-2 text-indigo-900 hover:underline">
                     <User className="h-4 w-4 mr-2" /> Profile
                   </Link>
-                  <div className="flex items-center py-2">
+                  <Link to="/friends" className="flex items-center py-2 text-indigo-900 hover:underline">
                     <Users className="h-4 w-4 mr-2" /> Friends
-                  </div>
+                    {unreadNotificationCount > 0 && (
+                      <span className="ml-2 bg-pink-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                        {unreadNotificationCount > 9 ? "9+" : unreadNotificationCount}
+                      </span>
+                    )}
+                  </Link>
                   <div className="flex items-center py-2">
                     <Users className="h-4 w-4 mr-2" /> Groups
                   </div>
-                  <div className="flex items-center py-2">
+                  <Link to="/communications" className="flex items-center py-2 text-indigo-900 hover:underline">
                     <MessageSquare className="h-4 w-4 mr-2" /> Communications
-                  </div>
+                    {unreadMessageCount > 0 && (
+                      <span className="ml-2 bg-pink-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                        {unreadMessageCount > 9 ? "9+" : unreadMessageCount}
+                      </span>
+                    )}
+                  </Link>
                   <div className="flex items-center py-2">
                     <Heart className="h-4 w-4 mr-2" /> Favorites
                   </div>
                   <div className="flex items-center py-2">
                     <Gift className="h-4 w-4 mr-2" /> Friends' recommendations
                   </div>
-                  <div className="flex items-center py-2">
+                  {hasRole("platform_admin") && (
+                    <Link to="/platform-admin" className="flex items-center py-2 text-indigo-900 hover:underline">
+                      <Shield className="h-4 w-4 mr-2" /> Platform Admin
+                    </Link>
+                  )}
+                  {hasRole("platform_admin") && (
+                    <Link to="/admin/invite-users" className="flex items-center py-2 text-indigo-900 hover:underline">
+                      <UserPlus className="h-4 w-4 mr-2" /> Invite Users
+                    </Link>
+                  )}
+                  <Link to="/admin" className="flex items-center py-2 text-indigo-900 hover:underline">
+                    <FolderOpen className="h-4 w-4 mr-2" /> My Content
+                  </Link>
+                  {hasRole("platform_supporter") && (
+                    <Link to="/support" className="flex items-center py-2 text-indigo-900 hover:underline">
+                      <LifeBuoy className="h-4 w-4 mr-2" /> Support Dashboard
+                    </Link>
+                  )}
+                  <Link to="/account-administration" className="flex items-center py-2 text-indigo-900 hover:underline">
                     <Settings className="h-4 w-4 mr-2" /> Account settings
-                  </div>
+                  </Link>
                   <div className="flex items-center py-2">
                     <HelpCircle className="h-4 w-4 mr-2" /> Help
                   </div>

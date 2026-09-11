@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, Lock, X, Eye, EyeOff } from "lucide-react";
+import EditableText from "@/components/EditableText";
 
 interface LoginFormProps {
   onClose?: () => void;
@@ -51,15 +52,15 @@ const LoginForm = ({ onClose }: LoginFormProps) => {
         </Button>
       )}
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold">Log in</CardTitle>
+        <CardTitle className="text-2xl font-bold"><EditableText id="loginform-title">Log in</EditableText></CardTitle>
         <CardDescription>
-          Enter your email and password to access your account
+          <EditableText id="loginform-desc">Enter your email and password to access your account</EditableText>
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email"><EditableText id="loginform-label-email">Email</EditableText></Label>
             <div className="relative">
               <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -76,7 +77,7 @@ const LoginForm = ({ onClose }: LoginFormProps) => {
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password"><EditableText id="loginform-label-password">Password</EditableText></Label>
             <div className="relative">
               <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
@@ -109,18 +110,18 @@ const LoginForm = ({ onClose }: LoginFormProps) => {
             className="w-full"
             disabled={isLoading}
           >
-            {isLoading ? "Logging in..." : "Log in"}
+            {isLoading ? <EditableText id="loginform-logging-in">Logging in...</EditableText> : <EditableText id="loginform-login-btn">Log in</EditableText>}
           </Button>
           
           <div className="text-center text-sm">
-            Don't have an account?{" "}
-            <Button 
-              variant="link" 
-              className="p-0 h-auto" 
+            <EditableText id="loginform-no-account">Don't have an account?</EditableText>{" "}
+            <Button
+              variant="link"
+              className="p-0 h-auto"
               onClick={() => navigate("/register")}
               disabled={isLoading}
             >
-              Sign up
+              <EditableText id="loginform-signup">Sign up</EditableText>
             </Button>
           </div>
         </form>

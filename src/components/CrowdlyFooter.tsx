@@ -57,7 +57,7 @@ const CrowdlyFooter = () => {
             </div>
             <div>
               <h3 className="font-semibold text-lg text-indigo-800 dark:text-indigo-100 mb-4">
-                <EditableText id="footer-navigation-title">C(o-c)reate with us</EditableText>
+                <EditableText id="footer-cocreate-title">C(o-c)reate with us</EditableText>
               </h3>
               <ul className="space-y-2">
                 <li><Link to="/software" className="text-gray-600 hover:text-pink-600 transition">

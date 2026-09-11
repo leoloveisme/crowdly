@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Heart, Film, BookOpen } from "lucide-react";
+import EditableText from "@/components/EditableText";
 
 // Use same-origin API base in development; dev server proxies to backend.
 // In production, VITE_API_BASE_URL can point at the deployed API.
@@ -69,7 +70,7 @@ const FavoriteStories: React.FC<FavoriteStoriesProps> = ({ userId }) => {
   if (!userId) {
     return (
       <div className="text-sm text-gray-500 mt-3">
-        Login to see your favorite stories and screenplays.
+        <EditableText id="fav-login-msg">Login to see your favorite stories and screenplays.</EditableText>
       </div>
     );
   }
@@ -78,7 +79,7 @@ const FavoriteStories: React.FC<FavoriteStoriesProps> = ({ userId }) => {
     return (
       <div className="text-sm text-gray-400 mt-3 flex items-center gap-2">
         <Heart className="h-4 w-4 text-pink-500" />
-        Loading your favorites...
+        <EditableText id="fav-loading">Loading your favorites...</EditableText>
       </div>
     );
   }
@@ -94,7 +95,7 @@ const FavoriteStories: React.FC<FavoriteStoriesProps> = ({ userId }) => {
   if (items.length === 0) {
     return (
       <div className="text-sm text-gray-400 mt-3 italic">
-        You have not added any favorites yet.
+        <EditableText id="fav-empty">You have not added any favorites yet.</EditableText>
       </div>
     );
   }

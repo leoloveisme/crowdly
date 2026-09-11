@@ -60,6 +60,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import EditableText from "@/components/EditableText";
 
 const API_BASE = import.meta.env.PROD
   ? (import.meta.env.VITE_API_BASE_URL ?? "")
@@ -279,7 +280,7 @@ const AccountAdministration = () => {
       <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-background to-muted/30">
         <CrowdlyHeader />
         <main className="flex-grow flex items-center justify-center">
-          <p className="text-muted-foreground">Loading account information...</p>
+          <EditableText id="account-loading" as="p" className="text-muted-foreground">Loading account information...</EditableText>
         </main>
         <CrowdlyFooter />
       </div>
@@ -295,14 +296,14 @@ const AccountAdministration = () => {
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
               <Settings className="w-8 h-8 text-primary" />
             </div>
-            <h1 className="text-3xl font-bold text-foreground mb-3">
+            <EditableText id="account-heading-signed-out" as="h1" className="text-3xl font-bold text-foreground mb-3">
               Account Administration
-            </h1>
-            <p className="text-muted-foreground mb-4">
+            </EditableText>
+            <EditableText id="account-signed-out-desc" as="p" className="text-muted-foreground mb-4">
               You need to be signed in to manage your account.
-            </p>
+            </EditableText>
             <Button asChild className="px-6">
-              <Link to="/login">Log in</Link>
+              <Link to="/login"><EditableText id="account-login-btn">Log in</EditableText></Link>
             </Button>
           </div>
         </main>
@@ -321,12 +322,12 @@ const AccountAdministration = () => {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
             <Settings className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-4xl font-bold text-foreground mb-2">
+          <EditableText id="account-heading" as="h1" className="text-4xl font-bold text-foreground mb-2">
             Account Administration
-          </h1>
-          <p className="text-muted-foreground">
+          </EditableText>
+          <EditableText id="account-desc" as="p" className="text-muted-foreground">
             Manage your account settings and preferences
-          </p>
+          </EditableText>
         </div>
 
         <div className="grid lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
@@ -337,7 +338,7 @@ const AccountAdministration = () => {
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <ChevronRight className="w-4 h-4 text-primary" />
-                  Quick Navigation
+                  <EditableText id="account-quick-nav">Quick Navigation</EditableText>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-1">
@@ -359,13 +360,13 @@ const AccountAdministration = () => {
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <Bell className="w-4 h-4 text-primary" />
-                  Notifications
+                  <EditableText id="account-notifications">Notifications</EditableText>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-5">
                 <div>
                   <h3 className="font-medium text-sm text-foreground mb-3">
-                    Messages
+                    <EditableText id="account-messages">Messages</EditableText>
                   </h3>
                   <div className="space-y-2.5">
                     {["app", "web", "e-mail"].map((type) => (
@@ -392,7 +393,7 @@ const AccountAdministration = () => {
 
                 <div>
                   <h3 className="font-medium text-sm text-foreground mb-3">
-                    Platform notifications
+                    <EditableText id="account-platform-notifs">Platform notifications</EditableText>
                   </h3>
                   <div className="space-y-2.5">
                     {["app", "web", "e-mail"].map((type) => (
@@ -422,7 +423,7 @@ const AccountAdministration = () => {
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
                   <FileText className="w-4 h-4 text-primary" />
-                  Default Story Settings
+                  <EditableText id="account-story-settings">Default Story Settings</EditableText>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-1">
@@ -447,7 +448,7 @@ const AccountAdministration = () => {
               <CardHeader>
                 <CardTitle className="text-xl flex items-center gap-2">
                   <Shield className="w-5 h-5 text-primary" />
-                  Account Details
+                  <EditableText id="account-details-title">Account Details</EditableText>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-0">
@@ -460,9 +461,9 @@ const AccountAdministration = () => {
                     <Phone className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-muted-foreground">
+                    <EditableText id="account-telephone-label" as="p" className="text-sm font-medium text-muted-foreground">
                       Telephone number
-                    </p>
+                    </EditableText>
                     <p className="text-foreground font-medium">
                       {phoneNumber}
                     </p>
@@ -473,7 +474,7 @@ const AccountAdministration = () => {
                         <Info className="w-4 h-4 text-muted-foreground/50 mr-3 cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Your phone number for account recovery</p>
+                        <EditableText id="account-phone-tip" as="p">Your phone number for account recovery</EditableText>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -506,9 +507,9 @@ const AccountAdministration = () => {
                     <Mail className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-muted-foreground">
+                    <EditableText id="account-email-label" as="p" className="text-sm font-medium text-muted-foreground">
                       E-mail
-                    </p>
+                    </EditableText>
                     <p className="text-foreground font-medium">{email}</p>
                   </div>
                   <TooltipProvider>
@@ -517,7 +518,7 @@ const AccountAdministration = () => {
                         <Info className="w-4 h-4 text-muted-foreground/50 mr-3 cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Your primary email address</p>
+                        <EditableText id="account-email-tip" as="p">Your primary email address</EditableText>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -550,9 +551,9 @@ const AccountAdministration = () => {
                     <User className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-muted-foreground">
+                    <EditableText id="account-username-label" as="p" className="text-sm font-medium text-muted-foreground">
                       Username
-                    </p>
+                    </EditableText>
                     <p className="text-foreground font-medium">{username}</p>
                   </div>
                   <TooltipProvider>
@@ -561,7 +562,7 @@ const AccountAdministration = () => {
                         <Info className="w-4 h-4 text-muted-foreground/50 mr-3 cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Your unique username</p>
+                        <EditableText id="account-username-tip" as="p">Your unique username</EditableText>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -585,9 +586,9 @@ const AccountAdministration = () => {
                     <Lock className="w-5 h-5 text-primary" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-sm text-muted-foreground">
+                    <EditableText id="account-password-info" as="p" className="text-sm text-muted-foreground">
                       Password can be changed at any time
-                    </p>
+                    </EditableText>
                   </div>
                 </div>
 
@@ -602,9 +603,9 @@ const AccountAdministration = () => {
                     <Hash className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-muted-foreground">
+                    <EditableText id="account-number-label" as="p" className="text-sm font-medium text-muted-foreground">
                       Account number
-                    </p>
+                    </EditableText>
                     <p className="text-foreground font-medium font-mono">
                       {accountNumber}
                     </p>
@@ -615,7 +616,7 @@ const AccountAdministration = () => {
                         <Info className="w-4 h-4 text-muted-foreground/50 mr-3 cursor-help" />
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Your unique account identifier</p>
+                        <EditableText id="account-number-tip" as="p">Your unique account identifier</EditableText>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -626,9 +627,9 @@ const AccountAdministration = () => {
                   <div className="w-10 flex-shrink-0">
                     <Info className="w-4 h-4 text-amber-600" />
                   </div>
-                  <p className="text-sm text-amber-700 dark:text-amber-400">
+                  <EditableText id="account-number-immutable" as="p" className="text-sm text-amber-700 dark:text-amber-400">
                     Account number cannot be changed or deleted
-                  </p>
+                  </EditableText>
                 </div>
               </CardContent>
             </Card>
@@ -636,7 +637,7 @@ const AccountAdministration = () => {
             {/* Account Actions Card */}
             <Card className="shadow-lg border-0 bg-card/80 backdrop-blur-sm">
               <CardHeader>
-                <CardTitle className="text-xl">Account Actions</CardTitle>
+                <CardTitle className="text-xl"><EditableText id="account-actions-title">Account Actions</EditableText></CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <Button
@@ -645,20 +646,20 @@ const AccountAdministration = () => {
                   onClick={() => setIsPasswordDialogOpen(true)}
                 >
                   <Lock className="w-4 h-4" />
-                  Change Password
+                  <EditableText id="account-change-password">Change Password</EditableText>
                 </Button>
 
                 <div className="pt-4 border-t border-border/50">
-                  <p className="text-sm text-muted-foreground mb-3">
+                  <EditableText id="account-danger-zone" as="p" className="text-sm text-muted-foreground mb-3">
                     Danger Zone
-                  </p>
+                  </EditableText>
                   <Button
                     variant="outline"
                     className="w-full sm:w-auto justify-start gap-2 h-11 px-6 border-destructive/30 text-destructive hover:border-destructive hover:bg-destructive/5"
                     onClick={() => setIsDeleteConfirmOpen(true)}
                   >
                     <Trash2 className="w-4 h-4" />
-                    Delete Account
+                    <EditableText id="account-delete-btn">Delete Account</EditableText>
                   </Button>
                 </div>
               </CardContent>
