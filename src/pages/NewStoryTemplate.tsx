@@ -91,7 +91,6 @@ import CrowdlyFooter from "@/components/CrowdlyFooter";
 import ProfilePictureUpload from "@/components/ProfilePictureUpload";
 import { useToast } from "@/hooks/use-toast";
 import EditableText from "@/components/EditableText";
-import ChapterEditor from "@/components/ChapterEditor";
 import LayoutOptionButtons from "@/components/LayoutOptionButtons";
 import CompareRevisionsContainer from "@/modules/compare revisions";
 import { useAuth } from "@/contexts/AuthContext";
