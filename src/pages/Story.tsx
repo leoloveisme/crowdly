@@ -177,7 +177,7 @@ const RevisionsSection = ({
             <div className="text-gray-400 text-sm">No chapters available for comparison.</div>
           ) : (
             <>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center flex-wrap gap-2">
                 <label htmlFor="compare-chapter-select" className="text-sm font-medium">
                   Select chapter:
                 </label>
@@ -185,7 +185,7 @@ const RevisionsSection = ({
                   id="compare-chapter-select"
                   value={compareChapterId}
                   onChange={(e) => setCompareChapterId(e.target.value)}
-                  className="border rounded px-3 py-1.5 text-sm bg-white"
+                  className="border rounded px-3 py-1.5 text-sm bg-white w-full sm:w-auto max-w-full"
                 >
                   <option value="">-- Choose a chapter --</option>
                   {chapters.map((ch: any) => (

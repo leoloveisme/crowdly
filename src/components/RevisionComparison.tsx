@@ -28,6 +28,7 @@ import {
 import { Info, Maximize2, Minimize2, X } from "lucide-react";
 import type { RevisionSnapshot, ContentType } from "@/types/revisions";
 import { buildDiffHtml } from "@/lib/diff-utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 import {
   REVISION_LAYOUTS as LAYOUTS,
@@ -202,6 +203,7 @@ const RevisionComparison: React.FC<RevisionComparisonProps> = ({
   showFilterToggle = true,
   onRestore,
 }) => {
+  const isMobile = useIsMobile();
   const [restoringId, setRestoringId] = useState<string | null>(null);
 
   const handleRestoreClick = async (rev: RevisionSnapshot) => {
@@ -249,60 +251,86 @@ const RevisionComparison: React.FC<RevisionComparisonProps> = ({
   const safeLayout = activeLayout < layouts.length ? activeLayout : 0;
 
   const comparisonContent = (
-    <div className={`${fullScreen ? "h-full" : "min-h-[400px]"} flex flex-col`}>
+    <div className={`${fullScreen ? "h-full" : "h-[400px]"} flex flex-col`}>
       {/* Toolbar */}
       <div className="flex items-center gap-3 mb-3 flex-wrap">
-        <span className="text-sm font-medium">Layout:</span>
-        <div className="flex gap-1">
-          {layouts.map((preset, i) => {
-            return (
-              <TooltipProvider key={i}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={() => setActiveLayout(i)}
-                      className={`border p-1.5 rounded ${safeLayout === i ? "border-blue-500 bg-blue-50" : "border-gray-300"}`}
-                    >
-                      <LayoutIcon tree={preset.tree} />
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{preset.label}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            );
-          })}
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          <span className="text-sm font-medium shrink-0">Layout:</span>
+          <div className="flex flex-wrap gap-1">
+            {layouts.map((preset, i) => {
+              return (
+                <TooltipProvider key={i}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => setActiveLayout(i)}
+                        className={`border p-1.5 rounded ${safeLayout === i ? "border-blue-500 bg-blue-50" : "border-gray-300"}`}
+                      >
+                        <LayoutIcon tree={preset.tree} />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{preset.label}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              );
+            })}
+          </div>
+          {isMobile && (
+            <p className="text-xs text-gray-400 w-full sm:hidden">
+              Revisions are shown stacked on small screens.
+            </p>
+          )}
         </div>
 
-        <div className="flex items-center gap-2 ml-4">
-          <Checkbox
-            id="show-diff"
-            checked={showDiff}
-            onCheckedChange={(v) => setShowDiff(!!v)}
-          />
-          <label htmlFor="show-diff" className="text-sm cursor-pointer">
-            Show diff highlights
-          </label>
-        </div>
+        <div className="flex items-center justify-between gap-3 w-full sm:w-auto sm:contents">
+          <div className="flex items-center gap-2 sm:ml-4">
+            <Checkbox
+              id="show-diff"
+              checked={showDiff}
+              onCheckedChange={(v) => setShowDiff(!!v)}
+            />
+            <label htmlFor="show-diff" className="text-sm cursor-pointer">
+              Show diff highlights
+            </label>
+          </div>
 
-        {!fullScreen && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setFullScreen(true)}
-            className="ml-auto"
-          >
-            <Maximize2 className="h-4 w-4 mr-1" />
-            Full screen
-          </Button>
-        )}
+          {!fullScreen && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setFullScreen(true)}
+              className="sm:ml-auto"
+            >
+              <Maximize2 className="h-4 w-4 mr-1" />
+              Full screen
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Panels */}
-      <div className={`flex-1 ${fullScreen ? "" : "min-h-[350px]"} border rounded`}>
-        {layouts[safeLayout] &&
-          renderLayoutNode(layouts[safeLayout].tree, selectedRevisions, showDiff, "root")}
+      <div className={`flex-1 ${fullScreen ? "" : "h-[350px]"} border rounded overflow-hidden`}>
+        {isMobile ? (
+          <div className="h-full overflow-y-auto flex flex-col gap-2 p-2">
+            {selectedRevisions.map((rev, i) => (
+              <div key={rev.id} className="border rounded overflow-hidden min-h-[240px]">
+                <RevisionTile
+                  revision={rev}
+                  prevRevision={i > 0 ? selectedRevisions[i - 1] : undefined}
+                  showDiff={showDiff}
+                />
+              </div>
+            ))}
+          </div>
+        ) : (
+          layouts[safeLayout] && (
+            <React.Fragment key={`${count}-${safeLayout}`}>
+              {renderLayoutNode(layouts[safeLayout].tree, selectedRevisions, showDiff, "root")}
+            </React.Fragment>
+          )
+        )}
       </div>
     </div>
   );
@@ -310,12 +338,12 @@ const RevisionComparison: React.FC<RevisionComparisonProps> = ({
   return (
     <div className={className}>
       {/* Header */}
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
         <span className="text-blue-500 text-sm hover:underline cursor-pointer">
           Revisions
         </span>
-        <div className="flex items-center gap-2">
-          <Info className="h-5 w-5 text-gray-400" />
+        <div className="flex items-center gap-2 flex-wrap">
+          <Info className="h-5 w-5 text-gray-400 shrink-0" />
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -350,29 +378,31 @@ const RevisionComparison: React.FC<RevisionComparisonProps> = ({
         <Table>
           <TableBody>
             {filteredRevisions.map((rev) => (
-              <TableRow key={rev.id}>
-                <TableCell className="font-medium w-10">
+              <TableRow key={rev.id} className="grid grid-cols-2 gap-1 p-2 sm:table-row sm:gap-0 sm:p-0">
+                <TableCell className="hidden font-medium sm:table-cell sm:w-10 sm:p-4">
                   {rev.revisionNumber}
                 </TableCell>
-                <TableCell className="text-sm">
+                <TableCell className="col-span-2 block p-1.5 text-sm font-medium sm:table-cell sm:col-span-1 sm:p-4 sm:font-normal">
+                  <span className="text-gray-400 font-normal mr-1 sm:hidden">#{rev.revisionNumber}</span>
                   {rev.title}
                 </TableCell>
-                <TableCell className="text-blue-500 text-xs">
+                <TableCell className="col-span-2 block p-1.5 text-blue-500 text-xs sm:table-cell sm:col-span-1 sm:p-4">
                   {new Date(rev.createdAt).toLocaleString()}
                 </TableCell>
-                <TableCell className="text-xs text-gray-500">
+                <TableCell className="col-span-2 block p-1.5 text-xs text-gray-500 sm:table-cell sm:col-span-1 sm:p-4">
                   {rev.createdByName || ""}
                 </TableCell>
-                <TableCell className="text-xs text-gray-400">
+                <TableCell className="col-span-2 block p-1.5 text-xs text-gray-400 sm:table-cell sm:col-span-1 sm:p-4">
+                  <span className="sm:hidden font-medium text-gray-500 mr-1">Reason:</span>
                   {rev.revisionReason || ""}
                 </TableCell>
-                <TableCell className="w-8">
+                <TableCell className="col-span-1 block p-1.5 sm:table-cell sm:w-8 sm:p-4">
                   <Checkbox
                     checked={selectedIds.includes(rev.id)}
                     onCheckedChange={() => toggleSelection(rev.id)}
                   />
                 </TableCell>
-                <TableCell className="w-24">
+                <TableCell className="col-span-1 block p-1.5 sm:table-cell sm:w-24 sm:p-4">
                   {onRestore && rev.docKey && rev.heads && (
                     <Button
                       variant="outline"
@@ -388,15 +418,15 @@ const RevisionComparison: React.FC<RevisionComparisonProps> = ({
               </TableRow>
             ))}
             {filteredRevisions.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={7} className="text-gray-400 text-sm text-center">
+              <TableRow className="grid grid-cols-2 sm:table-row">
+                <TableCell colSpan={7} className="col-span-2 block text-gray-400 text-sm text-center sm:table-cell">
                   No revisions available.
                 </TableCell>
               </TableRow>
             )}
-            <TableRow>
-              <TableCell colSpan={7}>
-                <div className="flex justify-between items-center">
+            <TableRow className="grid grid-cols-2 sm:table-row">
+              <TableCell colSpan={7} className="col-span-2 block sm:table-cell">
+                <div className="flex justify-between items-center flex-wrap gap-2">
                   <Button
                     variant="link"
                     size="sm"
@@ -438,7 +468,7 @@ const RevisionComparison: React.FC<RevisionComparisonProps> = ({
       <Dialog open={fullScreen} onOpenChange={setFullScreen}>
         <DialogContent className="max-w-[95vw] w-[95vw] h-[90vh] flex flex-col">
           <DialogHeader className="flex-shrink-0">
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center flex-wrap gap-2">
               Compare Revisions
               <Button
                 variant="ghost"
