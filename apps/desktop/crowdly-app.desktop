@@ -7,5 +7,5 @@ Icon=/opt/crowdly/crowdly.png
 Terminal=false
 Type=Application
 Categories=Office;TextEditor;
-MimeType=text/markdown;text/x-markdown;
+MimeType=text/markdown;text/x-markdown;application/x-crowdly-master;
 StartupNotify=true

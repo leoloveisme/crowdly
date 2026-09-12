@@ -457,7 +457,130 @@ Details: {error}</translation>
     </message>
   </context>
 <context>
+    <name>IncludeContainerWidget</name>
+    <message>
+        <source>Locate file...</source>
+        <translation>ファイルを探す…</translation>
+    </message>
+    <message>
+        <source>Point this include at a file, e.g. if the original has moved</source>
+        <translation>このインクルードをファイルに関連付けます(元のファイルが移動した場合など)</translation>
+    </message>
+</context>
+<context>
     <name>MasterDocumentWindow</name>
+    <message>
+        <source>Export</source>
+        <translation>エクスポート</translation>
+    </message>
+    <message>
+        <source>as PDF</source>
+        <translation>PDF として</translation>
+    </message>
+    <message>
+        <source>as EPUB</source>
+        <translation>EPUB として</translation>
+    </message>
+    <message>
+        <source>as docx</source>
+        <translation>docx として</translation>
+    </message>
+    <message>
+        <source>as odt</source>
+        <translation>odt として</translation>
+    </message>
+    <message>
+        <source>as FDX</source>
+        <translation>FDX として</translation>
+    </message>
+    <message>
+        <source>as FOUNTAIN</source>
+        <translation>FOUNTAIN として</translation>
+    </message>
+    <message>
+        <source>Export as PDF</source>
+        <translation>PDF としてエクスポート</translation>
+    </message>
+    <message>
+        <source>PDF files (*.pdf);;All files (*)</source>
+        <translation>PDF ファイル (*.pdf);;すべてのファイル (*)</translation>
+    </message>
+    <message>
+        <source>Export as EPUB</source>
+        <translation>EPUB としてエクスポート</translation>
+    </message>
+    <message>
+        <source>EPUB files (*.epub);;All files (*)</source>
+        <translation>EPUB ファイル (*.epub);;すべてのファイル (*)</translation>
+    </message>
+    <message>
+        <source>Export as docx</source>
+        <translation>docx としてエクスポート</translation>
+    </message>
+    <message>
+        <source>Word documents (*.docx);;All files (*)</source>
+        <translation>Word 文書 (*.docx);;すべてのファイル (*)</translation>
+    </message>
+    <message>
+        <source>Export as odt</source>
+        <translation>odt としてエクスポート</translation>
+    </message>
+    <message>
+        <source>OpenDocument text (*.odt);;All files (*)</source>
+        <translation>OpenDocument テキスト (*.odt);;すべてのファイル (*)</translation>
+    </message>
+    <message>
+        <source>Export as FDX</source>
+        <translation>FDX としてエクスポート</translation>
+    </message>
+    <message>
+        <source>Final Draft files (*.fdx);;All files (*)</source>
+        <translation>Final Draft ファイル (*.fdx);;すべてのファイル (*)</translation>
+    </message>
+    <message>
+        <source>Export as Fountain</source>
+        <translation>Fountain としてエクスポート</translation>
+    </message>
+    <message>
+        <source>Fountain files (*.fountain);;All files (*)</source>
+        <translation>Fountain ファイル (*.fountain);;すべてのファイル (*)</translation>
+    </message>
+    <message>
+        <source>Export failed</source>
+        <translation>エクスポートに失敗しました</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while exporting the document.</source>
+        <translation>ドキュメントのエクスポート中に予期しないエラーが発生しました。</translation>
+    </message>
+    <message>
+        <source>Exported document to: {path}</source>
+        <translation>ドキュメントを次の場所にエクスポートしました: {path}</translation>
+    </message>
+    <message>
+        <source>The master document is empty; there is nothing to export.</source>
+        <translation>マスタードキュメントが空です。エクスポートする内容がありません。</translation>
+    </message>
+    <message>
+        <source>Locate file</source>
+        <translation>ファイルを探す</translation>
+    </message>
+    <message>
+        <source>All files (*)</source>
+        <translation>すべてのファイル (*)</translation>
+    </message>
+    <message>
+        <source>Linked this include to: {path}</source>
+        <translation>このインクルードを次にリンクしました: {path}</translation>
+    </message>
+    <message>
+        <source>Re-linked {count} file(s) that had moved.</source>
+        <translation>移動していた {count} 件のファイルを再リンクしました。</translation>
+    </message>
+    <message>
+        <source>{count} file(s) could not be found -- use "Locate file..." on the affected container(s).</source>
+        <translation>{count} 件のファイルが見つかりませんでした。該当するコンテナーで「ファイルを探す…」を使用してください。</translation>
+    </message>
     <message>
         <source>Save as</source>
         <translation>名前を付けて保存</translation>

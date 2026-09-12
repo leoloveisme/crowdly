@@ -457,7 +457,130 @@ Details: {error}</translation>
     </message>
   </context>
 <context>
+    <name>IncludeContainerWidget</name>
+    <message>
+        <source>Locate file...</source>
+        <translation>파일 찾기...</translation>
+    </message>
+    <message>
+        <source>Point this include at a file, e.g. if the original has moved</source>
+        <translation>원본 파일이 이동한 경우 등 이 포함 항목을 다른 파일에 연결합니다</translation>
+    </message>
+</context>
+<context>
     <name>MasterDocumentWindow</name>
+    <message>
+        <source>Export</source>
+        <translation>내보내기</translation>
+    </message>
+    <message>
+        <source>as PDF</source>
+        <translation>PDF로</translation>
+    </message>
+    <message>
+        <source>as EPUB</source>
+        <translation>EPUB로</translation>
+    </message>
+    <message>
+        <source>as docx</source>
+        <translation>docx로</translation>
+    </message>
+    <message>
+        <source>as odt</source>
+        <translation>odt로</translation>
+    </message>
+    <message>
+        <source>as FDX</source>
+        <translation>FDX로</translation>
+    </message>
+    <message>
+        <source>as FOUNTAIN</source>
+        <translation>FOUNTAIN으로</translation>
+    </message>
+    <message>
+        <source>Export as PDF</source>
+        <translation>PDF로 내보내기</translation>
+    </message>
+    <message>
+        <source>PDF files (*.pdf);;All files (*)</source>
+        <translation>PDF 파일 (*.pdf);;모든 파일 (*)</translation>
+    </message>
+    <message>
+        <source>Export as EPUB</source>
+        <translation>EPUB로 내보내기</translation>
+    </message>
+    <message>
+        <source>EPUB files (*.epub);;All files (*)</source>
+        <translation>EPUB 파일 (*.epub);;모든 파일 (*)</translation>
+    </message>
+    <message>
+        <source>Export as docx</source>
+        <translation>docx로 내보내기</translation>
+    </message>
+    <message>
+        <source>Word documents (*.docx);;All files (*)</source>
+        <translation>Word 문서 (*.docx);;모든 파일 (*)</translation>
+    </message>
+    <message>
+        <source>Export as odt</source>
+        <translation>odt로 내보내기</translation>
+    </message>
+    <message>
+        <source>OpenDocument text (*.odt);;All files (*)</source>
+        <translation>OpenDocument 텍스트 (*.odt);;모든 파일 (*)</translation>
+    </message>
+    <message>
+        <source>Export as FDX</source>
+        <translation>FDX로 내보내기</translation>
+    </message>
+    <message>
+        <source>Final Draft files (*.fdx);;All files (*)</source>
+        <translation>Final Draft 파일 (*.fdx);;모든 파일 (*)</translation>
+    </message>
+    <message>
+        <source>Export as Fountain</source>
+        <translation>Fountain으로 내보내기</translation>
+    </message>
+    <message>
+        <source>Fountain files (*.fountain);;All files (*)</source>
+        <translation>Fountain 파일 (*.fountain);;모든 파일 (*)</translation>
+    </message>
+    <message>
+        <source>Export failed</source>
+        <translation>내보내기 실패</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while exporting the document.</source>
+        <translation>문서를 내보내는 중 예기치 않은 오류가 발생했습니다.</translation>
+    </message>
+    <message>
+        <source>Exported document to: {path}</source>
+        <translation>문서를 다음 위치로 내보냈습니다: {path}</translation>
+    </message>
+    <message>
+        <source>The master document is empty; there is nothing to export.</source>
+        <translation>마스터 문서가 비어 있어 내보낼 내용이 없습니다.</translation>
+    </message>
+    <message>
+        <source>Locate file</source>
+        <translation>파일 찾기</translation>
+    </message>
+    <message>
+        <source>All files (*)</source>
+        <translation>모든 파일 (*)</translation>
+    </message>
+    <message>
+        <source>Linked this include to: {path}</source>
+        <translation>이 포함 항목을 다음에 연결했습니다: {path}</translation>
+    </message>
+    <message>
+        <source>Re-linked {count} file(s) that had moved.</source>
+        <translation>이동된 파일 {count}개를 다시 연결했습니다.</translation>
+    </message>
+    <message>
+        <source>{count} file(s) could not be found -- use "Locate file..." on the affected container(s).</source>
+        <translation>{count}개의 파일을 찾을 수 없습니다 -- 해당 컨테이너에서 "파일 찾기..."를 사용하세요.</translation>
+    </message>
     <message>
         <source>Save as</source>
         <translation>다른 이름으로 저장</translation>

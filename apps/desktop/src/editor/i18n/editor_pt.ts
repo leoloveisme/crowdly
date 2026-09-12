@@ -457,7 +457,130 @@ Details: {error}</translation>
     </message>
   </context>
 <context>
+    <name>IncludeContainerWidget</name>
+    <message>
+        <source>Locate file...</source>
+        <translation>Localizar arquivo...</translation>
+    </message>
+    <message>
+        <source>Point this include at a file, e.g. if the original has moved</source>
+        <translation>Aponte esta inclusão para um arquivo, por exemplo, se o original foi movido</translation>
+    </message>
+</context>
+<context>
     <name>MasterDocumentWindow</name>
+    <message>
+        <source>Export</source>
+        <translation>Exportar</translation>
+    </message>
+    <message>
+        <source>as PDF</source>
+        <translation>como PDF</translation>
+    </message>
+    <message>
+        <source>as EPUB</source>
+        <translation>como EPUB</translation>
+    </message>
+    <message>
+        <source>as docx</source>
+        <translation>como docx</translation>
+    </message>
+    <message>
+        <source>as odt</source>
+        <translation>como odt</translation>
+    </message>
+    <message>
+        <source>as FDX</source>
+        <translation>como FDX</translation>
+    </message>
+    <message>
+        <source>as FOUNTAIN</source>
+        <translation>como FOUNTAIN</translation>
+    </message>
+    <message>
+        <source>Export as PDF</source>
+        <translation>Exportar como PDF</translation>
+    </message>
+    <message>
+        <source>PDF files (*.pdf);;All files (*)</source>
+        <translation>Arquivos PDF (*.pdf);;Todos os arquivos (*)</translation>
+    </message>
+    <message>
+        <source>Export as EPUB</source>
+        <translation>Exportar como EPUB</translation>
+    </message>
+    <message>
+        <source>EPUB files (*.epub);;All files (*)</source>
+        <translation>Arquivos EPUB (*.epub);;Todos os arquivos (*)</translation>
+    </message>
+    <message>
+        <source>Export as docx</source>
+        <translation>Exportar como docx</translation>
+    </message>
+    <message>
+        <source>Word documents (*.docx);;All files (*)</source>
+        <translation>Documentos do Word (*.docx);;Todos os arquivos (*)</translation>
+    </message>
+    <message>
+        <source>Export as odt</source>
+        <translation>Exportar como odt</translation>
+    </message>
+    <message>
+        <source>OpenDocument text (*.odt);;All files (*)</source>
+        <translation>Texto OpenDocument (*.odt);;Todos os arquivos (*)</translation>
+    </message>
+    <message>
+        <source>Export as FDX</source>
+        <translation>Exportar como FDX</translation>
+    </message>
+    <message>
+        <source>Final Draft files (*.fdx);;All files (*)</source>
+        <translation>Arquivos Final Draft (*.fdx);;Todos os arquivos (*)</translation>
+    </message>
+    <message>
+        <source>Export as Fountain</source>
+        <translation>Exportar como Fountain</translation>
+    </message>
+    <message>
+        <source>Fountain files (*.fountain);;All files (*)</source>
+        <translation>Arquivos Fountain (*.fountain);;Todos os arquivos (*)</translation>
+    </message>
+    <message>
+        <source>Export failed</source>
+        <translation>Falha na exportação</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while exporting the document.</source>
+        <translation>Ocorreu um erro inesperado ao exportar o documento.</translation>
+    </message>
+    <message>
+        <source>Exported document to: {path}</source>
+        <translation>Documento exportado para: {path}</translation>
+    </message>
+    <message>
+        <source>The master document is empty; there is nothing to export.</source>
+        <translation>O documento mestre está vazio; não há nada para exportar.</translation>
+    </message>
+    <message>
+        <source>Locate file</source>
+        <translation>Localizar arquivo</translation>
+    </message>
+    <message>
+        <source>All files (*)</source>
+        <translation>Todos os arquivos (*)</translation>
+    </message>
+    <message>
+        <source>Linked this include to: {path}</source>
+        <translation>Esta inclusão foi vinculada a: {path}</translation>
+    </message>
+    <message>
+        <source>Re-linked {count} file(s) that had moved.</source>
+        <translation>{count} arquivo(s) que haviam sido movidos foram religados.</translation>
+    </message>
+    <message>
+        <source>{count} file(s) could not be found -- use "Locate file..." on the affected container(s).</source>
+        <translation>Não foi possível encontrar {count} arquivo(s) -- use "Localizar arquivo..." nos contêineres afetados.</translation>
+    </message>
     <message>
         <source>Save as</source>
         <translation>Salvar como</translation>

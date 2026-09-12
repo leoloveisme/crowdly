@@ -457,7 +457,130 @@ Details: {error}</translation>
     </message>
   </context>
 <context>
+    <name>IncludeContainerWidget</name>
+    <message>
+        <source>Locate file...</source>
+        <translation>定位檔案…</translation>
+    </message>
+    <message>
+        <source>Point this include at a file, e.g. if the original has moved</source>
+        <translation>將此包含項指向一個檔案,例如原始檔案已被移動時</translation>
+    </message>
+</context>
+<context>
     <name>MasterDocumentWindow</name>
+    <message>
+        <source>Export</source>
+        <translation>匯出</translation>
+    </message>
+    <message>
+        <source>as PDF</source>
+        <translation>為 PDF</translation>
+    </message>
+    <message>
+        <source>as EPUB</source>
+        <translation>為 EPUB</translation>
+    </message>
+    <message>
+        <source>as docx</source>
+        <translation>為 docx</translation>
+    </message>
+    <message>
+        <source>as odt</source>
+        <translation>為 odt</translation>
+    </message>
+    <message>
+        <source>as FDX</source>
+        <translation>為 FDX</translation>
+    </message>
+    <message>
+        <source>as FOUNTAIN</source>
+        <translation>為 FOUNTAIN</translation>
+    </message>
+    <message>
+        <source>Export as PDF</source>
+        <translation>匯出為 PDF</translation>
+    </message>
+    <message>
+        <source>PDF files (*.pdf);;All files (*)</source>
+        <translation>PDF 檔案 (*.pdf);;所有檔案 (*)</translation>
+    </message>
+    <message>
+        <source>Export as EPUB</source>
+        <translation>匯出為 EPUB</translation>
+    </message>
+    <message>
+        <source>EPUB files (*.epub);;All files (*)</source>
+        <translation>EPUB 檔案 (*.epub);;所有檔案 (*)</translation>
+    </message>
+    <message>
+        <source>Export as docx</source>
+        <translation>匯出為 docx</translation>
+    </message>
+    <message>
+        <source>Word documents (*.docx);;All files (*)</source>
+        <translation>Word 文件 (*.docx);;所有檔案 (*)</translation>
+    </message>
+    <message>
+        <source>Export as odt</source>
+        <translation>匯出為 odt</translation>
+    </message>
+    <message>
+        <source>OpenDocument text (*.odt);;All files (*)</source>
+        <translation>OpenDocument 文字檔 (*.odt);;所有檔案 (*)</translation>
+    </message>
+    <message>
+        <source>Export as FDX</source>
+        <translation>匯出為 FDX</translation>
+    </message>
+    <message>
+        <source>Final Draft files (*.fdx);;All files (*)</source>
+        <translation>Final Draft 檔案 (*.fdx);;所有檔案 (*)</translation>
+    </message>
+    <message>
+        <source>Export as Fountain</source>
+        <translation>匯出為 Fountain</translation>
+    </message>
+    <message>
+        <source>Fountain files (*.fountain);;All files (*)</source>
+        <translation>Fountain 檔案 (*.fountain);;所有檔案 (*)</translation>
+    </message>
+    <message>
+        <source>Export failed</source>
+        <translation>匯出失敗</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while exporting the document.</source>
+        <translation>匯出文件時發生未預期的錯誤。</translation>
+    </message>
+    <message>
+        <source>Exported document to: {path}</source>
+        <translation>文件已匯出至:{path}</translation>
+    </message>
+    <message>
+        <source>The master document is empty; there is nothing to export.</source>
+        <translation>主文件為空,沒有可匯出的內容。</translation>
+    </message>
+    <message>
+        <source>Locate file</source>
+        <translation>定位檔案</translation>
+    </message>
+    <message>
+        <source>All files (*)</source>
+        <translation>所有檔案 (*)</translation>
+    </message>
+    <message>
+        <source>Linked this include to: {path}</source>
+        <translation>已將此包含項連結至:{path}</translation>
+    </message>
+    <message>
+        <source>Re-linked {count} file(s) that had moved.</source>
+        <translation>已重新連結 {count} 個已移動的檔案。</translation>
+    </message>
+    <message>
+        <source>{count} file(s) could not be found -- use "Locate file..." on the affected container(s).</source>
+        <translation>找不到 {count} 個檔案 —— 請在相應的容器上使用「定位檔案…」。</translation>
+    </message>
     <message>
         <source>Save as</source>
         <translation>另存為</translation>

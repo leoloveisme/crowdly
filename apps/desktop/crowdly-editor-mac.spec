@@ -91,7 +91,13 @@ app = BUNDLE(
                 "CFBundleTypeName": "Markdown Document",
                 "CFBundleTypeExtensions": ["md", "markdown"],
                 "CFBundleTypeRole": "Editor",
-            }
+            },
+            {
+                "CFBundleTypeName": "Crowdly Master Document",
+                "CFBundleTypeExtensions": ["master"],
+                "CFBundleTypeRole": "Editor",
+                "LSHandlerRank": "Owner",
+            },
         ],
     },
 )

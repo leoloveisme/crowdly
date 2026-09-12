@@ -527,6 +527,14 @@ Details: {error}</translation>
         <translation>Rename the underlying chapter file using the file explorer</translation>
     </message>
     <message>
+        <source>Locate file...</source>
+        <translation>Locate file...</translation>
+    </message>
+    <message>
+        <source>Point this include at a file, e.g. if the original has moved</source>
+        <translation>Point this include at a file, e.g. if the original has moved</translation>
+    </message>
+    <message>
         <source>Clone file</source>
         <translation>Clone file</translation>
     </message>
@@ -596,6 +604,118 @@ Details: {error}</translation>
     <message>
         <source>Read only include container</source>
         <translation>Read only include container</translation>
+    </message>
+    <message>
+        <source>Export</source>
+        <translation>Export</translation>
+    </message>
+    <message>
+        <source>as PDF</source>
+        <translation>as PDF</translation>
+    </message>
+    <message>
+        <source>as EPUB</source>
+        <translation>as EPUB</translation>
+    </message>
+    <message>
+        <source>as docx</source>
+        <translation>as docx</translation>
+    </message>
+    <message>
+        <source>as odt</source>
+        <translation>as odt</translation>
+    </message>
+    <message>
+        <source>as FDX</source>
+        <translation>as FDX</translation>
+    </message>
+    <message>
+        <source>as FOUNTAIN</source>
+        <translation>as FOUNTAIN</translation>
+    </message>
+    <message>
+        <source>Export as PDF</source>
+        <translation>Export as PDF</translation>
+    </message>
+    <message>
+        <source>PDF files (*.pdf);;All files (*)</source>
+        <translation>PDF files (*.pdf);;All files (*)</translation>
+    </message>
+    <message>
+        <source>Export as EPUB</source>
+        <translation>Export as EPUB</translation>
+    </message>
+    <message>
+        <source>EPUB files (*.epub);;All files (*)</source>
+        <translation>EPUB files (*.epub);;All files (*)</translation>
+    </message>
+    <message>
+        <source>Export as docx</source>
+        <translation>Export as docx</translation>
+    </message>
+    <message>
+        <source>Word documents (*.docx);;All files (*)</source>
+        <translation>Word documents (*.docx);;All files (*)</translation>
+    </message>
+    <message>
+        <source>Export as odt</source>
+        <translation>Export as odt</translation>
+    </message>
+    <message>
+        <source>OpenDocument text (*.odt);;All files (*)</source>
+        <translation>OpenDocument text (*.odt);;All files (*)</translation>
+    </message>
+    <message>
+        <source>Export as FDX</source>
+        <translation>Export as FDX</translation>
+    </message>
+    <message>
+        <source>Final Draft files (*.fdx);;All files (*)</source>
+        <translation>Final Draft files (*.fdx);;All files (*)</translation>
+    </message>
+    <message>
+        <source>Export as Fountain</source>
+        <translation>Export as Fountain</translation>
+    </message>
+    <message>
+        <source>Fountain files (*.fountain);;All files (*)</source>
+        <translation>Fountain files (*.fountain);;All files (*)</translation>
+    </message>
+    <message>
+        <source>Export failed</source>
+        <translation>Export failed</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while exporting the document.</source>
+        <translation>An unexpected error occurred while exporting the document.</translation>
+    </message>
+    <message>
+        <source>Exported document to: {path}</source>
+        <translation>Exported document to: {path}</translation>
+    </message>
+    <message>
+        <source>The master document is empty; there is nothing to export.</source>
+        <translation>The master document is empty; there is nothing to export.</translation>
+    </message>
+    <message>
+        <source>Locate file</source>
+        <translation>Locate file</translation>
+    </message>
+    <message>
+        <source>All files (*)</source>
+        <translation>All files (*)</translation>
+    </message>
+    <message>
+        <source>Linked this include to: {path}</source>
+        <translation>Linked this include to: {path}</translation>
+    </message>
+    <message>
+        <source>Re-linked {count} file(s) that had moved.</source>
+        <translation>Re-linked {count} file(s) that had moved.</translation>
+    </message>
+    <message>
+        <source>{count} file(s) could not be found -- use "Locate file..." on the affected container(s).</source>
+        <translation>{count} file(s) could not be found -- use "Locate file..." on the affected container(s).</translation>
     </message>
     <message>
         <source>Save as</source>

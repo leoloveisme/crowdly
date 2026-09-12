@@ -591,6 +591,14 @@ Details: {error}</source>
         <translation>Переименовать файл главы через проводник</translation>
     </message>
     <message>
+        <source>Locate file...</source>
+        <translation>Найти файл...</translation>
+    </message>
+    <message>
+        <source>Point this include at a file, e.g. if the original has moved</source>
+        <translation>Привязать этот раздел к файлу, например, если исходный файл был перемещён</translation>
+    </message>
+    <message>
         <source>Clone file</source>
         <translation>Клонировать файл</translation>
     </message>
@@ -660,6 +668,118 @@ Details: {error}</source>
     <message>
         <source>Read only include container</source>
         <translation>Нередактируемый контейнер (только для чтения)</translation>
+    </message>
+    <message>
+        <source>Export</source>
+        <translation>Экспорт</translation>
+    </message>
+    <message>
+        <source>as PDF</source>
+        <translation>в PDF</translation>
+    </message>
+    <message>
+        <source>as EPUB</source>
+        <translation>в EPUB</translation>
+    </message>
+    <message>
+        <source>as docx</source>
+        <translation>в docx</translation>
+    </message>
+    <message>
+        <source>as odt</source>
+        <translation>в odt</translation>
+    </message>
+    <message>
+        <source>as FDX</source>
+        <translation>в FDX</translation>
+    </message>
+    <message>
+        <source>as FOUNTAIN</source>
+        <translation>в FOUNTAIN</translation>
+    </message>
+    <message>
+        <source>Export as PDF</source>
+        <translation>Экспортировать в PDF</translation>
+    </message>
+    <message>
+        <source>PDF files (*.pdf);;All files (*)</source>
+        <translation>Файлы PDF (*.pdf);;Все файлы (*)</translation>
+    </message>
+    <message>
+        <source>Export as EPUB</source>
+        <translation>Экспортировать в EPUB</translation>
+    </message>
+    <message>
+        <source>EPUB files (*.epub);;All files (*)</source>
+        <translation>Файлы EPUB (*.epub);;Все файлы (*)</translation>
+    </message>
+    <message>
+        <source>Export as docx</source>
+        <translation>Экспортировать в docx</translation>
+    </message>
+    <message>
+        <source>Word documents (*.docx);;All files (*)</source>
+        <translation>Документы Word (*.docx);;Все файлы (*)</translation>
+    </message>
+    <message>
+        <source>Export as odt</source>
+        <translation>Экспортировать в odt</translation>
+    </message>
+    <message>
+        <source>OpenDocument text (*.odt);;All files (*)</source>
+        <translation>Текст OpenDocument (*.odt);;Все файлы (*)</translation>
+    </message>
+    <message>
+        <source>Export as FDX</source>
+        <translation>Экспортировать в FDX</translation>
+    </message>
+    <message>
+        <source>Final Draft files (*.fdx);;All files (*)</source>
+        <translation>Файлы Final Draft (*.fdx);;Все файлы (*)</translation>
+    </message>
+    <message>
+        <source>Export as Fountain</source>
+        <translation>Экспортировать в Fountain</translation>
+    </message>
+    <message>
+        <source>Fountain files (*.fountain);;All files (*)</source>
+        <translation>Файлы Fountain (*.fountain);;Все файлы (*)</translation>
+    </message>
+    <message>
+        <source>Export failed</source>
+        <translation>Не удалось экспортировать</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while exporting the document.</source>
+        <translation>Произошла непредвиденная ошибка при экспорте документа.</translation>
+    </message>
+    <message>
+        <source>Exported document to: {path}</source>
+        <translation>Документ экспортирован в: {path}</translation>
+    </message>
+    <message>
+        <source>The master document is empty; there is nothing to export.</source>
+        <translation>Мастер-документ пуст; экспортировать нечего.</translation>
+    </message>
+    <message>
+        <source>Locate file</source>
+        <translation>Найти файл</translation>
+    </message>
+    <message>
+        <source>All files (*)</source>
+        <translation>Все файлы (*)</translation>
+    </message>
+    <message>
+        <source>Linked this include to: {path}</source>
+        <translation>Раздел привязан к файлу: {path}</translation>
+    </message>
+    <message>
+        <source>Re-linked {count} file(s) that had moved.</source>
+        <translation>Восстановлена привязка {count} перемещённых файлов.</translation>
+    </message>
+    <message>
+        <source>{count} file(s) could not be found -- use "Locate file..." on the affected container(s).</source>
+        <translation>Не удалось найти {count} файлов — используйте «Найти файл...» для соответствующих разделов.</translation>
     </message>
     <message>
         <source>Save as</source>
