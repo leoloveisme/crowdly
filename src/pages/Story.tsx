@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Loader2, Users, Clock, GitBranch, BookOpen, Heart, Download, Search, User, X } from "lucide-react";
+import { Loader2, Users, Clock, GitBranch, BookOpen, FileText, Heart, Download, Search, User, X } from "lucide-react";
 import CrowdlyHeader from "@/components/CrowdlyHeader";
 import CrowdlyFooter from "@/components/CrowdlyFooter";
 import EditableText from "@/components/EditableText";
@@ -2080,7 +2080,7 @@ const Story = () => {
                   : "text-gray-600 hover:bg-gray-100"
               }`}
             >
-              <BookOpen size={18} /> Story
+              <BookOpen size={18} /> <span className="hidden sm:inline">Story</span>
             </button>
             <button
               aria-label="Contributions"
@@ -2091,7 +2091,7 @@ const Story = () => {
                   : "text-gray-600 hover:bg-gray-100"
               }`}
             >
-              <BookOpen size={18} /> Contributions
+              <FileText size={18} /> <span className="hidden sm:inline">Contributions</span>
             </button>
             <button
               aria-label="Contributors"
@@ -2102,7 +2102,7 @@ const Story = () => {
                   : "text-gray-600 hover:bg-gray-100"
               }`}
             >
-              <Users size={18} /> Contributors
+              <Users size={18} /> <span className="hidden sm:inline">Contributors</span>
             </button>
             <button
               aria-label="Revisions"
@@ -2113,7 +2113,7 @@ const Story = () => {
                   : "text-gray-600 hover:bg-gray-100"
               }`}
             >
-              <Clock size={18} /> Revisions
+              <Clock size={18} /> <span className="hidden sm:inline">Revisions</span>
             </button>
             <button
               aria-label="Branches"
@@ -2124,7 +2124,7 @@ const Story = () => {
                   : "text-gray-600 hover:bg-gray-100"
               }`}
             >
-              <GitBranch size={18} /> Branches
+              <GitBranch size={18} /> <span className="hidden sm:inline">Branches</span>
             </button>
           </div>
         </nav>
