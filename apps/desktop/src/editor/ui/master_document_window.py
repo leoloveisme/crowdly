@@ -280,6 +280,14 @@ class IncludeContainerWidget(QWidget):
         self._master_base_content: str | None = None
         # Filesystem mtime from when we last read the underlying file.
         self._last_file_mtime: float | None = None
+        # Wall-clock time (epoch seconds) when the title field was last
+        # genuinely edited/derived, used to resolve a mismatch between this
+        # title and the chapter file's own embedded heading by recency. None
+        # means we have no recorded edit time (e.g. an older `.master` file
+        # saved before this was tracked), in which case the file's own
+        # heading is treated as authoritative. See `_on_title_text_changed`
+        # and `MasterDocumentWindow._resolve_chapter_heading`.
+        self._title_edited_at: float | None = None
 
         # Debounced saver for editable containers so changes are written back
         # into the underlying file without excessive disk writes.
@@ -433,7 +441,7 @@ class IncludeContainerWidget(QWidget):
             self._content.setReadOnly(True)
 
         # Any title change also marks this container as modified.
-        self._title_edit.textChanged.connect(lambda _text: self.contentChanged.emit())
+        self._title_edit.textChanged.connect(self._on_title_text_changed)
 
         layout.addWidget(self._content, 1)
 
@@ -527,12 +535,26 @@ class IncludeContainerWidget(QWidget):
 
         self._file_path = path
 
+    def _on_title_text_changed(self, _text: str) -> None:
+        """Record the edit time and propagate the change.
+
+        Connected to the title field's ``textChanged`` signal, which only
+        fires for genuine edits/derivations of the title -- the master-file
+        load path (``load_from_master``) wraps its own programmatic
+        ``setText`` call in ``blockSignals``, so restoring a persisted title
+        on open never bumps this timestamp.
+        """
+
+        self._title_edited_at = datetime.now().timestamp()
+        self.contentChanged.emit()
+
     def load_from_master(
         self,
         *,
         file_path: Path | None,
         title: str | None,
         content: str,
+        title_edited_at: float | None = None,
     ) -> None:
         """Populate the container from a `.master` entry without side effects.
 
@@ -553,6 +575,7 @@ class IncludeContainerWidget(QWidget):
                 self._title_edit.setText(title or "")
             finally:
                 self._title_edit.blockSignals(False)
+            self._title_edited_at = title_edited_at
 
             # Setting the text programmatically will emit textChanged on the
             # inner QPlainTextEdit, but _on_text_changed short-circuits when
@@ -1462,6 +1485,23 @@ class MasterDocumentWindow(QMainWindow):
                 title = lines[i].lstrip()[3:].strip()
                 i += 1
 
+                # Optional metadata line recording when the title was last
+                # edited, used to resolve a mismatch with the chapter file's
+                # own heading by recency. Absent on older `.master` files.
+                title_edited_at: float | None = None
+                if i < n:
+                    meta_match = re.match(
+                        r"^<!--\s*title-edited:\s*([0-9.]+)\s*-->$", lines[i].strip()
+                    )
+                    if meta_match:
+                        try:
+                            title_edited_at = float(meta_match.group(1))
+                        except ValueError:
+                            title_edited_at = None
+                        i += 1
+            else:
+                title_edited_at = None
+
             # Collect content lines until a separator `---` or EOF.
             content_lines: list[str] = []
             while i < n:
@@ -1493,6 +1533,17 @@ class MasterDocumentWindow(QMainWindow):
 
             content = "\n".join(content_lines).rstrip("\n")
 
+            # Self-heal an empty title by deriving it from the content's own
+            # leading heading, if present. This covers `.master` files saved
+            # by an earlier, buggy version of the autosave logic that
+            # dropped the title line whenever it duplicated the content's
+            # heading, silently blanking the container's title field.
+            if not title and content:
+                first_content_line = content.split("\n", 1)[0].strip()
+                heading_match = re.match(r"^#{1,6}\s+(.*)$", first_content_line)
+                if heading_match:
+                    title = heading_match.group(1).strip()
+
             widget = IncludeContainerWidget(True, parent=self._include_list)
             item = QListWidgetItem(self._include_list)
 
@@ -1521,7 +1572,12 @@ class MasterDocumentWindow(QMainWindow):
 
             # Initialise widget state without triggering autosave or
             # write-back into the underlying files.
-            widget.load_from_master(file_path=file_path, title=title, content=content)
+            widget.load_from_master(
+                file_path=file_path,
+                title=title,
+                content=content,
+                title_edited_at=title_edited_at,
+            )
 
         # After a successful load the in-memory state reflects the file.
         try:
@@ -2225,24 +2281,71 @@ class MasterDocumentWindow(QMainWindow):
         return "\n".join(lines)
 
     @staticmethod
-    def _content_starts_with_matching_heading(content: str, title: str) -> bool:
-        """Return True if *content*'s first line is an ATX heading matching *title*.
+    def _strip_leading_heading(content: str) -> str:
+        """Remove *content*'s first line (an ATX heading) and one following blank line."""
+
+        leading = content[: len(content) - len(content.lstrip("\n"))]
+        _first_line, _sep, rest = content.lstrip("\n").partition("\n")
+        if rest.startswith("\n"):
+            rest = rest[1:]
+        return leading + rest
+
+    def _resolve_chapter_heading(
+        self,
+        title: str,
+        content: str,
+        file_path: Path | None,
+        title_edited_at: float | None,
+    ) -> tuple[str | None, str]:
+        """Decide which heading (if any) to show for a chapter.
 
         Chapter files are commonly generated/synced with their own title as
-        their first line (e.g. ``# Chapter Title``). When that is the case,
-        the container's own title heading would otherwise be emitted a
-        second time immediately before it, producing two consecutive,
-        duplicate headings in the combined export/serialisation.
+        their first line (e.g. ``# Chapter Title``); when that already
+        matches the container's own title, only one heading is needed rather
+        than emitting the container's title a second time immediately
+        before it. When the two disagree (e.g. the container title and the
+        chapter file have drifted apart), the file's own heading is treated
+        as authoritative by default -- unless the container title has a
+        recorded edit time that is demonstrably more recent than the file's
+        own on-disk modification time, in which case the container title
+        wins and the file's now-stale leading heading line is stripped from
+        the returned content instead.
+
+        Returns ``(heading_to_emit_or_None, content_with_stale_heading_removed)``.
         """
 
-        if not content or not title:
-            return False
-
-        first_line = content.lstrip("\n").split("\n", 1)[0].strip()
+        title = (title or "").strip()
+        first_line = content.lstrip("\n").split("\n", 1)[0].strip() if content else ""
         match = re.match(r"^#{1,6}\s+(.*)$", first_line)
-        if not match:
-            return False
-        return match.group(1).strip().casefold() == title.strip().casefold()
+        content_heading = match.group(1).strip() if match else None
+
+        if content_heading is None:
+            # No heading of its own in the content; the container title is
+            # the only source of a heading.
+            return (title or None), content
+
+        if not title or content_heading.casefold() == title.casefold():
+            # Either there is no container title, or it already agrees with
+            # the content's own heading -- nothing to resolve.
+            return None, content
+
+        file_mtime = None
+        if file_path is not None:
+            try:
+                file_mtime = file_path.stat().st_mtime
+            except Exception:
+                file_mtime = None
+
+        container_wins = (
+            title_edited_at is not None
+            and file_mtime is not None
+            and title_edited_at > file_mtime
+        )
+
+        if container_wins:
+            return title, self._strip_leading_heading(content)
+
+        return None, content
 
     def _serialise_to_text(self) -> str:
         """Return a Markdown-like text representation of the master doc.
@@ -2290,9 +2393,17 @@ class MasterDocumentWindow(QMainWindow):
 
                 parts.append(f"[{label}](file://{absolute_path})")
 
+            # Unlike `_get_combined_content` (the human-facing export), this
+            # is the `.master` file's own persisted state: the title must
+            # always round-trip verbatim regardless of whether it happens to
+            # duplicate the content's own heading, or the container's title
+            # field would silently go blank on the next load.
             title = (title or "").strip()
-            if title and not self._content_starts_with_matching_heading(content, title):
+            if title:
                 parts.append(f"## {title}")
+                title_edited_at = getattr(widget, "_title_edited_at", None)
+                if title_edited_at is not None:
+                    parts.append(f"<!-- title-edited: {title_edited_at} -->")
 
             if content:
                 parts.append("")
@@ -2373,8 +2484,12 @@ class MasterDocumentWindow(QMainWindow):
             content = widget._content.toPlainText() if hasattr(widget, "_content") else ""
 
             title = (title or "").strip()
-            if title and not self._content_starts_with_matching_heading(content, title):
-                parts.append(f"# {title}")
+            title_edited_at = getattr(widget, "_title_edited_at", None)
+            heading, content = self._resolve_chapter_heading(
+                title, content, widget.file_path, title_edited_at
+            )
+            if heading:
+                parts.append(f"# {heading}")
                 parts.append("")
 
             if content:

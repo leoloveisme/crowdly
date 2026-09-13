@@ -7934,9 +7934,13 @@ class _RenamableTabBar(QTabBar):
 
         text = self._editor.text().strip()
         index = self._editing_index
+        original_text = self.tabText(index)
 
-        # If the name is emptied, keep the old title rather than blank.
-        if text:
+        # Only a real change counts as a rename; a no-op commit (e.g. the
+        # rename box losing focus to a file-open dialog without the user
+        # having typed anything) must not falsely flag this tab as
+        # user-renamed, or later automatic title updates get suppressed.
+        if text and text != original_text:
             self.setTabText(index, text)
             try:
                 self.tabRenamed.emit(index, text)
