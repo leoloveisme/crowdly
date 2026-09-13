@@ -228,6 +228,14 @@
       <translation>View</translation>
     </message>
     <message>
+      <source>Show windows</source>
+      <translation>Mostrar janelas</translation>
+    </message>
+    <message>
+      <source>(no windows open)</source>
+      <translation>(nenhuma janela aberta)</translation>
+    </message>
+    <message>
       <source>Markdown (MD) / HTML editor</source>
       <translation>Markdown (MD) / HTML editor</translation>
     </message>

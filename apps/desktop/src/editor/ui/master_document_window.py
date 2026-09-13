@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import uuid
 import os
+import re
 from pathlib import Path
 from typing import Dict
 from datetime import datetime
@@ -2223,6 +2224,26 @@ class MasterDocumentWindow(QMainWindow):
             lines[0] = "\\" + lines[0]
         return "\n".join(lines)
 
+    @staticmethod
+    def _content_starts_with_matching_heading(content: str, title: str) -> bool:
+        """Return True if *content*'s first line is an ATX heading matching *title*.
+
+        Chapter files are commonly generated/synced with their own title as
+        their first line (e.g. ``# Chapter Title``). When that is the case,
+        the container's own title heading would otherwise be emitted a
+        second time immediately before it, producing two consecutive,
+        duplicate headings in the combined export/serialisation.
+        """
+
+        if not content or not title:
+            return False
+
+        first_line = content.lstrip("\n").split("\n", 1)[0].strip()
+        match = re.match(r"^#{1,6}\s+(.*)$", first_line)
+        if not match:
+            return False
+        return match.group(1).strip().casefold() == title.strip().casefold()
+
     def _serialise_to_text(self) -> str:
         """Return a Markdown-like text representation of the master doc.
 
@@ -2270,7 +2291,7 @@ class MasterDocumentWindow(QMainWindow):
                 parts.append(f"[{label}](file://{absolute_path})")
 
             title = (title or "").strip()
-            if title:
+            if title and not self._content_starts_with_matching_heading(content, title):
                 parts.append(f"## {title}")
 
             if content:
@@ -2352,7 +2373,7 @@ class MasterDocumentWindow(QMainWindow):
             content = widget._content.toPlainText() if hasattr(widget, "_content") else ""
 
             title = (title or "").strip()
-            if title:
+            if title and not self._content_starts_with_matching_heading(content, title):
                 parts.append(f"# {title}")
                 parts.append("")
 

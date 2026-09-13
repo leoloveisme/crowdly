@@ -228,6 +228,14 @@
       <translation>View</translation>
     </message>
     <message>
+      <source>Show windows</source>
+      <translation>إظهار النوافذ</translation>
+    </message>
+    <message>
+      <source>(no windows open)</source>
+      <translation>(لا توجد نوافذ مفتوحة)</translation>
+    </message>
+    <message>
       <source>Markdown (MD) / HTML editor</source>
       <translation>Markdown (MD) / HTML editor</translation>
     </message>

@@ -22,6 +22,14 @@ import markdown
 import re
 
 
+# Matches an HTML/Markdown comment, e.g. `<!-- note -->`. Qt's rich-text
+# document model has no representation for a comment node, so any such
+# comment must be stripped before rendering to HTML and spliced back into
+# the regenerated Markdown afterwards (see ``PreviewWidget._extract_comments``
+# / ``_reinject_comments``) rather than being handed to ``setHtml`` verbatim.
+_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
+_COMMENT_ANCHOR_LEN = 40
+_COMMENT_MIN_ANCHOR_LEN = 8
 
 # Canonical color names for DSL attributes, keyed by QColor.name() hex.
 _NAMED_COLOR_BY_HEX = {
@@ -64,40 +72,40 @@ class PreviewWidget(QWidget):
 
         # Simple formatting toolbar aligned to the top-right of the preview
         # pane.
-        toolbar = QWidget(self)
-        toolbar_layout = QHBoxLayout(toolbar)
+        self._toolbar = QWidget(self)
+        toolbar_layout = QHBoxLayout(self._toolbar)
         toolbar_layout.setContentsMargins(4, 4, 4, 4)
         toolbar_layout.setSpacing(4)
 
         toolbar_layout.addStretch(1)
 
         # Bold
-        self._btn_bold = QToolButton(toolbar)
+        self._btn_bold = QToolButton(self._toolbar)
         self._btn_bold.setText("B")
         self._btn_bold.setCheckable(False)
         self._btn_bold.clicked.connect(self._toggle_bold)
         toolbar_layout.addWidget(self._btn_bold)
 
         # Italic
-        self._btn_italic = QToolButton(toolbar)
+        self._btn_italic = QToolButton(self._toolbar)
         self._btn_italic.setText("I")
         self._btn_italic.clicked.connect(self._toggle_italic)
         toolbar_layout.addWidget(self._btn_italic)
 
         # Underline
-        self._btn_underline = QToolButton(toolbar)
+        self._btn_underline = QToolButton(self._toolbar)
         self._btn_underline.setText("U")
         self._btn_underline.clicked.connect(self._toggle_underline)
         toolbar_layout.addWidget(self._btn_underline)
 
         # Strikethrough
-        self._btn_strike = QToolButton(toolbar)
+        self._btn_strike = QToolButton(self._toolbar)
         self._btn_strike.setText("S")
         self._btn_strike.clicked.connect(self._toggle_strike)
         toolbar_layout.addWidget(self._btn_strike)
 
         # Paragraph type selector (story/chapter structure).
-        self._block_style = QComboBox(toolbar)
+        self._block_style = QComboBox(self._toolbar)
         self._block_style.addItems(
             [
                 "Text formatting",
@@ -112,13 +120,13 @@ class PreviewWidget(QWidget):
         toolbar_layout.addWidget(self._block_style)
 
         # Font family drop-down (limited set for now).
-        self._font_family = QComboBox(toolbar)
+        self._font_family = QComboBox(self._toolbar)
         self._font_family.addItems(["Font", "Sans", "Serif", "Monospace"])
         self._font_family.currentIndexChanged.connect(self._apply_font_family)
         toolbar_layout.addWidget(self._font_family)
 
         # Font size drop-down.
-        self._font_size = QComboBox(toolbar)
+        self._font_size = QComboBox(self._toolbar)
         for size in [9, 10, 11, 12, 14, 16, 18, 24]:
             self._font_size.addItem(str(size), size)
         self._font_size.setCurrentText("12")
@@ -126,7 +134,7 @@ class PreviewWidget(QWidget):
         toolbar_layout.addWidget(self._font_size)
 
         # Font color drop-down (basic palette).
-        self._font_color = QComboBox(toolbar)
+        self._font_color = QComboBox(self._toolbar)
         self._font_color.addItem("Color", None)
         self._font_color.addItem("Black", QColor("black"))
         self._font_color.addItem("Red", QColor("red"))
@@ -142,7 +150,7 @@ class PreviewWidget(QWidget):
 
         # Word/text wrap color drop-down (background highlight), using the
         # same palette as font color.
-        self._wrap_color = QComboBox(toolbar)
+        self._wrap_color = QComboBox(self._toolbar)
         self._wrap_color.addItem("Text Wrap Color", None)
         self._wrap_color.addItem("Wrap: Black", QColor("black"))
         self._wrap_color.addItem("Wrap: Red", QColor("red"))
@@ -157,20 +165,20 @@ class PreviewWidget(QWidget):
         toolbar_layout.addWidget(self._wrap_color)
 
         # Horizontal positioning (applies to all text elements).
-        self._h_position = QComboBox(toolbar)
+        self._h_position = QComboBox(self._toolbar)
         self._h_position.addItems(["Left", "Center", "Right"])
         self._h_position.setCurrentText("Left")
         self._h_position.currentIndexChanged.connect(self._apply_global_h_position)
         toolbar_layout.addWidget(self._h_position)
 
         # Vertical positioning (applies to the whole document visually).
-        self._v_position = QComboBox(toolbar)
+        self._v_position = QComboBox(self._toolbar)
         self._v_position.addItems(["Top", "Middle", "Bottom"])
         self._v_position.setCurrentText("Top")
         self._v_position.currentIndexChanged.connect(self._apply_global_v_position)
         toolbar_layout.addWidget(self._v_position)
 
-        layout.addWidget(toolbar)
+        layout.addWidget(self._toolbar)
 
         self._editor = QTextEdit(self)
         self._editor.textChanged.connect(self._on_text_changed)
@@ -191,7 +199,17 @@ class PreviewWidget(QWidget):
         # Track zoom level for Ctrl+wheel zooming.
         self._zoom_level = 0
 
+        # Markdown comments (`<!-- ... -->`) that Qt's rich-text document
+        # model has no representation for, and would otherwise silently drop
+        # on the HTML round-trip. See ``set_markdown``/``get_markdown``.
+        self._pending_comments: list[tuple[str, str, str]] = []
+
     # Public API -----------------------------------------------------------
+
+    def set_toolbar_visible(self, visible: bool) -> None:
+        """Show or hide the formatting toolbar (used by distraction-free mode)."""
+
+        self._toolbar.setVisible(visible)
 
     def set_markdown(self, text: str) -> None:
         """Load *text* as Markdown/HTML into the rich text editor.
@@ -204,9 +222,14 @@ class PreviewWidget(QWidget):
 
         self._updating_from_source = True
         try:
+            # Comments have no representation in Qt's rich-text document
+            # model, so `setHtml` would silently drop them; extract them
+            # first and splice them back on the way out in `get_markdown`.
+            stripped_text, self._pending_comments = self._extract_comments(text)
+
             # First render Markdown to HTML; raw HTML blocks (e.g. <img>) are
             # passed through by the markdown library.
-            html = markdown.markdown(text, extensions=["extra", "sane_lists"])
+            html = markdown.markdown(stripped_text, extensions=["extra", "sane_lists"])
 
             # Strip explicit font-size declarations so that zooming applies
             # uniformly to all text. This prevents parts of the document from
@@ -222,10 +245,74 @@ class PreviewWidget(QWidget):
         finally:
             self._updating_from_source = False
 
+    @staticmethod
+    def _extract_comments(text: str) -> tuple[str, list[tuple[str, str, str]]]:
+        """Strip `<!-- -->` comments from *text*, returning (stripped_text, comments).
+
+        Each comment is paired with a short anchor of nearby surrounding text
+        (and which side of the comment it was taken from) so it can be
+        spliced back into the regenerated Markdown later. See
+        ``_reinject_comments``.
+        """
+
+        matches = list(_COMMENT_RE.finditer(text))
+        if not matches:
+            return text, []
+
+        comments: list[tuple[str, str, str]] = []
+        for match in matches:
+            comment_text = match.group(0)
+
+            after = text[match.end():match.end() + _COMMENT_ANCHOR_LEN * 2]
+            after = after.lstrip()[:_COMMENT_ANCHOR_LEN]
+
+            before = text[max(0, match.start() - _COMMENT_ANCHOR_LEN * 2):match.start()]
+            before = before.rstrip()[-_COMMENT_ANCHOR_LEN:]
+
+            if len(after.strip()) >= _COMMENT_MIN_ANCHOR_LEN:
+                anchor, anchor_side = after, "after"
+            elif len(before.strip()) >= _COMMENT_MIN_ANCHOR_LEN:
+                anchor, anchor_side = before, "before"
+            else:
+                anchor, anchor_side = (after or before), "after"
+
+            comments.append((comment_text, anchor, anchor_side))
+
+        stripped = _COMMENT_RE.sub("", text)
+        return stripped, comments
+
+    def _reinject_comments(self, markdown_text: str) -> str:
+        """Splice previously-extracted `<!-- -->` comments back into *markdown_text*.
+
+        Comments are anchored to nearby surrounding text captured when they
+        were extracted (see ``_extract_comments``). If an anchor can no
+        longer be found (its surrounding text was edited away), the comment
+        is appended at the end of the document instead of being silently
+        dropped.
+        """
+
+        result = markdown_text
+        for comment_text, anchor, anchor_side in self._pending_comments:
+            idx = result.find(anchor) if anchor else -1
+            if idx == -1:
+                result = result.rstrip("\n") + "\n\n" + comment_text + "\n"
+                continue
+
+            if anchor_side == "after":
+                result = result[:idx] + comment_text + "\n\n" + result[idx:]
+            else:
+                insert_at = idx + len(anchor)
+                result = result[:insert_at] + "\n\n" + comment_text + result[insert_at:]
+
+        return result
+
     def get_markdown(self) -> str:
         """Return the current content as Markdown."""
 
-        return self._editor.toMarkdown()
+        markdown_text = self._editor.toMarkdown()
+        if not self._pending_comments:
+            return markdown_text
+        return self._reinject_comments(markdown_text)
 
     def set_html(self, html: str) -> None:
         """Replace the editor content with raw HTML without emitting Markdown.
@@ -847,8 +934,10 @@ class PreviewWidget(QWidget):
             return
 
         # Emit Markdown so the source editor + backend receive clean Markdown,
-        # not a full HTML document (<!DOCTYPE ...><html>...).
-        self.markdownEdited.emit(self._editor.toMarkdown())
+        # not a full HTML document (<!DOCTYPE ...><html>...). Route through
+        # get_markdown() so any pending comments (see _pending_comments) are
+        # spliced back in rather than lost.
+        self.markdownEdited.emit(self.get_markdown())
 
     def wheelEvent(self, event) -> None:  # pragma: no cover - UI wiring
         """Support Ctrl+wheel zooming for the WYSIWYG editor.

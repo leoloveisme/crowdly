@@ -324,6 +324,14 @@
         <translation >Вид</translation>
     </message>
     <message>
+        <source>Show windows</source>
+        <translation >Показать окна</translation>
+    </message>
+    <message>
+        <source>(no windows open)</source>
+        <translation >(нет открытых окон)</translation>
+    </message>
+    <message>
         <source>Markdown (MD) / HTML editor</source>
         <translation >Редактор Markdown (MD) / HTML</translation>
     </message>

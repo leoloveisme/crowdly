@@ -232,6 +232,14 @@
         <translation >View</translation>
     </message>
     <message>
+        <source>Show windows</source>
+        <translation >Show windows</translation>
+    </message>
+    <message>
+        <source>(no windows open)</source>
+        <translation >(no windows open)</translation>
+    </message>
+    <message>
         <source>Markdown (MD) / HTML editor</source>
         <translation >Markdown (MD) / HTML editor</translation>
     </message>

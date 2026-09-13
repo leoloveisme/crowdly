@@ -228,6 +228,14 @@
       <translation>View</translation>
     </message>
     <message>
+      <source>Show windows</source>
+      <translation>ウィンドウを表示</translation>
+    </message>
+    <message>
+      <source>(no windows open)</source>
+      <translation>（開いているウィンドウはありません）</translation>
+    </message>
+    <message>
       <source>Markdown (MD) / HTML editor</source>
       <translation>Markdown (MD) / HTML editor</translation>
     </message>

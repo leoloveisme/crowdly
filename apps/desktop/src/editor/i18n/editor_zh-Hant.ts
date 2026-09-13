@@ -228,6 +228,14 @@
       <translation>View</translation>
     </message>
     <message>
+      <source>Show windows</source>
+      <translation>顯示視窗</translation>
+    </message>
+    <message>
+      <source>(no windows open)</source>
+      <translation>（沒有開啟的視窗）</translation>
+    </message>
+    <message>
       <source>Markdown (MD) / HTML editor</source>
       <translation>Markdown (MD) / HTML editor</translation>
     </message>

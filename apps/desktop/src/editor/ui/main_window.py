@@ -38,6 +38,7 @@ from PySide6.QtGui import (
     QAction,
     QActionGroup,
     QDesktopServices,
+    QGuiApplication,
     QTextCursor,
     QTextDocument,
     QKeySequence,
@@ -140,6 +141,12 @@ class MainWindow(QMainWindow):
         # .story, .screenplay) should be used when saving.
         self._active_pane: str = "md"
 
+        # Distraction-free mode: hides all chrome except the active text
+        # pane when the window enters native (e.g. macOS) fullscreen, and
+        # restores it on exit. See `changeEvent` / `_apply_focus_mode`.
+        self._focus_mode_active: bool = False
+        self._pre_focus_mode_state: dict | None = None
+
         # Current in-memory document being edited. With multiple tabs, this
         # always refers to the document in the *active* tab.
         self._document = Document()
@@ -195,6 +202,13 @@ class MainWindow(QMainWindow):
         self._retranslate_ui()
         self._update_project_space_status()
 
+        # Default to a full (non-maximized, non-fullscreen) window filling
+        # the available screen work area, rather than Qt's shrink-to-fit
+        # default size.
+        screen = self.screen() or QGuiApplication.primaryScreen()
+        if screen is not None:
+            self.setGeometry(screen.availableGeometry())
+
     # Internal helpers -----------------------------------------------------
 
     def _setup_central_widgets(self) -> None:
@@ -207,7 +221,7 @@ class MainWindow(QMainWindow):
         root_layout.setSpacing(0)
 
         # Top bar with burger button in the left corner.
-        top_bar = QWidget(container)
+        self._top_bar = top_bar = QWidget(container)
         top_layout = QHBoxLayout(top_bar)
         top_layout.setContentsMargins(4, 4, 4, 4)
         top_layout.setSpacing(4)
@@ -279,6 +293,12 @@ class MainWindow(QMainWindow):
         spaces_menu = menu.addMenu(self.tr("Spaces"))
         self._spaces_menu = spaces_menu
         self._rebuild_spaces_menu()
+
+        # View menu: lets the user list and jump between all open windows.
+        view_menu = menu.addMenu(self.tr("View"))
+        self._view_menu = view_menu
+        self._show_windows_menu = view_menu.addMenu(self.tr("Show windows"))
+        self._show_windows_menu.aboutToShow.connect(self._rebuild_show_windows_menu)
 
         menu.addSeparator()
 
@@ -1040,6 +1060,80 @@ class MainWindow(QMainWindow):
             remove_action.setData(str(space))
             remove_action.triggered.connect(self._on_space_removed)
 
+    def _rebuild_show_windows_menu(self) -> None:  # pragma: no cover - UI wiring
+        """Populate the Show windows submenu with all currently open windows.
+
+        Open windows are tracked as a dynamically-attached ``_extra_windows``
+        list on the QApplication instance (see ``_new_window`` and other
+        window-creation sites), plus the original/primary window tracked
+        separately as ``_main_window``. Individual extra windows are not
+        pruned from that list when closed on their own, so we prune stale
+        references here whenever the menu is (re)opened.
+        """
+
+        self._show_windows_menu.clear()
+        app = QCoreApplication.instance()
+        if app is None:
+            return
+
+        windows: list = []
+        main_window = getattr(app, "_main_window", None)
+        if main_window is not None:
+            try:
+                if main_window.isVisible():
+                    windows.append(main_window)
+            except RuntimeError:
+                pass
+
+        # `close()` on a window without WA_DeleteOnClose only hides it rather
+        # than destroying the C++ object, so a closed-but-not-destroyed
+        # window must be excluded by visibility, not just by catching
+        # RuntimeError (which only covers a genuinely destroyed object).
+        extra = getattr(app, "_extra_windows", None)
+        if isinstance(extra, list):
+            live = []
+            for win in extra:
+                try:
+                    win.isVisible()
+                except RuntimeError:
+                    continue
+                live.append(win)
+            extra[:] = live  # Prune destroyed references in place.
+            for win in live:
+                try:
+                    if not win.isVisible():
+                        continue
+                except RuntimeError:
+                    continue
+                if win not in windows:
+                    windows.append(win)
+
+        if not windows:
+            placeholder = self._show_windows_menu.addAction(self.tr("(no windows open)"))
+            placeholder.setEnabled(False)
+            return
+
+        for win in windows:
+            try:
+                title = win.windowTitle() or self.tr("Untitled window")
+            except RuntimeError:
+                continue
+            action = self._show_windows_menu.addAction(title)
+            action.setCheckable(True)
+            action.setChecked(win is self)
+            action.triggered.connect(lambda checked=False, w=win: self._activate_window(w))
+
+    def _activate_window(self, window) -> None:  # pragma: no cover - UI wiring
+        """Bring *window* to the foreground and give it focus."""
+
+        try:
+            if window.isMinimized():
+                window.showNormal()
+            window.raise_()
+            window.activateWindow()
+        except Exception:
+            pass
+
     def _spaces_add(self) -> None:  # pragma: no cover - UI wiring
         """Add a new creative space and make it the active project space."""
 
@@ -1330,8 +1424,22 @@ class MainWindow(QMainWindow):
 
         splitter.addWidget(editor)
         splitter.addWidget(preview)
-        splitter.setStretchFactor(0, 3)
-        splitter.setStretchFactor(1, 2)
+        # Equal stretch factors (rather than a fixed ratio) so the panes stay
+        # at a 50/50 split by default, including across window resizes.
+        splitter.setStretchFactor(0, 1)
+        splitter.setStretchFactor(1, 1)
+        splitter.setSizes([1, 1])
+
+        # setSizes([1, 1]) only applies proportionally once the splitter has
+        # its real layout width, which it does not yet have at construction
+        # time; defer one more equal split to the next event loop iteration,
+        # by which point the window has its final geometry.
+        def _apply_equal_split(splitter=splitter) -> None:
+            width = splitter.width()
+            if width > 0:
+                splitter.setSizes([width // 2, width - width // 2])
+
+        QTimer.singleShot(0, _apply_equal_split)
 
         # Keep document and preview in sync with editor content for this tab.
         editor.textChangedWithContent.connect(self._on_editor_text_changed)
@@ -2241,17 +2349,90 @@ class MainWindow(QMainWindow):
                 action.setChecked(code == current)
 
     def changeEvent(self, event):  # pragma: no cover - UI wiring
-        """Handle language change events from Qt.
+        """Handle language change and fullscreen transition events from Qt.
 
         When the active translator changes, Qt sends a ``LanguageChange``
         event to top-level widgets. We respond by re-applying all
-        translatable strings.
+        translatable strings. When the window enters/leaves native (e.g.
+        macOS) fullscreen, we enable/disable distraction-free mode.
         """
 
         if event.type() == QEvent.LanguageChange:
             self._retranslate_ui()
 
+        if event.type() == QEvent.Type.WindowStateChange:
+            is_fullscreen = bool(self.windowState() & Qt.WindowState.WindowFullScreen)
+            if is_fullscreen != self._focus_mode_active:
+                self._apply_focus_mode(is_fullscreen)
+
         super().changeEvent(event)
+
+    def _get_focused_pane(self) -> str:
+        """Return which pane ("md" or "wysiwyg") currently has keyboard focus.
+
+        Checked live via ``hasFocus()`` rather than relying solely on the
+        tracked ``_active_pane`` value, since focus can be transiently
+        elsewhere (e.g. on a native window-chrome control) at the exact
+        moment a fullscreen transition begins, which would otherwise leave
+        ``_active_pane`` referring to a pane the user last focused a while
+        ago rather than the one they are actually in right now.
+        """
+
+        if self.preview.hasFocus():
+            return "wysiwyg"
+        if self.editor.hasFocus():
+            return "md"
+        return getattr(self, "_active_pane", "md") or "md"
+
+    def _apply_focus_mode(self, enabled: bool) -> None:
+        """Enter or exit distraction-free mode.
+
+        Distraction-free mode hides all chrome (top bar, search bar, tab
+        bar, status bar, and the pane the user is not currently typing in)
+        so only the active text pane remains visible. This is triggered by
+        the window entering/leaving native OS fullscreen (see
+        ``changeEvent``); state is fully restored on exit.
+        """
+
+        tab_bar = self._tab_widget.tabBar()
+
+        if enabled:
+            self._pre_focus_mode_state = {
+                "search_bar_visible": self._search_bar.isVisible(),
+                "tab_bar_visible": tab_bar.isVisible() if tab_bar is not None else True,
+                "status_bar_visible": self.statusBar().isVisible(),
+                "editor_visible": self.editor.isVisible(),
+                "preview_visible": self.preview.isVisible(),
+            }
+
+            self._top_bar.setVisible(False)
+            self._search_bar.setVisible(False)
+            if tab_bar is not None:
+                tab_bar.setVisible(False)
+            self.statusBar().setVisible(False)
+
+            active_pane = self._get_focused_pane()
+            self._active_pane = active_pane
+            if active_pane == "wysiwyg":
+                self.editor.setVisible(False)
+                self._set_preview_visible(True)
+                self.preview.set_toolbar_visible(False)
+            else:
+                self._set_preview_visible(False)
+                self.editor.setVisible(True)
+        else:
+            state = self._pre_focus_mode_state or {}
+            self._top_bar.setVisible(True)
+            self._search_bar.setVisible(state.get("search_bar_visible", False))
+            if tab_bar is not None:
+                tab_bar.setVisible(state.get("tab_bar_visible", True))
+            self.statusBar().setVisible(state.get("status_bar_visible", True))
+            self.editor.setVisible(state.get("editor_visible", True))
+            self._set_preview_visible(state.get("preview_visible", True))
+            self.preview.set_toolbar_visible(True)
+            self._pre_focus_mode_state = None
+
+        self._focus_mode_active = enabled
 
     def _retranslate_ui(self) -> None:
         """(Re-)apply all translatable UI strings for the current language."""
@@ -2318,6 +2499,8 @@ class MainWindow(QMainWindow):
             self._spaces_menu.setTitle(self.tr("Spaces"))
         if hasattr(self, "_view_menu"):
             self._view_menu.setTitle(self.tr("View"))
+        if hasattr(self, "_show_windows_menu"):
+            self._show_windows_menu.setTitle(self.tr("Show windows"))
         if hasattr(self, "_search_menu"):
             self._search_menu.setTitle(self.tr("Search"))
         if hasattr(self, "_action_search_find"):
