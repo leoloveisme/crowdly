@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import CrowdlyHeader from "@/components/CrowdlyHeader";
 import CrowdlyFooter from "@/components/CrowdlyFooter";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import EditableText from "@/components/EditableText";
@@ -74,6 +75,16 @@ interface SpaceScreenplayRow {
   published?: boolean | null;
 }
 
+interface GithubSyncStatus {
+  configured: boolean;
+  connected: boolean;
+  enabled: boolean;
+  repo?: string | null;
+  branch?: string | null;
+  lastSyncedAt?: string | null;
+  installUrl?: string | null;
+}
+
 const CreativeSpacePage: React.FC = () => {
   const { spaceId } = useParams<{ spaceId: string }>();
   const { user: authUser } = useAuth();
@@ -92,6 +103,8 @@ const CreativeSpacePage: React.FC = () => {
     stories: [],
     screenplays: [],
   });
+
+  const [githubStatus, setGithubStatus] = useState<GithubSyncStatus | null>(null);
 
   const [previewItem, setPreviewItem] = useState<CreativeSpaceItem | null>(null);
   const [previewText, setPreviewText] = useState<string>("");
@@ -205,6 +218,26 @@ const CreativeSpacePage: React.FC = () => {
     loadContentItems();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spaceId, space?.id, authUser?.id]);
+
+  useEffect(() => {
+    const loadGithubStatus = async () => {
+      if (!spaceId || !space || !authUser?.id || !isOwner) return;
+      try {
+        const params = new URLSearchParams({ userId: authUser.id });
+        const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/github-sync/status?${params.toString()}`);
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          console.error("[CreativeSpacePage] Failed to load GitHub sync status", { status: res.status, body });
+          return;
+        }
+        setGithubStatus(body as GithubSyncStatus);
+      } catch (err) {
+        console.error("[CreativeSpacePage] Error loading GitHub sync status", err);
+      }
+    };
+    loadGithubStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spaceId, space?.id, authUser?.id, isOwner]);
 
   const handleEnterFolder = (item: CreativeSpaceItem) => {
     const rel = item.relative_path || "";
@@ -324,6 +357,27 @@ const CreativeSpacePage: React.FC = () => {
     } catch (err) {
       console.error("[CreativeSpacePage] Error toggling published", err);
       setError("Failed to update publish state.");
+    }
+  };
+
+  const handleToggleGithubSync = async (checked: boolean) => {
+    if (!spaceId || !authUser?.id) return;
+    try {
+      const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/github-sync`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: authUser.id, enabled: checked }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error("[CreativeSpacePage] Failed to toggle GitHub sync", { status: res.status, body });
+        setError(body.error || "Failed to update GitHub sync.");
+        return;
+      }
+      setGithubStatus(body as GithubSyncStatus);
+    } catch (err) {
+      console.error("[CreativeSpacePage] Error toggling GitHub sync", err);
+      setError("Failed to update GitHub sync.");
     }
   };
 
@@ -577,6 +631,20 @@ const CreativeSpacePage: React.FC = () => {
                   >
                     {space.published ? "Unpublish" : "Publish"}
                   </Button>
+                  {githubStatus?.connected ? (
+                    <label className="flex items-center gap-2 text-xs text-slate-600 px-1">
+                      <Checkbox
+                        checked={Boolean(githubStatus.enabled)}
+                        onCheckedChange={(val) => handleToggleGithubSync(Boolean(val))}
+                      />
+                      <EditableText id="space-github-sync-label">Sync with GitHub</EditableText>
+                      {githubStatus.repo && <span className="text-slate-400">({githubStatus.repo})</span>}
+                    </label>
+                  ) : githubStatus?.configured && githubStatus?.installUrl ? (
+                    <a href={githubStatus.installUrl} className="text-xs text-blue-700 hover:underline px-1">
+                      <EditableText id="space-github-connect">Connect GitHub</EditableText>
+                    </a>
+                  ) : null}
                 </>
               )}
               {space && (

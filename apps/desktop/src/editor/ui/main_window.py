@@ -353,6 +353,11 @@ class MainWindow(QMainWindow):
         )
         self._action_sync_web.setCheckable(True)
 
+        self._action_sync_github = sync_menu.addAction(
+            self.tr("GitHub"), self._toggle_sync_github
+        )
+        self._action_sync_github.setCheckable(True)
+
         online_storage_menu = sync_menu.addMenu(self.tr("online storage"))
         self._online_storage_menu = online_storage_menu
 
@@ -2559,6 +2564,13 @@ class MainWindow(QMainWindow):
         if hasattr(self, "_action_sync_web"):
             self._action_sync_web.setText(self.tr("web platform"))
             self._action_sync_web.setChecked(self._sync_web_platform)
+        if hasattr(self, "_action_sync_github"):
+            # No local self._sync_github flag to restore here (unlike the
+            # other sync toggles) — GitHub sync state lives on the backend
+            # per Crowdly Space, so a language switch only refreshes the
+            # label text and leaves whatever checked-state the last
+            # successful toggle/status fetch left it in untouched.
+            self._action_sync_github.setText(self.tr("GitHub"))
         if hasattr(self, "_action_sync_current_space"):
             self._action_sync_current_space.setText(self.tr("Sync current Space now"))
         if hasattr(self, "_action_pull_current_space"):
@@ -4145,6 +4157,72 @@ class MainWindow(QMainWindow):
                 self._handle_web_auth_failure(None)
             except Exception:
                 pass
+
+    def _toggle_sync_github(self) -> None:  # pragma: no cover - UI wiring
+        """Toggle GitHub sync for the current project space's linked Crowdly Space.
+
+        Unlike the Dropbox/Google Drive placeholders below, this is backed
+        by a real connector (see backend/src/githubSync.js) — the backend
+        owns sync state per Crowdly Space, so this just flips it via
+        websync.set_github_sync_enabled and reflects whatever the backend
+        confirms back, reverting the checkbox on any failure.
+        """
+
+        from PySide6.QtWidgets import QMessageBox
+
+        desired = self._action_sync_github.isChecked()
+
+        def _revert(checked: bool) -> None:
+            self._action_sync_github.blockSignals(True)
+            self._action_sync_github.setChecked(checked)
+            self._action_sync_github.blockSignals(False)
+
+        project_space = self._project_space_path
+        if project_space is None:
+            _revert(not desired)
+            QMessageBox.information(
+                self,
+                self.tr("Sync with GitHub"),
+                self.tr("There is no active project space set. Please choose or create one first."),
+            )
+            return
+
+        if not self._crowdly_user_id:
+            if self._username and self._username != "username":
+                try:
+                    self._crowdly_user_id = local_auth.get_user_id_for_email(self._username)
+                except Exception:
+                    self._crowdly_user_id = None
+
+        if not self._crowdly_user_id:
+            _revert(not desired)
+            QMessageBox.warning(
+                self,
+                self.tr("Sync with GitHub"),
+                self.tr("You need to be logged in to the Crowdly web platform before changing GitHub sync."),
+            )
+            return
+
+        try:
+            status = websync.set_github_sync_enabled(
+                self._settings, project_space, self._crowdly_user_id, desired  # type: ignore[arg-type]
+            )
+        except Exception as exc:  # pragma: no cover - network dependent
+            _revert(not desired)
+            QMessageBox.warning(
+                self,
+                self.tr("Sync with GitHub"),
+                self.tr(
+                    "This Space needs to be connected to a GitHub repository first "
+                    "(use \"Connect GitHub\" on the Space's page on the web platform), "
+                    "or the request failed.\n\nDetails: {error}"
+                ).format(error=str(exc)),
+            )
+            return
+
+        confirmed = bool(status.get("enabled"))
+        if confirmed != desired:
+            _revert(confirmed)
 
     def _toggle_sync_dropbox(self) -> None:  # pragma: no cover - UI wiring
         """Toggle synchronisation with Dropbox (placeholder)."""

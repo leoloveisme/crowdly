@@ -81,6 +81,74 @@ def _post_json(url: str, payload: Dict[str, Any], timeout: float = 10.0) -> Tupl
   return _request_json(url, method="POST", payload=payload, timeout=timeout)
 
 
+def _patch_json(url: str, payload: Dict[str, Any], timeout: float = 10.0) -> Tuple[int, Dict[str, Any]]:
+  """PATCH *payload* as JSON to *url* and return (status_code, body_dict)."""
+
+  return _request_json(url, method="PATCH", payload=payload, timeout=timeout)
+
+
+def _mapped_remote_space_id(settings: Settings, project_space: Path) -> str | None:
+  """Return the remote creative-space id previously linked to *project_space*, if any.
+
+  Mirrors the lookup already inlined in sync_space_to_web/pull_space_from_web
+  below — factored out here since the GitHub-sync helpers need it without
+  triggering either of those functions' own space create/push side effects.
+  """
+
+  root_path = str(project_space.expanduser().resolve())
+  state = getattr(settings, "space_sync_state", {}) or {}
+  mapping = state.get(root_path) if isinstance(state, dict) else None
+  if isinstance(mapping, dict):
+    val = mapping.get("remote_space_id")
+    if isinstance(val, str) and val:
+      return val
+  return None
+
+
+def get_github_sync_status(settings: Settings, project_space: Path, user_id: str) -> Dict[str, Any] | None:
+  """Fetch GitHub sync status for the Crowdly Space linked to *project_space*.
+
+  Returns ``None`` if this project space has not been synced to the web
+  platform yet (no remote Space to check), rather than raising — callers
+  treat that the same as "GitHub sync unavailable here".
+  """
+
+  space_id = _mapped_remote_space_id(settings, project_space)
+  if not space_id:
+    return None
+
+  api_base = _build_api_base(settings)
+  url = f"{api_base}/creative-spaces/{space_id}/github-sync/status?userId={_urlquote(user_id)}"
+  status, body = _get_json(url)
+  if status != 200:
+    raise RuntimeError(body.get("error") or f"Failed to load GitHub sync status (HTTP {status}).")
+  return body
+
+
+def set_github_sync_enabled(settings: Settings, project_space: Path, user_id: str, enabled: bool) -> Dict[str, Any]:
+  """Enable/disable GitHub sync for the Crowdly Space linked to *project_space*.
+
+  Raises :class:`RuntimeError` if this project space has no linked Space yet
+  (sync it with the web platform first — GitHub sync is a Space-level
+  setting, not a desktop-local one, per the "backend owns sync state" design)
+  or if the backend call itself fails.
+  """
+
+  space_id = _mapped_remote_space_id(settings, project_space)
+  if not space_id:
+    raise RuntimeError(
+      "This project space isn't linked to a Crowdly Space on the web yet. "
+      "Sync with the web platform at least once before enabling GitHub sync."
+    )
+
+  api_base = _build_api_base(settings)
+  url = f"{api_base}/creative-spaces/{space_id}/github-sync"
+  status, body = _patch_json(url, {"userId": user_id, "enabled": bool(enabled)})
+  if status != 200:
+    raise RuntimeError(body.get("error") or f"Failed to update GitHub sync (HTTP {status}).")
+  return body
+
+
 def build_space_snapshot(root: Path) -> Dict[str, Any]:
   """Return a snapshot payload for the given project-space *root*.
 

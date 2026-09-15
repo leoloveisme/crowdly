@@ -280,6 +280,26 @@
         <translation >Crowdly платформой</translation>
     </message>
     <message>
+        <source>GitHub</source>
+        <translation >GitHub</translation>
+    </message>
+    <message>
+        <source>Sync with GitHub</source>
+        <translation >Синхронизация с GitHub</translation>
+    </message>
+    <message>
+        <source>You need to be logged in to the Crowdly web platform before changing GitHub sync.</source>
+        <translation >Вам нужно войти на веб-платформу Crowdly, прежде чем изменять синхронизацию с GitHub.</translation>
+    </message>
+    <message>
+        <source>This Space needs to be connected to a GitHub repository first (use "Connect GitHub" on the Space's page on the web platform), or the request failed.
+
+Details: {error}</source>
+        <translation >Сначала нужно подключить это пространство к репозиторию GitHub (используйте «Connect GitHub» на странице пространства на веб-платформе), либо запрос не выполнен.
+
+Подробности: {error}</translation>
+    </message>
+    <message>
         <source>online storage</source>
         <translation >облачным хранилищем</translation>
     </message>
