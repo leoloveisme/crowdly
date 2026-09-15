@@ -2338,7 +2338,7 @@ class MasterDocumentWindow(QMainWindow):
 
     @staticmethod
     def _balance_code_fences(content: str) -> str:
-        """Ensure *content* has a closing ``` for every opening one.
+        """Ensure *content* has a closing fence for every opening one.
 
         A container's own Markdown can contain an unclosed fenced code block
         (e.g. an archival "Reference" section pasted in without its closer).
@@ -2347,14 +2347,45 @@ class MasterDocumentWindow(QMainWindow):
         following container's heading/text into a single literal code
         block. Closing it here keeps that containment local to the
         container it came from.
+
+        Handles both ``` and ~~~ fence styles (Markdown's "extra"/fenced_code
+        extension accepts either); a fence only closes against a line using
+        the *same* marker, so mixed usage elsewhere in the content can't
+        cause a spurious close.
         """
 
-        in_fence = False
+        markers = ("```", "~~~")
+        open_marker: str | None = None
         for line in content.split("\n"):
-            if line.strip().startswith("```"):
-                in_fence = not in_fence
-        if in_fence:
-            return content.rstrip("\n") + "\n```"
+            stripped = line.strip()
+            if open_marker is None:
+                for marker in markers:
+                    if stripped.startswith(marker):
+                        open_marker = marker
+                        break
+            elif stripped.startswith(open_marker):
+                open_marker = None
+        if open_marker is not None:
+            return content.rstrip("\n") + f"\n{open_marker}"
+        return content
+
+    @staticmethod
+    def _balance_html_comments(content: str) -> str:
+        """Ensure *content* has a closing ``-->`` for every opening ``<!--``.
+
+        These chapter files make heavy use of inline ``<!-- ... -->`` author
+        notes. HTML comments don't nest, so an unclosed one is even more
+        dangerous than an unclosed code fence: once concatenated with other
+        containers for export, everything after it -- including every
+        following container's heading and text -- would be silently hidden
+        inside the "open" comment with no visual trace at all, unlike an
+        unclosed fence, which at least renders as garbled code text.
+        """
+
+        open_count = content.count("<!--")
+        close_count = content.count("-->")
+        if open_count > close_count:
+            return content.rstrip("\n") + ("\n-->" * (open_count - close_count))
         return content
 
     def _resolve_chapter_heading(
@@ -2556,6 +2587,7 @@ class MasterDocumentWindow(QMainWindow):
                 title, content, widget.file_path, title_edited_at
             )
             content = self._balance_code_fences(content)
+            content = self._balance_html_comments(content)
             if heading:
                 parts.append(f"# {heading}")
                 parts.append("")
