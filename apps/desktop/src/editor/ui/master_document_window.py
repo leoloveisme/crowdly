@@ -12,6 +12,8 @@ This module implements a dedicated full-window workspace for composing a
 from __future__ import annotations
 
 import uuid
+import os
+import re
 from pathlib import Path
 from typing import Dict
 from datetime import datetime
@@ -43,6 +45,8 @@ from .. import file_metadata
 from ..format import story_markup, screenplay_markup
 from ..settings import save_settings
 from ..versioning import local_queue
+from ..exporting import controller as exporting_controller
+from ..exporting.base import ExportError, ExportFormat, ExportRequest
 from .file_explorer_widget import FileExplorerWidget
 
 
@@ -251,6 +255,7 @@ class IncludeContainerWidget(QWidget):
     renameRequested = Signal(object)
     cloneFileRequested = Signal(object)
     cloneContainerRequested = Signal(object)
+    locateFileRequested = Signal(object)
 
     def __init__(self, editable: bool, parent: object | None = None) -> None:
         super().__init__(parent)
@@ -275,6 +280,14 @@ class IncludeContainerWidget(QWidget):
         self._master_base_content: str | None = None
         # Filesystem mtime from when we last read the underlying file.
         self._last_file_mtime: float | None = None
+        # Wall-clock time (epoch seconds) when the title field was last
+        # genuinely edited/derived, used to resolve a mismatch between this
+        # title and the chapter file's own embedded heading by recency. None
+        # means we have no recorded edit time (e.g. an older `.master` file
+        # saved before this was tracked), in which case the file's own
+        # heading is treated as authoritative. See `_on_title_text_changed`
+        # and `MasterDocumentWindow._resolve_chapter_heading`.
+        self._title_edited_at: float | None = None
 
         # Debounced saver for editable containers so changes are written back
         # into the underlying file without excessive disk writes.
@@ -349,6 +362,16 @@ class IncludeContainerWidget(QWidget):
         )
         header_layout.addWidget(self._btn_rename_file)
 
+        self._btn_locate_file = QToolButton(header)
+        self._btn_locate_file.setText(self.tr("Locate file..."))
+        self._btn_locate_file.setToolTip(
+            self.tr("Point this include at a file, e.g. if the original has moved")
+        )
+        self._btn_locate_file.clicked.connect(
+            lambda: self.locateFileRequested.emit(self)
+        )
+        header_layout.addWidget(self._btn_locate_file)
+
         self._btn_clone_file = QToolButton(header)
         self._btn_clone_file.setText(self.tr("Clone file"))
         self._btn_clone_file.setToolTip(
@@ -387,6 +410,7 @@ class IncludeContainerWidget(QWidget):
             self._type_label,
             self._btn_edit_in_main,
             self._btn_rename_file,
+            self._btn_locate_file,
             self._btn_clone_file,
             self._btn_clone_container,
             self._btn_delete,
@@ -417,7 +441,7 @@ class IncludeContainerWidget(QWidget):
             self._content.setReadOnly(True)
 
         # Any title change also marks this container as modified.
-        self._title_edit.textChanged.connect(lambda _text: self.contentChanged.emit())
+        self._title_edit.textChanged.connect(self._on_title_text_changed)
 
         layout.addWidget(self._content, 1)
 
@@ -467,6 +491,13 @@ class IncludeContainerWidget(QWidget):
         except Exception:
             pass
         try:
+            self._btn_locate_file.setText(self.tr("Locate file..."))
+            self._btn_locate_file.setToolTip(
+                self.tr("Point this include at a file, e.g. if the original has moved")
+            )
+        except Exception:
+            pass
+        try:
             self._btn_clone_file.setText(self.tr("Clone file"))
             self._btn_clone_file.setToolTip(
                 self.tr("Create a copy of the underlying chapter file")
@@ -504,12 +535,26 @@ class IncludeContainerWidget(QWidget):
 
         self._file_path = path
 
+    def _on_title_text_changed(self, _text: str) -> None:
+        """Record the edit time and propagate the change.
+
+        Connected to the title field's ``textChanged`` signal, which only
+        fires for genuine edits/derivations of the title -- the master-file
+        load path (``load_from_master``) wraps its own programmatic
+        ``setText`` call in ``blockSignals``, so restoring a persisted title
+        on open never bumps this timestamp.
+        """
+
+        self._title_edited_at = datetime.now().timestamp()
+        self.contentChanged.emit()
+
     def load_from_master(
         self,
         *,
         file_path: Path | None,
         title: str | None,
         content: str,
+        title_edited_at: float | None = None,
     ) -> None:
         """Populate the container from a `.master` entry without side effects.
 
@@ -530,6 +575,7 @@ class IncludeContainerWidget(QWidget):
                 self._title_edit.setText(title or "")
             finally:
                 self._title_edit.blockSignals(False)
+            self._title_edited_at = title_edited_at
 
             # Setting the text programmatically will emit textChanged on the
             # inner QPlainTextEdit, but _on_text_changed short-circuits when
@@ -688,6 +734,12 @@ class IncludeContainerWidget(QWidget):
 
         # For read-only containers, always reflect the current file content.
         if not self._editable:
+            if not file_content and container_content:
+                # A transient/partial read (e.g. mid iCloud sync) must never
+                # silently blank out content that was already loaded, even
+                # though the mtime changed. Mirrors the equivalent guard in
+                # `_two_way_merge_text` used by editable containers.
+                return False
             self._content.setPlainText(file_content)
             self._master_base_content = file_content
             self._master_content_hash = file_hash
@@ -847,10 +899,17 @@ class IncludeContainerWidget(QWidget):
     def _start_internal_drag(self) -> None:
         """Ask the parent QListWidget to start an InternalMove drag."""
 
-        parent = self.parent()
         from PySide6.QtWidgets import QListWidget  # local import
 
-        if not isinstance(parent, QListWidget):
+        # `QListWidget.setItemWidget()` reparents this widget to the list's
+        # internal viewport, not to the QListWidget itself, so we must walk
+        # up the ancestor chain to find the actual list widget rather than
+        # checking `self.parent()` directly.
+        parent = self.parentWidget()
+        while parent is not None and not isinstance(parent, QListWidget):
+            parent = parent.parentWidget()
+
+        if parent is None:
             return
 
         # Find the row that hosts this widget.
@@ -868,9 +927,31 @@ class IncludeContainerWidget(QWidget):
             return
 
         try:
+            from PySide6.QtGui import QDrag
+
             item = parent.item(row)
             parent.setCurrentItem(item)
-            parent.startDrag(Qt.DropAction.MoveAction)
+
+            model = parent.model()
+            index = parent.indexFromItem(item)
+            if model is None or not index.isValid():
+                return
+            mime = model.mimeData([index])
+            if mime is None:
+                return
+
+            # Build the QDrag ourselves rather than calling the protected
+            # QAbstractItemView.startDrag(): that method relies on internal
+            # press-state bookkeeping (e.g. the last position the *view's
+            # own* mousePressEvent recorded) which was never populated here,
+            # since the press actually happened on a header child widget.
+            # Constructing the drag directly from the model's mime data is
+            # the standard, state-independent way to drive a drag-handle
+            # reorder, and still lets the list's own InternalMove drop
+            # handling (dropEvent/dragMoveEvent) take over from here.
+            drag = QDrag(parent)
+            drag.setMimeData(mime)
+            drag.exec(Qt.DropAction.MoveAction)
         except Exception:
             return
 
@@ -885,7 +966,18 @@ class IncludeContainerWidget(QWidget):
             return
 
         try:
-            storage.write_text(self._file_path, self._content.toPlainText())
+            content = self._content.toPlainText()
+            storage.write_text(self._file_path, content)
+            # Keep the change-detection bookkeeping in sync with our own
+            # write, mirroring what check_and_merge_file_changes() does on
+            # its write-back. Without this, the next file-watch poll sees
+            # the mtime we just bumped, mistakes this routine save for an
+            # external edit, and runs the two-way merge against a slightly
+            # stale on-disk snapshot -- duplicating whatever was just typed
+            # and resetting the cursor via setPlainText().
+            self._master_base_content = content
+            self._master_content_hash = self._compute_content_hash(content)
+            self._last_file_mtime = self._file_path.stat().st_mtime
         except Exception:
             # Best-effort only; never let write failures break the UI.
             pass
@@ -983,6 +1075,14 @@ class MasterDocumentWindow(QMainWindow):
         self._autosave_timer.setInterval(2000)
         self._autosave_timer.timeout.connect(self._perform_autosave)
 
+        # Periodically re-check bound files for external changes while this
+        # window stays open, so edits made in another app/process are picked
+        # up without requiring the window to be closed and reopened.
+        self._file_watch_timer = QTimer(self)
+        self._file_watch_timer.setInterval(4000)
+        self._file_watch_timer.timeout.connect(self._check_and_merge_all_file_changes)
+        self._file_watch_timer.start()
+
         # Keep include containers in sync with edits performed in the main
         # window via the shared master_sync_bus. Connections are best-effort
         # only so that missing or misconfigured buses cannot break core UI.
@@ -1075,6 +1175,29 @@ class MasterDocumentWindow(QMainWindow):
         )
         self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self._explorer_dock)
 
+        # Export menu: export the combined master document content to the
+        # same external formats the main editor window supports.
+        export_menu = self.menuBar().addMenu(self.tr("Export"))
+        self._export_menu = export_menu
+        self._action_export_pdf = export_menu.addAction(
+            self.tr("as PDF"), self._export_as_pdf
+        )
+        self._action_export_epub = export_menu.addAction(
+            self.tr("as EPUB"), self._export_as_epub
+        )
+        self._action_export_docx = export_menu.addAction(
+            self.tr("as docx"), self._export_as_docx
+        )
+        self._action_export_odt = export_menu.addAction(
+            self.tr("as odt"), self._export_as_odt
+        )
+        self._action_export_fdx = export_menu.addAction(
+            self.tr("as FDX"), self._export_as_fdx
+        )
+        self._action_export_fountain = export_menu.addAction(
+            self.tr("as FOUNTAIN"), self._export_as_fountain
+        )
+
         # Save as menu: save the master document contents in different formats.
         save_as_menu = self.menuBar().addMenu(self.tr("Save as"))
         self._save_as_menu = save_as_menu
@@ -1124,6 +1247,7 @@ class MasterDocumentWindow(QMainWindow):
         widget.renameRequested.connect(self._on_container_rename_requested)
         widget.cloneFileRequested.connect(self._on_container_clone_file_requested)
         widget.cloneContainerRequested.connect(self._on_container_clone_container_requested)
+        widget.locateFileRequested.connect(self._on_container_locate_file_requested)
 
         # Ensure all rows span the full work area, including this new one.
         try:
@@ -1310,6 +1434,43 @@ class MasterDocumentWindow(QMainWindow):
         except Exception:
             pass
 
+    @staticmethod
+    def _resolve_container_source_path(label: str, master_dir: Path) -> Path:
+        """Turn a stored `.master` path label back into a concrete Path.
+
+        Relative labels (the format written by the current
+        :meth:`_serialise_to_text`) are resolved against *master_dir* -- the
+        `.master` file's own directory, which is the one stable,
+        always-available base (unlike ``_project_space``, a separate
+        per-machine setting that does not travel with a synced project).
+        Absolute labels are used as-is for backward compatibility with older
+        `.master` files.
+        """
+
+        candidate = Path(label)
+        if not candidate.is_absolute():
+            candidate = master_dir / candidate
+        return candidate
+
+    @staticmethod
+    def _find_relocated_file(filename: str, master_dir: Path) -> Path | None:
+        """Search *master_dir* for exactly one file named *filename*.
+
+        Used to auto-repair containers whose recorded path no longer exists
+        (e.g. a project folder that moved to a different machine or
+        cloud-sync location, leaving stale absolute paths behind). Returns
+        the match only when it is unambiguous; a filename collision with
+        more than one candidate is left unresolved rather than guessed at.
+        """
+
+        try:
+            matches = [p for p in master_dir.rglob(filename) if p.is_file()]
+        except Exception:
+            return None
+        if len(matches) == 1:
+            return matches[0]
+        return None
+
     def _load_from_master_file(self, path: Path) -> None:
         """Populate include containers from an existing `.master` file."""
 
@@ -1319,10 +1480,14 @@ class MasterDocumentWindow(QMainWindow):
             return
 
         self._master_path = path
+        master_dir = path.parent
 
         # Clear any existing state.
         self._include_list.clear()
         self._container_items.clear()
+
+        relinked_count = 0
+        missing_count = 0
 
         lines = text.splitlines()
         i = 0
@@ -1344,9 +1509,17 @@ class MasterDocumentWindow(QMainWindow):
                 try:
                     close = raw_link.index("](")
                     label = raw_link[1:close]
-                    file_path = Path(label)
+                    file_path = self._resolve_container_source_path(label, master_dir)
                 except Exception:
                     file_path = None
+
+                if file_path is not None and not file_path.exists():
+                    relocated = self._find_relocated_file(file_path.name, master_dir)
+                    if relocated is not None:
+                        file_path = relocated
+                        relinked_count += 1
+                    else:
+                        missing_count += 1
             else:
                 # Not our expected header; treat it as part of content for a
                 # synthetic container with no bound file.
@@ -1358,6 +1531,23 @@ class MasterDocumentWindow(QMainWindow):
                 title = lines[i].lstrip()[3:].strip()
                 i += 1
 
+                # Optional metadata line recording when the title was last
+                # edited, used to resolve a mismatch with the chapter file's
+                # own heading by recency. Absent on older `.master` files.
+                title_edited_at: float | None = None
+                if i < n:
+                    meta_match = re.match(
+                        r"^<!--\s*title-edited:\s*([0-9.]+)\s*-->$", lines[i].strip()
+                    )
+                    if meta_match:
+                        try:
+                            title_edited_at = float(meta_match.group(1))
+                        except ValueError:
+                            title_edited_at = None
+                        i += 1
+            else:
+                title_edited_at = None
+
             # Collect content lines until a separator `---` or EOF.
             content_lines: list[str] = []
             while i < n:
@@ -1368,7 +1558,37 @@ class MasterDocumentWindow(QMainWindow):
                 content_lines.append(line)
                 i += 1
 
+            # The serializer always writes a single blank line before a
+            # container's content purely for on-disk readability. Strip any
+            # leading blank lines here so that formatting artifact never
+            # becomes part of the actual content -- this also self-heals
+            # files that already accumulated such blanks from before this
+            # fix (each open-save cycle used to add one more).
+            while content_lines and not content_lines[0].strip():
+                content_lines.pop(0)
+
+            # Reverse the escaping applied by `_escape_container_content` so
+            # a content line that is genuinely "---" or that genuinely starts
+            # with "## " on the first line round-trips intact instead of
+            # being mistaken for a structural marker.
+            for idx, line in enumerate(content_lines):
+                if line == "\\---":
+                    content_lines[idx] = "---"
+            if content_lines and content_lines[0].startswith("\\## "):
+                content_lines[0] = content_lines[0][1:]
+
             content = "\n".join(content_lines).rstrip("\n")
+
+            # Self-heal an empty title by deriving it from the content's own
+            # leading heading, if present. This covers `.master` files saved
+            # by an earlier, buggy version of the autosave logic that
+            # dropped the title line whenever it duplicated the content's
+            # heading, silently blanking the container's title field.
+            if not title and content:
+                first_content_line = content.split("\n", 1)[0].strip()
+                heading_match = re.match(r"^#{1,6}\s+(.*)$", first_content_line)
+                if heading_match:
+                    title = heading_match.group(1).strip()
 
             widget = IncludeContainerWidget(True, parent=self._include_list)
             item = QListWidgetItem(self._include_list)
@@ -1394,10 +1614,16 @@ class MasterDocumentWindow(QMainWindow):
             widget.renameRequested.connect(self._on_container_rename_requested)
             widget.cloneFileRequested.connect(self._on_container_clone_file_requested)
             widget.cloneContainerRequested.connect(self._on_container_clone_container_requested)
+            widget.locateFileRequested.connect(self._on_container_locate_file_requested)
 
             # Initialise widget state without triggering autosave or
             # write-back into the underlying files.
-            widget.load_from_master(file_path=file_path, title=title, content=content)
+            widget.load_from_master(
+                file_path=file_path,
+                title=title,
+                content=content,
+                title_edited_at=title_edited_at,
+            )
 
         # After a successful load the in-memory state reflects the file.
         try:
@@ -1406,6 +1632,38 @@ class MasterDocumentWindow(QMainWindow):
             pass
 
         self._dirty = False
+
+        # Persist auto-relinked paths so the fix takes effect on disk right
+        # away rather than being silently redone (via the same filename
+        # search) on every subsequent open.
+        if relinked_count:
+            self._mark_dirty()
+
+        # Let the user know if any bound files had moved (auto-relinked) or
+        # could not be found at all, rather than failing silently.
+        if relinked_count or missing_count:
+            try:
+                bar = self.statusBar()
+            except Exception:
+                bar = None
+            if bar is not None:
+                messages = []
+                if relinked_count:
+                    messages.append(
+                        self.tr("Re-linked {count} file(s) that had moved.").format(
+                            count=relinked_count
+                        )
+                    )
+                if missing_count:
+                    messages.append(
+                        self.tr(
+                            "{count} file(s) could not be found -- use \"Locate file...\" on the affected container(s)."
+                        ).format(count=missing_count)
+                    )
+                try:
+                    bar.showMessage(" ".join(messages), 8000)
+                except Exception:
+                    pass
     
     def _check_and_merge_all_file_changes(self) -> None:
         """Check all containers for file changes and merge updates.
@@ -1734,6 +1992,54 @@ class MasterDocumentWindow(QMainWindow):
         except Exception:
             return
 
+    def _on_container_locate_file_requested(self, widget: IncludeContainerWidget) -> None:
+        """Let the user manually point a container at a file on disk.
+
+        Used when the automatic relink performed in `_load_from_master_file`
+        could not unambiguously resolve a moved/renamed file (zero or
+        multiple filename matches under the `.master` file's directory), or
+        whenever the user simply wants to re-target an include to a
+        different file.
+        """
+
+        current = widget.file_path
+        if current is not None and current.parent.exists():
+            start_dir = str(current.parent)
+        elif self._master_path is not None:
+            start_dir = str(self._master_path.parent)
+        elif self._project_space is not None:
+            start_dir = str(self._project_space)
+        else:
+            start_dir = ""
+
+        path_str, _ = QFileDialog.getOpenFileName(
+            self,
+            self.tr("Locate file"),
+            start_dir,
+            self.tr("All files (*)"),
+        )
+        if not path_str:
+            return
+
+        new_path = Path(path_str)
+        widget.set_bound_path(new_path)
+
+        # Force an immediate comparison against the newly-bound file rather
+        # than relying on whatever mtime was cached for the previous path.
+        widget._last_file_mtime = None
+        try:
+            widget.check_and_merge_file_changes()
+        except Exception:
+            pass
+
+        self._mark_dirty()
+
+        bar = self.statusBar()
+        if bar is not None:
+            bar.showMessage(
+                self.tr("Linked this include to: {path}").format(path=new_path), 5000
+            )
+
     def _build_clone_path(self, source: Path) -> Path:
         """Return a filesystem path for a cloned chapter file.
 
@@ -1883,6 +2189,7 @@ class MasterDocumentWindow(QMainWindow):
         cloned_widget.renameRequested.connect(self._on_container_rename_requested)
         cloned_widget.cloneFileRequested.connect(self._on_container_clone_file_requested)
         cloned_widget.cloneContainerRequested.connect(self._on_container_clone_container_requested)
+        cloned_widget.locateFileRequested.connect(self._on_container_locate_file_requested)
 
         try:
             # Bind to the cloned file and populate content/title.
@@ -1995,12 +2302,180 @@ class MasterDocumentWindow(QMainWindow):
             self._home_backup_path = storage.new_home_backup_path()
         return self._home_backup_path
 
+    @staticmethod
+    def _escape_container_content(content: str) -> str:
+        """Escape lines in *content* that would collide with `.master` markers.
+
+        The `.master` format uses a bare ``---`` line to separate containers
+        and an optional ``## `` heading right after a container's path link
+        as its title. If a container's own content happens to contain a line
+        that is exactly ``---``, or its very first line happens to start with
+        ``## ``, an unescaped round-trip through :meth:`_load_from_master_file`
+        would misparse those as structural markers. Escaping them here (and
+        reversing the escape on load) keeps such content intact.
+        """
+
+        if not content:
+            return content
+
+        lines = content.split("\n")
+        for idx, line in enumerate(lines):
+            if line.strip() == "---":
+                lines[idx] = "\\---"
+        if lines and lines[0].startswith("## "):
+            lines[0] = "\\" + lines[0]
+        return "\n".join(lines)
+
+    @staticmethod
+    def _strip_leading_heading(content: str) -> str:
+        """Remove *content*'s first line (an ATX heading) and one following blank line."""
+
+        leading = content[: len(content) - len(content.lstrip("\n"))]
+        _first_line, _sep, rest = content.lstrip("\n").partition("\n")
+        if rest.startswith("\n"):
+            rest = rest[1:]
+        return leading + rest
+
+    @staticmethod
+    def _balance_code_fences(content: str) -> str:
+        """Ensure *content* has a closing fence for every opening one.
+
+        A container's own Markdown can contain an unclosed fenced code block
+        (e.g. an archival "Reference" section pasted in without its closer).
+        Once multiple containers' content is concatenated for export, an
+        unclosed fence in one container would otherwise swallow every
+        following container's heading/text into a single literal code
+        block. Closing it here keeps that containment local to the
+        container it came from.
+
+        Handles both ``` and ~~~ fence styles (Markdown's "extra"/fenced_code
+        extension accepts either); a fence only closes against a line using
+        the *same* marker, so mixed usage elsewhere in the content can't
+        cause a spurious close.
+        """
+
+        markers = ("```", "~~~")
+        open_marker: str | None = None
+        for line in content.split("\n"):
+            stripped = line.strip()
+            if open_marker is None:
+                for marker in markers:
+                    if stripped.startswith(marker):
+                        open_marker = marker
+                        break
+            elif stripped.startswith(open_marker):
+                open_marker = None
+        if open_marker is not None:
+            return content.rstrip("\n") + f"\n{open_marker}"
+        return content
+
+    @staticmethod
+    def _balance_html_comments(content: str) -> str:
+        """Ensure *content* has a closing ``-->`` for every opening ``<!--``.
+
+        These chapter files make heavy use of inline ``<!-- ... -->`` author
+        notes. HTML comments don't nest, so an unclosed one is even more
+        dangerous than an unclosed code fence: once concatenated with other
+        containers for export, everything after it -- including every
+        following container's heading and text -- would be silently hidden
+        inside the "open" comment with no visual trace at all, unlike an
+        unclosed fence, which at least renders as garbled code text.
+        """
+
+        open_count = content.count("<!--")
+        close_count = content.count("-->")
+        if open_count > close_count:
+            return content.rstrip("\n") + ("\n-->" * (open_count - close_count))
+        return content
+
+    @staticmethod
+    def _sanitize_html_comment_hyphens(content: str) -> str:
+        """Replace "--" runs inside <!-- --> comment bodies with an em dash.
+
+        XML forbids "--" anywhere inside a comment body (only immediately
+        before the closing "-->" is allowed), so a literal "---" divider or
+        similar inside an author-note comment makes the exported HTML
+        invalid XML. EPUB export parses the combined HTML with lxml's
+        strict XML parser (ebooklib's EpubHtml.get_body_content()) and
+        silently returns an *empty* body on any parse failure -- so a
+        single stray "--" anywhere in the document can blank out an entire
+        exported book with no error shown. Fixing it here, after fences and
+        comments are already balanced, keeps each note's meaning intact
+        while making the comment valid XML.
+        """
+
+        def _fix_comment(match: "re.Match[str]") -> str:
+            body = match.group(1)
+            fixed = re.sub(r"-{2,}", "—", body)
+            return f"<!--{fixed}-->"
+
+        return re.sub(r"<!--(.*?)-->", _fix_comment, content, flags=re.DOTALL)
+
+    def _resolve_chapter_heading(
+        self,
+        title: str,
+        content: str,
+        file_path: Path | None,
+        title_edited_at: float | None,
+    ) -> tuple[str | None, str]:
+        """Decide which heading (if any) to show for a chapter.
+
+        Chapter files are commonly generated/synced with their own title as
+        their first line (e.g. ``# Chapter Title``); when that already
+        matches the container's own title, only one heading is needed rather
+        than emitting the container's title a second time immediately
+        before it. When the two disagree (e.g. the container title and the
+        chapter file have drifted apart), the file's own heading is treated
+        as authoritative by default -- unless the container title has a
+        recorded edit time that is demonstrably more recent than the file's
+        own on-disk modification time, in which case the container title
+        wins and the file's now-stale leading heading line is stripped from
+        the returned content instead.
+
+        Returns ``(heading_to_emit_or_None, content_with_stale_heading_removed)``.
+        """
+
+        title = (title or "").strip()
+        first_line = content.lstrip("\n").split("\n", 1)[0].strip() if content else ""
+        match = re.match(r"^#{1,6}\s+(.*)$", first_line)
+        content_heading = match.group(1).strip() if match else None
+
+        if content_heading is None:
+            # No heading of its own in the content; the container title is
+            # the only source of a heading.
+            return (title or None), content
+
+        if not title or content_heading.casefold() == title.casefold():
+            # Either there is no container title, or it already agrees with
+            # the content's own heading -- nothing to resolve.
+            return None, content
+
+        file_mtime = None
+        if file_path is not None:
+            try:
+                file_mtime = file_path.stat().st_mtime
+            except Exception:
+                file_mtime = None
+
+        container_wins = (
+            title_edited_at is not None
+            and file_mtime is not None
+            and title_edited_at > file_mtime
+        )
+
+        if container_wins:
+            return title, self._strip_leading_heading(content)
+
+        return None, content
+
     def _serialise_to_text(self) -> str:
         """Return a Markdown-like text representation of the master doc.
 
         Each include container is rendered as:
 
-        * full path of the underlying file as a clickable file:// link
+        * path of the underlying file (relative to this `.master` file's own
+          directory when possible, so the document stays portable across
+          machines/cloud-sync locations) as a clickable file:// link
         * the container title as a heading
         * the current container content
         """
@@ -2020,16 +2495,40 @@ class MasterDocumentWindow(QMainWindow):
             content = widget._content.toPlainText() if hasattr(widget, "_content") else ""
 
             if path is not None:
-                full = str(path)
-                parts.append(f"[{full}](file://{full})")
+                try:
+                    absolute_path = str(path.resolve())
+                except Exception:
+                    absolute_path = str(path)
 
+                # Compute the relative label from the *unresolved* forms of
+                # both paths (rather than `.resolve()`d ones) so a symlinked
+                # ancestor directory (e.g. macOS's /var -> /private/var)
+                # cannot make the two sides appear to diverge and produce an
+                # unnecessarily long "../.." chain.
+                label = str(path)
+                if self._master_path is not None:
+                    try:
+                        label = os.path.relpath(str(path), str(self._master_path.parent))
+                    except Exception:
+                        label = str(path)
+
+                parts.append(f"[{label}](file://{absolute_path})")
+
+            # Unlike `_get_combined_content` (the human-facing export), this
+            # is the `.master` file's own persisted state: the title must
+            # always round-trip verbatim regardless of whether it happens to
+            # duplicate the content's own heading, or the container's title
+            # field would silently go blank on the next load.
             title = (title or "").strip()
             if title:
                 parts.append(f"## {title}")
+                title_edited_at = getattr(widget, "_title_edited_at", None)
+                if title_edited_at is not None:
+                    parts.append(f"<!-- title-edited: {title_edited_at} -->")
 
             if content:
                 parts.append("")
-                parts.append(content.rstrip())
+                parts.append(self._escape_container_content(content.rstrip()))
 
             # Separator between includes.
             parts.append("")
@@ -2106,8 +2605,15 @@ class MasterDocumentWindow(QMainWindow):
             content = widget._content.toPlainText() if hasattr(widget, "_content") else ""
 
             title = (title or "").strip()
-            if title:
-                parts.append(f"# {title}")
+            title_edited_at = getattr(widget, "_title_edited_at", None)
+            heading, content = self._resolve_chapter_heading(
+                title, content, widget.file_path, title_edited_at
+            )
+            content = self._balance_code_fences(content)
+            content = self._balance_html_comments(content)
+            content = self._sanitize_html_comment_hyphens(content)
+            if heading:
+                parts.append(f"# {heading}")
                 parts.append("")
 
             if content:
@@ -2115,6 +2621,109 @@ class MasterDocumentWindow(QMainWindow):
                 parts.append("")
 
         return "\n".join(parts).rstrip() + "\n"
+
+    def _build_export_request(self) -> ExportRequest:
+        """Construct an :class:`ExportRequest` from the combined content."""
+
+        markdown = self._get_combined_content()
+        title = self._master_path.stem if self._master_path else None
+        metadata: dict[str, object] = {}
+        return ExportRequest(markdown=markdown, html=None, title=title, metadata=metadata)
+
+    def _export_document(self, fmt: ExportFormat, caption: str, filters: str) -> None:  # pragma: no cover - UI wiring
+        """Common implementation for all export actions."""
+
+        content = self._get_combined_content()
+        if not content.strip():
+            QMessageBox.information(
+                self,
+                self.tr("Export"),
+                self.tr("The master document is empty; there is nothing to export."),
+            )
+            return
+
+        request = self._build_export_request()
+
+        if self._master_path:
+            default_name = f"{self._master_path.stem}{fmt.extension}"
+        else:
+            timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+            default_name = f"master-export-{timestamp}{fmt.extension}"
+
+        start_dir = str(self._project_space) if self._project_space else ""
+        initial = str(Path(start_dir) / default_name) if start_dir else default_name
+
+        path_str, _ = QFileDialog.getSaveFileName(self, caption, initial, filters)
+        if not path_str:
+            return
+
+        target_path = Path(path_str)
+        if target_path.suffix.lower() != fmt.extension:
+            target_path = target_path.with_suffix(fmt.extension)
+
+        try:
+            exporting_controller.export_to_path(fmt, request, target_path)
+        except ExportError as exc:
+            QMessageBox.warning(self, self.tr("Export failed"), str(exc))
+            return
+        except Exception:
+            import traceback
+
+            traceback.print_exc()
+            QMessageBox.critical(
+                self,
+                self.tr("Export failed"),
+                self.tr("An unexpected error occurred while exporting the document."),
+            )
+            return
+
+        bar = self.statusBar()
+        if bar is not None:
+            bar.showMessage(
+                self.tr("Exported document to: {path}").format(path=target_path), 5000
+            )
+
+    def _export_as_pdf(self) -> None:  # pragma: no cover - UI wiring
+        self._export_document(
+            ExportFormat.PDF,
+            self.tr("Export as PDF"),
+            self.tr("PDF files (*.pdf);;All files (*)"),
+        )
+
+    def _export_as_epub(self) -> None:  # pragma: no cover - UI wiring
+        self._export_document(
+            ExportFormat.EPUB,
+            self.tr("Export as EPUB"),
+            self.tr("EPUB files (*.epub);;All files (*)"),
+        )
+
+    def _export_as_docx(self) -> None:  # pragma: no cover - UI wiring
+        self._export_document(
+            ExportFormat.DOCX,
+            self.tr("Export as docx"),
+            self.tr("Word documents (*.docx);;All files (*)"),
+        )
+
+    def _export_as_odt(self) -> None:  # pragma: no cover - UI wiring
+        self._export_document(
+            ExportFormat.ODT,
+            self.tr("Export as odt"),
+            self.tr("OpenDocument text (*.odt);;All files (*)"),
+        )
+
+    def _export_as_fdx(self) -> None:  # pragma: no cover - UI wiring
+        self._export_document(
+            ExportFormat.FDX,
+            self.tr("Export as FDX"),
+            self.tr("Final Draft files (*.fdx);;All files (*)"),
+        )
+
+    def _export_as_fountain(self) -> None:  # pragma: no cover - UI wiring
+        self._export_document(
+            ExportFormat.FOUNTAIN,
+            self.tr("Export as Fountain"),
+            self.tr("Fountain files (*.fountain);;All files (*)"),
+        )
 
     def _is_path_inside_space(self, target_path: Path) -> bool:
         """Return True if *target_path* is inside the current project space."""
@@ -2521,13 +3130,17 @@ class MasterDocumentWindow(QMainWindow):
                     pass
 
         try:
-            body_md = self._serialise_to_text()
-            storage.write_text(target_path, body_md)
-
             # This is now the master document's backing file: subsequent
             # autosaves (and the no-Space home-directory backup fallback)
             # should keep updating it rather than generating another path.
+            # Set it before serialising so that container paths are written
+            # relative to *this* location rather than the previous one (or
+            # written absolute, if there was no previous `.master` path).
             self._master_path = target_path
+
+            body_md = self._serialise_to_text()
+            storage.write_text(target_path, body_md)
+
             self._dirty = False
 
             bar = self.statusBar()
@@ -2548,6 +3161,8 @@ class MasterDocumentWindow(QMainWindow):
     def closeEvent(self, event) -> None:  # pragma: no cover - UI wiring
         """Ensure pending changes are flushed before the window closes."""
 
+        if self._file_watch_timer.isActive():
+            self._file_watch_timer.stop()
         if self._autosave_timer.isActive():
             self._autosave_timer.stop()
         self._perform_autosave()
@@ -2563,6 +3178,43 @@ class MasterDocumentWindow(QMainWindow):
             pass
         try:
             self._explorer_dock.setWindowTitle(self.tr("File explorer"))
+        except Exception:
+            pass
+
+        # Export menu.
+        try:
+            if hasattr(self, "_export_menu"):
+                self._export_menu.setTitle(self.tr("Export"))
+        except Exception:
+            pass
+        try:
+            if hasattr(self, "_action_export_pdf"):
+                self._action_export_pdf.setText(self.tr("as PDF"))
+        except Exception:
+            pass
+        try:
+            if hasattr(self, "_action_export_epub"):
+                self._action_export_epub.setText(self.tr("as EPUB"))
+        except Exception:
+            pass
+        try:
+            if hasattr(self, "_action_export_docx"):
+                self._action_export_docx.setText(self.tr("as docx"))
+        except Exception:
+            pass
+        try:
+            if hasattr(self, "_action_export_odt"):
+                self._action_export_odt.setText(self.tr("as odt"))
+        except Exception:
+            pass
+        try:
+            if hasattr(self, "_action_export_fdx"):
+                self._action_export_fdx.setText(self.tr("as FDX"))
+        except Exception:
+            pass
+        try:
+            if hasattr(self, "_action_export_fountain"):
+                self._action_export_fountain.setText(self.tr("as FOUNTAIN"))
         except Exception:
             pass
 
@@ -2609,4 +3261,9 @@ class MasterDocumentWindow(QMainWindow):
     def changeEvent(self, event):  # pragma: no cover - UI wiring
         if event.type() == QEvent.LanguageChange:
             self._retranslate_window_ui()
+        elif event.type() == QEvent.ActivationChange and self.isActiveWindow():
+            # Refocusing the window (e.g. switching back from an external
+            # editor) triggers an immediate re-check instead of waiting for
+            # the next periodic timer tick.
+            self._check_and_merge_all_file_changes()
         super().changeEvent(event)

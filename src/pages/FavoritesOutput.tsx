@@ -13,7 +13,7 @@ const API_BASE = import.meta.env.PROD
 
 const FavoritesOutput: React.FC = () => {
   const { user } = useAuth();
-  const userId = user ? ((user as any).id ?? (user as any).user_id ?? null) : null;
+  const userId = user ? user.id : null;
 
   const [items, setItems] = useState<StoriesOutputItem[]>([]);
   const [loading, setLoading] = useState(false);

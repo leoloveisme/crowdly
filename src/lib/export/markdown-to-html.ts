@@ -153,7 +153,7 @@ export function countWords(markdown: string): number {
   const text = markdown
     .replace(/```[\s\S]*?```/g, '') // Remove code blocks
     .replace(/`[^`]+`/g, '') // Remove inline code
-    .replace(/[#*_~\[\]()]/g, '') // Remove markdown symbols
+    .replace(/[#*_~[\]()]/g, '') // Remove markdown symbols
     .replace(/\n+/g, ' '); // Normalize whitespace
 
   const words = text.trim().split(/\s+/).filter(w => w.length > 0);

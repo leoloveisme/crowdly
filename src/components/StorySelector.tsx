@@ -3,7 +3,7 @@ import React from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { type Database } from "@/integrations/supabase/types";
 
-type StoryTitleRow = Database["public"]["Tables"]["story_title"]["Row"];
+export type StoryTitleRow = Database["public"]["Tables"]["story_title"]["Row"];
 
 interface StorySelectorProps {
   stories: StoryTitleRow[];

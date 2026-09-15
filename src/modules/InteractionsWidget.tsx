@@ -148,7 +148,7 @@ const InteractionsWidget: React.FC<InteractionsWidgetProps> = (props) => {
           if (res.ok) {
             const raw = await res.json();
             const mapped: BaseComment[] = Array.isArray(raw)
-              ? raw.map((row: any) => ({
+              ? raw.map((row: BaseComment) => ({
                   id: row.id,
                   body: row.body,
                   created_at: row.created_at,

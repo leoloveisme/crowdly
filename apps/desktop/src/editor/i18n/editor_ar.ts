@@ -184,6 +184,26 @@
       <translation>web platform</translation>
     </message>
     <message>
+      <source>GitHub</source>
+      <translation>GitHub</translation>
+    </message>
+    <message>
+      <source>Sync with GitHub</source>
+      <translation>Sync with GitHub</translation>
+    </message>
+    <message>
+      <source>You need to be logged in to the Crowdly web platform before changing GitHub sync.</source>
+      <translation>You need to be logged in to the Crowdly web platform before changing GitHub sync.</translation>
+    </message>
+    <message>
+      <source>This Space needs to be connected to a GitHub repository first (use "Connect GitHub" on the Space's page on the web platform), or the request failed.
+
+Details: {error}</source>
+      <translation>This Space needs to be connected to a GitHub repository first (use "Connect GitHub" on the Space's page on the web platform), or the request failed.
+
+Details: {error}</translation>
+    </message>
+    <message>
       <source>online storage</source>
       <translation>online storage</translation>
     </message>
@@ -226,6 +246,14 @@
     <message>
       <source>View</source>
       <translation>View</translation>
+    </message>
+    <message>
+      <source>Show windows</source>
+      <translation>إظهار النوافذ</translation>
+    </message>
+    <message>
+      <source>(no windows open)</source>
+      <translation>(لا توجد نوافذ مفتوحة)</translation>
     </message>
     <message>
       <source>Markdown (MD) / HTML editor</source>
@@ -457,7 +485,130 @@ Details: {error}</translation>
     </message>
   </context>
 <context>
+    <name>IncludeContainerWidget</name>
+    <message>
+        <source>Locate file...</source>
+        <translation>تحديد موقع الملف...</translation>
+    </message>
+    <message>
+        <source>Point this include at a file, e.g. if the original has moved</source>
+        <translation>اربط هذا العنصر بملف، مثلاً إذا تم نقل الملف الأصلي</translation>
+    </message>
+</context>
+<context>
     <name>MasterDocumentWindow</name>
+    <message>
+        <source>Export</source>
+        <translation>تصدير</translation>
+    </message>
+    <message>
+        <source>as PDF</source>
+        <translation>كـ PDF</translation>
+    </message>
+    <message>
+        <source>as EPUB</source>
+        <translation>كـ EPUB</translation>
+    </message>
+    <message>
+        <source>as docx</source>
+        <translation>كـ docx</translation>
+    </message>
+    <message>
+        <source>as odt</source>
+        <translation>كـ odt</translation>
+    </message>
+    <message>
+        <source>as FDX</source>
+        <translation>كـ FDX</translation>
+    </message>
+    <message>
+        <source>as FOUNTAIN</source>
+        <translation>كـ FOUNTAIN</translation>
+    </message>
+    <message>
+        <source>Export as PDF</source>
+        <translation>تصدير كـ PDF</translation>
+    </message>
+    <message>
+        <source>PDF files (*.pdf);;All files (*)</source>
+        <translation>ملفات PDF (*.pdf);;كل الملفات (*)</translation>
+    </message>
+    <message>
+        <source>Export as EPUB</source>
+        <translation>تصدير كـ EPUB</translation>
+    </message>
+    <message>
+        <source>EPUB files (*.epub);;All files (*)</source>
+        <translation>ملفات EPUB (*.epub);;كل الملفات (*)</translation>
+    </message>
+    <message>
+        <source>Export as docx</source>
+        <translation>تصدير كـ docx</translation>
+    </message>
+    <message>
+        <source>Word documents (*.docx);;All files (*)</source>
+        <translation>مستندات Word (*.docx);;كل الملفات (*)</translation>
+    </message>
+    <message>
+        <source>Export as odt</source>
+        <translation>تصدير كـ odt</translation>
+    </message>
+    <message>
+        <source>OpenDocument text (*.odt);;All files (*)</source>
+        <translation>نص OpenDocument (*.odt);;كل الملفات (*)</translation>
+    </message>
+    <message>
+        <source>Export as FDX</source>
+        <translation>تصدير كـ FDX</translation>
+    </message>
+    <message>
+        <source>Final Draft files (*.fdx);;All files (*)</source>
+        <translation>ملفات Final Draft (*.fdx);;كل الملفات (*)</translation>
+    </message>
+    <message>
+        <source>Export as Fountain</source>
+        <translation>تصدير كـ Fountain</translation>
+    </message>
+    <message>
+        <source>Fountain files (*.fountain);;All files (*)</source>
+        <translation>ملفات Fountain (*.fountain);;كل الملفات (*)</translation>
+    </message>
+    <message>
+        <source>Export failed</source>
+        <translation>فشل التصدير</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while exporting the document.</source>
+        <translation>حدث خطأ غير متوقع أثناء تصدير المستند.</translation>
+    </message>
+    <message>
+        <source>Exported document to: {path}</source>
+        <translation>تم تصدير المستند إلى: {path}</translation>
+    </message>
+    <message>
+        <source>The master document is empty; there is nothing to export.</source>
+        <translation>المستند الرئيسي فارغ؛ لا يوجد ما يمكن تصديره.</translation>
+    </message>
+    <message>
+        <source>Locate file</source>
+        <translation>تحديد موقع الملف</translation>
+    </message>
+    <message>
+        <source>All files (*)</source>
+        <translation>كل الملفات (*)</translation>
+    </message>
+    <message>
+        <source>Linked this include to: {path}</source>
+        <translation>تم ربط هذا العنصر بـ: {path}</translation>
+    </message>
+    <message>
+        <source>Re-linked {count} file(s) that had moved.</source>
+        <translation>تمت إعادة ربط {count} من الملفات التي تم نقلها.</translation>
+    </message>
+    <message>
+        <source>{count} file(s) could not be found -- use "Locate file..." on the affected container(s).</source>
+        <translation>تعذر العثور على {count} من الملفات — استخدم "تحديد موقع الملف..." للعناصر المتأثرة.</translation>
+    </message>
     <message>
         <source>Save as</source>
         <translation>حفظ باسم</translation>

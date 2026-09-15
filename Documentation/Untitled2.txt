@@ -1,0 +1,32 @@
+Dedicated key generated (ed25519, no passphrase — required for non-interactive CI use), fingerprint SHA256:fkG6Ot5+.... Public key:
+
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILl51+oZq18U1gNu2qcfLWBMJzD36thH2wxJXGDCN1bA crowdly-ci-deploy
+
+I'm deliberately not printing the private key into this chat — it's saved at:
+/private/tmp/claude-503/-Users-leoforce-Library-CloudStorage-Dropbox-crowdly/5e4518fb-9b5f-4dac-b61e-baa29980fd4e/scratchpad/crowdly_deploy_key
+
+Open that file directly in a text editor (or cat it in a plain terminal outside this chat) when you get to the GitHub secret step below, so it never has to travel through a conversation transcript.
+
+Two things left, in order:
+
+1. On the VPS (run yourself, or relay to the VPS Claude session — needs sudo):
+sudo adduser --disabled-password --gecos "" deploy
+sudo usermod -aG devs deploy
+
+sudo mkdir -p /home/deploy/.ssh
+echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILl51+oZq18U1gNu2qcfLWBMJzD36thH2wxJXGDCN1bA crowdly-ci-deploy" | sudo tee /home/deploy/.ssh/authorized_keys
+sudo chown -R deploy:deploy /home/deploy/.ssh
+sudo chmod 700 /home/deploy/.ssh
+sudo chmod 600 /home/deploy/.ssh/authorized_keys
+
+sudo visudo -f /etc/sudoers.d/crowdly-deploy
+In the editor that opens, add exactly:
+deploy ALL=(root) NOPASSWD: /usr/bin/systemctl restart crowdly-backend
+
+2. On GitHub (repo → Settings → Secrets and variables → Actions → New repository secret), add:
+- VPS_HOST — the VPS's hostname or IP
+- VPS_USER — deploy
+- VPS_SSH_KEY — the full contents of the private key file above (paste exactly, including the -----BEGIN/END----- lines)
+- VPS_SSH_PORT — only if SSH isn't on port 22
+
+Once both are done, tell me and I'll walk through a safe dry-run check (SSH in as deploy and confirm passwordless sudo works, without actually restarting anything) before we trust the first real push-triggered deploy.

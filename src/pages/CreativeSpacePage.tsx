@@ -1,11 +1,32 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import CrowdlyHeader from "@/components/CrowdlyHeader";
 import CrowdlyFooter from "@/components/CrowdlyFooter";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import EditableText from "@/components/EditableText";
+
+const IMAGE_EXTENSIONS = /\.(png|jpe?g|webp|gif|svg)$/i;
+const TEXT_EXTENSIONS = /\.(md|markdown|txt|json|jsonl|csv|html)$/i;
+
+function isImageItem(item: { mime_type?: string | null; name: string }): boolean {
+  if (item.mime_type) return item.mime_type.startsWith("image/");
+  return IMAGE_EXTENSIONS.test(item.name);
+}
+
+function isTextItem(item: { mime_type?: string | null; name: string }): boolean {
+  if (item.mime_type) {
+    return (
+      item.mime_type.startsWith("text/") ||
+      item.mime_type === "application/json" ||
+      item.mime_type === "application/x-ndjson"
+    );
+  }
+  return TEXT_EXTENSIONS.test(item.name);
+}
 
 const API_BASE = import.meta.env.PROD
   ? (import.meta.env.VITE_API_BASE_URL ?? "")
@@ -32,11 +53,36 @@ interface CreativeSpaceItem {
   mime_type?: string | null;
   size_bytes?: number | null;
   hash?: string | null;
+  storage_path?: string | null;
   visibility?: string | null;
   published?: boolean | null;
   deleted?: boolean;
   created_at?: string | null;
   updated_at?: string | null;
+}
+
+interface SpaceStoryRow {
+  story_title_id: string;
+  title: string;
+  visibility?: string | null;
+  published?: boolean | null;
+}
+
+interface SpaceScreenplayRow {
+  screenplay_id: string;
+  title: string;
+  visibility?: string | null;
+  published?: boolean | null;
+}
+
+interface GithubSyncStatus {
+  configured: boolean;
+  connected: boolean;
+  enabled: boolean;
+  repo?: string | null;
+  branch?: string | null;
+  lastSyncedAt?: string | null;
+  installUrl?: string | null;
 }
 
 const CreativeSpacePage: React.FC = () => {
@@ -52,6 +98,23 @@ const CreativeSpacePage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [notAuthorized, setNotAuthorized] = useState<boolean>(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+
+  const [contentItems, setContentItems] = useState<{ stories: SpaceStoryRow[]; screenplays: SpaceScreenplayRow[] }>({
+    stories: [],
+    screenplays: [],
+  });
+
+  const [githubStatus, setGithubStatus] = useState<GithubSyncStatus | null>(null);
+
+  const [previewItem, setPreviewItem] = useState<CreativeSpaceItem | null>(null);
+  const [previewText, setPreviewText] = useState<string>("");
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [previewEditing, setPreviewEditing] = useState(false);
+  const [previewSaving, setPreviewSaving] = useState(false);
+
+  const newFileInputRef = useRef<HTMLInputElement | null>(null);
+  const previewFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const isOwner = Boolean(authUser?.id && space && space.user_id === authUser.id);
 
@@ -131,6 +194,50 @@ const CreativeSpacePage: React.FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spaceId, space?.id]);
+
+  useEffect(() => {
+    const loadContentItems = async () => {
+      if (!spaceId || !space) return;
+      try {
+        const params = new URLSearchParams();
+        if (authUser?.id) params.set("userId", authUser.id);
+        const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/content-items?${params.toString()}`);
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          console.error("[CreativeSpacePage] Failed to load stories/screenplays", { status: res.status, body });
+          return;
+        }
+        setContentItems({
+          stories: Array.isArray(body.stories) ? body.stories : [],
+          screenplays: Array.isArray(body.screenplays) ? body.screenplays : [],
+        });
+      } catch (err) {
+        console.error("[CreativeSpacePage] Error loading stories/screenplays", err);
+      }
+    };
+    loadContentItems();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spaceId, space?.id, authUser?.id]);
+
+  useEffect(() => {
+    const loadGithubStatus = async () => {
+      if (!spaceId || !space || !authUser?.id || !isOwner) return;
+      try {
+        const params = new URLSearchParams({ userId: authUser.id });
+        const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/github-sync/status?${params.toString()}`);
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          console.error("[CreativeSpacePage] Failed to load GitHub sync status", { status: res.status, body });
+          return;
+        }
+        setGithubStatus(body as GithubSyncStatus);
+      } catch (err) {
+        console.error("[CreativeSpacePage] Error loading GitHub sync status", err);
+      }
+    };
+    loadGithubStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spaceId, space?.id, authUser?.id, isOwner]);
 
   const handleEnterFolder = (item: CreativeSpaceItem) => {
     const rel = item.relative_path || "";
@@ -233,7 +340,7 @@ const CreativeSpacePage: React.FC = () => {
 
   const handleTogglePublished = async () => {
     if (!spaceId || !authUser?.id || !space) return;
-    const next = !Boolean(space.published);
+    const next = !space.published;
     try {
       const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}`, {
         method: "PATCH",
@@ -250,6 +357,163 @@ const CreativeSpacePage: React.FC = () => {
     } catch (err) {
       console.error("[CreativeSpacePage] Error toggling published", err);
       setError("Failed to update publish state.");
+    }
+  };
+
+  const handleToggleGithubSync = async (checked: boolean) => {
+    if (!spaceId || !authUser?.id) return;
+    try {
+      const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/github-sync`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: authUser.id, enabled: checked }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error("[CreativeSpacePage] Failed to toggle GitHub sync", { status: res.status, body });
+        setError(body.error || "Failed to update GitHub sync.");
+        return;
+      }
+      setGithubStatus(body as GithubSyncStatus);
+    } catch (err) {
+      console.error("[CreativeSpacePage] Error toggling GitHub sync", err);
+      setError("Failed to update GitHub sync.");
+    }
+  };
+
+  const contentUrl = (item: CreativeSpaceItem) => {
+    const params = new URLSearchParams();
+    if (authUser?.id) params.set("userId", authUser.id);
+    // Cache-bust on content changes (hash changes whenever the stored bytes
+    // do) so a replaced image doesn't keep showing a stale cached fetch.
+    if (item.hash) params.set("v", item.hash);
+    return `${API_BASE}/creative-spaces/${spaceId}/items/${item.id}/content?${params.toString()}`;
+  };
+
+  const handleOpenPreview = async (item: CreativeSpaceItem) => {
+    setPreviewItem(item);
+    setPreviewError(null);
+    setPreviewEditing(false);
+    setPreviewText("");
+
+    if (isImageItem(item)) return; // the <img> renders straight from contentUrl(); no fetch needed here.
+    if (!isTextItem(item)) return; // unsupported preview type (e.g. PDF) — offer upload/replace only.
+    if (!item.storage_path) {
+      setPreviewError("No content available yet.");
+      return;
+    }
+
+    setPreviewLoading(true);
+    try {
+      const res = await fetch(contentUrl(item));
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setPreviewError(body.error === "no_content" ? "No content available yet." : body.error || "Failed to load content.");
+        return;
+      }
+      setPreviewText(await res.text());
+    } catch (err) {
+      console.error("[CreativeSpacePage] Failed to load preview content", err);
+      setPreviewError("Failed to load content.");
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const handleSavePreviewText = async () => {
+    if (!previewItem || !spaceId || !authUser?.id) return;
+    setPreviewSaving(true);
+    try {
+      const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/items/${previewItem.id}/content`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: authUser.id, content: previewText }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setPreviewError(body.error || "Failed to save content.");
+        return;
+      }
+      setItems((prev) => prev.map((it) => (it.id === previewItem.id ? { ...it, ...body } : it)));
+      setPreviewItem((prev) => (prev ? { ...prev, ...body } : prev));
+      setPreviewEditing(false);
+    } catch (err) {
+      console.error("[CreativeSpacePage] Failed to save preview content", err);
+      setPreviewError("Failed to save content.");
+    } finally {
+      setPreviewSaving(false);
+    }
+  };
+
+  const uploadContentForItem = async (itemId: string, file: File) => {
+    if (!spaceId || !authUser?.id) return null;
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("userId", authUser.id);
+    const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/items/${itemId}/content`, {
+      method: "POST",
+      body: formData,
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.error || "Failed to upload file content.");
+    return body as CreativeSpaceItem;
+  };
+
+  const handlePreviewFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !previewItem) return;
+    setPreviewSaving(true);
+    try {
+      const updated = await uploadContentForItem(previewItem.id, file);
+      if (!updated) return;
+      setItems((prev) => prev.map((it) => (it.id === previewItem.id ? { ...it, ...updated } : it)));
+      setPreviewItem(updated);
+      setPreviewError(null);
+      if (isTextItem(updated)) {
+        setPreviewText(await file.text());
+      }
+    } catch (err) {
+      console.error("[CreativeSpacePage] Failed to upload content for item", err);
+      setPreviewError(err instanceof Error ? err.message : "Failed to upload file content.");
+    } finally {
+      setPreviewSaving(false);
+    }
+  };
+
+  const handleNewFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !spaceId || !authUser?.id) return;
+    try {
+      const createRes = await fetch(`${API_BASE}/creative-spaces/${spaceId}/items/file`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          parentPath: currentPath,
+          name: file.name,
+          mimeType: file.type || undefined,
+          sizeBytes: file.size,
+          userId: authUser.id,
+        }),
+      });
+      const createBody = await createRes.json().catch(() => ({}));
+      if (!createRes.ok) {
+        setError(createBody.error || "Failed to create file item.");
+        return;
+      }
+      const newItem = createBody as CreativeSpaceItem;
+      try {
+        const updated = await uploadContentForItem(newItem.id, file);
+        setItems((prev) => [...prev, updated || newItem]);
+      } catch (contentErr) {
+        console.error("[CreativeSpacePage] File item created but content upload failed", contentErr);
+        setItems((prev) => [...prev, newItem]);
+        setError(contentErr instanceof Error ? contentErr.message : "File created but content upload failed.");
+      }
+    } catch (err) {
+      console.error("[CreativeSpacePage] Failed to upload new file", err);
+      setError("Failed to upload file.");
     }
   };
 
@@ -367,6 +631,20 @@ const CreativeSpacePage: React.FC = () => {
                   >
                     {space.published ? "Unpublish" : "Publish"}
                   </Button>
+                  {githubStatus?.connected ? (
+                    <label className="flex items-center gap-2 text-xs text-slate-600 px-1">
+                      <Checkbox
+                        checked={Boolean(githubStatus.enabled)}
+                        onCheckedChange={(val) => handleToggleGithubSync(Boolean(val))}
+                      />
+                      <EditableText id="space-github-sync-label">Sync with GitHub</EditableText>
+                      {githubStatus.repo && <span className="text-slate-400">({githubStatus.repo})</span>}
+                    </label>
+                  ) : githubStatus?.configured && githubStatus?.installUrl ? (
+                    <a href={githubStatus.installUrl} className="text-xs text-blue-700 hover:underline px-1">
+                      <EditableText id="space-github-connect">Connect GitHub</EditableText>
+                    </a>
+                  ) : null}
                 </>
               )}
               {space && (
@@ -411,9 +689,59 @@ const CreativeSpacePage: React.FC = () => {
               <Button size="sm" onClick={handleCreateFolder} className="rounded-full px-3">
                 <EditableText id="space-new-folder">New folder</EditableText>
               </Button>
+              {isOwner && (
+                <>
+                  <input
+                    ref={newFileInputRef}
+                    type="file"
+                    className="hidden"
+                    onChange={handleNewFileSelected}
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="rounded-full px-3"
+                    onClick={() => newFileInputRef.current?.click()}
+                  >
+                    <EditableText id="space-upload-file">Upload file</EditableText>
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </section>
+
+        {(contentItems.stories.length > 0 || contentItems.screenplays.length > 0) && (
+          <section className="bg-white border border-slate-200 rounded-2xl p-4 md:p-6 shadow-sm">
+            <h2 className="text-sm font-semibold text-slate-700 mb-3">
+              <EditableText id="space-content-items-heading">Stories &amp; Screenplays in this Space</EditableText>
+            </h2>
+            <ul className="divide-y text-sm">
+              {contentItems.stories.map((story) => (
+                <li key={story.story_title_id} className="flex items-center justify-between py-2 gap-2">
+                  <Link to={`/story/${story.story_title_id}`} className="text-blue-700 hover:underline truncate">
+                    {story.title}
+                  </Link>
+                  <span className="text-[11px] text-slate-500 whitespace-nowrap">
+                    Story · {story.visibility === "public" ? "Public" : story.visibility === "unlisted" ? "Unlisted" : "Private"}
+                    {story.published === false ? " · Unpublished" : ""}
+                  </span>
+                </li>
+              ))}
+              {contentItems.screenplays.map((screenplay) => (
+                <li key={screenplay.screenplay_id} className="flex items-center justify-between py-2 gap-2">
+                  <Link to={`/screenplay/${screenplay.screenplay_id}`} className="text-blue-700 hover:underline truncate">
+                    {screenplay.title}
+                  </Link>
+                  <span className="text-[11px] text-slate-500 whitespace-nowrap">
+                    Screenplay · {screenplay.visibility === "public" ? "Public" : screenplay.visibility === "unlisted" ? "Unlisted" : "Private"}
+                    {screenplay.published === false ? " · Unpublished" : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         <section className="bg-white border border-slate-200 rounded-2xl p-4 md:p-6 shadow-sm">
           <div className="mb-4 text-xs text-slate-600 flex items-center gap-1 flex-wrap">
@@ -469,7 +797,13 @@ const CreativeSpacePage: React.FC = () => {
                           {item.name}
                         </button>
                       ) : (
-                        <span className="truncate">{item.name}</span>
+                        <button
+                          type="button"
+                          className="text-blue-700 hover:underline truncate text-left"
+                          onClick={() => handleOpenPreview(item)}
+                        >
+                          {item.name}
+                        </button>
                       )}
                     </div>
                     <div className="w-24 text-right text-[11px] text-slate-500">
@@ -503,6 +837,94 @@ const CreativeSpacePage: React.FC = () => {
           </div>
         </section>
       </div>
+
+      <Dialog open={!!previewItem} onOpenChange={(open) => { if (!open) setPreviewItem(null); }}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="break-all">{previewItem?.name}</DialogTitle>
+          </DialogHeader>
+
+          {previewItem && (
+            <div className="mt-2 space-y-3">
+              {isImageItem(previewItem) ? (
+                previewItem.storage_path ? (
+                  <img
+                    src={contentUrl(previewItem)}
+                    alt={previewItem.name}
+                    className="max-w-full max-h-[60vh] object-contain mx-auto"
+                  />
+                ) : (
+                  <p className="text-sm text-slate-500">
+                    <EditableText id="space-preview-no-content">No content available yet.</EditableText>
+                  </p>
+                )
+              ) : previewLoading ? (
+                <p className="text-sm text-slate-500">
+                  <EditableText id="space-preview-loading">Loading...</EditableText>
+                </p>
+              ) : previewError ? (
+                <p className="text-sm text-slate-500">{previewError}</p>
+              ) : isTextItem(previewItem) ? (
+                previewEditing ? (
+                  <Textarea
+                    value={previewText}
+                    onChange={(e) => setPreviewText(e.target.value)}
+                    className="min-h-[300px] font-mono text-xs"
+                  />
+                ) : (
+                  <pre className="whitespace-pre-wrap text-xs bg-slate-50 rounded-lg p-3 max-h-[50vh] overflow-y-auto">
+                    {previewText}
+                  </pre>
+                )
+              ) : (
+                <p className="text-sm text-slate-500">
+                  <EditableText id="space-preview-unsupported">
+                    This file type can't be previewed here yet.
+                  </EditableText>
+                </p>
+              )}
+
+              {isOwner && (
+                <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
+                  {isTextItem(previewItem) && previewItem.storage_path && !previewLoading && !previewError && (
+                    previewEditing ? (
+                      <>
+                        <Button size="sm" disabled={previewSaving} onClick={handleSavePreviewText}>
+                          {previewSaving ? "Saving..." : "Save"}
+                        </Button>
+                        <Button size="sm" variant="outline" disabled={previewSaving} onClick={() => setPreviewEditing(false)}>
+                          <EditableText id="space-preview-cancel">Cancel</EditableText>
+                        </Button>
+                      </>
+                    ) : (
+                      <Button size="sm" variant="outline" onClick={() => setPreviewEditing(true)}>
+                        <EditableText id="space-preview-edit">Edit</EditableText>
+                      </Button>
+                    )
+                  )}
+                  <input
+                    ref={previewFileInputRef}
+                    type="file"
+                    className="hidden"
+                    onChange={handlePreviewFileSelected}
+                  />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={previewSaving}
+                    onClick={() => previewFileInputRef.current?.click()}
+                  >
+                    <EditableText id="space-preview-replace">
+                      {previewItem.storage_path ? "Replace file" : "Upload content"}
+                    </EditableText>
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       <CrowdlyFooter />
     </div>
   );

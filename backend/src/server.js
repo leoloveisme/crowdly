@@ -26,7 +26,22 @@ import messagingRouter, {
 } from './messaging.js';
 import galleryRouter, { ensureStoryGalleryImagesTable, UPLOADS_ROOT } from './gallery.js';
 import comicsRouter, { ensureComicTables } from './comics.js';
+import creativeSpaceFilesRouter from './creativeSpaceFiles.js';
 import { eventsHandler } from './events.js';
+import {
+  isGithubAppConfigured,
+  parseRepoFullName,
+  verifyWebhookSignature,
+  buildInstallUrl,
+  getInstallationToken,
+} from './githubApp.js';
+import {
+  ensureGithubSyncTables,
+  runSpaceSync,
+  recentSyncLog,
+  startGithubPollingLoop,
+  handleGithubWebhookEvent,
+} from './githubSync.js';
 import path from 'path';
 import http from 'http';
 import { ensureCrdtDocChunksTable } from './crdt/postgresStorageAdapter.js';
@@ -77,7 +92,12 @@ app.use(
     credentials: true,
   }),
 );
-app.use(express.json({ limit: '5mb' }));
+// `verify` stashes the raw request bytes on req.rawBody alongside the usual
+// parsed req.body — needed only by POST /api/github/webhook below, to check
+// GitHub's HMAC signature against the exact bytes it signed (the parsed/
+// re-serialized JSON would not byte-for-byte match). Every other route's
+// behavior is unaffected.
+app.use(express.json({ limit: '5mb', verify: (req, res, buf) => { req.rawBody = buf; } }));
 app.use(cookieParser());
 
 // Mounted under /api — the frontend has SPA pages at bare paths like
@@ -96,6 +116,10 @@ app.get('/api/events', requireAuth, eventsHandler);
 // same as the rest of the story routes below — not under /api.
 app.use(galleryRouter);
 app.use(comicsRouter);
+// Not statically served (unlike /uploads below) — Space items can be
+// private, so content is only ever handed out through the authenticated
+// routes in creativeSpaceFiles.js.
+app.use(creativeSpaceFilesRouter);
 // Uploaded gallery/comic-page images, served statically for both the dev proxy and prod.
 app.use('/uploads', express.static(UPLOADS_ROOT));
 
@@ -787,6 +811,14 @@ async function ensureCreativeSpaceItemsTable() {
       'CREATE INDEX IF NOT EXISTS creative_space_items_space_updated_idx ON creative_space_items(space_id, updated_at)',
     );
 
+    // Real file content storage (see creativeSpaceFiles.js) — the Space
+    // sync protocol only ever exchanged metadata (relative_path/size/hash),
+    // so this column tracks whether/where actual bytes have since been
+    // uploaded or edited through the web UI, separately from that manifest.
+    await pool.query(
+      'ALTER TABLE creative_space_items ADD COLUMN IF NOT EXISTS storage_path text',
+    );
+
     console.log('[init] ensured creative_space_items table exists');
   } catch (err) {
     console.error('[init] failed to ensure creative_space_items table:', err);
@@ -1423,6 +1455,10 @@ ensureReactionsScreenplayColumns().catch((err) => {
 });
 ensureCreativeSpaceItemsTable().catch((err) => {
   console.error('[init] ensureCreativeSpaceItemsTable unhandled error:', err);
+});
+// Must run after ensureCreativeSpaceItemsTable — it adds a column onto creative_space_items.
+ensureGithubSyncTables().catch((err) => {
+  console.error('[init] ensureGithubSyncTables unhandled error:', err);
 });
 ensureStoryCreativeSpaceColumnsAndAttachments().catch((err) => {
   console.error('[init] ensureStoryCreativeSpaceColumnsAndAttachments unhandled error:', err);
@@ -2523,8 +2559,41 @@ app.get('/screenplays/most-popular', async (req, res) => {
 });
 
 // Get a single screenplay by ID (no visibility rules yet; keep simple for v1)
+// Mirrors the story_title visibility gate at GET /story-titles/:storyTitleId
+// (creator/screenplay_access always allowed; unlisted/private otherwise
+// blocked for everyone else) — screenplays had no such check at all before
+// this, so a "private" screenplay was viewable by anyone who had its id.
+async function checkScreenplayAccess(screenplay, userId) {
+  const visibility = screenplay.visibility ?? 'public';
+  if (visibility === 'public') return { allowed: true };
+
+  if (userId && screenplay.creator_id === userId) return { allowed: true };
+
+  if (userId) {
+    try {
+      const access = await pool.query(
+        'SELECT 1 FROM screenplay_access WHERE screenplay_id = $1 AND user_id = $2 LIMIT 1',
+        [screenplay.screenplay_id, userId],
+      );
+      if (access.rows.length > 0) return { allowed: true };
+    } catch {}
+  }
+
+  if (visibility === 'unlisted') {
+    return {
+      allowed: false,
+      message: 'This screenplay is unlisted. You need an invitation from the owner to view it.',
+    };
+  }
+  return {
+    allowed: false,
+    message: 'This screenplay is private. Please log in or ask the owner for access.',
+  };
+}
+
 app.get('/screenplays/:screenplayId', async (req, res) => {
   const { screenplayId } = req.params;
+  const userId = req.query.userId ?? null;
   try {
     const { rows } = await pool.query(
       'SELECT * FROM screenplay_title WHERE screenplay_id = $1',
@@ -2533,7 +2602,12 @@ app.get('/screenplays/:screenplayId', async (req, res) => {
     if (rows.length === 0) {
       return res.status(404).json({ error: 'Screenplay not found' });
     }
-    res.json(rows[0]);
+    const screenplay = rows[0];
+    const access = await checkScreenplayAccess(screenplay, userId);
+    if (!access.allowed) {
+      return res.status(403).json({ error: access.message });
+    }
+    res.json(screenplay);
   } catch (err) {
     console.error('[GET /screenplays/:screenplayId] failed:', err);
     res.status(500).json({ error: 'Failed to fetch screenplay' });
@@ -2621,9 +2695,22 @@ app.delete('/screenplays/:screenplayId', async (req, res) => {
 // Get scenes + (optionally) blocks for a screenplay
 app.get('/screenplays/:screenplayId/scenes', async (req, res) => {
   const { screenplayId } = req.params;
+  const userId = req.query.userId ?? null;
   const includeBlocks = req.query.includeBlocks === 'true';
 
   try {
+    const titleRes = await pool.query(
+      'SELECT screenplay_id, creator_id, visibility FROM screenplay_title WHERE screenplay_id = $1',
+      [screenplayId],
+    );
+    if (titleRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Screenplay not found' });
+    }
+    const access = await checkScreenplayAccess(titleRes.rows[0], userId);
+    if (!access.allowed) {
+      return res.status(403).json({ error: access.message });
+    }
+
     const { rows: scenes } = await pool.query(
       'SELECT * FROM screenplay_scene WHERE screenplay_id = $1 ORDER BY scene_index ASC',
       [screenplayId],
@@ -4865,6 +4952,46 @@ app.get('/creative-spaces/:spaceId/items', async (req, res) => {
   }
 });
 
+// Stories/screenplays whose creative_space_id points at this Space — the
+// Space page has no other way to reach the structured content that was
+// synced/imported into it (story_attachments/story_spaces only ever get
+// read from the story side, never from the Space side).
+app.get('/creative-spaces/:spaceId/content-items', async (req, res) => {
+  const { spaceId } = req.params;
+  const userId = req.query.userId ?? null;
+
+  if (!spaceId) {
+    return res.status(400).json({ error: 'spaceId is required' });
+  }
+
+  try {
+    const spaceRes = await pool.query('SELECT user_id, visibility FROM creative_spaces WHERE id = $1', [spaceId]);
+    if (spaceRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Creative space not found' });
+    }
+    const space = spaceRes.rows[0];
+    const isOwner = userId && String(space.user_id) === String(userId);
+    if (!isOwner && String(space.visibility || 'private').toLowerCase() !== 'public') {
+      return res.status(403).json({ error: 'You do not have access to this creative space.' });
+    }
+
+    const storyFilter = isOwner ? '' : " AND visibility = 'public' AND published = true";
+    const { rows: stories } = await pool.query(
+      `SELECT story_title_id, title, visibility, published FROM story_title WHERE creative_space_id = $1${storyFilter} ORDER BY title`,
+      [spaceId],
+    );
+    const { rows: screenplays } = await pool.query(
+      `SELECT screenplay_id, title, visibility, published FROM screenplay_title WHERE creative_space_id = $1${storyFilter} ORDER BY title`,
+      [spaceId],
+    );
+
+    res.json({ stories, screenplays });
+  } catch (err) {
+    console.error('[GET /creative-spaces/:spaceId/content-items] failed:', err);
+    res.status(500).json({ error: 'Failed to load stories/screenplays for this creative space' });
+  }
+});
+
 // Create a folder inside a space
 app.post('/creative-spaces/:spaceId/items/folder', async (req, res) => {
   const { spaceId } = req.params;
@@ -5345,6 +5472,171 @@ app.post('/creative-spaces/:spaceId/sync', async (req, res) => {
   } finally {
     client.release();
   }
+});
+
+// --- GitHub sync (Phase 1: file-level bidirectional sync for creative_space_items) ---
+// Access follows the same convention as the rest of the creative-spaces
+// routes above (explicit body/query userId checked against space.user_id) —
+// not requireAuth/cookies.
+
+async function buildGithubSyncStatus(space, { userId } = {}) {
+  const logRows = await recentSyncLog(space.id, 20);
+  return {
+    configured: isGithubAppConfigured(),
+    connected: Boolean(space.github_installation_id),
+    enabled: Boolean(space.github_sync_enabled),
+    repo: space.github_repo || null,
+    branch: space.github_branch || 'master',
+    lastSyncedAt: space.last_synced_at || null,
+    lastCommitSha: space.github_last_commit_sha || null,
+    installUrl:
+      !space.github_installation_id && userId ? buildInstallUrl(`${space.id}:${userId}`) : null,
+    recentLog: logRows,
+  };
+}
+
+app.get('/creative-spaces/:spaceId/github-sync/status', async (req, res) => {
+  const { spaceId } = req.params;
+  const userId = req.query.userId ?? null;
+
+  try {
+    const { rows } = await pool.query('SELECT * FROM creative_spaces WHERE id = $1', [spaceId]);
+    const space = rows[0];
+    if (!space) return res.status(404).json({ error: 'Creative space not found' });
+    if (!userId || String(space.user_id) !== String(userId)) {
+      return res.status(403).json({ error: 'You do not have access to this creative space' });
+    }
+
+    res.json(await buildGithubSyncStatus(space, { userId }));
+  } catch (err) {
+    console.error('[GET /creative-spaces/:spaceId/github-sync/status] failed:', err);
+    res.status(500).json({ error: 'Failed to load GitHub sync status' });
+  }
+});
+
+app.patch('/creative-spaces/:spaceId/github-sync', async (req, res) => {
+  const { spaceId } = req.params;
+  const { userId, enabled, branch } = req.body ?? {};
+
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+
+  try {
+    const spaceRes = await pool.query('SELECT * FROM creative_spaces WHERE id = $1', [spaceId]);
+    const space = spaceRes.rows[0];
+    if (!space) return res.status(404).json({ error: 'Creative space not found' });
+    if (String(space.user_id) !== String(userId)) {
+      return res.status(403).json({ error: 'You do not own this creative space' });
+    }
+    if (enabled && !space.github_installation_id) {
+      return res.status(400).json({ error: 'Connect this Space to a GitHub repo before enabling sync' });
+    }
+
+    const fields = [];
+    const values = [];
+    let idx = 1;
+    if (enabled !== undefined) {
+      fields.push(`github_sync_enabled = $${idx++}`);
+      values.push(Boolean(enabled));
+    }
+    if (branch !== undefined) {
+      fields.push(`github_branch = $${idx++}`);
+      values.push(branch || 'master');
+    }
+    if (fields.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+    fields.push('updated_at = now()');
+    values.push(spaceId);
+
+    const { rows } = await pool.query(
+      `UPDATE creative_spaces SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+      values,
+    );
+    res.json(await buildGithubSyncStatus(rows[0], { userId }));
+  } catch (err) {
+    console.error('[PATCH /creative-spaces/:spaceId/github-sync] failed:', err);
+    res.status(500).json({ error: 'Failed to update GitHub sync settings' });
+  }
+});
+
+app.post('/creative-spaces/:spaceId/github-sync/run', async (req, res) => {
+  const { spaceId } = req.params;
+  const { userId } = req.body ?? {};
+
+  try {
+    const spaceRes = await pool.query('SELECT user_id FROM creative_spaces WHERE id = $1', [spaceId]);
+    const space = spaceRes.rows[0];
+    if (!space) return res.status(404).json({ error: 'Creative space not found' });
+    if (!userId || String(space.user_id) !== String(userId)) {
+      return res.status(403).json({ error: 'You do not have access to this creative space' });
+    }
+
+    const result = await runSpaceSync(spaceId);
+    res.json(result);
+  } catch (err) {
+    console.error('[POST /creative-spaces/:spaceId/github-sync/run] failed:', err);
+    res.status(500).json({ error: 'Failed to run GitHub sync' });
+  }
+});
+
+// GitHub App installation callback — GitHub redirects here after the user
+// installs/approves the App, with `state` carrying back whatever we passed
+// it in buildInstallUrl (`${spaceId}:${userId}`).
+app.get('/api/github/install/callback', async (req, res) => {
+  const installationId = req.query.installation_id ? String(req.query.installation_id) : null;
+  const state = req.query.state ? String(req.query.state) : '';
+  const [spaceId, userId] = state.split(':');
+  const frontendBase = process.env.FRONTEND_BASE_URL || 'http://localhost:8080';
+
+  if (!installationId || !spaceId) {
+    return res.status(400).send('Missing installation_id or state');
+  }
+
+  try {
+    const token = await getInstallationToken(installationId);
+    const reposRes = await fetch('https://api.github.com/installation/repositories', {
+      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
+    });
+    const reposData = await reposRes.json().catch(() => ({}));
+    const repoFullName = reposData.repositories?.[0]?.full_name || null;
+
+    await pool.query(
+      `INSERT INTO github_installations (installation_id, connected_by)
+       VALUES ($1, $2)
+       ON CONFLICT (installation_id) DO UPDATE SET connected_by = EXCLUDED.connected_by`,
+      [installationId, userId || null],
+    );
+
+    await pool.query(
+      `UPDATE creative_spaces
+       SET github_installation_id = $1, github_repo = COALESCE($2, github_repo), updated_at = now()
+       WHERE id = $3 AND user_id = $4`,
+      [installationId, repoFullName, spaceId, userId || null],
+    );
+  } catch (err) {
+    console.error('[GET /api/github/install/callback] failed:', err);
+  }
+
+  res.redirect(`${frontendBase}/creative_space/${spaceId}?github=connected`);
+});
+
+// GitHub App webhook receiver. Signature-verified (not session-authenticated
+// — GitHub is the caller, not a logged-in browser). Acks immediately since
+// GitHub expects a fast response, then processes the event asynchronously.
+app.post('/api/github/webhook', async (req, res) => {
+  const signature = req.headers['x-hub-signature-256'];
+  if (!verifyWebhookSignature(req.rawBody, signature)) {
+    return res.status(401).json({ error: 'Invalid webhook signature' });
+  }
+
+  res.status(202).json({ ok: true });
+
+  const eventName = req.headers['x-github-event'];
+  handleGithubWebhookEvent(eventName, req.body).catch((err) => {
+    console.error('[POST /api/github/webhook] async event handling failed:', err);
+  });
 });
 
 // Create a new chapter
@@ -8655,3 +8947,9 @@ httpServer.listen(port, host, () => {
   console.log(`Crowdly backend listening on http://${host === '0.0.0.0' ? 'localhost' : host}:${port}`);
   console.log(`Crowdly real-time CRDT sync listening on ws://${host === '0.0.0.0' ? 'localhost' : host}:${port}${CRDT_WS_PATH}`);
 });
+
+if (isGithubAppConfigured()) {
+  startGithubPollingLoop();
+} else {
+  console.log('[init] GitHub App not configured (GITHUB_APP_ID/GITHUB_APP_PRIVATE_KEY missing) — GitHub sync disabled');
+}

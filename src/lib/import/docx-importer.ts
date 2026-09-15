@@ -98,7 +98,7 @@ export async function importDocx(file: File): Promise<ImportResult> {
  */
 function countWords(text: string): number {
   return text
-    .replace(/[#*_~`\[\]()]/g, '')
+    .replace(/[#*_~`[\]()]/g, '')
     .split(/\s+/)
     .filter((w) => w.length > 0).length;
 }

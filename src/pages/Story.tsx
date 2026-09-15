@@ -1,11 +1,10 @@
 import React, { useCallback, useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Loader2, Users, Clock, GitBranch, BookOpen, Heart, Download, Search, User, X } from "lucide-react";
+import { Loader2, Users, Clock, GitBranch, BookOpen, FileText, Heart, Download, Search, User, X } from "lucide-react";
 import CrowdlyHeader from "@/components/CrowdlyHeader";
 import CrowdlyFooter from "@/components/CrowdlyFooter";
 import EditableText from "@/components/EditableText";
-import ChapterEditor from "@/components/ChapterEditor";
-import ChapterInteractions from "@/components/ChapterInteractions";
+import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import ParagraphBranchPopover from "@/components/ParagraphBranchPopover";
@@ -70,6 +69,48 @@ type UserSearchResult = {
   last_name?: string;
 };
 
+interface Chapter {
+  chapter_id: string;
+  chapter_title: string;
+  chapter_index?: number;
+  paragraphs: string[];
+  tags?: string[];
+  paragraphTags?: Record<string, string[]>;
+}
+
+interface StoryTitleRevision {
+  id?: string | number;
+  story_title_id?: string;
+  revision_number?: number;
+  new_title: string;
+  created_at: string;
+}
+
+interface ChapterRevision {
+  id?: string | number;
+  chapter_id?: string;
+  chapter_title?: string;
+  revision_number?: number;
+  revision_reason?: string;
+  created_at: string;
+}
+
+interface RawContributionRow {
+  id?: string | number;
+  chapter_id?: string;
+  paragraph_index?: number;
+  revision_number?: number;
+  story_title?: string;
+  chapter_title?: string;
+  new_paragraph?: string;
+  user_email?: string;
+  created_at?: string;
+  likes?: number;
+  dislikes?: number;
+  comments?: number;
+  status?: string;
+}
+
 function collabDisplayName(u: { email?: string; first_name?: string; last_name?: string; nickname?: string }) {
   const name = [u.first_name, u.last_name].filter(Boolean).join(" ");
   return name || u.email || "";
@@ -111,10 +152,10 @@ const RevisionsSection = ({
   chapterRevisionsLoading,
   chapters,
 }: {
-  storyTitleRevisions: any[];
-  chapterRevisions: any[];
+  storyTitleRevisions: StoryTitleRevision[];
+  chapterRevisions: ChapterRevision[];
   chapterRevisionsLoading: boolean;
-  chapters: any[];
+  chapters: Chapter[];
 }) => {
   const [compareChapterId, setCompareChapterId] = React.useState<string>("");
 
@@ -178,7 +219,7 @@ const RevisionsSection = ({
             <div className="text-gray-400 text-sm">No chapters available for comparison.</div>
           ) : (
             <>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center flex-wrap gap-2">
                 <label htmlFor="compare-chapter-select" className="text-sm font-medium">
                   Select chapter:
                 </label>
@@ -186,10 +227,10 @@ const RevisionsSection = ({
                   id="compare-chapter-select"
                   value={compareChapterId}
                   onChange={(e) => setCompareChapterId(e.target.value)}
-                  className="border rounded px-3 py-1.5 text-sm bg-white"
+                  className="border rounded px-3 py-1.5 text-sm bg-white w-full sm:w-auto max-w-full"
                 >
                   <option value="">-- Choose a chapter --</option>
-                  {chapters.map((ch: any) => (
+                  {chapters.map((ch: Chapter) => (
                     <option key={ch.chapter_id} value={ch.chapter_id}>
                       {ch.chapter_title || `Chapter ${ch.chapter_index ?? ''}`}
                     </option>
@@ -254,7 +295,7 @@ const Story = () => {
     if (!cleaned) return 0;
     return cleaned.split(/\s+/).length;
   };
-  const [chapters, setChapters] = useState<any[]>([]);
+  const [chapters, setChapters] = useState<Chapter[]>([]);
   // Inline chapter illustrations (kind='inline_illustration'), keyed for lookup
   // by chapter + paragraph anchor when rendering.
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
@@ -267,7 +308,7 @@ const Story = () => {
   const [storyError, setStoryError] = useState<{ status: number; message: string } | null>(null);
   const [contributors, setContributors] = useState<Contributor[]>([]);
   const [contributorsLoading, setContributorsLoading] = useState(false);
-  const [chapterRevisions, setChapterRevisions] = useState<any[]>([]);
+  const [chapterRevisions, setChapterRevisions] = useState<ChapterRevision[]>([]);
   const [chapterRevisionsLoading, setChapterRevisionsLoading] = useState(false);
   // Active chapter for the "experiencing the story" view
   const [currentChapterId, setCurrentChapterId] = useState<string | null>(null);
@@ -376,7 +417,7 @@ const Story = () => {
 
       const res = await fetch(titleUrl);
       if (!res.ok) {
-        let body: any = {};
+        let body: { error?: string } = {};
         try {
           body = await res.json();
         } catch {
@@ -407,7 +448,7 @@ const Story = () => {
       // Chapters
       const params = new URLSearchParams({ storyTitleId: story_id });
       const chaptersRes = await fetch(`${API_BASE}/chapters?${params.toString()}`);
-      let chaptersData: any[] = [];
+      let chaptersData: Chapter[] = [];
       if (chaptersRes.ok) {
         chaptersData = await chaptersRes.json();
         setChapters(Array.isArray(chaptersData) ? chaptersData : []);
@@ -420,19 +461,19 @@ const Story = () => {
         try {
           setChapterRevisionsLoading(true);
           const revResults = await Promise.all(
-            chaptersData.map(async (ch: any) => {
+            chaptersData.map(async (ch: Chapter) => {
               try {
                 const resp = await fetch(`${API_BASE}/chapter-revisions/${ch.chapter_id}`);
-                if (!resp.ok) return [] as any[];
+                if (!resp.ok) return [] as ChapterRevision[];
                 const data = await resp.json();
-                if (!Array.isArray(data)) return [] as any[];
-                return data.map((rev: any) => ({
+                if (!Array.isArray(data)) return [] as ChapterRevision[];
+                return data.map((rev: ChapterRevision) => ({
                   ...rev,
                   chapter_title: ch.chapter_title,
                 }));
               } catch (err) {
                 console.error('Failed to fetch chapter revisions for', ch.chapter_id, err);
-                return [] as any[];
+                return [] as ChapterRevision[];
               }
             }),
           );
@@ -845,8 +886,16 @@ const Story = () => {
     }
   };
 
+  // Chapters that were never given a custom title (including the old
+  // "New chapter" default before this fell back to "Untitled chapter")
+  // get a visual hint instead of looking like a finished title.
+  const isChapterUntitled = (chapter: Chapter) =>
+    !chapter.chapter_title ||
+    chapter.chapter_title === "Untitled chapter" ||
+    chapter.chapter_title === "New chapter";
+
   // Chapter title inline-edit handlers (contribute mode)
-  const startEditChapterTitle = (chapter: any) => {
+  const startEditChapterTitle = (chapter: Chapter) => {
     setEditingChapterId(chapter.chapter_id);
     setEditingChapterTitle(chapter.chapter_title || "");
   };
@@ -860,7 +909,7 @@ const Story = () => {
     setEditingChapterTitle(e.target.value);
   };
 
-  const saveChapterTitle = async (chapter: any) => {
+  const saveChapterTitle = async (chapter: Chapter) => {
     const newTitle = editingChapterTitle.trim();
     setEditingChapterId(null);
     if (!newTitle || newTitle === chapter.chapter_title) {
@@ -873,7 +922,7 @@ const Story = () => {
 
   const handleChapterTitleKeyDown = async (
     e: React.KeyboardEvent<HTMLInputElement>,
-    chapter: any,
+    chapter: Chapter,
   ) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -885,7 +934,7 @@ const Story = () => {
   };
 
   // Inline paragraph editing handlers
-  const startEditParagraph = (chapter: any, index: number, text: string) => {
+  const startEditParagraph = (chapter: Chapter, index: number, text: string) => {
     setEditingParagraph({ chapterId: chapter.chapter_id, index });
     setEditingParagraphText(text);
   };
@@ -895,7 +944,7 @@ const Story = () => {
     setEditingParagraphText("");
   };
 
-  const saveParagraph = async (chapter: any, index: number) => {
+  const saveParagraph = async (chapter: Chapter, index: number) => {
     const raw = editingParagraphText;
     setEditingParagraph(null);
     // If nothing changed, bail out
@@ -961,7 +1010,7 @@ const Story = () => {
 
   const handleParagraphKeyDown = async (
     e: React.KeyboardEvent<HTMLTextAreaElement>,
-    chapter: any,
+    chapter: Chapter,
     index: number,
   ) => {
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
@@ -998,7 +1047,7 @@ const Story = () => {
       : [""];
 
     await handleCreateChapter({
-      chapter_title: title || "New chapter",
+      chapter_title: title || "Untitled chapter",
       paragraphs,
     });
     resetNewChapterForm();
@@ -1055,13 +1104,13 @@ const Story = () => {
       }
 
       const created = await res.json();
-      toast({ title: "Chapter Created", description: `Added chapter \"${chapter_title}\".` });
+      toast({ title: "Chapter Created", description: `Added chapter "${chapter_title}".` });
 
       // Compute the new chapter order in the UI so that, when requested,
       // the new chapter appears directly below the chapter whose menu
       // was used. Otherwise, append it at the end.
       const current = Array.isArray(chapters) ? chapters : [];
-      let newChapters: any[];
+      let newChapters: Chapter[];
       const withoutCreated = current.filter((ch) => ch.chapter_id !== created.chapter_id);
 
       if (!insertAfterChapterId) {
@@ -1156,7 +1205,7 @@ const Story = () => {
       branchName: string;
       paragraphs: string[];
       language: string;
-      metadata: any;
+      metadata: Record<string, unknown> | null;
     },
   ) => {
     // Compose branch_text as joined array
@@ -1231,7 +1280,7 @@ const Story = () => {
   // Quick inline branch creation: create an empty branch row and show a
   // new editable paragraph directly under the source paragraph.
   const handleQuickCreateBranch = async (
-    chapter: any,
+    chapter: Chapter,
     paragraphIndex: number,
     paragraphText: string,
   ) => {
@@ -1360,11 +1409,11 @@ const Story = () => {
   const canCRUDChapters = !!user;
 
   // --- Story title revisions (fetched from backend) ---
-  const [storyTitleRevisions, setStoryTitleRevisions] = useState<any[]>([]);
+  const [storyTitleRevisions, setStoryTitleRevisions] = useState<StoryTitleRevision[]>([]);
 
   // Reactions and comments state
   const [reactions, setReactions] = useState<{ reaction_type: string; count: number }[]>([]);
-  const [comments, setComments] = useState<any[]>([]);
+  const [comments, setComments] = useState<unknown[]>([]);
   const [newComment, setNewComment] = useState("");
 
   const fetchStoryTitleRevisions = async () => {
@@ -1488,7 +1537,7 @@ const Story = () => {
         if (contribRes.ok) {
           const raw = await contribRes.json();
           const rows = Array.isArray(raw) ? raw : [];
-          const mapped: ContributionRow[] = rows.map((row: any, index: number) => ({
+          const mapped: ContributionRow[] = rows.map((row: RawContributionRow, index: number) => ({
             id: row.id ?? `${row.chapter_id ?? 'ch'}-${row.paragraph_index ?? index}-${row.revision_number ?? ''}`,
             story_title: row.story_title ?? '',
             chapter_title: row.chapter_title ?? '',
@@ -1541,7 +1590,7 @@ const Story = () => {
           return;
         }
         const found = data.some(
-          (item: any) => item.content_type === 'story' && item.content_id === story_id,
+          (item: { content_type?: string; content_id?: string }) => item.content_type === 'story' && item.content_id === story_id,
         );
         setIsFavorite(found);
       } catch (err) {
@@ -1828,7 +1877,7 @@ const Story = () => {
     }
   };
 
-  const updateStorySetting = async (field: string, value: string | boolean) => {
+  const updateStorySetting = async (field: string, value: string | boolean | string[]) => {
     if (!story) return;
     try {
       const res = await fetch(`${API_BASE}/story-titles/${story.story_title_id}/settings`, {
@@ -2073,7 +2122,7 @@ const Story = () => {
                   : "text-gray-600 hover:bg-gray-100"
               }`}
             >
-              <BookOpen size={18} /> Story
+              <BookOpen size={18} /> <span className="hidden sm:inline">Story</span>
             </button>
             <button
               aria-label="Contributions"
@@ -2084,7 +2133,7 @@ const Story = () => {
                   : "text-gray-600 hover:bg-gray-100"
               }`}
             >
-              <BookOpen size={18} /> Contributions
+              <FileText size={18} /> <span className="hidden sm:inline">Contributions</span>
             </button>
             <button
               aria-label="Contributors"
@@ -2095,7 +2144,7 @@ const Story = () => {
                   : "text-gray-600 hover:bg-gray-100"
               }`}
             >
-              <Users size={18} /> Contributors
+              <Users size={18} /> <span className="hidden sm:inline">Contributors</span>
             </button>
             <button
               aria-label="Revisions"
@@ -2106,7 +2155,7 @@ const Story = () => {
                   : "text-gray-600 hover:bg-gray-100"
               }`}
             >
-              <Clock size={18} /> Revisions
+              <Clock size={18} /> <span className="hidden sm:inline">Revisions</span>
             </button>
             <button
               aria-label="Branches"
@@ -2117,7 +2166,7 @@ const Story = () => {
                   : "text-gray-600 hover:bg-gray-100"
               }`}
             >
-              <GitBranch size={18} /> Branches
+              <GitBranch size={18} /> <span className="hidden sm:inline">Branches</span>
             </button>
           </div>
         </nav>
@@ -2466,7 +2515,8 @@ const Story = () => {
                           <input
                             type="text"
                             value={titleInput}
-                            className="border-b border-dashed border-blue-400 px-1 py-0.5 text-2xl font-bold flex-1 focus:outline-none"
+                            className="border border-blue-400 px-2 py-1 text-2xl font-bold flex-1 rounded focus:outline-none"
+                            placeholder="How shall the story be named? Write the story title here"
                             onChange={handleChangeTitle}
                             onKeyDown={handleTitleInputKeyDown}
                             onBlur={handleSaveTitle}
@@ -2478,9 +2528,16 @@ const Story = () => {
                            <button
                              type="button"
                              onClick={handleStartEditTitle}
-                             className="text-2xl font-bold border-b border-dashed border-blue-300 cursor-text px-1 py-0.5 hover:bg-blue-50"
+                             className={cn(
+                               "text-2xl border border-gray-300 hover:border-blue-400 cursor-text px-2 py-1 rounded hover:bg-blue-50",
+                               story.title ? "font-bold" : "italic text-gray-400 font-medium",
+                             )}
                            >
-                             {story.title}
+                             {story.title || (
+                               <EditableText id="story-title-empty-hint">
+                                 How shall the story be named? Write the story title here
+                               </EditableText>
+                             )}
                            </button>
                          </>
                        )}
@@ -2606,7 +2663,7 @@ const Story = () => {
                         </span>
                         <TagInput
                           tags={story.tags || []}
-                          onChange={(newTags) => updateStorySetting('tags', newTags as any)}
+                          onChange={(newTags) => updateStorySetting('tags', newTags)}
                           className="mt-1 border border-gray-200 rounded-md p-2"
                         />
                       </div>
@@ -2811,27 +2868,35 @@ const Story = () => {
                             ) : (
                               <button
                                 type="button"
-                                className="text-left text-lg font-semibold cursor-text flex-1 border-b border-dashed border-transparent hover:border-blue-300 px-1 py-0.5"
+                                className={cn(
+                                  "text-left text-lg cursor-text flex-1 border-b border-dashed border-gray-300 hover:border-blue-400 px-1 py-0.5 rounded-t",
+                                  isChapterUntitled(chapter) ? "italic text-gray-500 font-medium" : "font-semibold",
+                                )}
                                 onClick={() => startEditChapterTitle(chapter)}
                                 onDoubleClick={() =>
                                   navigate("/story/" + story.story_title_id + "/chapter/" + chapter.chapter_id)
                                 }
                               >
-                                {chapter.chapter_title}
+                                {chapter.chapter_title || "Untitled chapter"}
+                                {isChapterUntitled(chapter) && (
+                                  <span className="ml-2 text-xs font-normal not-italic text-gray-400">
+                                    <EditableText id="story-chapter-untitled-hint">(click to add a title)</EditableText>
+                                  </span>
+                                )}
                               </button>
                             )}
-                            {/* Hover menu for chapter actions */}
-                            <div className="opacity-0 group-hover/chapter:opacity-100 transition-opacity flex items-center gap-1 text-xs text-gray-500">
+                            {/* Chapter actions */}
+                            <div className="flex items-center gap-1 text-xs text-gray-500">
                               <button
                                 type="button"
-                                className="px-1 py-0.5 rounded hover:bg-gray-100"
+                                className="px-1 py-0.5 rounded border hover:bg-gray-100"
                                 onClick={() => startEditChapterTitle(chapter)}
                               >
-                                Rename
+                                <EditableText id="story-chapter-rename-btn">Rename</EditableText>
                               </button>
                               <button
                                 type="button"
-                                className="px-1 py-0.5 rounded hover:bg-gray-100"
+                                className="px-1 py-0.5 rounded border hover:bg-gray-100"
                                 onClick={() => {
                                   // Open the inline add-chapter editor and
                                   // remember that the new chapter should be
@@ -2840,18 +2905,18 @@ const Story = () => {
                                   setAddChapterMode(true);
                                 }}
                               >
-                                Add another chapter
+                                <EditableText id="story-chapter-add-another-btn">Add another chapter</EditableText>
                               </button>
                               <button
                                 type="button"
-                                className="px-1 py-0.5 rounded hover:bg-red-50 text-red-600"
+                                className="px-1 py-0.5 rounded border hover:bg-red-50 text-red-600"
                                 onClick={() => {
                                   if (window.confirm("Delete this chapter? This cannot be undone.")) {
                                     handleDeleteChapter(chapter.chapter_id);
                                   }
                                 }}
                               >
-                                Delete
+                                <EditableText id="story-chapter-delete-btn">Delete</EditableText>
                               </button>
                             </div>
                           </div>
@@ -2875,37 +2940,35 @@ const Story = () => {
                               <div key={idx} className="mb-4">
                                 <div className="relative group/paragraph mb-2">
                                   <div className="flex items-start gap-2">
-                                    {editingParagraph &&
-                                    editingParagraph.chapterId === chapter.chapter_id &&
-                                    editingParagraph.index === idx ? (
-                                      <textarea
-                                        className="flex-1 border-b border-dashed border-blue-400 px-1 py-0.5 text-sm leading-relaxed focus:outline-none resize-none bg-blue-50/40 rounded"
-                                        value={editingParagraphText}
-                                        onChange={(e) => setEditingParagraphText(e.target.value)}
-                                        onBlur={() => saveParagraph(chapter, idx)}
-                                        onKeyDown={(e) => handleParagraphKeyDown(e, chapter, idx)}
-                                        rows={40}
-                                      />
-                                    ) : (
-                                      <button
-                                        type="button"
-                                        className="flex-1 text-left cursor-text border-b border-dashed border-transparent hover:border-blue-300 px-1 py-0.5 rounded"
-                                        onClick={() => startEditParagraph(chapter, idx, paragraph)}
-                                      >
-                                        {paragraph}
-                                      </button>
-                                    )}
+                                    {(() => {
+                                      const isActive =
+                                        editingParagraph?.chapterId === chapter.chapter_id &&
+                                        editingParagraph?.index === idx;
+                                      const value = isActive ? editingParagraphText : paragraph;
+                                      return (
+                                        <textarea
+                                          className="flex-1 border border-gray-300 focus:border-blue-400 px-2 py-1.5 text-sm leading-relaxed focus:outline-none resize-y rounded bg-white shadow-sm"
+                                          value={value}
+                                          placeholder="Type the chapter text here..."
+                                          onFocus={() => startEditParagraph(chapter, idx, paragraph)}
+                                          onChange={(e) => setEditingParagraphText(e.target.value)}
+                                          onBlur={() => saveParagraph(chapter, idx)}
+                                          onKeyDown={(e) => handleParagraphKeyDown(e, chapter, idx)}
+                                          rows={Math.min(20, Math.max(3, Math.ceil(value.length / 90) + 1))}
+                                        />
+                                      );
+                                    })()}
                                     <button
-                                      className="opacity-0 group-hover/paragraph:opacity-100 transition-opacity border rounded px-2 py-1 text-xs font-medium flex items-center gap-1 bg-white hover:bg-gray-100 shadow hover:shadow-md"
+                                      className="border rounded px-2 py-1 text-xs font-medium flex items-center gap-1 bg-white hover:bg-gray-100 shadow-sm hover:shadow-md"
                                       type="button"
                                       onClick={() => handleQuickCreateBranch(chapter, idx, paragraph)}
                                     >
                                       <svg width="16" height="16" stroke="currentColor" fill="none" viewBox="0 0 24 24"><path strokeWidth="2" d="M6 3v6a6 6 0 006 6h6"></path><path strokeWidth="2" d="M18 21v-6a6 6 0 00-6-6H6"></path></svg>
-                                      Create Branch
+                                      <EditableText id="story-branch-create-btn">Create Branch</EditableText>
                                     </button>
                                     {isOwner && (
                                       <button
-                                        className="opacity-0 group-hover/paragraph:opacity-100 transition-opacity border rounded px-2 py-1 text-xs font-medium flex items-center gap-1 bg-white hover:bg-gray-100 shadow hover:shadow-md"
+                                        className="border rounded px-2 py-1 text-xs font-medium flex items-center gap-1 bg-white hover:bg-gray-100 shadow-sm hover:shadow-md"
                                         type="button"
                                         onClick={() =>
                                           setIllustrationTarget((prev) =>
@@ -2967,31 +3030,19 @@ const Story = () => {
                                       className="relative group/paragraph ml-4 border-l border-dashed border-blue-200 pl-2 mb-2"
                                     >
                                       <div className="flex items-start gap-2">
-                                        {editingBranchId === b.id ? (
-                                          <textarea
-                                            className="flex-1 border-b border-dashed border-blue-400 px-1 py-0.5 text-sm leading-relaxed focus:outline-none resize-none bg-blue-50/40 rounded"
-                                            placeholder="This is new branch you can immediately type your text here"
-                                            value={b.text}
-                                            onChange={(e) =>
-                                              handleInlineBranchTextChange(b.id, e.target.value)
-                                            }
-                                            onBlur={() => handleInlineBranchBlur(b.id)}
-                                            rows={40}
-                                          />
-                                        ) : (
-                                          <button
-                                            type="button"
-                                            className="flex-1 text-left cursor-text border-b border-dashed border-transparent hover:border-blue-300 px-1 py-0.5 rounded text-sm leading-relaxed bg-blue-50/40"
-                                            onClick={() => setEditingBranchId(b.id)}
-                                          >
-                                            {b.text || (
-                                              <span className="text-gray-400 italic">
-                                                This is new branch you can immediately type your text here
-                                              </span>
-                                            )}
-                                          </button>
-                                        )}
-                                        <div className="flex flex-col gap-1 text-xs opacity-0 group-hover/paragraph:opacity-100 transition-opacity">
+                                        <textarea
+                                          className="flex-1 border border-blue-200 focus:border-blue-400 px-2 py-1.5 text-sm leading-relaxed focus:outline-none resize-y rounded bg-blue-50/40 shadow-sm"
+                                          placeholder="Type the branch text here..."
+                                          value={b.text}
+                                          autoFocus={editingBranchId === b.id}
+                                          onFocus={() => setEditingBranchId(b.id)}
+                                          onChange={(e) =>
+                                            handleInlineBranchTextChange(b.id, e.target.value)
+                                          }
+                                          onBlur={() => handleInlineBranchBlur(b.id)}
+                                          rows={Math.min(20, Math.max(3, Math.ceil(b.text.length / 90) + 1))}
+                                        />
+                                        <div className="flex flex-col gap-1 text-xs">
                                           <button
                                             type="button"
                                             className="px-2 py-1 rounded border hover:bg-gray-50 border-gray-300"
@@ -3003,7 +3054,7 @@ const Story = () => {
                                               )
                                             }
                                           >
-                                            Create Branch
+                                            <EditableText id="story-branch-create-btn">Create Branch</EditableText>
                                           </button>
                                           <ParagraphBranchPopover
                                             trigger={
@@ -3011,7 +3062,7 @@ const Story = () => {
                                                 type="button"
                                                 className="px-2 py-1 rounded border hover:bg-gray-50 border-gray-300"
                                               >
-                                                Configure branch
+                                                <EditableText id="story-branch-configure-btn">Configure branch</EditableText>
                                               </button>
                                             }
                                             onCreateBranch={({ branchName, paragraphs }) =>
@@ -3034,37 +3085,35 @@ const Story = () => {
                             <div className="mb-4">
                               <div className="relative group/paragraph mb-2">
                                 <div className="flex items-start gap-2">
-                                  {editingParagraph &&
-                                  editingParagraph.chapterId === chapter.chapter_id &&
-                                  editingParagraph.index === 0 ? (
-                                    <textarea
-                                      className="flex-1 border-b border-dashed border-blue-400 px-1 py-0.5 text-sm leading-relaxed focus:outline-none resize-none bg-blue-50/40 rounded"
-                                      value={editingParagraphText}
-                                      onChange={(e) => setEditingParagraphText(e.target.value)}
-                                      onBlur={() => saveParagraph({ ...chapter, paragraphs: [""] }, 0)}
-                                      onKeyDown={(e) =>
-                                        handleParagraphKeyDown(e, { ...chapter, paragraphs: [""] }, 0)
-                                      }
-                                      rows={40}
-                                    />
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      className="flex-1 text-left cursor-text border-b border-dashed border-transparent hover:border-blue-300 px-1 py-0.5 rounded text-sm text-gray-400"
-                                      onClick={() =>
-                                        startEditParagraph({ ...chapter, paragraphs: [""] }, 0, "")
-                                      }
-                                    >
-                                      Start writing this chapter...
-                                    </button>
-                                  )}
+                                  {(() => {
+                                    const isActive =
+                                      editingParagraph?.chapterId === chapter.chapter_id &&
+                                      editingParagraph?.index === 0;
+                                    const value = isActive ? editingParagraphText : "";
+                                    return (
+                                      <textarea
+                                        className="flex-1 border border-gray-300 focus:border-blue-400 px-2 py-1.5 text-sm leading-relaxed focus:outline-none resize-y rounded bg-white shadow-sm"
+                                        value={value}
+                                        placeholder="Type the chapter text here..."
+                                        onFocus={() =>
+                                          startEditParagraph({ ...chapter, paragraphs: [""] }, 0, "")
+                                        }
+                                        onChange={(e) => setEditingParagraphText(e.target.value)}
+                                        onBlur={() => saveParagraph({ ...chapter, paragraphs: [""] }, 0)}
+                                        onKeyDown={(e) =>
+                                          handleParagraphKeyDown(e, { ...chapter, paragraphs: [""] }, 0)
+                                        }
+                                        rows={3}
+                                      />
+                                    );
+                                  })()}
                                   <button
-                                    className="opacity-0 group-hover/paragraph:opacity-100 transition-opacity border rounded px-2 py-1 text-xs font-medium flex items-center gap-1 bg-white hover:bg-gray-100 shadow hover:shadow-md"
+                                    className="border rounded px-2 py-1 text-xs font-medium flex items-center gap-1 bg-white hover:bg-gray-100 shadow-sm hover:shadow-md"
                                     type="button"
                                     onClick={() => handleQuickCreateBranch(chapter, 0, "")}
                                   >
                                     <svg width="16" height="16" stroke="currentColor" fill="none" viewBox="0 0 24 24"><path strokeWidth="2" d="M6 3v6a6 6 0 006 6h6"></path><path strokeWidth="2" d="M18 21v-6a6 6 0 00-6-6H6"></path></svg>
-                                    Create Branch
+                                    <EditableText id="story-branch-create-btn">Create Branch</EditableText>
                                   </button>
                                 </div>
                               </div>
@@ -3082,31 +3131,19 @@ const Story = () => {
                                     className="relative group/paragraph ml-4 border-l border-dashed border-blue-200 pl-2 mb-2"
                                   >
                                     <div className="flex items-start gap-2">
-                                      {editingBranchId === b.id ? (
-                                        <textarea
-                                          className="flex-1 border-b border-dashed border-blue-400 px-1 py-0.5 text-sm leading-relaxed focus:outline-none resize-none bg-blue-50/40 rounded"
-                                          placeholder="This is new branch you can immediately type your text here. Later you can also configure it, should you want that"
-                                          value={b.text}
-                                          onChange={(e) =>
-                                            handleInlineBranchTextChange(b.id, e.target.value)
-                                          }
-                                          onBlur={() => handleInlineBranchBlur(b.id)}
-                                          rows={40}
-                                        />
-                                      ) : (
-                                        <button
-                                          type="button"
-                                          className="flex-1 text-left cursor-text border-b border-dashed border-transparent hover:border-blue-300 px-1 py-0.5 rounded text-sm leading-relaxed bg-blue-50/40"
-                                          onClick={() => setEditingBranchId(b.id)}
-                                        >
-                                          {b.text || (
-                                            <span className="text-gray-400 italic">
-                                              This is new branch you can immediately type your text here. Later you can also configure it, should you want that
-                                            </span>
-                                          )}
-                                        </button>
-                                      )}
-                                      <div className="flex flex-col gap-1 text-xs opacity-0 group-hover/paragraph:opacity-100 transition-opacity">
+                                      <textarea
+                                        className="flex-1 border border-blue-200 focus:border-blue-400 px-2 py-1.5 text-sm leading-relaxed focus:outline-none resize-y rounded bg-blue-50/40 shadow-sm"
+                                        placeholder="Type the branch text here. You can configure it further below."
+                                        value={b.text}
+                                        autoFocus={editingBranchId === b.id}
+                                        onFocus={() => setEditingBranchId(b.id)}
+                                        onChange={(e) =>
+                                          handleInlineBranchTextChange(b.id, e.target.value)
+                                        }
+                                        onBlur={() => handleInlineBranchBlur(b.id)}
+                                        rows={Math.min(20, Math.max(3, Math.ceil(b.text.length / 90) + 1))}
+                                      />
+                                      <div className="flex flex-col gap-1 text-xs">
                                         <button
                                           type="button"
                                           className="px-2 py-1 rounded border hover:bg-gray-50 border-gray-300"
@@ -3118,7 +3155,7 @@ const Story = () => {
                                             )
                                           }
                                         >
-                                          Create Branch
+                                          <EditableText id="story-branch-create-btn">Create Branch</EditableText>
                                         </button>
                                         <ParagraphBranchPopover
                                           trigger={
@@ -3126,7 +3163,7 @@ const Story = () => {
                                               type="button"
                                               className="px-2 py-1 rounded border hover:bg-gray-50 border-gray-300"
                                             >
-                                              Configure branch
+                                              <EditableText id="story-branch-configure-btn">Configure branch</EditableText>
                                             </button>
                                           }
                                           onCreateBranch={({ branchName, paragraphs }) =>
@@ -3167,7 +3204,7 @@ const Story = () => {
                               placeholder="Chapter text (use blank lines to separate paragraphs)"
                               value={newChapterBody}
                               onChange={(e) => setNewChapterBody(e.target.value)}
-                              rows={40}
+                              rows={6}
                             />
                           </div>
                         ) : (
@@ -3179,14 +3216,14 @@ const Story = () => {
                               setAddChapterMode(true);
                             }}
                           >
-                            + Add chapter
+                            <EditableText id="story-chapter-add-btn">+ Add chapter</EditableText>
                           </button>
                         )}
                       </div>
                     </>
                   ) : (
                     <div className="my-6 p-4 rounded bg-gray-50 text-center text-gray-500">
-                      Please log in to add or edit chapters.
+                      <EditableText id="story-chapters-login-required">Please log in to add or edit chapters.</EditableText>
                     </div>
                   )}
                 </div>

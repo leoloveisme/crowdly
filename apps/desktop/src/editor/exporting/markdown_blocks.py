@@ -6,6 +6,7 @@ structure of headings and paragraphs for export formats.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from enum import Enum, auto
 from typing import List
@@ -23,6 +24,9 @@ class Block:
     level: int | None = None  # used for headings only
 
 
+_HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
+
+
 def parse_markdown_to_blocks(markdown: str) -> List[Block]:
     """Parse *markdown* into a list of :class:`Block` objects.
 
@@ -33,7 +37,17 @@ def parse_markdown_to_blocks(markdown: str) -> List[Block]:
 
     Lists and inline formatting are not interpreted; they are preserved as
     plain text so exporters can still emit readable output.
+
+    Unlike the HTML-based exporters (PDF/EPUB), this parser has no concept
+    of ``<!-- ... -->`` comments, so without stripping them here, author
+    notes and archival sections wrapped in comments would otherwise leak
+    into DOCX/ODT/Fountain/FDX output as visible paragraph text. Only
+    well-formed (closed) comments are removed -- an unclosed ``<!--`` has
+    no matching ``-->`` for the non-greedy pattern to match, so it is left
+    as visible text rather than risking swallowing real content.
     """
+
+    markdown = _HTML_COMMENT_RE.sub("", markdown or "")
 
     blocks: List[Block] = []
     buffer: list[str] = []

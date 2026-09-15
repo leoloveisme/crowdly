@@ -33,7 +33,7 @@ export type ScreenplayBlock = {
   block_index: number;
   block_type: string;
   text: string;
-  metadata: any | null;
+  metadata: Record<string, unknown> | null;
 };
 
 interface ScreenplayTemplateProps {
@@ -122,13 +122,16 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [accessError, setAccessError] = useState<string | null>(null);
 
   const canEdit = !!user;
 
   const loadScreenplayStructure = async (id: string) => {
     setLoading(true);
+    setAccessError(null);
     try {
-      const metaRes = await fetch(`${API_BASE}/screenplays/${id}`);
+      const userIdParam = user?.id ? `&userId=${encodeURIComponent(user.id)}` : "";
+      const metaRes = await fetch(`${API_BASE}/screenplays/${id}?userId=${user?.id ?? ""}`);
       if (metaRes.ok) {
         const meta = await metaRes.json();
         setTitle(meta.title ?? "Untitled Screenplay");
@@ -136,7 +139,7 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
       }
 
       const res = await fetch(
-        `${API_BASE}/screenplays/${id}/scenes?includeBlocks=true`,
+        `${API_BASE}/screenplays/${id}/scenes?includeBlocks=true${userIdParam}`,
       );
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -144,6 +147,10 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
           status: res.status,
           body,
         });
+        if (res.status === 403) {
+          setAccessError(body.error || "This screenplay is private.");
+          return;
+        }
         toast({
           title: "Error",
           description: body.error || "Failed to load screenplay structure",
@@ -249,7 +256,8 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
           return;
         }
         const found = data.some(
-          (item: any) => item.content_type === 'screenplay' && item.content_id === screenplayId,
+          (item: { content_type?: string; content_id?: string }) =>
+            item.content_type === 'screenplay' && item.content_id === screenplayId,
         );
         setIsFavorite(found);
       } catch (err) {
@@ -884,6 +892,14 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
     return (
       <div className="border rounded-lg bg-white p-4 text-sm text-gray-600">
         <EditableText id="screenplay-login-required">You must be logged in to create a screenplay.</EditableText>
+      </div>
+    );
+  }
+
+  if (accessError) {
+    return (
+      <div className="border rounded-lg bg-white p-4 text-sm text-gray-600">
+        {accessError}
       </div>
     );
   }

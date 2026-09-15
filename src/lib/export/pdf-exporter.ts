@@ -112,7 +112,7 @@ export async function exportToPdf(
       const pageContentHeight = pageHeight - margins.top - margins.bottom;
 
       let heightLeft = imgHeight;
-      let position = margins.top;
+      const position = margins.top;
       let pageNumber = includeTitlePage ? 1 : 0;
 
       // Add the image to PDF, creating new pages as needed

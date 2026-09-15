@@ -13,8 +13,14 @@ import { FileAudio, Video, Image } from "lucide-react";
  *  - onSelectChapter: Callback to switch the active chapter when user clicks
  *    Previous / Next or picks a chapter from the list.
  */
+interface StoryChapter {
+  chapter_id: string;
+  chapter_title?: string;
+  paragraphs?: string[];
+}
+
 interface StoryContentTypeSelectorProps {
-  chapters: any[];
+  chapters: StoryChapter[];
   currentChapterIndex: number;
   onSelectChapter: (index: number) => void;
 }
