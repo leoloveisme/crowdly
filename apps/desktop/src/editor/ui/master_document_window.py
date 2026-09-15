@@ -2388,6 +2388,29 @@ class MasterDocumentWindow(QMainWindow):
             return content.rstrip("\n") + ("\n-->" * (open_count - close_count))
         return content
 
+    @staticmethod
+    def _sanitize_html_comment_hyphens(content: str) -> str:
+        """Replace "--" runs inside <!-- --> comment bodies with an em dash.
+
+        XML forbids "--" anywhere inside a comment body (only immediately
+        before the closing "-->" is allowed), so a literal "---" divider or
+        similar inside an author-note comment makes the exported HTML
+        invalid XML. EPUB export parses the combined HTML with lxml's
+        strict XML parser (ebooklib's EpubHtml.get_body_content()) and
+        silently returns an *empty* body on any parse failure -- so a
+        single stray "--" anywhere in the document can blank out an entire
+        exported book with no error shown. Fixing it here, after fences and
+        comments are already balanced, keeps each note's meaning intact
+        while making the comment valid XML.
+        """
+
+        def _fix_comment(match: "re.Match[str]") -> str:
+            body = match.group(1)
+            fixed = re.sub(r"-{2,}", "—", body)
+            return f"<!--{fixed}-->"
+
+        return re.sub(r"<!--(.*?)-->", _fix_comment, content, flags=re.DOTALL)
+
     def _resolve_chapter_heading(
         self,
         title: str,
@@ -2588,6 +2611,7 @@ class MasterDocumentWindow(QMainWindow):
             )
             content = self._balance_code_fences(content)
             content = self._balance_html_comments(content)
+            content = self._sanitize_html_comment_hyphens(content)
             if heading:
                 parts.append(f"# {heading}")
                 parts.append("")
