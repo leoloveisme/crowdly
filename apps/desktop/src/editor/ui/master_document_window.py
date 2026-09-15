@@ -734,6 +734,12 @@ class IncludeContainerWidget(QWidget):
 
         # For read-only containers, always reflect the current file content.
         if not self._editable:
+            if not file_content and container_content:
+                # A transient/partial read (e.g. mid iCloud sync) must never
+                # silently blank out content that was already loaded, even
+                # though the mtime changed. Mirrors the equivalent guard in
+                # `_two_way_merge_text` used by editable containers.
+                return False
             self._content.setPlainText(file_content)
             self._master_base_content = file_content
             self._master_content_hash = file_hash
@@ -893,10 +899,17 @@ class IncludeContainerWidget(QWidget):
     def _start_internal_drag(self) -> None:
         """Ask the parent QListWidget to start an InternalMove drag."""
 
-        parent = self.parent()
         from PySide6.QtWidgets import QListWidget  # local import
 
-        if not isinstance(parent, QListWidget):
+        # `QListWidget.setItemWidget()` reparents this widget to the list's
+        # internal viewport, not to the QListWidget itself, so we must walk
+        # up the ancestor chain to find the actual list widget rather than
+        # checking `self.parent()` directly.
+        parent = self.parentWidget()
+        while parent is not None and not isinstance(parent, QListWidget):
+            parent = parent.parentWidget()
+
+        if parent is None:
             return
 
         # Find the row that hosts this widget.
@@ -914,9 +927,31 @@ class IncludeContainerWidget(QWidget):
             return
 
         try:
+            from PySide6.QtGui import QDrag
+
             item = parent.item(row)
             parent.setCurrentItem(item)
-            parent.startDrag(Qt.DropAction.MoveAction)
+
+            model = parent.model()
+            index = parent.indexFromItem(item)
+            if model is None or not index.isValid():
+                return
+            mime = model.mimeData([index])
+            if mime is None:
+                return
+
+            # Build the QDrag ourselves rather than calling the protected
+            # QAbstractItemView.startDrag(): that method relies on internal
+            # press-state bookkeeping (e.g. the last position the *view's
+            # own* mousePressEvent recorded) which was never populated here,
+            # since the press actually happened on a header child widget.
+            # Constructing the drag directly from the model's mime data is
+            # the standard, state-independent way to drive a drag-handle
+            # reorder, and still lets the list's own InternalMove drop
+            # handling (dropEvent/dragMoveEvent) take over from here.
+            drag = QDrag(parent)
+            drag.setMimeData(mime)
+            drag.exec(Qt.DropAction.MoveAction)
         except Exception:
             return
 
