@@ -966,7 +966,18 @@ class IncludeContainerWidget(QWidget):
             return
 
         try:
-            storage.write_text(self._file_path, self._content.toPlainText())
+            content = self._content.toPlainText()
+            storage.write_text(self._file_path, content)
+            # Keep the change-detection bookkeeping in sync with our own
+            # write, mirroring what check_and_merge_file_changes() does on
+            # its write-back. Without this, the next file-watch poll sees
+            # the mtime we just bumped, mistakes this routine save for an
+            # external edit, and runs the two-way merge against a slightly
+            # stale on-disk snapshot -- duplicating whatever was just typed
+            # and resetting the cursor via setPlainText().
+            self._master_base_content = content
+            self._master_content_hash = self._compute_content_hash(content)
+            self._last_file_mtime = self._file_path.stat().st_mtime
         except Exception:
             # Best-effort only; never let write failures break the UI.
             pass
@@ -2325,6 +2336,27 @@ class MasterDocumentWindow(QMainWindow):
             rest = rest[1:]
         return leading + rest
 
+    @staticmethod
+    def _balance_code_fences(content: str) -> str:
+        """Ensure *content* has a closing ``` for every opening one.
+
+        A container's own Markdown can contain an unclosed fenced code block
+        (e.g. an archival "Reference" section pasted in without its closer).
+        Once multiple containers' content is concatenated for export, an
+        unclosed fence in one container would otherwise swallow every
+        following container's heading/text into a single literal code
+        block. Closing it here keeps that containment local to the
+        container it came from.
+        """
+
+        in_fence = False
+        for line in content.split("\n"):
+            if line.strip().startswith("```"):
+                in_fence = not in_fence
+        if in_fence:
+            return content.rstrip("\n") + "\n```"
+        return content
+
     def _resolve_chapter_heading(
         self,
         title: str,
@@ -2523,6 +2555,7 @@ class MasterDocumentWindow(QMainWindow):
             heading, content = self._resolve_chapter_heading(
                 title, content, widget.file_path, title_edited_at
             )
+            content = self._balance_code_fences(content)
             if heading:
                 parts.append(f"# {heading}")
                 parts.append("")
