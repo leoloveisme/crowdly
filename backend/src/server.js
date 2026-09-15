@@ -26,6 +26,7 @@ import messagingRouter, {
 } from './messaging.js';
 import galleryRouter, { ensureStoryGalleryImagesTable, UPLOADS_ROOT } from './gallery.js';
 import comicsRouter, { ensureComicTables } from './comics.js';
+import creativeSpaceFilesRouter from './creativeSpaceFiles.js';
 import { eventsHandler } from './events.js';
 import path from 'path';
 import http from 'http';
@@ -96,6 +97,10 @@ app.get('/api/events', requireAuth, eventsHandler);
 // same as the rest of the story routes below — not under /api.
 app.use(galleryRouter);
 app.use(comicsRouter);
+// Not statically served (unlike /uploads below) — Space items can be
+// private, so content is only ever handed out through the authenticated
+// routes in creativeSpaceFiles.js.
+app.use(creativeSpaceFilesRouter);
 // Uploaded gallery/comic-page images, served statically for both the dev proxy and prod.
 app.use('/uploads', express.static(UPLOADS_ROOT));
 
@@ -785,6 +790,14 @@ async function ensureCreativeSpaceItemsTable() {
     );
     await pool.query(
       'CREATE INDEX IF NOT EXISTS creative_space_items_space_updated_idx ON creative_space_items(space_id, updated_at)',
+    );
+
+    // Real file content storage (see creativeSpaceFiles.js) — the Space
+    // sync protocol only ever exchanged metadata (relative_path/size/hash),
+    // so this column tracks whether/where actual bytes have since been
+    // uploaded or edited through the web UI, separately from that manifest.
+    await pool.query(
+      'ALTER TABLE creative_space_items ADD COLUMN IF NOT EXISTS storage_path text',
     );
 
     console.log('[init] ensured creative_space_items table exists');
@@ -2523,8 +2536,41 @@ app.get('/screenplays/most-popular', async (req, res) => {
 });
 
 // Get a single screenplay by ID (no visibility rules yet; keep simple for v1)
+// Mirrors the story_title visibility gate at GET /story-titles/:storyTitleId
+// (creator/screenplay_access always allowed; unlisted/private otherwise
+// blocked for everyone else) — screenplays had no such check at all before
+// this, so a "private" screenplay was viewable by anyone who had its id.
+async function checkScreenplayAccess(screenplay, userId) {
+  const visibility = screenplay.visibility ?? 'public';
+  if (visibility === 'public') return { allowed: true };
+
+  if (userId && screenplay.creator_id === userId) return { allowed: true };
+
+  if (userId) {
+    try {
+      const access = await pool.query(
+        'SELECT 1 FROM screenplay_access WHERE screenplay_id = $1 AND user_id = $2 LIMIT 1',
+        [screenplay.screenplay_id, userId],
+      );
+      if (access.rows.length > 0) return { allowed: true };
+    } catch {}
+  }
+
+  if (visibility === 'unlisted') {
+    return {
+      allowed: false,
+      message: 'This screenplay is unlisted. You need an invitation from the owner to view it.',
+    };
+  }
+  return {
+    allowed: false,
+    message: 'This screenplay is private. Please log in or ask the owner for access.',
+  };
+}
+
 app.get('/screenplays/:screenplayId', async (req, res) => {
   const { screenplayId } = req.params;
+  const userId = req.query.userId ?? null;
   try {
     const { rows } = await pool.query(
       'SELECT * FROM screenplay_title WHERE screenplay_id = $1',
@@ -2533,7 +2579,12 @@ app.get('/screenplays/:screenplayId', async (req, res) => {
     if (rows.length === 0) {
       return res.status(404).json({ error: 'Screenplay not found' });
     }
-    res.json(rows[0]);
+    const screenplay = rows[0];
+    const access = await checkScreenplayAccess(screenplay, userId);
+    if (!access.allowed) {
+      return res.status(403).json({ error: access.message });
+    }
+    res.json(screenplay);
   } catch (err) {
     console.error('[GET /screenplays/:screenplayId] failed:', err);
     res.status(500).json({ error: 'Failed to fetch screenplay' });
@@ -2621,9 +2672,22 @@ app.delete('/screenplays/:screenplayId', async (req, res) => {
 // Get scenes + (optionally) blocks for a screenplay
 app.get('/screenplays/:screenplayId/scenes', async (req, res) => {
   const { screenplayId } = req.params;
+  const userId = req.query.userId ?? null;
   const includeBlocks = req.query.includeBlocks === 'true';
 
   try {
+    const titleRes = await pool.query(
+      'SELECT screenplay_id, creator_id, visibility FROM screenplay_title WHERE screenplay_id = $1',
+      [screenplayId],
+    );
+    if (titleRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Screenplay not found' });
+    }
+    const access = await checkScreenplayAccess(titleRes.rows[0], userId);
+    if (!access.allowed) {
+      return res.status(403).json({ error: access.message });
+    }
+
     const { rows: scenes } = await pool.query(
       'SELECT * FROM screenplay_scene WHERE screenplay_id = $1 ORDER BY scene_index ASC',
       [screenplayId],
@@ -4862,6 +4926,46 @@ app.get('/creative-spaces/:spaceId/items', async (req, res) => {
   } catch (err) {
     console.error('[GET /creative-spaces/:spaceId/items] failed:', err);
     res.status(500).json({ error: 'Failed to list creative space items' });
+  }
+});
+
+// Stories/screenplays whose creative_space_id points at this Space — the
+// Space page has no other way to reach the structured content that was
+// synced/imported into it (story_attachments/story_spaces only ever get
+// read from the story side, never from the Space side).
+app.get('/creative-spaces/:spaceId/content-items', async (req, res) => {
+  const { spaceId } = req.params;
+  const userId = req.query.userId ?? null;
+
+  if (!spaceId) {
+    return res.status(400).json({ error: 'spaceId is required' });
+  }
+
+  try {
+    const spaceRes = await pool.query('SELECT user_id, visibility FROM creative_spaces WHERE id = $1', [spaceId]);
+    if (spaceRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Creative space not found' });
+    }
+    const space = spaceRes.rows[0];
+    const isOwner = userId && String(space.user_id) === String(userId);
+    if (!isOwner && String(space.visibility || 'private').toLowerCase() !== 'public') {
+      return res.status(403).json({ error: 'You do not have access to this creative space.' });
+    }
+
+    const storyFilter = isOwner ? '' : " AND visibility = 'public' AND published = true";
+    const { rows: stories } = await pool.query(
+      `SELECT story_title_id, title, visibility, published FROM story_title WHERE creative_space_id = $1${storyFilter} ORDER BY title`,
+      [spaceId],
+    );
+    const { rows: screenplays } = await pool.query(
+      `SELECT screenplay_id, title, visibility, published FROM screenplay_title WHERE creative_space_id = $1${storyFilter} ORDER BY title`,
+      [spaceId],
+    );
+
+    res.json({ stories, screenplays });
+  } catch (err) {
+    console.error('[GET /creative-spaces/:spaceId/content-items] failed:', err);
+    res.status(500).json({ error: 'Failed to load stories/screenplays for this creative space' });
   }
 });
 

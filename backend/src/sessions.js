@@ -49,15 +49,28 @@ export async function destroySession(token) {
 // should never make the request that triggered it slower).
 export async function getSessionUser(token) {
   if (!token) return null;
-  const { rows } = await pool.query(
-    `SELECT s.token, s.user_id, u.email, u.is_banned
-     FROM sessions s
-     JOIN local_users u ON u.id = s.user_id
-     WHERE s.token = $1
-       AND s.expires_at > now()
-       AND s.last_used_at > now() - interval '${IDLE_TTL}'`,
-    [token],
-  );
+  let rows;
+  try {
+    ({ rows } = await pool.query(
+      `SELECT s.token, s.user_id, u.email, u.is_banned
+       FROM sessions s
+       JOIN local_users u ON u.id = s.user_id
+       WHERE s.token = $1
+         AND s.expires_at > now()
+         AND s.last_used_at > now() - interval '${IDLE_TTL}'`,
+      [token],
+    ));
+  } catch (err) {
+    // A malformed cookie value (not a valid uuid, truncated, tampered with,
+    // etc.) makes Postgres reject the query outright — that's just "not a
+    // valid session", not a server error. Without this catch, the rejected
+    // promise was unhandled all the way up through requireAuth and crashed
+    // the whole process on any garbage session cookie.
+    if (err?.code !== '22P02') {
+      console.error('[getSessionUser] query failed:', err);
+    }
+    return null;
+  }
   if (rows.length === 0) return null;
   const row = rows[0];
   if (row.is_banned) return null;

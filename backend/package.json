@@ -6,7 +6,10 @@
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
     "create-admin": "node scripts/create-admin.js",
-    "backfill-crdt-docs": "node scripts/backfill-crdt-docs.js"
+    "backfill-crdt-docs": "node scripts/backfill-crdt-docs.js",
+    "audit-happybeings": "node scripts/audit-happybeings-space.js",
+    "import-happybeings": "node scripts/import-happybeings.js",
+    "review-happybeings": "node scripts/review-happybeings-import.js"
   },
   "dependencies": {
     "@automerge/automerge": "^3.4.1",
