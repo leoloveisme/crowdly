@@ -14,7 +14,11 @@ function uuidv4() {
   console.log("Seeding: Story of my life with 3 chapters...");
 
   // 1. Insert new story_title
-  // Disable type-checking by forcing supabase client and result to any
+  // This script's insert payloads (e.g. into "stories" below) predate the
+  // current generated schema and no longer structurally match it, so the
+  // client is deliberately untyped here rather than cast to a misleading
+  // shape.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sb: any = supabase;
 
   const { data: titleData, error: titleError } = await sb

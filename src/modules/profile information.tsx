@@ -7,11 +7,12 @@ import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { X, PencilLine, Smartphone, Languages, Facebook, Instagram, User, Plus, Trash2 } from "lucide-react";
 import EditableText from "@/components/EditableText";
 import ProfilePictureUpload from "@/components/ProfilePictureUpload";
+import type { ProfileData } from "@/pages/Profile";
 
 export interface ProfileInformationProps {
-  profile: any;
+  profile: ProfileData;
   previewMode: boolean;
-  onSaveField: (field: string, value: any) => void | Promise<void>;
+  onSaveField: (field: string, value: unknown) => void | Promise<void>;
 }
 
 const ProfileInformation: React.FC<ProfileInformationProps> = ({

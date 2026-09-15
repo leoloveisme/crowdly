@@ -33,7 +33,7 @@ export type ScreenplayBlock = {
   block_index: number;
   block_type: string;
   text: string;
-  metadata: any | null;
+  metadata: Record<string, unknown> | null;
 };
 
 interface ScreenplayTemplateProps {
@@ -256,7 +256,8 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
           return;
         }
         const found = data.some(
-          (item: any) => item.content_type === 'screenplay' && item.content_id === screenplayId,
+          (item: { content_type?: string; content_id?: string }) =>
+            item.content_type === 'screenplay' && item.content_id === screenplayId,
         );
         setIsFavorite(found);
       } catch (err) {

@@ -55,7 +55,7 @@ const StoriesSpacesMigration: React.FC = () => {
 
         const spacesBody = await spacesRes.json().catch(() => []);
         if (spacesRes.ok && Array.isArray(spacesBody)) {
-          const mappedSpaces: CreativeSpaceRow[] = spacesBody.map((row: any) => ({
+          const mappedSpaces: CreativeSpaceRow[] = spacesBody.map((row: CreativeSpaceRow) => ({
             id: row.id,
             name: row.name,
           }));
@@ -143,17 +143,17 @@ const StoriesSpacesMigration: React.FC = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: user.id, name: trimmed }),
       });
-      const body = await res.json().catch(() => ({}));
+      const body = (await res.json().catch(() => ({}))) as { error?: string; id?: string; name?: string };
       if (!res.ok) {
         toast({
           title: "Failed to create Space",
-          description: (body as any).error || "Unexpected error while creating Space.",
+          description: body.error || "Unexpected error while creating Space.",
           variant: "destructive",
         });
         return;
       }
-      const createdId = (body as any).id as string | undefined;
-      const createdName = ((body as any).name as string) || trimmed;
+      const createdId = body.id;
+      const createdName = body.name || trimmed;
       if (createdId) {
         const newSpace: CreativeSpaceRow = { id: createdId, name: createdName };
         setSpaces((prev) => {

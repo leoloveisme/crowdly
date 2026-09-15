@@ -159,7 +159,7 @@ const CreativeSpacesModule: React.FC<CreativeSpacesProps> = ({
                 {onTogglePublished && (
                   <button
                     type="button"
-                    onClick={() => onTogglePublished(space, !Boolean(space.published))}
+                    onClick={() => onTogglePublished(space, !space.published)}
                     className="px-1 py-0.5 rounded hover:bg-gray-100"
                   >
                     {space.published ? <EditableText id="spaces-mod-unpublish">Unpublish</EditableText> : <EditableText id="spaces-mod-publish">Publish</EditableText>}

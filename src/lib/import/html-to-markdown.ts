@@ -37,7 +37,7 @@ turndown.addRule('preformattedText', {
  */
 export function htmlToMarkdown(html: string): string {
   // Clean up the HTML first
-  let cleaned = html
+  const cleaned = html
     // Remove style and script tags
     .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
     .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')

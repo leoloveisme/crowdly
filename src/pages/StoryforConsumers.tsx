@@ -83,7 +83,7 @@ const StoryforConsumers = () => {
   const [selectedParagraphForBranch, setSelectedParagraphForBranch] = useState<string | null>(null);
   
   const [showContributorStats, setShowContributorStats] = useState<{ [userId: string]: boolean }>({});
-  const [selectedContributor, setSelectedContributor] = useState<any>(null);
+  const [selectedContributor, setSelectedContributor] = useState<ReturnType<typeof getContributorStats> | null>(null);
   
   const userName = user?.email?.split("@")[0] || "Guest";
   

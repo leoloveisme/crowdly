@@ -228,13 +228,13 @@ const PublicProfile: React.FC = () => {
     container: "favorites" | "living" | "lived",
   ): "public" | "private" | "friends" | "selected" => {
     if (!profile) return "public";
-    const field =
+    const field: keyof PublicProfileData =
       container === "favorites"
         ? "favorites_visibility"
         : container === "living"
         ? "living_visibility"
         : "lived_visibility";
-    const raw = (profile as any)[field];
+    const raw = profile[field];
     if (raw === "public" || raw === "private" || raw === "friends" || raw === "selected") {
       return raw;
     }
@@ -283,9 +283,9 @@ const PublicProfile: React.FC = () => {
     kind: "stories" | "screenplays",
   ): "public" | "private" | "friends" | "selected" => {
     if (!profile) return "public";
-    const field =
+    const field: keyof PublicProfileData =
       kind === "stories" ? "stories_visibility" : "screenplays_visibility";
-    const raw = (profile as any)[field];
+    const raw = profile[field];
     if (raw === "public" || raw === "private" || raw === "friends" || raw === "selected") {
       return raw;
     }

@@ -59,8 +59,8 @@ const StoryBranchList: React.FC<StoryBranchListProps> = ({ storyId }) => {
         }
         const data = await res.json();
         if (!isMounted) return;
-        const arr = Array.isArray(data) ? data : [];
-        const chapterIds = Array.from(new Set(arr.map((b: any) => b.chapter_id)));
+        const arr: Branch[] = Array.isArray(data) ? data : [];
+        const chapterIds = Array.from(new Set(arr.map((b) => b.chapter_id)));
         setChapterInfo({ chapterIds, chaptersFetched: true });
         setBranches(arr);
         if (!arr.length) {

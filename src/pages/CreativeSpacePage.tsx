@@ -340,7 +340,7 @@ const CreativeSpacePage: React.FC = () => {
 
   const handleTogglePublished = async () => {
     if (!spaceId || !authUser?.id || !space) return;
-    const next = !Boolean(space.published);
+    const next = !space.published;
     try {
       const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}`, {
         method: "PATCH",

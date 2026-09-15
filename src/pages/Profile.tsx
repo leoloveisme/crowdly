@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -81,6 +82,33 @@ const API_BASE = import.meta.env.PROD
   ? (import.meta.env.VITE_API_BASE_URL ?? "")
   : "";
 
+interface RawContributionRow {
+  id?: string | number;
+  story_title?: string;
+  chapter_title?: string;
+  new_paragraph?: string;
+  created_at?: string;
+  words?: number;
+  likes?: number;
+  dislikes?: number;
+  comments?: number;
+  status?: string;
+}
+
+interface RawCreativeSpaceRow {
+  id: string;
+  name: string;
+  description?: string | null;
+  path?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  visibility?: string | null;
+  published?: boolean | null;
+  default_item_visibility?: string | null;
+  last_synced_at?: string | null;
+  sync_state?: string | null;
+}
+
 const INITIAL_PROFILE = {
   first_name: "",
   last_name: "",
@@ -120,9 +148,17 @@ const INITIAL_PROFILE = {
   screenplays_selected_user_ids: [] as string[],
 };
 
+// The backend /profiles response (and legacy Supabase "profiles" rows) also
+// carry an `id` and `real_nickname`, which aren't part of the local-only
+// INITIAL_PROFILE defaults above but are merged in via spread once loaded.
+export type ProfileData = typeof INITIAL_PROFILE & {
+  id?: string;
+  real_nickname?: string;
+};
+
 const Profile = () => {
   const { user: authUser } = useAuth();
-  const [profile, setProfile] = useState({ ...INITIAL_PROFILE });
+  const [profile, setProfile] = useState<ProfileData>({ ...INITIAL_PROFILE });
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -249,7 +285,7 @@ const Profile = () => {
           setContributions([]);
           return;
         }
-        const mapped: ProfileContributionRow[] = data.map((row: any, index: number) => ({
+        const mapped: ProfileContributionRow[] = data.map((row: RawContributionRow, index: number) => ({
           id: row.id ?? index,
           story_title: row.story_title ?? '',
           chapter_title: row.chapter_title ?? '',
@@ -451,14 +487,14 @@ const Profile = () => {
           setCreativeSpaces([]);
         } else {
           const data = await res.json();
-          const mapped = (Array.isArray(data) ? data : []).map((row: any) => ({
+          const mapped = (Array.isArray(data) ? data : []).map((row: RawCreativeSpaceRow) => ({
             id: row.id,
             name: row.name,
             description: row.description ?? null,
             path: row.path ?? null,
             createdAt: row.created_at ?? null,
             updatedAt: row.updated_at ?? null,
-            visibility: (row.visibility as any) ?? 'private',
+            visibility: (row.visibility as CreativeSpace['visibility']) ?? 'private',
             published: Boolean(row.published),
             default_item_visibility: row.default_item_visibility ?? null,
             last_synced_at: row.last_synced_at ?? null,
@@ -509,7 +545,7 @@ const Profile = () => {
   // Save profile field (generic handler). When using local auth, this writes
   // to the backend /profiles/:userId endpoint. For legacy Supabase-only
   // users, it still updates Supabase.
-  const saveProfileField = async (key: keyof typeof profile, value: any) => {
+  const saveProfileField = async (key: keyof typeof profile, value: unknown) => {
     // Local backend profile (preferred)
     if (authUser?.id) {
       setProfile((prev) => ({ ...prev, [key]: value }));
@@ -542,9 +578,12 @@ const Profile = () => {
     // Supabase legacy path
     if (!userId) return;
     setProfile((prev) => ({ ...prev, [key]: value }));
-    const updateObj: any = {};
+    const updateObj: Partial<Record<keyof typeof profile, unknown>> = {};
     updateObj[key] = value;
-    const { error } = await supabase.from("profiles").update(updateObj).eq("id", userId);
+    const { error } = await supabase
+      .from("profiles")
+      .update(updateObj as TablesUpdate<"profiles">)
+      .eq("id", userId);
     if (error) {
       toast({
         title: "Failed to update",
@@ -625,7 +664,7 @@ const Profile = () => {
   const getContainerVisibility = (
     container: VisibilityContainer,
   ): "public" | "private" | "friends" | "selected" => {
-    const field =
+    const field: keyof typeof profile =
       container === "favorites"
         ? "favorites_visibility"
         : container === "living"
@@ -635,20 +674,20 @@ const Profile = () => {
         : container === "stories"
         ? "stories_visibility"
         : "screenplays_visibility";
-    const raw = (profile as any)[field];
+    const raw = profile[field];
     if (raw === "public" || raw === "private" || raw === "friends" || raw === "selected") {
       return raw;
     }
     const legacyFlag =
       container === "favorites"
-        ? (profile as any).show_public_favorites
+        ? profile.show_public_favorites
         : container === "living"
-        ? (profile as any).show_public_living
+        ? profile.show_public_living
         : container === "lived"
-        ? (profile as any).show_public_lived
+        ? profile.show_public_lived
         : container === "stories"
-        ? (profile as any).show_public_stories
-        : (profile as any).show_public_screenplays;
+        ? profile.show_public_stories
+        : profile.show_public_screenplays;
     return legacyFlag === false ? "private" : "public";
   };
 
@@ -1203,7 +1242,7 @@ const Profile = () => {
                               ownerUserId={authUser.id}
                               containerKey="stories"
                               selectedUserIds={
-                                (profile as any).stories_selected_user_ids || []
+                                profile.stories_selected_user_ids || []
                               }
                               onChangeSelectedUserIds={(ids) =>
                                 handleSelectedUsersChange("stories", ids)
@@ -1340,7 +1379,7 @@ const Profile = () => {
                               ownerUserId={authUser.id}
                               containerKey="screenplays"
                               selectedUserIds={
-                                (profile as any).screenplays_selected_user_ids || []
+                                profile.screenplays_selected_user_ids || []
                               }
                               onChangeSelectedUserIds={(ids) =>
                                 handleSelectedUsersChange("screenplays", ids)
@@ -1477,7 +1516,7 @@ const Profile = () => {
                                 ownerUserId={authUser.id}
                                 containerKey="favorites"
                                 selectedUserIds={
-                                  (profile as any).favorites_selected_user_ids || []
+                                  profile.favorites_selected_user_ids || []
                                 }
                                 onChangeSelectedUserIds={(ids) =>
                                   handleSelectedUsersChange("favorites", ids)
@@ -1583,7 +1622,7 @@ const Profile = () => {
                                 ownerUserId={authUser.id}
                                 containerKey="living"
                                 selectedUserIds={
-                                  (profile as any).living_selected_user_ids || []
+                                  profile.living_selected_user_ids || []
                                 }
                                 onChangeSelectedUserIds={(ids) =>
                                   handleSelectedUsersChange("living", ids)
@@ -1689,7 +1728,7 @@ const Profile = () => {
                                 ownerUserId={authUser.id}
                                 containerKey="lived"
                                 selectedUserIds={
-                                  (profile as any).lived_selected_user_ids || []
+                                  profile.lived_selected_user_ids || []
                                 }
                                 onChangeSelectedUserIds={(ids) =>
                                   handleSelectedUsersChange("lived", ids)

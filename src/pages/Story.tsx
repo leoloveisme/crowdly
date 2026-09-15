@@ -69,6 +69,48 @@ type UserSearchResult = {
   last_name?: string;
 };
 
+interface Chapter {
+  chapter_id: string;
+  chapter_title: string;
+  chapter_index?: number;
+  paragraphs: string[];
+  tags?: string[];
+  paragraphTags?: Record<string, string[]>;
+}
+
+interface StoryTitleRevision {
+  id?: string | number;
+  story_title_id?: string;
+  revision_number?: number;
+  new_title: string;
+  created_at: string;
+}
+
+interface ChapterRevision {
+  id?: string | number;
+  chapter_id?: string;
+  chapter_title?: string;
+  revision_number?: number;
+  revision_reason?: string;
+  created_at: string;
+}
+
+interface RawContributionRow {
+  id?: string | number;
+  chapter_id?: string;
+  paragraph_index?: number;
+  revision_number?: number;
+  story_title?: string;
+  chapter_title?: string;
+  new_paragraph?: string;
+  user_email?: string;
+  created_at?: string;
+  likes?: number;
+  dislikes?: number;
+  comments?: number;
+  status?: string;
+}
+
 function collabDisplayName(u: { email?: string; first_name?: string; last_name?: string; nickname?: string }) {
   const name = [u.first_name, u.last_name].filter(Boolean).join(" ");
   return name || u.email || "";
@@ -110,10 +152,10 @@ const RevisionsSection = ({
   chapterRevisionsLoading,
   chapters,
 }: {
-  storyTitleRevisions: any[];
-  chapterRevisions: any[];
+  storyTitleRevisions: StoryTitleRevision[];
+  chapterRevisions: ChapterRevision[];
   chapterRevisionsLoading: boolean;
-  chapters: any[];
+  chapters: Chapter[];
 }) => {
   const [compareChapterId, setCompareChapterId] = React.useState<string>("");
 
@@ -188,7 +230,7 @@ const RevisionsSection = ({
                   className="border rounded px-3 py-1.5 text-sm bg-white w-full sm:w-auto max-w-full"
                 >
                   <option value="">-- Choose a chapter --</option>
-                  {chapters.map((ch: any) => (
+                  {chapters.map((ch: Chapter) => (
                     <option key={ch.chapter_id} value={ch.chapter_id}>
                       {ch.chapter_title || `Chapter ${ch.chapter_index ?? ''}`}
                     </option>
@@ -253,7 +295,7 @@ const Story = () => {
     if (!cleaned) return 0;
     return cleaned.split(/\s+/).length;
   };
-  const [chapters, setChapters] = useState<any[]>([]);
+  const [chapters, setChapters] = useState<Chapter[]>([]);
   // Inline chapter illustrations (kind='inline_illustration'), keyed for lookup
   // by chapter + paragraph anchor when rendering.
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
@@ -266,7 +308,7 @@ const Story = () => {
   const [storyError, setStoryError] = useState<{ status: number; message: string } | null>(null);
   const [contributors, setContributors] = useState<Contributor[]>([]);
   const [contributorsLoading, setContributorsLoading] = useState(false);
-  const [chapterRevisions, setChapterRevisions] = useState<any[]>([]);
+  const [chapterRevisions, setChapterRevisions] = useState<ChapterRevision[]>([]);
   const [chapterRevisionsLoading, setChapterRevisionsLoading] = useState(false);
   // Active chapter for the "experiencing the story" view
   const [currentChapterId, setCurrentChapterId] = useState<string | null>(null);
@@ -375,7 +417,7 @@ const Story = () => {
 
       const res = await fetch(titleUrl);
       if (!res.ok) {
-        let body: any = {};
+        let body: { error?: string } = {};
         try {
           body = await res.json();
         } catch {
@@ -406,7 +448,7 @@ const Story = () => {
       // Chapters
       const params = new URLSearchParams({ storyTitleId: story_id });
       const chaptersRes = await fetch(`${API_BASE}/chapters?${params.toString()}`);
-      let chaptersData: any[] = [];
+      let chaptersData: Chapter[] = [];
       if (chaptersRes.ok) {
         chaptersData = await chaptersRes.json();
         setChapters(Array.isArray(chaptersData) ? chaptersData : []);
@@ -419,19 +461,19 @@ const Story = () => {
         try {
           setChapterRevisionsLoading(true);
           const revResults = await Promise.all(
-            chaptersData.map(async (ch: any) => {
+            chaptersData.map(async (ch: Chapter) => {
               try {
                 const resp = await fetch(`${API_BASE}/chapter-revisions/${ch.chapter_id}`);
-                if (!resp.ok) return [] as any[];
+                if (!resp.ok) return [] as ChapterRevision[];
                 const data = await resp.json();
-                if (!Array.isArray(data)) return [] as any[];
-                return data.map((rev: any) => ({
+                if (!Array.isArray(data)) return [] as ChapterRevision[];
+                return data.map((rev: ChapterRevision) => ({
                   ...rev,
                   chapter_title: ch.chapter_title,
                 }));
               } catch (err) {
                 console.error('Failed to fetch chapter revisions for', ch.chapter_id, err);
-                return [] as any[];
+                return [] as ChapterRevision[];
               }
             }),
           );
@@ -847,13 +889,13 @@ const Story = () => {
   // Chapters that were never given a custom title (including the old
   // "New chapter" default before this fell back to "Untitled chapter")
   // get a visual hint instead of looking like a finished title.
-  const isChapterUntitled = (chapter: any) =>
+  const isChapterUntitled = (chapter: Chapter) =>
     !chapter.chapter_title ||
     chapter.chapter_title === "Untitled chapter" ||
     chapter.chapter_title === "New chapter";
 
   // Chapter title inline-edit handlers (contribute mode)
-  const startEditChapterTitle = (chapter: any) => {
+  const startEditChapterTitle = (chapter: Chapter) => {
     setEditingChapterId(chapter.chapter_id);
     setEditingChapterTitle(chapter.chapter_title || "");
   };
@@ -867,7 +909,7 @@ const Story = () => {
     setEditingChapterTitle(e.target.value);
   };
 
-  const saveChapterTitle = async (chapter: any) => {
+  const saveChapterTitle = async (chapter: Chapter) => {
     const newTitle = editingChapterTitle.trim();
     setEditingChapterId(null);
     if (!newTitle || newTitle === chapter.chapter_title) {
@@ -880,7 +922,7 @@ const Story = () => {
 
   const handleChapterTitleKeyDown = async (
     e: React.KeyboardEvent<HTMLInputElement>,
-    chapter: any,
+    chapter: Chapter,
   ) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -892,7 +934,7 @@ const Story = () => {
   };
 
   // Inline paragraph editing handlers
-  const startEditParagraph = (chapter: any, index: number, text: string) => {
+  const startEditParagraph = (chapter: Chapter, index: number, text: string) => {
     setEditingParagraph({ chapterId: chapter.chapter_id, index });
     setEditingParagraphText(text);
   };
@@ -902,7 +944,7 @@ const Story = () => {
     setEditingParagraphText("");
   };
 
-  const saveParagraph = async (chapter: any, index: number) => {
+  const saveParagraph = async (chapter: Chapter, index: number) => {
     const raw = editingParagraphText;
     setEditingParagraph(null);
     // If nothing changed, bail out
@@ -968,7 +1010,7 @@ const Story = () => {
 
   const handleParagraphKeyDown = async (
     e: React.KeyboardEvent<HTMLTextAreaElement>,
-    chapter: any,
+    chapter: Chapter,
     index: number,
   ) => {
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
@@ -1062,13 +1104,13 @@ const Story = () => {
       }
 
       const created = await res.json();
-      toast({ title: "Chapter Created", description: `Added chapter \"${chapter_title}\".` });
+      toast({ title: "Chapter Created", description: `Added chapter "${chapter_title}".` });
 
       // Compute the new chapter order in the UI so that, when requested,
       // the new chapter appears directly below the chapter whose menu
       // was used. Otherwise, append it at the end.
       const current = Array.isArray(chapters) ? chapters : [];
-      let newChapters: any[];
+      let newChapters: Chapter[];
       const withoutCreated = current.filter((ch) => ch.chapter_id !== created.chapter_id);
 
       if (!insertAfterChapterId) {
@@ -1163,7 +1205,7 @@ const Story = () => {
       branchName: string;
       paragraphs: string[];
       language: string;
-      metadata: any;
+      metadata: Record<string, unknown> | null;
     },
   ) => {
     // Compose branch_text as joined array
@@ -1238,7 +1280,7 @@ const Story = () => {
   // Quick inline branch creation: create an empty branch row and show a
   // new editable paragraph directly under the source paragraph.
   const handleQuickCreateBranch = async (
-    chapter: any,
+    chapter: Chapter,
     paragraphIndex: number,
     paragraphText: string,
   ) => {
@@ -1367,11 +1409,11 @@ const Story = () => {
   const canCRUDChapters = !!user;
 
   // --- Story title revisions (fetched from backend) ---
-  const [storyTitleRevisions, setStoryTitleRevisions] = useState<any[]>([]);
+  const [storyTitleRevisions, setStoryTitleRevisions] = useState<StoryTitleRevision[]>([]);
 
   // Reactions and comments state
   const [reactions, setReactions] = useState<{ reaction_type: string; count: number }[]>([]);
-  const [comments, setComments] = useState<any[]>([]);
+  const [comments, setComments] = useState<unknown[]>([]);
   const [newComment, setNewComment] = useState("");
 
   const fetchStoryTitleRevisions = async () => {
@@ -1495,7 +1537,7 @@ const Story = () => {
         if (contribRes.ok) {
           const raw = await contribRes.json();
           const rows = Array.isArray(raw) ? raw : [];
-          const mapped: ContributionRow[] = rows.map((row: any, index: number) => ({
+          const mapped: ContributionRow[] = rows.map((row: RawContributionRow, index: number) => ({
             id: row.id ?? `${row.chapter_id ?? 'ch'}-${row.paragraph_index ?? index}-${row.revision_number ?? ''}`,
             story_title: row.story_title ?? '',
             chapter_title: row.chapter_title ?? '',
@@ -1548,7 +1590,7 @@ const Story = () => {
           return;
         }
         const found = data.some(
-          (item: any) => item.content_type === 'story' && item.content_id === story_id,
+          (item: { content_type?: string; content_id?: string }) => item.content_type === 'story' && item.content_id === story_id,
         );
         setIsFavorite(found);
       } catch (err) {
@@ -1835,7 +1877,7 @@ const Story = () => {
     }
   };
 
-  const updateStorySetting = async (field: string, value: string | boolean) => {
+  const updateStorySetting = async (field: string, value: string | boolean | string[]) => {
     if (!story) return;
     try {
       const res = await fetch(`${API_BASE}/story-titles/${story.story_title_id}/settings`, {
@@ -2621,7 +2663,7 @@ const Story = () => {
                         </span>
                         <TagInput
                           tags={story.tags || []}
-                          onChange={(newTags) => updateStorySetting('tags', newTags as any)}
+                          onChange={(newTags) => updateStorySetting('tags', newTags)}
                           className="mt-1 border border-gray-200 rounded-md p-2"
                         />
                       </div>

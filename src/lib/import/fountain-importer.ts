@@ -188,7 +188,7 @@ function parseFountain(text: string): { content: string; metadata: FountainMetad
     }
 
     // Character (all caps, not a scene heading)
-    if (trimmed === trimmed.toUpperCase() && /^[A-Z][A-Z\s.'()\-]+$/.test(trimmed)) {
+    if (trimmed === trimmed.toUpperCase() && /^[A-Z][A-Z\s.'()-]+$/.test(trimmed)) {
       // Check if it's followed by dialogue
       const isCharacter = i + 1 < lines.length && lines[i + 1].trim() !== '';
       if (isCharacter) {
@@ -232,7 +232,7 @@ function parseFountain(text: string): { content: string; metadata: FountainMetad
  */
 function countWords(text: string): number {
   return text
-    .replace(/[#*_~`\[\]()]/g, '')
+    .replace(/[#*_~`[\]()]/g, '')
     .split(/\s+/)
     .filter((w) => w.length > 0).length;
 }

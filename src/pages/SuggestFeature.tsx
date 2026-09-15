@@ -263,7 +263,7 @@ const SuggestFeature = () => {
           can_contact: canContact === 'yes',
           contact_method: canContact === 'yes' ? contactMethod : null,
           description: featureDescription,
-          visibility: visibilityOption as any,
+          visibility: visibilityOption as 'public' | 'private' | 'anonymous',
           attachments: uploadedAttachments.length > 0 ? uploadedAttachments : null
         })
         .select()

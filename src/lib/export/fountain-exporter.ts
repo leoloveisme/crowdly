@@ -97,7 +97,7 @@ function convertToFountain(markdown: string): string {
 
     // Regular text becomes action
     // Remove markdown formatting
-    let text = trimmed
+    const text = trimmed
       .replace(/\*\*(.+?)\*\*/g, '$1') // Remove bold
       .replace(/\*(.+?)\*/g, '$1') // Remove italic
       .replace(/__(.+?)__/g, '$1')

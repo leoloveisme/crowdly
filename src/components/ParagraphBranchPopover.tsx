@@ -21,7 +21,7 @@ type BranchParagraph = {
 type Props = {
   trigger: React.ReactNode;
   // Now returns language + metadata as well
-  onCreateBranch: (data: { branchName: string; paragraphs: string[]; language: string; metadata: any }) => void;
+  onCreateBranch: (data: { branchName: string; paragraphs: string[]; language: string; metadata: Record<string, unknown> | null }) => void;
 };
 
 const languageLabels: { [key: string]: string } = {
@@ -90,7 +90,7 @@ const ParagraphBranchPopover: React.FC<Props> = ({ trigger, onCreateBranch }) =>
     // Allow saving even if some paragraphs are empty; the backend or
     // caller can decide how to treat them. Validation now only blocks
     // on invalid JSON in the metadata field.
-    let parsedMetadata: any = null;
+    let parsedMetadata: Record<string, unknown> | null = null;
     if (metadataText.trim()) {
       try {
         parsedMetadata = JSON.parse(metadataText);
