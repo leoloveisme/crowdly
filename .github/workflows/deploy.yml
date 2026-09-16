@@ -105,9 +105,18 @@ jobs:
 
       # Backend deploy is a separate step, over the same connection:
       # fast-forward the checkout to exactly what's on origin/alpha,
-      # reinstall deps, restart the service. `git reset --hard` (not
-      # `pull`) so the VPS checkout can never drift into a merge conflict.
-      - name: Update backend and restart service
+      # reinstall deps, apply pending DB migrations, restart the service.
+      # `git reset --hard` (not `pull`) so the VPS checkout can never drift
+      # into a merge conflict.
+      #
+      # `npm run migrate` applies backend/migrations/*.sql in order,
+      # tracked in schema_migrations — see backend/scripts/migrate.js.
+      # Runs before the restart (not after) so a failed migration stops the
+      # deploy via `set -e` rather than restarting the service against a
+      # half-migrated or broken schema. DATABASE_URL comes from
+      # /opt/crowdly-backend/backend/.env via dotenv, same file the
+      # crowdly-backend systemd unit loads.
+      - name: Update backend, migrate DB, and restart service
         run: |
           ssh -i ~/.ssh/deploy_key -p "${{ secrets.VPS_SSH_PORT || 22 }}" \
             "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" '
@@ -116,13 +125,14 @@ jobs:
               git fetch origin alpha
               git reset --hard origin/alpha
               npm ci --omit=dev --prefix backend
+              npm run migrate --prefix backend
               sudo systemctl restart crowdly-backend
             '
 
-      # The backend self-migrates its schema on every boot (the
-      # ensure*Table() calls in server.js), so a healthy /health response
-      # here also confirms the DB connection and schema migration succeeded
-      # — not just that the process started.
+      # backend/migrations/ (applied by the step above) is now the only
+      # place schema changes are made — see CLAUDE.md. A healthy /health
+      # response here confirms the DB connection and migration succeeded,
+      # not just that the process started.
       - name: Health check
         run: |
           ssh -i ~/.ssh/deploy_key -p "${{ secrets.VPS_SSH_PORT || 22 }}" \

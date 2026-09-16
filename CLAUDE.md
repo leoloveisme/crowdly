@@ -25,6 +25,7 @@ npm run lint     # ESLint
 ```bash
 npm run dev      # Start Express with nodemon on :4000
 npm run start    # Production start
+npm run migrate  # Apply pending DB migrations (backend/migrations/*.sql)
 npm run create-admin  # Create admin user
 ```
 
@@ -121,3 +122,18 @@ Whenever you create or modify a page (`src/pages/`) or module (`src/modules/`), 
 The `EditableContentProvider` already wraps the entire app in `App.tsx`, so no additional provider setup is needed. Translations are fetched per page path and language from the `/interface-translations` backend endpoint.
 
 Skipping this step means the page/module will have untranslatable UI text. Treat this as a mandatory part of any new page or module, not a separate task.
+
+## Backend — Mandatory Workflow for Database Schema Changes
+
+The backend has a versioned migration mechanism: `backend/migrations/*.sql`, applied in filename order and tracked in a `schema_migrations` table by `backend/scripts/migrate.js` (`npm run migrate --prefix backend`). `.github/workflows/deploy.yml` runs this on every push to `alpha`, before the service restarts, so anything committed here reaches the Crowdly VPS automatically.
+
+Whenever you need to create/alter a table or column, you **must**:
+
+1. **Add a new file** `backend/migrations/NNNN_description.sql`, where `NNNN` is the next sequence number after the highest one already in that directory (e.g. `0001_add_foo_column.sql`).
+2. **Make every statement idempotent** — `CREATE TABLE IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS`, a `DO $$ ... IF NOT EXISTS ... END $$` block for constraints/enum values, etc. — matching the style already used throughout `0000_baseline.sql`. Migrations can run against a database that's already at a later state than you tested against, so guard accordingly.
+3. **Never edit a migration file that has already been committed/merged** — a file's contents are hashed into its already-applied history implicitly via `schema_migrations.filename`; changing old SQL after the fact means environments that already ran it won't re-run the new version. Add a new migration instead.
+4. **Test locally first**: run `npm run migrate --prefix backend` against your local dev database before committing.
+
+Do **NOT** add a new `ensure*()`-style function to `backend/src/server.js` (or any sibling module) that runs schema DDL at process boot — that pattern predates this migration mechanism (see `backend/migrations/0000_baseline.sql`'s header for the history) and is now retired for anything new. The existing `ensure*()` functions are left in place as harmless no-ops; don't add to them.
+
+Skipping this means the schema change works on your machine but never reaches production, or reaches it inconsistently across environments. Treat this as a mandatory part of any backend change that touches the database shape, not a separate task.
