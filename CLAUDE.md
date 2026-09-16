@@ -117,11 +117,22 @@ Whenever you create or modify a page (`src/pages/`) or module (`src/modules/`), 
 3. **Use a consistent ID convention**: `{page-or-module-prefix}-{element-description}` (e.g., `admin-tab-users`, `search-btn`, `export-save-device`). IDs must be unique across the page.
 4. **Use the `as` prop** when the element needs a specific HTML tag (e.g., `as="h1"`, `as="p"`). The default is `"span"`.
 5. **Do NOT wrap dynamic/user-generated content** (e.g., usernames, story titles, dates) — only wrap static UI text that should be the same for all users in a given language.
-6. **Do NOT wrap Header or Footer** — these are handled separately.
+6. **Do NOT wrap Header or Footer as part of unrelated page/module work** — `CrowdlyHeader.tsx`/`CrowdlyFooter.tsx` already use `EditableText` internally (with `layoutScoped`, see below); their IDs are managed together in those two files, not touched incidentally while wrapping some other page.
 
 The `EditableContentProvider` already wraps the entire app in `App.tsx`, so no additional provider setup is needed. Translations are fetched per page path and language from the `/interface-translations` backend endpoint.
 
 Skipping this step means the page/module will have untranslatable UI text. Treat this as a mandatory part of any new page or module, not a separate task.
+
+## Web App — UI Translation Content Pipeline (adding languages/strings)
+
+Every `EditableText` element is keyed by `(page_key, element_id, language)` in the `interface_translations` table:
+
+- `page_key` is **not** the literal URL — it's a canonical route pattern computed by `src/lib/pageKey.ts`'s `getPageKey()`, so one translation covers every instance of a dynamic route (e.g. `/story/:story_id` covers every story, not just the one being edited when the translation was entered). Keep `pageKey.ts`'s route list in sync with `src/App.tsx`'s `<Routes>`.
+- Header/Footer content uses the fixed key `/__layout__` regardless of the current page. Pass the `layoutScoped` prop on any `<EditableText>` used inside `CrowdlyHeader.tsx`/`CrowdlyFooter.tsx` so it's saved/fetched under that key instead of whatever page happens to be showing.
+- Real translated copy lives in `backend/scripts/data/interface-translations.seed.json` — a flat array of `{ page_key, element_id, en, ru, de, ... }` entries (one key per language; add a new key to every entry as new languages are introduced). It's loaded by `backend/scripts/seed-interface-translations.js` (`npm run seed-interface-translations --prefix backend`), which upserts into `interface_translations` (`ON CONFLICT (page_path, element_id, language) DO UPDATE`), so re-running it is always safe.
+- `.github/workflows/deploy.yml` runs this seed script on every push to `alpha`, right after `npm run migrate` and before the service restart — so editing the JSON and pushing is enough to update production; no manual DB step is needed.
+
+To add a new language: add a key for it to every entry in the seed JSON (or at least the ones you have copy for) and push to `alpha`. To add a new translatable string: wrap it in `EditableText` per the checklist above, then either add its `(page_key, element_id, en, ...)` entry to the seed JSON, or leave it for a `platform_admin`/`ui_translator` to fill in later via the in-app editing UI — untranslated strings simply fall back to the English `children`.
 
 ## Backend — Mandatory Workflow for Database Schema Changes
 
