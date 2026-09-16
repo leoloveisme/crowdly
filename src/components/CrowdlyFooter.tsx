@@ -76,9 +76,9 @@ const CrowdlyFooter = () => {
                 <li><a href="#" className="text-gray-600 hover:text-pink-600 transition">
                   <EditableText id="footer-contact" layoutScoped>Contact us</EditableText>
                 </a></li>
-                <li><a href="#" className="text-gray-600 hover:text-pink-600 transition">
+                <li><Link to="/feedback" className="text-gray-600 hover:text-pink-600 transition">
                   <EditableText id="footer-feedback" layoutScoped>Send feedback</EditableText>
-                </a></li>
+                </Link></li>
                 <li><a href="#" className="text-gray-600 hover:text-pink-600 transition">
                   <EditableText id="footer-bug" layoutScoped>Submit a bug report</EditableText>
                 </a></li>

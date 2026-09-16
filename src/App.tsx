@@ -11,6 +11,7 @@ import Friends from "./pages/Friends";
 import Communications from "./pages/Communications";
 import Index from "./pages/Index";
 import SuggestFeature from "./pages/SuggestFeature";
+import Feedback from "./pages/Feedback";
 import FeatureSuggestions from "./pages/FeatureSuggestions";
 import AccountAdministration from "./pages/AccountAdministration";
 import NewStoryTemplate from "./pages/NewStoryTemplate";
@@ -86,6 +87,7 @@ const App = () => {
                   {/* All other routes are protected by the alpha guard */}
                   <Route path="/" element={<AlphaGuard><Index /></AlphaGuard>} />
                   <Route path="/suggest-feature" element={<AlphaGuard><SuggestFeature /></AlphaGuard>} />
+                  <Route path="/feedback" element={<AlphaGuard><Feedback /></AlphaGuard>} />
                   <Route path="/feature-suggestions" element={<AlphaGuard><FeatureSuggestions /></AlphaGuard>} />
                   <Route path="/account-administration" element={<AlphaGuard><AccountAdministration /></AlphaGuard>} />
                   <Route path="/new-story-template" element={<AlphaGuard><NewStoryTemplate /></AlphaGuard>} />

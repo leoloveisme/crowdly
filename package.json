@@ -47,6 +47,7 @@
     "date-fns": "^3.6.0",
     "diff-match-patch": "^1.0.5",
     "docx": "^9.5.1",
+    "dompurify": "^3.4.15",
     "embla-carousel-react": "^8.3.0",
     "file-saver": "^2.0.5",
     "html2canvas": "^1.4.1",
