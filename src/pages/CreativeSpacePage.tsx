@@ -1047,13 +1047,25 @@ const CreativeSpacePage: React.FC = () => {
                         </SelectContent>
                       </Select>
                     )}
-                    <Button
-                      onClick={handleConnectRepo}
-                      disabled={connectingRepo || !selectedRepo || installationReposLoading}
-                      className="mt-2"
-                    >
-                      <EditableText id="space-github-picker-connect">Connect</EditableText>
-                    </Button>
+                    <div className="mt-2 flex items-center gap-2">
+                      <Button
+                        onClick={handleConnectRepo}
+                        disabled={connectingRepo || !selectedRepo || installationReposLoading}
+                      >
+                        <EditableText id="space-github-picker-connect">Connect</EditableText>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() =>
+                          githubRepoDialogInstallationId &&
+                          openInstallationRepoPicker(githubRepoDialogInstallationId)
+                        }
+                        disabled={installationReposLoading || !githubRepoDialogInstallationId}
+                      >
+                        <EditableText id="space-github-picker-refresh">Refresh</EditableText>
+                      </Button>
+                    </div>
                     {githubRepoDialogInstallationId && (
                       <a
                         href={`https://github.com/settings/installations/${githubRepoDialogInstallationId}`}
