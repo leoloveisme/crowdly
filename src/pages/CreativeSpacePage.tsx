@@ -85,6 +85,8 @@ interface GithubSyncStatus {
   lastSyncedAt?: string | null;
   installUrl?: string | null;
   installationId?: string | number | null;
+  existingInstallationId?: string | number | null;
+  existingInstallationAccount?: string | null;
 }
 
 interface GithubRepoOption {
@@ -955,6 +957,24 @@ const CreativeSpacePage: React.FC = () => {
                         <EditableText id="space-github-disconnect">Disconnect</EditableText>
                       </button>
                     </>
+                  ) : githubStatus?.configured && githubStatus?.existingInstallationId ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => openInstallationRepoPicker(String(githubStatus.existingInstallationId))}
+                        className="text-xs text-blue-700 hover:underline px-1"
+                      >
+                        <EditableText id="space-github-use-existing">Use existing GitHub connection</EditableText>
+                        {githubStatus.existingInstallationAccount && (
+                          <span className="text-slate-400"> ({githubStatus.existingInstallationAccount})</span>
+                        )}
+                      </button>
+                      {githubStatus.installUrl && (
+                        <a href={githubStatus.installUrl} className="text-xs text-slate-500 hover:underline px-1">
+                          <EditableText id="space-github-connect-different">Connect a different GitHub account</EditableText>
+                        </a>
+                      )}
+                    </>
                   ) : githubStatus?.configured && githubStatus?.installUrl ? (
                     <a href={githubStatus.installUrl} className="text-xs text-blue-700 hover:underline px-1">
                       <EditableText id="space-github-connect">Connect GitHub</EditableText>
@@ -1034,6 +1054,18 @@ const CreativeSpacePage: React.FC = () => {
                     >
                       <EditableText id="space-github-picker-connect">Connect</EditableText>
                     </Button>
+                    {githubRepoDialogInstallationId && (
+                      <a
+                        href={`https://github.com/settings/installations/${githubRepoDialogInstallationId}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="mt-1 text-xs text-slate-500 hover:underline"
+                      >
+                        <EditableText id="space-github-manage-access">
+                          Don't see your repository? Manage access on GitHub
+                        </EditableText>
+                      </a>
+                    )}
                   </DialogContent>
                 </Dialog>
               )}

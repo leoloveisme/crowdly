@@ -5512,6 +5512,27 @@ app.post('/creative-spaces/:spaceId/sync', async (req, res) => {
 
 async function buildGithubSyncStatus(space, { userId } = {}) {
   const logRows = await recentSyncLog(space.id, 20);
+
+  // A GitHub App installation belongs to a GitHub account, not to a single
+  // Crowdly space. If this user already installed the App from another
+  // space, re-sending them through the GitHub install URL leads to GitHub's
+  // "already installed" page, which never redirects back here — so surface
+  // the existing installation and let the frontend skip straight to the
+  // repo picker instead.
+  let existingInstallationId = null;
+  let existingInstallationAccount = null;
+  if (!space.github_installation_id && userId) {
+    const { rows } = await pool.query(
+      `SELECT installation_id, account_login FROM github_installations
+       WHERE connected_by = $1 ORDER BY connected_at DESC LIMIT 1`,
+      [userId],
+    );
+    if (rows[0]) {
+      existingInstallationId = rows[0].installation_id;
+      existingInstallationAccount = rows[0].account_login || null;
+    }
+  }
+
   return {
     configured: isGithubAppConfigured(),
     connected: Boolean(space.github_installation_id),
@@ -5523,6 +5544,8 @@ async function buildGithubSyncStatus(space, { userId } = {}) {
     installationId: space.github_installation_id || null,
     installUrl:
       !space.github_installation_id && userId ? buildInstallUrl(`${space.id}:${userId}`) : null,
+    existingInstallationId,
+    existingInstallationAccount,
     recentLog: logRows,
   };
 }
