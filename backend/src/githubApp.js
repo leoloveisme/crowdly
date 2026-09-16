@@ -168,6 +168,26 @@ export async function putFileContent({ token, owner, repo, filePath, branch, buf
   return { commitSha: data.commit?.sha || null, contentSha: data.content?.sha || null };
 }
 
+/** Repos an installation has access to (one page, up to 100) — used to let the owner pick which repo to connect instead of auto-selecting the first one. */
+export async function fetchInstallationRepos({ token, page = 1, perPage = 100 }) {
+  const res = await githubRequest(
+    token,
+    `https://api.github.com/installation/repositories?per_page=${perPage}&page=${page}`,
+  );
+  if (!res.ok) {
+    throw new Error(`GitHub installation repo list failed (${res.status} ${res.statusText})`);
+  }
+  const data = await res.json();
+  return {
+    repositories: (data.repositories || []).map((r) => ({
+      fullName: r.full_name,
+      defaultBranch: r.default_branch,
+      private: r.private,
+    })),
+    totalCount: data.total_count ?? data.repositories?.length ?? 0,
+  };
+}
+
 /** Constant-time HMAC-SHA256 verification of GitHub's X-Hub-Signature-256 header against the raw request body. */
 export function verifyWebhookSignature(rawBody, signatureHeader) {
   const secret = process.env.GITHUB_WEBHOOK_SECRET;
