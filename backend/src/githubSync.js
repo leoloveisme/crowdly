@@ -24,7 +24,7 @@ import {
   fetchFileMeta,
   putFileContent,
 } from './githubApp.js';
-import { storeItemContent, guessMimeType, CREATIVE_SPACE_FILES_ROOT } from './creativeSpaceFiles.js';
+import { storeItemContent, guessMimeType, CREATIVE_SPACE_FILES_ROOT, MAX_UPLOAD_BYTES } from './creativeSpaceFiles.js';
 import { applyContentToHandle } from './crdt/repo.js';
 import { stripLeadingTitleLine, splitParagraphs } from '../scripts/lib/happybeingsSource.js';
 
@@ -119,6 +119,68 @@ export async function recentSyncLog(spaceId, limit = 20) {
   return rows;
 }
 
+// Paths we never auto-import as new items, even though GitHub's tree lists
+// them like any other blob: internal/tool-generated dotfiles and dotfolders
+// (.github/, .crowdly/, .obsidian/, etc.) that were never meant to become
+// visible Crowdly content.
+function isSyncExcludedPath(relativePath) {
+  return relativePath.split('/').some((segment) => segment.startsWith('.'));
+}
+
+/**
+ * Creates a new creative_space_items row (and any missing ancestor folder
+ * rows) for a GitHub path that isn't tracked yet, then fills in its content —
+ * the counterpart to the itemStale branch below, which only ever updates a
+ * row that already exists. Never touches github_content_links: a path only
+ * becomes a linked chapter through the explicit /github-sync/link action.
+ */
+async function createItemFromGithub(space, entry, token, owner, repo) {
+  if (isSyncExcludedPath(entry.path)) return false;
+  if (typeof entry.size === 'number' && entry.size > MAX_UPLOAD_BYTES) {
+    await logSync(space.id, 'pull', 'warning', `Skipped ${entry.path}: file exceeds the size limit`, entry.path);
+    return false;
+  }
+
+  const visibility = space.visibility || 'private';
+  const segments = entry.path.split('/');
+
+  try {
+    let ancestor = '';
+    for (const segment of segments.slice(0, -1)) {
+      ancestor = ancestor ? `${ancestor}/${segment}` : segment;
+      await pool.query(
+        `INSERT INTO creative_space_items (space_id, relative_path, name, kind, visibility, published, updated_by)
+         VALUES ($1, $2, $3, 'folder', $4, false, 'github-sync')
+         ON CONFLICT (space_id, relative_path) DO NOTHING`,
+        [space.id, ancestor, segment, visibility],
+      );
+    }
+
+    const buffer = await fetchBlobContent({ token, owner, repo, sha: entry.sha });
+    const name = segments[segments.length - 1];
+    const mimeType = guessMimeType(name);
+
+    const { rows } = await pool.query(
+      `INSERT INTO creative_space_items (space_id, relative_path, name, kind, mime_type, visibility, published, updated_by)
+       VALUES ($1, $2, $3, 'file', $4, $5, false, 'github-sync')
+       ON CONFLICT (space_id, relative_path) DO NOTHING
+       RETURNING *`,
+      [space.id, entry.path, name, mimeType, visibility],
+    );
+    const item = rows[0];
+    if (!item) return false; // lost a race with a concurrent sync; the next pull pass will treat it as an update.
+
+    await storeItemContent({ spaceId: space.id, itemId: item.id, buffer, mimeType, updatedBy: 'github-sync' });
+    await pool.query('UPDATE creative_space_items SET github_blob_sha = $1 WHERE id = $2', [entry.sha, item.id]);
+    await logSync(space.id, 'pull', 'info', `Created ${entry.path} from GitHub`, entry.path);
+    return true;
+  } catch (err) {
+    console.error('[githubSync] create-from-pull failed for', entry.path, err);
+    await logSync(space.id, 'pull', 'error', `Failed to create ${entry.path}: ${err.message}`, entry.path);
+    return false;
+  }
+}
+
 /**
  * Diffs the GitHub tree against tracked creative_space_items and pulls only
  * the files whose blob sha actually changed. `candidatePaths` (a Set), when
@@ -143,7 +205,10 @@ async function pullChangedPaths(space, token, owner, repo, branch, candidatePath
     if (candidatePaths && !candidatePaths.has(entry.path)) continue;
     const item = itemsByPath.get(entry.path);
     const link = linksByPath.get(entry.path);
-    if (!item && !link) continue; // not a file/chapter we track for this Space — same "don't invent items" rule the backfill script follows.
+    if (!item && !link) {
+      if (await createItemFromGithub(space, entry, token, owner, repo)) pulled += 1;
+      continue;
+    }
 
     const itemStale = item && item.github_blob_sha !== entry.sha;
     const linkStale = link && link.github_blob_sha !== entry.sha;

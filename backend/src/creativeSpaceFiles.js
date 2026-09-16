@@ -23,7 +23,7 @@ import { scheduleGoogleDrivePush } from './googleDriveSync.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const CREATIVE_SPACE_FILES_ROOT = path.join(__dirname, '..', 'creative-space-files');
 
-const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
 
 const EXTENSION_MIME_TYPES = {
   '.md': 'text/markdown',
