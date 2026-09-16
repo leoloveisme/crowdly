@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import CrowdlyHeader from "@/components/CrowdlyHeader";
 import CrowdlyFooter from "@/components/CrowdlyFooter";
+import EditableText from "@/components/EditableText";
 import { StoriesOutput, StoriesOutputItem } from "@/modules/stories output";
 
 // Use same-origin API base in development; dev server proxies to backend.
@@ -22,7 +23,7 @@ interface NewestStoryApiRow {
 const NewestStoriesOutput: React.FC = () => {
   const [items, setItems] = useState<StoriesOutputItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<React.ReactNode | null>(null);
 
   useEffect(() => {
     const fetchNewest = async () => {
@@ -34,7 +35,7 @@ const NewestStoriesOutput: React.FC = () => {
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
           console.error("[NewestStoriesOutput] Failed to fetch newest stories", { status: res.status, body });
-          setError("Failed to load newest stories.");
+          setError(<EditableText id="newest-stories-error-load-failed">Failed to load newest stories.</EditableText>);
           setItems([]);
           return;
         }
@@ -58,7 +59,7 @@ const NewestStoriesOutput: React.FC = () => {
         }
       } catch (err) {
         console.error("[NewestStoriesOutput] Error fetching newest stories", err);
-        setError("Failed to load newest stories.");
+        setError(<EditableText id="newest-stories-error-load-failed">Failed to load newest stories.</EditableText>);
         setItems([]);
       } finally {
         setLoading(false);
@@ -73,7 +74,7 @@ const NewestStoriesOutput: React.FC = () => {
       <CrowdlyHeader />
       <main className="flex-grow container mx-auto px-4 py-8">
         <StoriesOutput
-          title="Newest Stories"
+          title={<EditableText id="newest-stories-title">Newest Stories</EditableText>}
           items={items}
           loading={loading}
           error={error}

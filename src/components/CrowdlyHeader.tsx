@@ -152,7 +152,7 @@ const CrowdlyHeader = () => {
               <img src={crowdlyLogo} alt="Crowdly" className="h-8 md:h-10 w-auto object-contain" />
             </Link>
             <h1 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-indigo-900 via-pink-800 to-indigo-400 bg-clip-text text-transparent hidden md:block px-2">
-              <EditableText id="header-title">
+              <EditableText id="header-title" layoutScoped>
                 Crowdly where YOUR entertainment (l)i(ve)s
               </EditableText>
             </h1>
@@ -212,7 +212,7 @@ const CrowdlyHeader = () => {
                     <DropdownMenuContent className="w-80 mt-2 bg-white/95 shadow-lg border rounded-xl backdrop-blur-xl" align="end">
                       <div className="flex items-center justify-between p-2">
                         <DropdownMenuLabel className="p-0">
-                          <EditableText id="header-notifications-heading">Notifications</EditableText>
+                          <EditableText id="header-notifications-heading" layoutScoped>Notifications</EditableText>
                         </DropdownMenuLabel>
                         {unreadNotificationCount > 0 && (
                           <button
@@ -226,7 +226,7 @@ const CrowdlyHeader = () => {
                       <DropdownMenuSeparator />
                       {notifications.length === 0 ? (
                         <p className="text-sm text-muted-foreground text-center py-6 px-2">
-                          <EditableText id="header-notifications-empty">No notifications yet.</EditableText>
+                          <EditableText id="header-notifications-empty" layoutScoped>No notifications yet.</EditableText>
                         </p>
                       ) : (
                         <div className="max-h-80 overflow-y-auto">
@@ -388,10 +388,10 @@ const CrowdlyHeader = () => {
               ) : (
                 <>
                   <Button variant="link" onClick={() => window.location.href = "/register"} className="text-indigo-800 font-medium hover:text-pink-600">
-                    <EditableText id="header-register">Register</EditableText>
+                    <EditableText id="header-register" layoutScoped>Register</EditableText>
                   </Button>
                   <Button variant="link" onClick={toggleLogin} className="text-indigo-800 font-medium hover:text-pink-600">
-                    <EditableText id="header-login">Login</EditableText>
+                    <EditableText id="header-login" layoutScoped>Login</EditableText>
                   </Button>
                 </>
               )}
@@ -506,16 +506,16 @@ const CrowdlyHeader = () => {
                   </div>
                   <Button variant="outline" onClick={handleLogout} className="flex items-center justify-center mt-2 rounded-xl">
                     <LogOut className="h-4 w-4 mr-1" /> 
-                    <EditableText id="mobile-logout">Sign out</EditableText>
+                    <EditableText id="mobile-logout" layoutScoped>Sign out</EditableText>
                   </Button>
                 </>
               ) : (
                 <div className="flex space-x-2">
                   <Button variant="outline" className="flex-1 rounded-xl" onClick={() => window.location.href = "/register"}>
-                    <EditableText id="mobile-register">Register</EditableText>
+                    <EditableText id="mobile-register" layoutScoped>Register</EditableText>
                   </Button>
                   <Button variant="outline" className="flex-1 rounded-xl" onClick={toggleLogin}>
-                    <EditableText id="mobile-login">Login</EditableText>
+                    <EditableText id="mobile-login" layoutScoped>Login</EditableText>
                   </Button>
                 </div>
               )}

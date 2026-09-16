@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import CrowdlyHeader from "@/components/CrowdlyHeader";
 import CrowdlyFooter from "@/components/CrowdlyFooter";
+import EditableText from "@/components/EditableText";
 import { StoriesOutput, StoriesOutputItem } from "@/modules/stories output";
 
 // Use same-origin API base in development; dev server proxies to backend.
@@ -27,7 +28,7 @@ interface NewestScreenplayApiRow {
 const StoryToLiveToExperience: React.FC = () => {
   const [items, setItems] = useState<StoriesOutputItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<React.ReactNode | null>(null);
 
   useEffect(() => {
     const fetchAllContent = async () => {
@@ -42,7 +43,7 @@ const StoryToLiveToExperience: React.FC = () => {
           fetch(`${API_BASE}/screenplays/newest?${params.toString()}`),
         ]);
 
-        const problems: string[] = [];
+        const problems: React.ReactNode[] = [];
         const combined: StoriesOutputItem[] = [];
 
         // Stories
@@ -52,7 +53,9 @@ const StoryToLiveToExperience: React.FC = () => {
             status: storiesRes.status,
             body,
           });
-          problems.push("Failed to load newest stories.");
+          problems.push(
+            <EditableText key="stories" id="story-to-live-error-stories-failed">Failed to load newest stories.</EditableText>
+          );
         } else {
           const data = (await storiesRes.json()) as NewestStoryApiRow[] | unknown;
           if (Array.isArray(data)) {
@@ -78,7 +81,9 @@ const StoryToLiveToExperience: React.FC = () => {
             "[StoryToLiveToExperience] Failed to fetch newest screenplays",
             { status: screenplaysRes.status, body },
           );
-          problems.push("Failed to load newest screenplays.");
+          problems.push(
+            <EditableText key="screenplays" id="story-to-live-error-screenplays-failed">Failed to load newest screenplays.</EditableText>
+          );
         } else {
           const data = (await screenplaysRes.json()) as NewestScreenplayApiRow[] | unknown;
           if (Array.isArray(data)) {
@@ -96,11 +101,15 @@ const StoryToLiveToExperience: React.FC = () => {
         }
 
         setItems(combined);
-        setError(problems.length > 0 ? problems.join(" ") : null);
+        setError(
+          problems.length > 0
+            ? problems.reduce<React.ReactNode[]>((acc, node, i) => (i === 0 ? [node] : [...acc, " ", node]), [])
+            : null
+        );
       } catch (err) {
         console.error("[StoryToLiveToExperience] Error fetching content", err);
         setItems([]);
-        setError("Failed to load content.");
+        setError(<EditableText id="story-to-live-error-generic">Failed to load content.</EditableText>);
       } finally {
         setLoading(false);
       }
@@ -114,7 +123,7 @@ const StoryToLiveToExperience: React.FC = () => {
       <CrowdlyHeader />
       <main className="flex-grow container mx-auto px-4 py-8">
         <StoriesOutput
-          title="Story(-ies) to live / to experience"
+          title={<EditableText id="story-to-live-title">Story(-ies) to live / to experience</EditableText>}
           items={items}
           loading={loading}
           error={error}

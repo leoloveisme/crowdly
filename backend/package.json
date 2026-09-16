@@ -7,6 +7,7 @@
     "start": "node src/server.js",
     "migrate": "node scripts/migrate.js",
     "create-admin": "node scripts/create-admin.js",
+    "seed-interface-translations": "node scripts/seed-interface-translations.js",
     "backfill-crdt-docs": "node scripts/backfill-crdt-docs.js",
     "audit-happybeings": "node scripts/audit-happybeings-space.js",
     "import-happybeings": "node scripts/import-happybeings.js",

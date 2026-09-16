@@ -9,6 +9,9 @@ interface EditableTextProps {
   className?: string;
   children: React.ReactNode;
   as?: keyof JSX.IntrinsicElements;
+  /** Set for Header/Footer usages — scopes this element's translation to a
+   * fixed key shared across every page, instead of the current page. */
+  layoutScoped?: boolean;
 }
 
 /** Extract plain text from React children */
@@ -24,7 +27,8 @@ const EditableText: React.FC<EditableTextProps> = ({
   id,
   className = "",
   children,
-  as: Component = "span"
+  as: Component = "span",
+  layoutScoped = false
 }) => {
   const {
     contents,
@@ -78,10 +82,10 @@ const EditableText: React.FC<EditableTextProps> = ({
       e.stopPropagation();
       if (!isEditing) {
         const text = elementData?.content || extractText(children);
-        startEditing(id, text, extractText(children));
+        startEditing(id, text, extractText(children), layoutScoped);
       }
     }
-  }, [isAdmin, isEditingEnabled, isEditing, id, elementData, children, startEditing]);
+  }, [isAdmin, isEditingEnabled, isEditing, id, elementData, children, startEditing, layoutScoped]);
 
   const handleInput = useCallback(() => {
     // Read directly from DOM, store in ref only — no state updates, no re-renders
@@ -94,11 +98,11 @@ const EditableText: React.FC<EditableTextProps> = ({
     const current = currentEditContent.current;
     const before = contentBeforeEdit.current;
     if (current !== before) {
-      saveContent(id, current);
+      saveContent(id, current, layoutScoped);
     } else {
-      cancelEditing(id);
+      cancelEditing(id, layoutScoped);
     }
-  }, [id, saveContent, cancelEditing]);
+  }, [id, saveContent, cancelEditing, layoutScoped]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -108,9 +112,9 @@ const EditableText: React.FC<EditableTextProps> = ({
     } else if (e.key === 'Escape') {
       // Prevent blur from saving — reset content to original first
       currentEditContent.current = contentBeforeEdit.current;
-      cancelEditing(id);
+      cancelEditing(id, layoutScoped);
     }
-  }, [id, cancelEditing]);
+  }, [id, cancelEditing, layoutScoped]);
 
   // Non-admin or editing mode disabled — plain display
   if (!isAdmin || !isEditingEnabled) {

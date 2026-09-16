@@ -1,0 +1,6757 @@
+[
+  {
+    "page_key": "/about-us",
+    "element_id": "admin-message",
+    "en": "You are logged in as platform admin",
+    "ru": "Вы вошли как администратор платформы",
+    "de": "Du bist als Plattform-Administrator angemeldet"
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "main-title",
+    "en": "Crowd created entertainment",
+    "ru": "Развлечения, созданные сообществом",
+    "de": "Von der Community geschaffene Unterhaltung"
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "main-title2",
+    "en": "Entertainment Platform",
+    "ru": "Платформа развлечений",
+    "de": "Unterhaltungsplattform"
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "main-subtitle",
+    "en": "The entertainment platform where YOUR voice matters",
+    "ru": "Платформа развлечений, где важен именно ВАШ голос",
+    "de": "Die Unterhaltungsplattform, auf der DEINE Stimme zählt"
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "feedback-message",
+    "en": "We value your feedback and ideas!",
+    "ru": "Мы ценим ваши отзывы и идеи!",
+    "de": "Wir schätzen dein Feedback und deine Ideen!"
+  },
+  {
+    "page_key": "/account-administration",
+    "element_id": "account-loading",
+    "en": "Loading account information...",
+    "ru": "Загрузка информации об аккаунте...",
+    "de": "Kontoinformationen werden geladen..."
+  },
+  {
+    "page_key": "/account-administration",
+    "element_id": "account-heading-signed-out",
+    "en": "Account Administration",
+    "ru": "Управление аккаунтом",
+    "de": "Kontoverwaltung"
+  },
+  {
+    "page_key": "/account-administration",
+    "element_id": "account-signed-out-desc",
+    "en": "You need to be signed in to manage your account.",
+    "ru": "Чтобы управлять аккаунтом, необходимо войти в систему.",
+    "de": "Du musst angemeldet sein, um dein Konto zu verwalten."
+  },
+  {
+    "page_key": "/account-administration",
+    "element_id": "account-login-btn",
+    "en": "Log in",
+    "ru": "Войти",
+    "de": "Anmelden"
+  },
+  {
+    "page_key": "/account-administration",
+    "element_id": "account-heading",
+    "en": "Account Administration",
+    "ru": "Управление аккаунтом",
+    "de": "Kontoverwaltung"
+  },
+  {
+    "page_key": "/account-administration",
+    "element_id": "account-desc",
+    "en": "Manage your account settings and preferences",
+    "ru": "Управляйте настройками и параметрами вашего аккаунта",
+    "de": "Verwalte deine Kontoeinstellungen und Präferenzen"
+  },
+  {
+    "page_key": "/account-administration",
+    "element_id": "account-quick-nav",
+    "en": "Quick Navigation",
+    "ru": "Быстрая навигация",
+    "de": "Schnellnavigation"
+  },
+  {
+    "page_key": "/account-administration",
+    "element_id": "account-notifications",
+    "en": "Notifications",
+    "ru": "Уведомления",
+    "de": "Benachrichtigungen"
+  },
+  {
+    "page_key": "/account-administration",
+    "element_id": "account-messages",
+    "en": "Messages",
+    "ru": "Сообщения",
+    "de": "Nachrichten"
+  },
+  {
+    "page_key": "/account-administration",
+    "element_id": "account-platform-notifs",
+    "en": "Platform notifications",
+    "ru": "Уведомления платформы",
+    "de": "Plattformbenachrichtigungen"
+  },
+  {
+    "page_key": "/account-administration",
+    "element_id": "account-story-settings",
+    "en": "Default Story Settings",
+    "ru": "Настройки истории по умолчанию",
+    "de": "Standardeinstellungen für Geschichten"
+  },
+  {
+    "page_key": "/account-administration",
+    "element_id": "account-details-title",
+    "en": "Account Details",
+    "ru": "Данные аккаунта",
+    "de": "Kontodetails"
+  },
+  {
+    "page_key": "/account-administration",
+    "element_id": "account-telephone-label",
+    "en": "Telephone number",
+    "ru": "Номер телефона",
+    "de": "Telefonnummer"
+  },
+  {
+    "page_key": "/account-administration",
+    "element_id": "account-phone-tip",
+    "en": "Your phone number for account recovery",
+    "ru": "Ваш номер телефона для восстановления аккаунта",
+    "de": "Deine Telefonnummer zur Kontowiederherstellung"
+  },
+  {
+    "page_key": "/account-administration",
+    "element_id": "account-email-label",
+    "en": "E-mail",
+    "ru": "Эл. почта",
+    "de": "E-Mail"
+  },
+  {
+    "page_key": "/account-administration",
+    "element_id": "account-email-tip",
+    "en": "Your primary email address",
+    "ru": "Ваш основной адрес электронной почты",
+    "de": "Deine primäre E-Mail-Adresse"
+  },
+  {
+    "page_key": "/account-administration",
+    "element_id": "account-username-label",
+    "en": "Username",
+    "ru": "Имя пользователя",
+    "de": "Benutzername"
+  },
+  {
+    "page_key": "/account-administration",
+    "element_id": "account-username-tip",
+    "en": "Your unique username",
+    "ru": "Ваше уникальное имя пользователя",
+    "de": "Dein eindeutiger Benutzername"
+  },
+  {
+    "page_key": "/account-administration",
+    "element_id": "account-password-info",
+    "en": "Password can be changed at any time",
+    "ru": "Пароль можно изменить в любое время",
+    "de": "Das Passwort kann jederzeit geändert werden"
+  },
+  {
+    "page_key": "/account-administration",
+    "element_id": "account-number-label",
+    "en": "Account number",
+    "ru": "Номер аккаунта",
+    "de": "Kontonummer"
+  },
+  {
+    "page_key": "/account-administration",
+    "element_id": "account-number-tip",
+    "en": "Your unique account identifier",
+    "ru": "Ваш уникальный идентификатор аккаунта",
+    "de": "Deine eindeutige Konto-ID"
+  },
+  {
+    "page_key": "/account-administration",
+    "element_id": "account-number-immutable",
+    "en": "Account number cannot be changed or deleted",
+    "ru": "Номер аккаунта нельзя изменить или удалить",
+    "de": "Die Kontonummer kann nicht geändert oder gelöscht werden"
+  },
+  {
+    "page_key": "/account-administration",
+    "element_id": "account-actions-title",
+    "en": "Account Actions",
+    "ru": "Действия с аккаунтом",
+    "de": "Kontoaktionen"
+  },
+  {
+    "page_key": "/account-administration",
+    "element_id": "account-change-password",
+    "en": "Change Password",
+    "ru": "Изменить пароль",
+    "de": "Passwort ändern"
+  },
+  {
+    "page_key": "/account-administration",
+    "element_id": "account-danger-zone",
+    "en": "Danger Zone",
+    "ru": "Опасная зона",
+    "de": "Gefahrenzone"
+  },
+  {
+    "page_key": "/account-administration",
+    "element_id": "account-delete-btn",
+    "en": "Delete Account",
+    "ru": "Удалить аккаунт",
+    "de": "Konto löschen"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-heading",
+    "en": "My Content",
+    "ru": "Мой контент",
+    "de": "Meine Inhalte"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-tab-story",
+    "en": "Story",
+    "ru": "История",
+    "de": "Geschichte"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-tab-coauthors",
+    "en": "Co-Authors & Contributors",
+    "ru": "Соавторы и участники",
+    "de": "Mitautoren & Mitwirkende"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-tab-comments",
+    "en": "My Comments",
+    "ru": "Мои комментарии",
+    "de": "Meine Kommentare"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-tab-branches",
+    "en": "My Branches",
+    "ru": "Мои ветки",
+    "de": "Meine Branches"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-tab-contributions",
+    "en": "My Contributions",
+    "ru": "Мои вклады",
+    "de": "Meine Beiträge"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-tab-spaces",
+    "en": "My Spaces",
+    "ru": "Мои пространства",
+    "de": "Meine Bereiche"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-story-title",
+    "en": "Story",
+    "ru": "История",
+    "de": "Geschichte"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-story-desc",
+    "en": "All your creative works — stories, screenplays, audio, cartoons, and video.",
+    "ru": "Все ваши творческие работы — истории, сценарии, аудио, комиксы и видео.",
+    "de": "Alle deine kreativen Werke — Geschichten, Drehbücher, Audio, Comics und Videos."
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-content-th-type",
+    "en": "Type",
+    "ru": "Тип",
+    "de": "Typ"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-content-th-title",
+    "en": "Title",
+    "ru": "Название",
+    "de": "Titel"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-content-th-roles",
+    "en": "Roles",
+    "ru": "Роли",
+    "de": "Rollen"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-content-th-visibility",
+    "en": "Visibility",
+    "ru": "Видимость",
+    "de": "Sichtbarkeit"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-content-th-created",
+    "en": "Created",
+    "ru": "Создано",
+    "de": "Erstellt"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-coauthors-title",
+    "en": "Co-Authors & Contributors",
+    "ru": "Соавторы и участники",
+    "de": "Mitautoren & Mitwirkende"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-coauthors-desc",
+    "en": "Works where you collaborate with others or others contribute to yours.",
+    "ru": "Работы, над которыми вы сотрудничаете с другими или в которые другие вносят вклад.",
+    "de": "Werke, bei denen du mit anderen zusammenarbeitest oder andere zu deinen beitragen."
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-collab-th-type",
+    "en": "Type",
+    "ru": "Тип",
+    "de": "Typ"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-collab-th-title",
+    "en": "Title",
+    "ru": "Название",
+    "de": "Titel"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-collab-th-roles",
+    "en": "Your Roles",
+    "ru": "Ваши роли",
+    "de": "Deine Rollen"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-collab-th-visibility",
+    "en": "Visibility",
+    "ru": "Видимость",
+    "de": "Sichtbarkeit"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-collab-th-created",
+    "en": "Created",
+    "ru": "Создано",
+    "de": "Erstellt"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-comments-title",
+    "en": "My Comments",
+    "ru": "Мои комментарии",
+    "de": "Meine Kommentare"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-comments-desc",
+    "en": "View and manage your comments on stories and screenplays.",
+    "ru": "Просматривайте и управляйте своими комментариями к историям и сценариям.",
+    "de": "Zeige und verwalte deine Kommentare zu Geschichten und Drehbüchern."
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-comments-th-on",
+    "en": "On",
+    "ru": "Вкл.",
+    "de": "An"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-comments-th-comment",
+    "en": "Comment",
+    "ru": "Комментарий",
+    "de": "Kommentar"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-comments-th-date",
+    "en": "Date",
+    "ru": "Дата",
+    "de": "Datum"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-branches-title",
+    "en": "My Branches",
+    "ru": "Мои ветки",
+    "de": "Meine Branches"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-branches-desc",
+    "en": "Your alternative paragraph versions across stories.",
+    "ru": "Ваши альтернативные версии абзацев в разных историях.",
+    "de": "Deine alternativen Absatzversionen über alle Geschichten hinweg."
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-branches-th-story",
+    "en": "Story",
+    "ru": "История",
+    "de": "Geschichte"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-branches-th-chapter",
+    "en": "Chapter",
+    "ru": "Глава",
+    "de": "Kapitel"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-branches-th-original",
+    "en": "Original",
+    "ru": "Оригинал",
+    "de": "Original"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-branches-th-branch",
+    "en": "Branch",
+    "ru": "Ветка",
+    "de": "Branch"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-branches-th-date",
+    "en": "Date",
+    "ru": "Дата",
+    "de": "Datum"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-contributions-title",
+    "en": "My Contributions",
+    "ru": "Мои вклады",
+    "de": "Meine Beiträge"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-contributions-desc",
+    "en": "Track your contributions to other creators' work.",
+    "ru": "Отслеживайте свой вклад в работы других авторов.",
+    "de": "Verfolge deine Beiträge zu den Werken anderer Kreativer."
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-contrib-th-story",
+    "en": "Story",
+    "ru": "История",
+    "de": "Geschichte"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-contrib-th-chapter",
+    "en": "Chapter",
+    "ru": "Глава",
+    "de": "Kapitel"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-contrib-th-text",
+    "en": "Text",
+    "ru": "Текст",
+    "de": "Text"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-contrib-th-words",
+    "en": "Words",
+    "ru": "Слова",
+    "de": "Wörter"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-contrib-th-status",
+    "en": "Status",
+    "ru": "Статус",
+    "de": "Status"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-contrib-th-date",
+    "en": "Date",
+    "ru": "Дата",
+    "de": "Datum"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-spaces-title",
+    "en": "My Spaces",
+    "ru": "Мои пространства",
+    "de": "Meine Bereiche"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-spaces-desc",
+    "en": "Manage your creative spaces and collections.",
+    "ru": "Управляйте своими творческими пространствами и коллекциями.",
+    "de": "Verwalte deine kreativen Bereiche und Sammlungen."
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-spaces-th-name",
+    "en": "Name",
+    "ru": "Имя",
+    "de": "Name"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-spaces-th-description",
+    "en": "Description",
+    "ru": "Описание",
+    "de": "Beschreibung"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-spaces-th-visibility",
+    "en": "Visibility",
+    "ru": "Видимость",
+    "de": "Sichtbarkeit"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-spaces-th-created",
+    "en": "Created",
+    "ru": "Создано",
+    "de": "Erstellt"
+  },
+  {
+    "page_key": "/admin",
+    "element_id": "admin-spaces-add-btn",
+    "en": "+ Add Space",
+    "ru": "+ Добавить пространство",
+    "de": "+ Bereich hinzufügen"
+  },
+  {
+    "page_key": "/alpha",
+    "element_id": "alpha-welcome-heading",
+    "en": "Welcome to Crowdly!",
+    "ru": "Добро пожаловать в Crowdly!",
+    "de": "Willkommen bei Crowdly!"
+  },
+  {
+    "page_key": "/alpha",
+    "element_id": "alpha-welcome-desc",
+    "en": "Crowdly is currently in alpha. Enter your invitation code to access the platform.",
+    "ru": "Crowdly сейчас в альфа-версии. Введите код приглашения, чтобы получить доступ к платформе.",
+    "de": "Crowdly befindet sich derzeit in der Alpha-Phase. Gib deinen Einladungscode ein, um auf die Plattform zuzugreifen."
+  },
+  {
+    "page_key": "/alpha",
+    "element_id": "alpha-invitation-title",
+    "en": "Enter Invitation Code",
+    "ru": "Введите код приглашения",
+    "de": "Einladungscode eingeben"
+  },
+  {
+    "page_key": "/alpha",
+    "element_id": "alpha-label-inv-code",
+    "en": "Invitation Code",
+    "ru": "Код приглашения",
+    "de": "Einladungscode"
+  },
+  {
+    "page_key": "/alpha",
+    "element_id": "alpha-label-email",
+    "en": "Email",
+    "ru": "Эл. почта",
+    "de": "E-Mail"
+  },
+  {
+    "page_key": "/alpha",
+    "element_id": "alpha-validating",
+    "en": "Validating...",
+    "ru": "Проверка...",
+    "de": "Wird überprüft..."
+  },
+  {
+    "page_key": "/alpha",
+    "element_id": "alpha-enter-platform",
+    "en": "Enter Platform",
+    "ru": "Войти на платформу",
+    "de": "Plattform betreten"
+  },
+  {
+    "page_key": "/alpha",
+    "element_id": "alpha-have-login",
+    "en": "I already have login data",
+    "ru": "У меня уже есть данные для входа",
+    "de": "Ich habe bereits Anmeldedaten"
+  },
+  {
+    "page_key": "/alpha",
+    "element_id": "alpha-no-code",
+    "en": "I don't have a code",
+    "ru": "У меня нет кода",
+    "de": "Ich habe keinen Code"
+  },
+  {
+    "page_key": "/alpha",
+    "element_id": "alpha-apply-desc",
+    "en": "Apply to become an alpha user. We'll review your application and send you an invitation code if accepted.",
+    "ru": "Подайте заявку, чтобы стать альфа-пользователем. Мы рассмотрим вашу заявку и вышлем код приглашения в случае одобрения.",
+    "de": "Bewirb dich, um Alpha-Nutzer zu werden. Wir prüfen deine Bewerbung und senden dir bei Annahme einen Einladungscode."
+  },
+  {
+    "page_key": "/alpha",
+    "element_id": "alpha-label-firstname",
+    "en": "First name *",
+    "ru": "Имя *",
+    "de": "Vorname *"
+  },
+  {
+    "page_key": "/alpha",
+    "element_id": "alpha-label-lastname",
+    "en": "Last name *",
+    "ru": "Фамилия *",
+    "de": "Nachname *"
+  },
+  {
+    "page_key": "/alpha",
+    "element_id": "alpha-label-app-email",
+    "en": "Email *",
+    "ru": "Эл. почта *",
+    "de": "E-Mail *"
+  },
+  {
+    "page_key": "/alpha",
+    "element_id": "alpha-label-motivation",
+    "en": "Why do you want to join Crowdly?",
+    "ru": "Почему вы хотите присоединиться к Crowdly?",
+    "de": "Warum möchtest du Crowdly beitreten?"
+  },
+  {
+    "page_key": "/alpha",
+    "element_id": "alpha-sending",
+    "en": "Sending...",
+    "ru": "Отправка...",
+    "de": "Wird gesendet..."
+  },
+  {
+    "page_key": "/alpha",
+    "element_id": "alpha-send-application",
+    "en": "Send Application",
+    "ru": "Отправить заявку",
+    "de": "Bewerbung senden"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-not-found-heading",
+    "en": "Comic not found",
+    "ru": "Комикс не найден",
+    "de": "Comic nicht gefunden"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-not-found-desc",
+    "en": "The requested comic ID is missing or invalid.",
+    "ru": "Запрошенный ID комикса отсутствует или недействителен.",
+    "de": "Die angeforderte Comic-ID fehlt oder ist ungültig."
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-loading",
+    "en": "Loading creative space...",
+    "ru": "Загрузка творческого пространства...",
+    "de": "Kreativer Bereich wird geladen..."
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-not-found",
+    "en": "Creative space not found.",
+    "ru": "Творческое пространство не найдено.",
+    "de": "Kreativer Bereich nicht gefunden."
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-no-access",
+    "en": "You do not have access to this creative space.",
+    "ru": "У вас нет доступа к этому творческому пространству.",
+    "de": "Du hast keinen Zugriff auf diesen kreativen Bereich."
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-back-profile",
+    "en": "← Back to My Content",
+    "ru": "← Назад к моему контенту",
+    "de": "← Zurück zu meinen Inhalten"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-github-sync-label",
+    "en": "Sync with GitHub",
+    "ru": "Синхронизировать с GitHub",
+    "de": "Mit GitHub synchronisieren"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-github-change-repo",
+    "en": "Change repository",
+    "ru": "Изменить репозиторий",
+    "de": "Repository ändern"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-github-disconnect",
+    "en": "Disconnect",
+    "ru": "Отключить",
+    "de": "Trennen"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-github-use-existing",
+    "en": "Use existing GitHub connection",
+    "ru": "Использовать существующее подключение к GitHub",
+    "de": "Bestehende GitHub-Verbindung verwenden"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-github-connect-different",
+    "en": "Connect a different GitHub account",
+    "ru": "Подключить другой аккаунт GitHub",
+    "de": "Ein anderes GitHub-Konto verbinden"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-github-connect",
+    "en": "Connect GitHub",
+    "ru": "Подключить GitHub",
+    "de": "GitHub verbinden"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-drive-sync-label",
+    "en": "Sync with Google Drive",
+    "ru": "Синхронизировать с Google Диском",
+    "de": "Mit Google Drive synchronisieren"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-drive-change-folder",
+    "en": "Change folder",
+    "ru": "Изменить папку",
+    "de": "Ordner ändern"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-drive-disconnect",
+    "en": "Disconnect",
+    "ru": "Отключить",
+    "de": "Trennen"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-drive-connect",
+    "en": "Connect Google Drive",
+    "ru": "Подключить Google Диск",
+    "de": "Google Drive verbinden"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-github-picker-title",
+    "en": "Choose a GitHub repository",
+    "ru": "Выберите репозиторий GitHub",
+    "de": "Wähle ein GitHub-Repository"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-github-picker-loading",
+    "en": "Loading repositories…",
+    "ru": "Загрузка репозиториев…",
+    "de": "Repositories werden geladen…"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-github-picker-empty",
+    "en": "No repositories are accessible to this GitHub installation.",
+    "ru": "Для этой установки GitHub недоступны репозитории.",
+    "de": "Für diese GitHub-Installation sind keine Repositories zugänglich."
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-github-picker-connect",
+    "en": "Connect",
+    "ru": "Подключить",
+    "de": "Verbinden"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-github-manage-access",
+    "en": "Don't see your repository? Manage access on GitHub",
+    "ru": "Не видите свой репозиторий? Управляйте доступом на GitHub",
+    "de": "Dein Repository fehlt? Verwalte den Zugriff auf GitHub"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-drive-picker-title",
+    "en": "Choose a Google Drive folder",
+    "ru": "Выберите папку Google Диска",
+    "de": "Wähle einen Google-Drive-Ordner"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-drive-picker-loading",
+    "en": "Loading folders…",
+    "ru": "Загрузка папок…",
+    "de": "Ordner werden geladen…"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-drive-picker-empty",
+    "en": "No folders were found in this Google Drive account.",
+    "ru": "В этом аккаунте Google Диска папок не найдено.",
+    "de": "In diesem Google-Drive-Konto wurden keine Ordner gefunden."
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-drive-picker-connect",
+    "en": "Connect",
+    "ru": "Подключить",
+    "de": "Verbinden"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-new-story",
+    "en": "New story in this Space",
+    "ru": "Новая история в этом пространстве",
+    "de": "Neue Geschichte in diesem Bereich"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-create-dialog-title",
+    "en": "What would you like to create in this Space?",
+    "ru": "Что вы хотите создать в этом пространстве?",
+    "de": "Was möchtest du in diesem Bereich erstellen?"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-regular-story",
+    "en": "Regular story (novel)",
+    "ru": "Обычная история (роман)",
+    "de": "Reguläre Geschichte (Roman)"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-screenplay-story",
+    "en": "Screenplay story",
+    "ru": "Сценарная история",
+    "de": "Drehbuchgeschichte"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-new-folder",
+    "en": "New folder",
+    "ru": "Новая папка",
+    "de": "Neuer Ordner"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-upload-file",
+    "en": "Upload file",
+    "ru": "Загрузить файл",
+    "de": "Datei hochladen"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-content-items-heading",
+    "en": "Stories &amp; Screenplays in this Space",
+    "ru": "Истории и сценарии в этом пространстве",
+    "de": "Geschichten & Drehbücher in diesem Bereich"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-th-name",
+    "en": "Name",
+    "ru": "Имя",
+    "de": "Name"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-th-type",
+    "en": "Type",
+    "ru": "Тип",
+    "de": "Typ"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-th-updated",
+    "en": "Updated",
+    "ru": "Обновлено",
+    "de": "Aktualisiert"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-th-actions",
+    "en": "Actions",
+    "ru": "Действия",
+    "de": "Aktionen"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-loading-items",
+    "en": "Loading items...",
+    "ru": "Загрузка элементов...",
+    "de": "Elemente werden geladen..."
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-no-items",
+    "en": "No items in this folder yet.",
+    "ru": "В этой папке пока нет элементов.",
+    "de": "In diesem Ordner sind noch keine Elemente."
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-rename",
+    "en": "Rename",
+    "ru": "Переименовать",
+    "de": "Umbenennen"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-delete",
+    "en": "Delete",
+    "ru": "Удалить",
+    "de": "Löschen"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-preview-no-content",
+    "en": "No content available yet.",
+    "ru": "Контент пока недоступен.",
+    "de": "Noch kein Inhalt verfügbar."
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-preview-loading",
+    "en": "Loading...",
+    "ru": "Загрузка...",
+    "de": "Wird geladen..."
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-preview-unsupported",
+    "en": "This file type can't be previewed here yet.",
+    "ru": "Предпросмотр этого типа файлов пока недоступен.",
+    "de": "Dieser Dateityp kann hier noch nicht in der Vorschau angezeigt werden."
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-preview-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-preview-edit",
+    "en": "Edit",
+    "ru": "Редактировать",
+    "de": "Bearbeiten"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "admin-message",
+    "en": "You are logged in as platform admin",
+    "ru": "Вы вошли как администратор платформы",
+    "de": "Du bist als Plattform-Administrator angemeldet"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-title",
+    "en": "Crowdly Software",
+    "ru": "ПО Crowdly",
+    "de": "Crowdly-Software"
+  },
+  {
+    "page_key": "/favorites",
+    "element_id": "favorites-error-login",
+    "en": "You need to be logged in to see your favorites.",
+    "ru": "Чтобы увидеть избранное, необходимо войти в систему.",
+    "de": "Du musst angemeldet sein, um deine Favoriten zu sehen."
+  },
+  {
+    "page_key": "/favorites",
+    "element_id": "favorites-error-load-failed",
+    "en": "Failed to load favorites.",
+    "ru": "Не удалось загрузить избранное.",
+    "de": "Favoriten konnten nicht geladen werden."
+  },
+  {
+    "page_key": "/favorites",
+    "element_id": "favorites-title",
+    "en": "Favorites",
+    "ru": "Избранное",
+    "de": "Favoriten"
+  },
+  {
+    "page_key": "/feature-suggestions",
+    "element_id": "features-heading",
+    "en": "Suggested features",
+    "ru": "Предложенные функции",
+    "de": "Vorgeschlagene Funktionen"
+  },
+  {
+    "page_key": "/feature-suggestions",
+    "element_id": "features-suggest-btn",
+    "en": "Suggest a Feature",
+    "ru": "Предложить функцию",
+    "de": "Funktion vorschlagen"
+  },
+  {
+    "page_key": "/feature-suggestions",
+    "element_id": "features-browse-desc",
+    "en": "Browse through feature suggestions from our community or submit your own ideas to help us improve.",
+    "ru": "Просматривайте предложения по функциям от нашего сообщества или отправляйте свои идеи, чтобы помочь нам стать лучше.",
+    "de": "Durchstöbere Funktionsvorschläge unserer Community oder reiche eigene Ideen ein, um uns zu helfen, besser zu werden."
+  },
+  {
+    "page_key": "/feature-suggestions",
+    "element_id": "features-attachments-label",
+    "en": "Attachments:",
+    "ru": "Вложения:",
+    "de": "Anhänge:"
+  },
+  {
+    "page_key": "/feature-suggestions",
+    "element_id": "features-suggested-by",
+    "en": "Suggested by:",
+    "ru": "Предложил(а):",
+    "de": "Vorgeschlagen von:"
+  },
+  {
+    "page_key": "/feature-suggestions",
+    "element_id": "features-vote",
+    "en": "Vote",
+    "ru": "Голосовать",
+    "de": "Abstimmen"
+  },
+  {
+    "page_key": "/feature-suggestions",
+    "element_id": "features-comment",
+    "en": "Comment",
+    "ru": "Комментарий",
+    "de": "Kommentar"
+  },
+  {
+    "page_key": "/feature-suggestions",
+    "element_id": "features-no-suggestions",
+    "en": "No suggestions yet",
+    "ru": "Предложений пока нет",
+    "de": "Noch keine Vorschläge"
+  },
+  {
+    "page_key": "/feature-suggestions",
+    "element_id": "features-be-first",
+    "en": "Be the first to suggest a feature!",
+    "ru": "Будьте первым, кто предложит новую функцию!",
+    "de": "Sei der Erste, der eine Funktion vorschlägt!"
+  },
+  {
+    "page_key": "/feature-suggestions",
+    "element_id": "features-suggest-btn-2",
+    "en": "Suggest a Feature",
+    "ru": "Предложить функцию",
+    "de": "Funktion vorschlagen"
+  },
+  {
+    "page_key": "/friends",
+    "element_id": "friends-page-title",
+    "en": "Friends",
+    "ru": "Друзья",
+    "de": "Freunde"
+  },
+  {
+    "page_key": "/friends",
+    "element_id": "friends-load-error",
+    "en": "Couldn't load your friends. Please try again.",
+    "ru": "Не удалось загрузить список друзей. Попробуйте ещё раз.",
+    "de": "Deine Freunde konnten nicht geladen werden. Bitte versuche es erneut."
+  },
+  {
+    "page_key": "/friends",
+    "element_id": "friends-retry",
+    "en": "Retry",
+    "ru": "Повторить",
+    "de": "Erneut versuchen"
+  },
+  {
+    "page_key": "/friends",
+    "element_id": "friends-tab-friends",
+    "en": "Friends",
+    "ru": "Друзья",
+    "de": "Freunde"
+  },
+  {
+    "page_key": "/friends",
+    "element_id": "friends-tab-requests",
+    "en": "Requests",
+    "ru": "Запросы",
+    "de": "Anfragen"
+  },
+  {
+    "page_key": "/friends",
+    "element_id": "friends-tab-find",
+    "en": "Find people",
+    "ru": "Найти людей",
+    "de": "Personen finden"
+  },
+  {
+    "page_key": "/friends",
+    "element_id": "friends-incoming-heading",
+    "en": "Incoming",
+    "ru": "Входящие",
+    "de": "Eingehend"
+  },
+  {
+    "page_key": "/friends",
+    "element_id": "friends-outgoing-heading",
+    "en": "Sent",
+    "ru": "Отправлено",
+    "de": "Gesendet"
+  },
+  {
+    "page_key": "/",
+    "element_id": "main-platform-description",
+    "en": "Crowd-created stories that branch and grow — discover, experience, create, collaborate, and live amazing branching narratives rich in text, audio, and video, collectively crafted for the world — versioned, multilingual, and unlimited.",
+    "ru": "Истории, созданные сообществом, которые ветвятся и растут — открывайте, переживайте, создавайте, сотрудничайте и живите потрясающими разветвлёнными повествованиями, богатыми текстом, аудио и видео, созданными сообща для всего мира — с версионированием, на многих языках и без ограничений.",
+    "de": "Von der Community geschaffene Geschichten, die sich verzweigen und wachsen — entdecke, erlebe, erschaffe, arbeite zusammen und lebe fantastische verzweigte Erzählungen voller Text, Audio und Video, gemeinsam für die Welt geschaffen — versioniert, mehrsprachig und unbegrenzt."
+  },
+  {
+    "page_key": "/",
+    "element_id": "hero-create-new-story",
+    "en": "Create a New Amazing Story",
+    "ru": "Создать новую потрясающую историю",
+    "de": "Erstelle eine neue großartige Geschichte"
+  },
+  {
+    "page_key": "/",
+    "element_id": "hero-create-dialog-title",
+    "en": "What would you like to create?",
+    "ru": "Что вы хотите создать?",
+    "de": "Was möchtest du erstellen?"
+  },
+  {
+    "page_key": "/",
+    "element_id": "hero-create-option-story",
+    "en": "Regular story (novel)",
+    "ru": "Обычная история (роман)",
+    "de": "Reguläre Geschichte (Roman)"
+  },
+  {
+    "page_key": "/",
+    "element_id": "hero-create-option-screenplay",
+    "en": "Screenplay story",
+    "ru": "Сценарная история",
+    "de": "Drehbuchgeschichte"
+  },
+  {
+    "page_key": "/",
+    "element_id": "hero-create-option-comic",
+    "en": "Comic / manga",
+    "ru": "Комикс / манга",
+    "de": "Comic / Manga"
+  },
+  {
+    "page_key": "/",
+    "element_id": "hero-import-amazing-story",
+    "en": "Import an Amazing Story",
+    "ru": "Импортировать потрясающую историю",
+    "de": "Eine großartige Geschichte importieren"
+  },
+  {
+    "page_key": "/",
+    "element_id": "admin-message",
+    "en": "You are logged in as platform admin",
+    "ru": "Вы вошли как администратор платформы",
+    "de": "Du bist als Plattform-Administrator angemeldet"
+  },
+  {
+    "page_key": "/",
+    "element_id": "main-subtitle",
+    "en": "Favorites",
+    "ru": "Избранное",
+    "de": "Favoriten"
+  },
+  {
+    "page_key": "/",
+    "element_id": "favoriteStoriesDescriptionText",
+    "en": "Here will be your favorite stories, which you've added to your favorites. On this page they're only for you to see. The same functionality will be available in the User Profile with Visibililty options: public, private, for friends only",
+    "ru": "Здесь появятся ваши избранные истории, которые вы добавили в избранное. На этой странице их видите только вы. Та же функциональность будет доступна в профиле пользователя с настройками видимости: публично, приватно, только для друзей",
+    "de": "Hier erscheinen deine Lieblingsgeschichten, die du zu deinen Favoriten hinzugefügt hast. Auf dieser Seite kannst nur du sie sehen. Dieselbe Funktion wird im Benutzerprofil mit Sichtbarkeitsoptionen verfügbar sein: öffentlich, privat, nur für Freunde"
+  },
+  {
+    "page_key": "/",
+    "element_id": "StoriesToLiveToExperience",
+    "en": "Story(-ies) to live / to experience",
+    "ru": "История(-и) для проживания / переживания",
+    "de": "Geschichte(n) zum Leben / Erleben"
+  },
+  {
+    "page_key": "/",
+    "element_id": "newestStories",
+    "en": "Newest Stories",
+    "ru": "Новейшие истории",
+    "de": "Neueste Geschichten"
+  },
+  {
+    "page_key": "/",
+    "element_id": "newestScreenplays",
+    "en": "Newest Screenplays",
+    "ru": "Новейшие сценарии",
+    "de": "Neueste Drehbücher"
+  },
+  {
+    "page_key": "/",
+    "element_id": "mostPopularStories",
+    "en": "Most Popular Stories",
+    "ru": "Самые популярные истории",
+    "de": "Beliebteste Geschichten"
+  },
+  {
+    "page_key": "/",
+    "element_id": "mostPopularScreenplays",
+    "en": "Most Popular Screenplays",
+    "ru": "Самые популярные сценарии",
+    "de": "Beliebteste Drehbücher"
+  },
+  {
+    "page_key": "/",
+    "element_id": "mostActiveScreenplays",
+    "en": "Most Active Screenplays",
+    "ru": "Самые активные сценарии",
+    "de": "Aktivste Drehbücher"
+  },
+  {
+    "page_key": "/",
+    "element_id": "mostActiveStories",
+    "en": "Most Active Stories",
+    "ru": "Самые активные истории",
+    "de": "Aktivste Geschichten"
+  },
+  {
+    "page_key": "/",
+    "element_id": "LivingTheStories",
+    "en": "Living / Experiencing the story(-ies)",
+    "ru": "Проживаемые / переживаемые истории",
+    "de": "Gelebte / erlebte Geschichte(n) gerade jetzt"
+  },
+  {
+    "page_key": "/",
+    "element_id": "LivingTheStoriesDescriptionText",
+    "en": "Here will be your stories which you are currently living / experiencing, which you've added. This section is only for you to see. The same functionality will be available in the User Profile with Visibililty options: public, private, for friends only",
+    "ru": "Здесь будут истории, которые вы сейчас проживаете / переживаете и которые вы добавили. Этот раздел видите только вы. Та же функциональность будет доступна в профиле пользователя с настройками видимости: публично, приватно, только для друзей",
+    "de": "Hier erscheinen Geschichten, die du gerade lebst / erlebst und hinzugefügt hast. Diesen Bereich siehst nur du. Dieselbe Funktion wird im Benutzerprofil mit Sichtbarkeitsoptionen verfügbar sein: öffentlich, privat, nur für Freunde"
+  },
+  {
+    "page_key": "/",
+    "element_id": "LivedThoseStories",
+    "en": "Lived / Experienced those story(-ies)",
+    "ru": "Прожитые / пережитые истории",
+    "de": "Gelebte / erlebte Geschichte(n)"
+  },
+  {
+    "page_key": "/",
+    "element_id": "LivedThoseStoriesDescriptionText",
+    "en": "Here will be your stories which you already have lived / experienced. This section is only for you to see. The same functionality will be available in the User Profile with Visibililty options: public, private, for friends only",
+    "ru": "Здесь будут истории, которые вы уже прожили / пережили. Этот раздел видите только вы. Та же функциональность будет доступна в профиле пользователя с настройками видимости: публично, приватно, только для друзей",
+    "de": "Hier erscheinen Geschichten, die du bereits gelebt / erlebt hast. Diesen Bereich siehst nur du. Dieselbe Funktion wird im Benutzerprofil mit Sichtbarkeitsoptionen verfügbar sein: öffentlich, privat, nur für Freunde"
+  },
+  {
+    "page_key": "/admin/invite-users",
+    "element_id": "invite-per-page",
+    "en": "Per page:",
+    "ru": "На странице:",
+    "de": "Pro Seite:"
+  },
+  {
+    "page_key": "/admin/invite-users",
+    "element_id": "invite-heading",
+    "en": "Alpha User Management",
+    "ru": "Управление альфа-пользователями",
+    "de": "Alpha-Benutzerverwaltung"
+  },
+  {
+    "page_key": "/admin/invite-users",
+    "element_id": "invite-tab-invitations",
+    "en": "Invitations",
+    "ru": "Приглашения",
+    "de": "Einladungen"
+  },
+  {
+    "page_key": "/admin/invite-users",
+    "element_id": "invite-tab-applications",
+    "en": "Applications",
+    "ru": "Заявки",
+    "de": "Bewerbungen"
+  },
+  {
+    "page_key": "/admin/invite-users",
+    "element_id": "invite-create-title",
+    "en": "Create Invitation",
+    "ru": "Создать приглашение",
+    "de": "Einladung erstellen"
+  },
+  {
+    "page_key": "/admin/invite-users",
+    "element_id": "invite-label-fn",
+    "en": "First name",
+    "ru": "Имя",
+    "de": "Vorname"
+  },
+  {
+    "page_key": "/admin/invite-users",
+    "element_id": "invite-label-ln",
+    "en": "Last name",
+    "ru": "Фамилия",
+    "de": "Nachname"
+  },
+  {
+    "page_key": "/admin/invite-users",
+    "element_id": "invite-label-email",
+    "en": "Email",
+    "ru": "Эл. почта",
+    "de": "E-Mail"
+  },
+  {
+    "page_key": "/admin/invite-users",
+    "element_id": "invite-creating",
+    "en": "Creating...",
+    "ru": "Создание...",
+    "de": "Wird erstellt..."
+  },
+  {
+    "page_key": "/admin/invite-users",
+    "element_id": "invite-create-btn",
+    "en": "Create & Send Invite",
+    "ru": "Создать и отправить приглашение",
+    "de": "Einladung erstellen & senden"
+  },
+  {
+    "page_key": "/admin/invite-users",
+    "element_id": "invite-th-code",
+    "en": "Code",
+    "ru": "Код",
+    "de": "Code"
+  },
+  {
+    "page_key": "/admin/invite-users",
+    "element_id": "invite-th-actions",
+    "en": "Actions",
+    "ru": "Действия",
+    "de": "Aktionen"
+  },
+  {
+    "page_key": "/admin/invite-users",
+    "element_id": "invite-no-invitations",
+    "en": "No invitations yet",
+    "ru": "Приглашений пока нет",
+    "de": "Noch keine Einladungen"
+  },
+  {
+    "page_key": "/admin/invite-users",
+    "element_id": "invite-prev",
+    "en": "Previous",
+    "ru": "Предыдущее",
+    "de": "Vorherige"
+  },
+  {
+    "page_key": "/admin/invite-users",
+    "element_id": "invite-next",
+    "en": "Next",
+    "ru": "Далее",
+    "de": "Weiter"
+  },
+  {
+    "page_key": "/admin/invite-users",
+    "element_id": "invite-no-applications",
+    "en": "No applications yet",
+    "ru": "Заявок пока нет",
+    "de": "Noch keine Bewerbungen"
+  },
+  {
+    "page_key": "/lived_stories",
+    "element_id": "lived-stories-error-login",
+    "en": "You need to be logged in to see stories you have already lived / experienced.",
+    "ru": "Чтобы увидеть истории, которые вы уже прожили / пережили, необходимо войти в систему.",
+    "de": "Du musst angemeldet sein, um die Geschichten zu sehen, die du bereits gelebt / erlebt hast."
+  },
+  {
+    "page_key": "/lived_stories",
+    "element_id": "lived-stories-error-load-failed",
+    "en": "Failed to load lived / experienced titles.",
+    "ru": "Не удалось загрузить пережитые произведения.",
+    "de": "Erlebte Titel konnten nicht geladen werden."
+  },
+  {
+    "page_key": "/lived_stories",
+    "element_id": "lived-stories-title",
+    "en": "Lived / Experienced those story(-ies)",
+    "ru": "Прожитые / пережитые истории",
+    "de": "Gelebte / erlebte Geschichte(n)"
+  },
+  {
+    "page_key": "/living_stories",
+    "element_id": "living-stories-error-login",
+    "en": "You need to be logged in to see stories you are currently living / experiencing.",
+    "ru": "Чтобы увидеть истории, которые вы сейчас проживаете / переживаете, необходимо войти в систему.",
+    "de": "Du musst angemeldet sein, um die Geschichten zu sehen, die du gerade lebst / erlebst."
+  },
+  {
+    "page_key": "/living_stories",
+    "element_id": "living-stories-error-load-failed",
+    "en": "Failed to load currently experienced titles.",
+    "ru": "Не удалось загрузить произведения, которые вы сейчас переживаете.",
+    "de": "Aktuell erlebte Titel konnten nicht geladen werden."
+  },
+  {
+    "page_key": "/living_stories",
+    "element_id": "living-stories-title",
+    "en": "Living / Experiencing the story(-ies)",
+    "ru": "Проживаемые / переживаемые истории",
+    "de": "Gelebte / erlebte Geschichte(n) gerade jetzt"
+  },
+  {
+    "page_key": "/login",
+    "element_id": "login-heading",
+    "en": "Welcome Back",
+    "ru": "С возвращением",
+    "de": "Willkommen zurück"
+  },
+  {
+    "page_key": "/lounge",
+    "element_id": "lounge-description",
+    "en": "A place where creators connect, communicate, and collaborate on creative projects",
+    "ru": "Место, где авторы общаются, взаимодействуют и сотрудничают над творческими проектами",
+    "de": "Ein Ort, an dem Kreative sich vernetzen, austauschen und gemeinsam an kreativen Projekten arbeiten"
+  },
+  {
+    "page_key": "/lounge",
+    "element_id": "discussions-title",
+    "en": "Community Discussions",
+    "ru": "Обсуждения сообщества",
+    "de": "Community-Diskussionen"
+  },
+  {
+    "page_key": "/lounge",
+    "element_id": "new-discussion-btn",
+    "en": "Start New Discussion",
+    "ru": "Начать новое обсуждение",
+    "de": "Neue Diskussion starten"
+  },
+  {
+    "page_key": "/lounge",
+    "element_id": "discussions-description",
+    "en": "Join conversations with fellow creators and share your insights",
+    "ru": "Присоединяйтесь к обсуждениям с другими авторами и делитесь своими мыслями",
+    "de": "Nimm an Gesprächen mit anderen Kreativen teil und teile deine Erkenntnisse"
+  },
+  {
+    "page_key": "/lounge",
+    "element_id": "popular-tags",
+    "en": "Popular Tags",
+    "ru": "Популярные теги",
+    "de": "Beliebte Tags"
+  },
+  {
+    "page_key": "/lounge",
+    "element_id": "events-title",
+    "en": "Upcoming Events",
+    "ru": "Предстоящие события",
+    "de": "Kommende Veranstaltungen"
+  },
+  {
+    "page_key": "/lounge",
+    "element_id": "propose-event-btn",
+    "en": "Propose Event",
+    "ru": "Предложить событие",
+    "de": "Veranstaltung vorschlagen"
+  },
+  {
+    "page_key": "/lounge",
+    "element_id": "events-description",
+    "en": "Workshops, meetups, and collaborative sessions for creators",
+    "ru": "Мастер-классы, встречи и совместные сессии для авторов",
+    "de": "Workshops, Treffen und gemeinsame Sitzungen für Kreative"
+  },
+  {
+    "page_key": "/lounge",
+    "element_id": "register-btn",
+    "en": "Register",
+    "ru": "Регистрация",
+    "de": "Registrieren"
+  },
+  {
+    "page_key": "/lounge",
+    "element_id": "resources-title",
+    "en": "Creator Resources",
+    "ru": "Ресурсы для авторов",
+    "de": "Ressourcen für Kreative"
+  },
+  {
+    "page_key": "/lounge",
+    "element_id": "contribute-resource-btn",
+    "en": "Contribute Resource",
+    "ru": "Добавить ресурс",
+    "de": "Ressource beitragen"
+  },
+  {
+    "page_key": "/lounge",
+    "element_id": "resources-description",
+    "en": "Guides, tutorials, and tools to enhance your creative process",
+    "ru": "Руководства, уроки и инструменты для улучшения вашего творческого процесса",
+    "de": "Anleitungen, Tutorials und Tools zur Verbesserung deines kreativen Prozesses"
+  },
+  {
+    "page_key": "/lounge",
+    "element_id": "download-btn",
+    "en": "Download",
+    "ru": "Скачать",
+    "de": "Herunterladen"
+  },
+  {
+    "page_key": "/lounge",
+    "element_id": "resource-categories",
+    "en": "Categories",
+    "ru": "Категории",
+    "de": "Kategorien"
+  },
+  {
+    "page_key": "/lounge",
+    "element_id": "creators-title",
+    "en": "Featured Creators",
+    "ru": "Рекомендуемые авторы",
+    "de": "Vorgestellte Kreative"
+  },
+  {
+    "page_key": "/lounge",
+    "element_id": "creators-description",
+    "en": "Connect with fellow creators in our community",
+    "ru": "Общайтесь с другими авторами в нашем сообществе",
+    "de": "Vernetze dich mit anderen Kreativen in unserer Community"
+  },
+  {
+    "page_key": "/new-comic-template",
+    "element_id": "new-comic-template-login-required",
+    "en": "You must be logged in to use this template.",
+    "ru": "Чтобы использовать этот шаблон, необходимо войти в систему.",
+    "de": "Du musst angemeldet sein, um diese Vorlage zu verwenden."
+  },
+  {
+    "page_key": "/new-comic-template",
+    "element_id": "new-comic-template-heading",
+    "en": "Create a comic or manga",
+    "ru": "Создать комикс или мангу",
+    "de": "Comic oder Manga erstellen"
+  },
+  {
+    "page_key": "/new-comic-template",
+    "element_id": "new-comic-template-subheading",
+    "en": "Give it a title and reading direction — you'll upload pages on the next screen.",
+    "ru": "Укажите название и направление чтения — страницы вы загрузите на следующем экране.",
+    "de": "Gib einen Titel und eine Leserichtung an — die Seiten lädst du im nächsten Schritt hoch."
+  },
+  {
+    "page_key": "/new-comic-template",
+    "element_id": "new-comic-template-title-label",
+    "en": "Title",
+    "ru": "Название",
+    "de": "Titel"
+  },
+  {
+    "page_key": "/new-comic-template",
+    "element_id": "new-comic-template-direction-label",
+    "en": "Reading direction",
+    "ru": "Направление чтения",
+    "de": "Leserichtung"
+  },
+  {
+    "page_key": "/new-comic-template",
+    "element_id": "new-comic-template-direction-ltr",
+    "en": "Left to right (comic)",
+    "ru": "Слева направо (комикс)",
+    "de": "Von links nach rechts (Comic)"
+  },
+  {
+    "page_key": "/new-comic-template",
+    "element_id": "new-comic-template-direction-rtl",
+    "en": "Right to left (manga)",
+    "ru": "Справа налево (манга)",
+    "de": "Von rechts nach links (Manga)"
+  },
+  {
+    "page_key": "/new-comic-template",
+    "element_id": "new-comic-template-visibility-label",
+    "en": "Visibility",
+    "ru": "Видимость",
+    "de": "Sichtbarkeit"
+  },
+  {
+    "page_key": "/new-comic-template",
+    "element_id": "new-comic-template-visibility-public",
+    "en": "Public",
+    "ru": "Публично",
+    "de": "Öffentlich"
+  },
+  {
+    "page_key": "/new-comic-template",
+    "element_id": "new-comic-template-visibility-unlisted",
+    "en": "Unlisted",
+    "ru": "Не в списке",
+    "de": "Nicht gelistet"
+  },
+  {
+    "page_key": "/new-comic-template",
+    "element_id": "new-comic-template-visibility-private",
+    "en": "Private",
+    "ru": "Приватно",
+    "de": "Privat"
+  },
+  {
+    "page_key": "/new-comic-template",
+    "element_id": "new-comic-template-create-btn",
+    "en": "Create",
+    "ru": "Создать",
+    "de": "Erstellen"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "new-story-hide-revisions-btn",
+    "en": "Hide revisions",
+    "ru": "Скрыть версии",
+    "de": "Versionen ausblenden"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "new-story-show-revisions-btn",
+    "en": "Show revisions",
+    "ru": "Показать версии",
+    "de": "Versionen anzeigen"
+  },
+  {
+    "page_key": "/newest_comics",
+    "element_id": "newest-comics-new-title-label",
+    "en": "New comic or manga title",
+    "ru": "Название нового комикса или манги",
+    "de": "Titel des neuen Comics oder Manga"
+  },
+  {
+    "page_key": "/newest_comics",
+    "element_id": "newest-comics-direction-label",
+    "en": "Reading direction",
+    "ru": "Направление чтения",
+    "de": "Leserichtung"
+  },
+  {
+    "page_key": "/newest_comics",
+    "element_id": "newest-comics-create-btn",
+    "en": "Create",
+    "ru": "Создать",
+    "de": "Erstellen"
+  },
+  {
+    "page_key": "/newest_screenplays",
+    "element_id": "newest-screenplays-error-load-failed",
+    "en": "Failed to load newest screenplays.",
+    "ru": "Не удалось загрузить новейшие сценарии.",
+    "de": "Neueste Drehbücher konnten nicht geladen werden."
+  },
+  {
+    "page_key": "/newest_screenplays",
+    "element_id": "newest-screenplays-title",
+    "en": "Newest Screenplays",
+    "ru": "Новейшие сценарии",
+    "de": "Neueste Drehbücher"
+  },
+  {
+    "page_key": "/newest_stories",
+    "element_id": "newest-stories-error-load-failed",
+    "en": "Failed to load newest stories.",
+    "ru": "Не удалось загрузить новейшие истории.",
+    "de": "Neueste Geschichten konnten nicht geladen werden."
+  },
+  {
+    "page_key": "/newest_stories",
+    "element_id": "newest-stories-title",
+    "en": "Newest Stories",
+    "ru": "Новейшие истории",
+    "de": "Neueste Geschichten"
+  },
+  {
+    "page_key": "*",
+    "element_id": "notfound-title",
+    "en": "404",
+    "ru": "404",
+    "de": "404"
+  },
+  {
+    "page_key": "*",
+    "element_id": "notfound-message",
+    "en": "Oops! Page not found",
+    "ru": "Ой! Страница не найдена",
+    "de": "Hoppla! Seite nicht gefunden"
+  },
+  {
+    "page_key": "*",
+    "element_id": "notfound-link",
+    "en": "Return to Home",
+    "ru": "Вернуться на главную",
+    "de": "Zurück zur Startseite"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-heading",
+    "en": "Platform Administration",
+    "ru": "Администрирование платформы",
+    "de": "Plattformverwaltung"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-invite-btn",
+    "en": "Invite Users",
+    "ru": "Пригласить пользователей",
+    "de": "Benutzer einladen"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-tab-users",
+    "en": "User Management",
+    "ru": "Управление пользователями",
+    "de": "Benutzerverwaltung"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-tab-settings",
+    "en": "Platform Settings",
+    "ru": "Настройки платформы",
+    "de": "Plattformeinstellungen"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-tab-groups",
+    "en": "Groups",
+    "ru": "Группы",
+    "de": "Gruppen"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-tab-analytics",
+    "en": "Analytics",
+    "ru": "Аналитика",
+    "de": "Analysen"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-users-title",
+    "en": "User Management",
+    "ru": "Управление пользователями",
+    "de": "Benutzerverwaltung"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-users-desc",
+    "en": "Manage platform users — list, edit, ban, delete, and send messages.",
+    "ru": "Управляйте пользователями платформы — просматривайте, редактируйте, блокируйте, удаляйте и отправляйте сообщения.",
+    "de": "Verwalte Plattformbenutzer — auflisten, bearbeiten, sperren, löschen und Nachrichten senden."
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-search-btn",
+    "en": "Search",
+    "ru": "Поиск",
+    "de": "Suche"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-th-roles",
+    "en": "Roles",
+    "ru": "Роли",
+    "de": "Rollen"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-th-status",
+    "en": "Status",
+    "ru": "Статус",
+    "de": "Status"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-th-actions",
+    "en": "Actions",
+    "ru": "Действия",
+    "de": "Aktionen"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-not-set",
+    "en": "not set",
+    "ru": "не задано",
+    "de": "nicht festgelegt"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-banned",
+    "en": "Banned",
+    "ru": "Заблокирован",
+    "de": "Gesperrt"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-active",
+    "en": "Active",
+    "ru": "Активен",
+    "de": "Aktiv"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-no-match",
+    "en": "No users match your search",
+    "ru": "Нет пользователей, соответствующих поиску",
+    "de": "Keine Benutzer entsprechen deiner Suche"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-no-users",
+    "en": "No users found",
+    "ru": "Пользователи не найдены",
+    "de": "Keine Benutzer gefunden"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-prev",
+    "en": "Previous",
+    "ru": "Предыдущее",
+    "de": "Vorherige"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-next",
+    "en": "Next",
+    "ru": "Далее",
+    "de": "Weiter"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-settings-title",
+    "en": "Platform Settings",
+    "ru": "Настройки платформы",
+    "de": "Plattformeinstellungen"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-settings-desc",
+    "en": "Configure platform-wide settings and preferences.",
+    "ru": "Настройте общеплатформенные параметры и предпочтения.",
+    "de": "Konfiguriere plattformweite Einstellungen und Präferenzen."
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-settings-soon",
+    "en": "Platform settings coming soon",
+    "ru": "Настройки платформы скоро появятся",
+    "de": "Plattformeinstellungen folgen in Kürze"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-settings-soon-desc",
+    "en": "This section will allow you to configure platform-wide options.",
+    "ru": "В этом разделе вы сможете настраивать общеплатформенные параметры.",
+    "de": "In diesem Bereich kannst du plattformweite Optionen konfigurieren."
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-groups-title",
+    "en": "Groups Management",
+    "ru": "Управление группами",
+    "de": "Gruppenverwaltung"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-groups-desc",
+    "en": "Create and manage platform-wide groups that all users can use for access control.",
+    "ru": "Создавайте и управляйте общеплатформенными группами, которые все пользователи могут использовать для контроля доступа.",
+    "de": "Erstelle und verwalte plattformweite Gruppen, die alle Benutzer zur Zugriffskontrolle verwenden können."
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-analytics-title",
+    "en": "Analytics",
+    "ru": "Аналитика",
+    "de": "Analysen"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-analytics-desc",
+    "en": "Platform statistics and metrics overview.",
+    "ru": "Обзор статистики и метрик платформы.",
+    "de": "Übersicht über Plattformstatistiken und -kennzahlen."
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-analytics-soon",
+    "en": "Analytics coming soon",
+    "ru": "Аналитика скоро появится",
+    "de": "Analysen folgen in Kürze"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-analytics-soon-desc",
+    "en": "This section will display platform stats and metrics.",
+    "ru": "В этом разделе будут отображаться статистика и метрики платформы.",
+    "de": "In diesem Bereich werden Plattformstatistiken und -kennzahlen angezeigt."
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-edit-title",
+    "en": "Edit User",
+    "ru": "Редактировать пользователя",
+    "de": "Benutzer bearbeiten"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-edit-desc",
+    "en": "Update user profile information, roles, and translator permissions.",
+    "ru": "Обновляйте информацию профиля, роли и права переводчика.",
+    "de": "Aktualisiere Profilinformationen, Rollen und Übersetzerberechtigungen."
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-edit-fn",
+    "en": "First Name",
+    "ru": "Имя",
+    "de": "Vorname"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-edit-ln",
+    "en": "Last Name",
+    "ru": "Фамилия",
+    "de": "Nachname"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-edit-email",
+    "en": "Email",
+    "ru": "Эл. почта",
+    "de": "E-Mail"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-edit-pagename",
+    "en": "Profile Page Name",
+    "ru": "Имя страницы профиля",
+    "de": "Profilseitenname"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-edit-pagename-hint",
+    "en": "This is the unique URL slug for the user's public profile page.",
+    "ru": "Это уникальный URL-адрес публичной страницы профиля пользователя.",
+    "de": "Dies ist der eindeutige URL-Slug für die öffentliche Profilseite des Benutzers."
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-edit-roles",
+    "en": "Roles",
+    "ru": "Роли",
+    "de": "Rollen"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-edit-role-translator",
+    "en": "UI Translator",
+    "ru": "Переводчик интерфейса",
+    "de": "UI-Übersetzer"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-edit-role-support",
+    "en": "Platform Support",
+    "ru": "Поддержка платформы",
+    "de": "Plattform-Support"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-edit-admin-note",
+    "en": "This user is a Platform Admin (cannot be changed here).",
+    "ru": "Этот пользователь является администратором платформы (нельзя изменить здесь).",
+    "de": "Dieser Benutzer ist Plattform-Administrator (kann hier nicht geändert werden)."
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-edit-roles-hint",
+    "en": "Consumer role is always assigned. Check additional roles above.",
+    "ru": "Роль «потребитель» назначается всегда. Отметьте дополнительные роли выше.",
+    "de": "Die Rolle „Konsument“ wird immer zugewiesen. Wähle oben zusätzliche Rollen aus."
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-edit-langs",
+    "en": "Translator Languages",
+    "ru": "Языки переводчика",
+    "de": "Übersetzersprachen"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-edit-langs-hint",
+    "en": "Select which languages this user can translate into.",
+    "ru": "Выберите, на какие языки может переводить этот пользователь.",
+    "de": "Wähle aus, in welche Sprachen dieser Benutzer übersetzen kann."
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-edit-langs-loading",
+    "en": "Loading languages...",
+    "ru": "Загрузка языков...",
+    "de": "Sprachen werden geladen..."
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-edit-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-edit-saving",
+    "en": "Saving...",
+    "ru": "Сохранение...",
+    "de": "Wird gespeichert..."
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-edit-save",
+    "en": "Save Changes",
+    "ru": "Сохранить изменения",
+    "de": "Änderungen speichern"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-msg-title",
+    "en": "Send Message",
+    "ru": "Отправить сообщение",
+    "de": "Nachricht senden"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-msg-subject",
+    "en": "Subject",
+    "ru": "Тема",
+    "de": "Betreff"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-msg-body-label",
+    "en": "Message",
+    "ru": "Сообщение",
+    "de": "Nachricht"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-msg-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-msg-sending",
+    "en": "Sending...",
+    "ru": "Отправка...",
+    "de": "Wird gesendet..."
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-msg-send",
+    "en": "Send Message",
+    "ru": "Отправить сообщение",
+    "de": "Nachricht senden"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-del-title",
+    "en": "Delete User",
+    "ru": "Удалить пользователя",
+    "de": "Benutzer löschen"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-del-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-del-deleting",
+    "en": "Deleting...",
+    "ru": "Удаление...",
+    "de": "Wird gelöscht..."
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-del-btn",
+    "en": "Delete User",
+    "ru": "Удалить пользователя",
+    "de": "Benutzer löschen"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-title",
+    "en": "Profile",
+    "ru": "Профиль",
+    "de": "Profil"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "visibility-popup-label",
+    "en": "Visibility",
+    "ru": "Видимость",
+    "de": "Sichtbarkeit"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "can-be-changed-text-popup",
+    "en": "Can be changed any time",
+    "ru": "Можно изменить в любое время",
+    "de": "Kann jederzeit geändert werden"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "public-option-popup",
+    "en": "Public",
+    "ru": "Публично",
+    "de": "Öffentlich"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "private-option-popup",
+    "en": "Private",
+    "ru": "Приватно",
+    "de": "Privat"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "friends-option-popup",
+    "en": "Friends only",
+    "ru": "Только для друзей",
+    "de": "Nur Freunde"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "selected-only-option-popup",
+    "en": "Selected users only",
+    "ru": "Только выбранные пользователи",
+    "de": "Nur ausgewählte Benutzer"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "main-subtitle",
+    "en": "About",
+    "ru": "О проекте",
+    "de": "Über"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "interests-heading",
+    "en": "Interests/Hobbies",
+    "ru": "Интересы/Хобби",
+    "de": "Interessen/Hobbys"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "add-interest",
+    "en": "Add",
+    "ru": "Добавить",
+    "de": "Hinzufügen"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-spaces-heading",
+    "en": "Space(s)",
+    "ru": "Пространство(-а)",
+    "de": "Bereich(e)"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-page-stories-creating",
+    "en": "Stories I'm creating / co-creating",
+    "ru": "Истории, которые я создаю / соавторствую",
+    "de": "Geschichten, die ich erstelle / mitgestalte"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-stories-vis-label",
+    "en": "Visibility",
+    "ru": "Видимость",
+    "de": "Sichtbarkeit"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-stories-vis-public",
+    "en": "Make visible (Public)",
+    "ru": "Сделать видимым (публично)",
+    "de": "Sichtbar machen (Öffentlich)"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-stories-vis-private",
+    "en": "Make invisible (Private)",
+    "ru": "Сделать невидимым (приватно)",
+    "de": "Unsichtbar machen (Privat)"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-stories-vis-friends",
+    "en": "Friends only",
+    "ru": "Только для друзей",
+    "de": "Nur Freunde"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-stories-vis-selected",
+    "en": "Selected users only",
+    "ru": "Только выбранные пользователи",
+    "de": "Nur ausgewählte Benutzer"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-manage-story-spaces",
+    "en": "Manage story–Space assignments",
+    "ru": "Управление привязкой историй к пространствам",
+    "de": "Zuordnung von Geschichten zu Bereichen verwalten"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-loading-stories",
+    "en": "Loading your stories...",
+    "ru": "Загрузка ваших историй...",
+    "de": "Deine Geschichten werden geladen..."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-no-stories",
+    "en": "You are not yet creating or co-creating any stories.",
+    "ru": "Вы пока не создаёте и не соавторствуете ни в одной истории.",
+    "de": "Du erstellst oder gestaltest derzeit noch keine Geschichten mit."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-page-screenplays-creating",
+    "en": "Screenplays I'm creating / co-creating",
+    "ru": "Сценарии, которые я создаю / соавторствую",
+    "de": "Drehbücher, die ich erstelle / mitgestalte"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-screenplays-vis-label",
+    "en": "Visibility",
+    "ru": "Видимость",
+    "de": "Sichtbarkeit"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-screenplays-vis-public",
+    "en": "Make visible (Public)",
+    "ru": "Сделать видимым (публично)",
+    "de": "Sichtbar machen (Öffentlich)"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-screenplays-vis-private",
+    "en": "Make invisible (Private)",
+    "ru": "Сделать невидимым (приватно)",
+    "de": "Unsichtbar machen (Privat)"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-screenplays-vis-friends",
+    "en": "Friends only",
+    "ru": "Только для друзей",
+    "de": "Nur Freunde"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-screenplays-vis-selected",
+    "en": "Selected users only",
+    "ru": "Только выбранные пользователи",
+    "de": "Nur ausgewählte Benutzer"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-loading-screenplays",
+    "en": "Loading your screenplays...",
+    "ru": "Загрузка ваших сценариев...",
+    "de": "Deine Drehbücher werden geladen..."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-no-screenplays",
+    "en": "You are not yet creating any screenplays.",
+    "ru": "Вы пока не создаёте ни одного сценария.",
+    "de": "Du erstellst derzeit noch keine Drehbücher."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-page-favorites",
+    "en": "Favorites",
+    "ru": "Избранное",
+    "de": "Favoriten"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-favorites-vis-label",
+    "en": "Visibility",
+    "ru": "Видимость",
+    "de": "Sichtbarkeit"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-favorites-vis-public",
+    "en": "Make visible (Public)",
+    "ru": "Сделать видимым (публично)",
+    "de": "Sichtbar machen (Öffentlich)"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-favorites-vis-private",
+    "en": "Make invisible (Private)",
+    "ru": "Сделать невидимым (приватно)",
+    "de": "Unsichtbar machen (Privat)"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-favorites-vis-friends",
+    "en": "Friends only",
+    "ru": "Только для друзей",
+    "de": "Nur Freunde"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-favorites-vis-selected",
+    "en": "Selected users only",
+    "ru": "Только выбранные пользователи",
+    "de": "Nur ausgewählte Benutzer"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-page-living-stories",
+    "en": "Living / Experiencing the story(-ies)",
+    "ru": "Проживаемые / переживаемые истории",
+    "de": "Gelebte / erlebte Geschichte(n) gerade jetzt"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-living-vis-label",
+    "en": "Visibility",
+    "ru": "Видимость",
+    "de": "Sichtbarkeit"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-living-vis-public",
+    "en": "Make visible (Public)",
+    "ru": "Сделать видимым (публично)",
+    "de": "Sichtbar machen (Öffentlich)"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-living-vis-private",
+    "en": "Make invisible (Private)",
+    "ru": "Сделать невидимым (приватно)",
+    "de": "Unsichtbar machen (Privat)"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-living-vis-friends",
+    "en": "Friends only",
+    "ru": "Только для друзей",
+    "de": "Nur Freunde"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-living-vis-selected",
+    "en": "Selected users only",
+    "ru": "Только выбранные пользователи",
+    "de": "Nur ausgewählte Benutzer"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-page-lived-stories",
+    "en": "Lived / Experienced those story(-ies)",
+    "ru": "Прожитые / пережитые истории",
+    "de": "Gelebte / erlebte Geschichte(n)"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-lived-vis-label",
+    "en": "Visibility",
+    "ru": "Видимость",
+    "de": "Sichtbarkeit"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-lived-vis-public",
+    "en": "Make visible (Public)",
+    "ru": "Сделать видимым (публично)",
+    "de": "Sichtbar machen (Öffentlich)"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-lived-vis-private",
+    "en": "Make invisible (Private)",
+    "ru": "Сделать невидимым (приватно)",
+    "de": "Unsichtbar machen (Privat)"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-lived-vis-friends",
+    "en": "Friends only",
+    "ru": "Только для друзей",
+    "de": "Nur Freunde"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-lived-vis-selected",
+    "en": "Selected users only",
+    "ru": "Только выбранные пользователи",
+    "de": "Nur ausgewählte Benutzer"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "my-groups",
+    "en": "My Groups",
+    "ru": "Мои группы",
+    "de": "Meine Gruppen"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-loading-contributions",
+    "en": "Loading contributions...",
+    "ru": "Загрузка вкладов...",
+    "de": "Beiträge werden geladen..."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "notifications",
+    "en": "Notifications",
+    "ru": "Уведомления",
+    "de": "Benachrichtigungen"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-notifications-label",
+    "en": "Notifications",
+    "ru": "Уведомления",
+    "de": "Benachrichtigungen"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-notif-phone",
+    "en": "Phone",
+    "ru": "Телефон",
+    "de": "Telefon"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-notif-app",
+    "en": "App",
+    "ru": "Приложение",
+    "de": "App"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-notif-email",
+    "en": "Email",
+    "ru": "Эл. почта",
+    "de": "E-Mail"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "notifications_messages_placeholder",
+    "en": "Here will be your notifications about deletions, branch activity, etc which you can delete or archive",
+    "ru": "Здесь будут ваши уведомления об удалениях, активности веток и т. д., которые можно удалить или архивировать",
+    "de": "Hier erscheinen deine Benachrichtigungen über Löschungen, Branch-Aktivitäten usw., die du löschen oder archivieren kannst"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "stats-heading",
+    "en": "Story(-ies) & activity stats",
+    "ru": "Истории и статистика активности",
+    "de": "Geschichte(n) & Aktivitätsstatistik"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "author-contributions",
+    "en": "Authoring",
+    "ru": "Авторство",
+    "de": "Autorenschaft"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "author-text-count",
+    "en": "Text",
+    "ru": "Текст",
+    "de": "Text"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "author-images-count",
+    "en": "Images",
+    "ru": "Изображения",
+    "de": "Bilder"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "author-audio-count",
+    "en": "Audio",
+    "ru": "Аудио",
+    "de": "Audio"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "author-video-count",
+    "en": "Video",
+    "ru": "Видео",
+    "de": "Video"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "author-contributions-heading",
+    "en": "Contributions",
+    "ru": "Вклады",
+    "de": "Beiträge"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "author-contributions-help",
+    "en": "Below is a list of your contributions across all stories. Use the tabs above the table to filter by status.",
+    "ru": "Ниже приведён список ваших вкладов во все истории. Используйте вкладки над таблицей, чтобы фильтровать по статусу.",
+    "de": "Unten findest du eine Liste deiner Beiträge zu allen Geschichten. Verwende die Tabs über der Tabelle, um nach Status zu filtern."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "consumer-stats",
+    "en": "Consumer Stats",
+    "ru": "Статистика потребителей",
+    "de": "Konsumenten-Statistiken"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "consumer-text-count",
+    "en": "Text",
+    "ru": "Текст",
+    "de": "Text"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "consumer-images-count",
+    "en": "Images",
+    "ru": "Изображения",
+    "de": "Bilder"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "consumer-audio-count",
+    "en": "Audio",
+    "ru": "Аудио",
+    "de": "Audio"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "consumer-video-count",
+    "en": "Video",
+    "ru": "Видео",
+    "de": "Video"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "producer-stats",
+    "en": "Producer Stats",
+    "ru": "Статистика продюсеров",
+    "de": "Produzenten-Statistiken"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "producer-story-count",
+    "en": "Stories",
+    "ru": "Истории",
+    "de": "Geschichten"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "community-contributing",
+    "en": "Contributing",
+    "ru": "Вклад",
+    "de": "Beitragen"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "community-text-count",
+    "en": "Text",
+    "ru": "Текст",
+    "de": "Text"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "community-images-count",
+    "en": "Images",
+    "ru": "Изображения",
+    "de": "Bilder"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "community-audio-count",
+    "en": "Audio",
+    "ru": "Аудио",
+    "de": "Audio"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "community-video-count",
+    "en": "Video",
+    "ru": "Видео",
+    "de": "Video"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "community-engagement",
+    "en": "Community Engagement",
+    "ru": "Вовлечённость сообщества",
+    "de": "Community-Engagement"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "sent-feedback-count",
+    "en": "Sent Feedback",
+    "ru": "Отправленные отзывы",
+    "de": "Gesendetes Feedback"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "suggested-features-count",
+    "en": "Suggested Features",
+    "ru": "Предложенные функции",
+    "de": "Vorgeschlagene Funktionen"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "submitted-bug-reports",
+    "en": "Submitted Bug Reports",
+    "ru": "Отправленные отчёты об ошибках",
+    "de": "Eingereichte Fehlerberichte"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "contact-requests-count",
+    "en": "Contact Requests",
+    "ru": "Запросы на связь",
+    "de": "Kontaktanfragen"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "account-administration",
+    "en": "Account Administration",
+    "ru": "Управление аккаунтом",
+    "de": "Kontoverwaltung"
+  },
+  {
+    "page_key": "/:username",
+    "element_id": "public-profile-friends-label",
+    "en": "Friends",
+    "ru": "Друзья",
+    "de": "Freunde"
+  },
+  {
+    "page_key": "/:username",
+    "element_id": "public-profile-request-sent-label",
+    "en": "Request sent",
+    "ru": "Запрос отправлен",
+    "de": "Anfrage gesendet"
+  },
+  {
+    "page_key": "/:username",
+    "element_id": "public-profile-accept-friend-btn",
+    "en": "Accept request",
+    "ru": "Принять запрос",
+    "de": "Anfrage annehmen"
+  },
+  {
+    "page_key": "/:username",
+    "element_id": "public-profile-add-friend-btn",
+    "en": "Add friend",
+    "ru": "Добавить в друзья",
+    "de": "Als Freund hinzufügen"
+  },
+  {
+    "page_key": "/:username",
+    "element_id": "public-profile-following-btn",
+    "en": "Following",
+    "ru": "Подписки",
+    "de": "Folge ich"
+  },
+  {
+    "page_key": "/:username",
+    "element_id": "public-profile-follow-btn",
+    "en": "Follow",
+    "ru": "Подписаться",
+    "de": "Folgen"
+  },
+  {
+    "page_key": "/register",
+    "element_id": "register-heading",
+    "en": "Join Crowdly",
+    "ru": "Присоединиться к Crowdly",
+    "de": "Crowdly beitreten"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-not-found-heading",
+    "en": "Screenplay not found",
+    "ru": "Сценарий не найден",
+    "de": "Drehbuch nicht gefunden"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-not-found-desc",
+    "en": "The requested screenplay ID is missing or invalid.",
+    "ru": "Запрошенный ID сценария отсутствует или недействителен.",
+    "de": "Die angeforderte Drehbuch-ID fehlt oder ist ungültig."
+  },
+  {
+    "page_key": "/search",
+    "element_id": "search-all-types",
+    "en": "All types",
+    "ru": "Все типы",
+    "de": "Alle Typen"
+  },
+  {
+    "page_key": "/search",
+    "element_id": "search-sort-relevance",
+    "en": "Best match",
+    "ru": "Лучшее совпадение",
+    "de": "Beste Übereinstimmung"
+  },
+  {
+    "page_key": "/search",
+    "element_id": "search-sort-newest",
+    "en": "Newest first",
+    "ru": "Сначала новые",
+    "de": "Neueste zuerst"
+  },
+  {
+    "page_key": "/search",
+    "element_id": "search-sort-oldest",
+    "en": "Oldest first",
+    "ru": "Сначала старые",
+    "de": "Älteste zuerst"
+  },
+  {
+    "page_key": "/search",
+    "element_id": "search-sort-title-asc",
+    "en": "Title A–Z",
+    "ru": "Название А–Я",
+    "de": "Titel A–Z"
+  },
+  {
+    "page_key": "/search",
+    "element_id": "search-sort-title-desc",
+    "en": "Title Z–A",
+    "ru": "Название Я–А",
+    "de": "Titel Z–A"
+  },
+  {
+    "page_key": "/search",
+    "element_id": "search-btn",
+    "en": "Search",
+    "ru": "Поиск",
+    "de": "Suche"
+  },
+  {
+    "page_key": "/search",
+    "element_id": "search-searching",
+    "en": "Searching…",
+    "ru": "Поиск…",
+    "de": "Wird gesucht…"
+  },
+  {
+    "page_key": "/search",
+    "element_id": "search-no-results",
+    "en": "No results found.",
+    "ru": "Результатов не найдено.",
+    "de": "Keine Ergebnisse gefunden."
+  },
+  {
+    "page_key": "/search",
+    "element_id": "search-th-type",
+    "en": "Type",
+    "ru": "Тип",
+    "de": "Typ"
+  },
+  {
+    "page_key": "/search",
+    "element_id": "search-th-title",
+    "en": "Title",
+    "ru": "Название",
+    "de": "Titel"
+  },
+  {
+    "page_key": "/search",
+    "element_id": "search-th-details",
+    "en": "Details",
+    "ru": "Подробности",
+    "de": "Details"
+  },
+  {
+    "page_key": "/search",
+    "element_id": "search-th-created",
+    "en": "Created",
+    "ru": "Создано",
+    "de": "Erstellt"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "sitemap-title",
+    "en": "Site map",
+    "ru": "Карта сайта",
+    "de": "Sitemap"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "community-section",
+    "en": "Community",
+    "ru": "Сообщество",
+    "de": "Community"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "popover-suggest-feature",
+    "en": "Suggest a Feature",
+    "ru": "Предложить функцию",
+    "de": "Funktion vorschlagen"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "popover-feature-suggestions",
+    "en": "Suggested Features",
+    "ru": "Предложенные функции",
+    "de": "Vorgeschlagene Funktionen"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "admin-section",
+    "en": "Administration",
+    "ru": "Администрирование",
+    "de": "Verwaltung"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "popover-account-admin",
+    "en": "Account Administration",
+    "ru": "Управление аккаунтом",
+    "de": "Kontoverwaltung"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "stories-section",
+    "en": "Stories",
+    "ru": "Истории",
+    "de": "Geschichten"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "popover-new-story",
+    "en": "New Story Template",
+    "ru": "Шаблон новой истории",
+    "de": "Vorlage für neue Geschichte"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "story-to-live",
+    "en": "Story(-ies) to live / to experience",
+    "ru": "История(-и) для проживания / переживания",
+    "de": "Geschichte(n) zum Leben / Erleben"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "user-section",
+    "en": "User",
+    "ru": "Пользователь",
+    "de": "Benutzer"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "popover-profile",
+    "en": "Profile",
+    "ru": "Профиль",
+    "de": "Profil"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "finding-your-ways",
+    "en": "Finding your ways",
+    "ru": "Полезные ссылки",
+    "de": "Wegweiser"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "sitemap",
+    "en": "Sitemap - current page",
+    "ru": "Карта сайта — текущая страница",
+    "de": "Sitemap – aktuelle Seite"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "lounge",
+    "en": "Lounge",
+    "ru": "Лаунж",
+    "de": "Lounge"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "co-create-section",
+    "en": "C(o-c)reate with us",
+    "ru": "Со(з)давайте с нами",
+    "de": "Gemeinsam (er)schaffen"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "about-us-link",
+    "en": "Crowdly Software",
+    "ru": "ПО Crowdly",
+    "de": "Crowdly-Software"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "about-section",
+    "en": "Company",
+    "ru": "Компания",
+    "de": "Unternehmen"
+  },
+  {
+    "page_key": "/stories/spaces-migration",
+    "element_id": "migration-heading",
+    "en": "Story–Space migration",
+    "ru": "Перенос историй в пространства",
+    "de": "Geschichte-Bereich-Migration"
+  },
+  {
+    "page_key": "/stories/spaces-migration",
+    "element_id": "migration-desc",
+    "en": "These are your stories that do not yet belong to any Creative Space. Assign them to Spaces so desktop project spaces and web stay aligned.",
+    "ru": "Это ваши истории, которые ещё не принадлежат ни одному творческому пространству. Назначьте их пространствам, чтобы проекты в настольном приложении и на сайте оставались согласованными.",
+    "de": "Das sind deine Geschichten, die noch keinem kreativen Bereich zugeordnet sind. Weise sie Bereichen zu, damit die Projektbereiche in der Desktop-App und im Web übereinstimmen."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-cover-change-btn",
+    "en": "Change cover",
+    "ru": "Изменить обложку",
+    "de": "Cover ändern"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-cover-add-btn",
+    "en": "Add cover",
+    "ru": "Добавить обложку",
+    "de": "Cover hinzufügen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-gallery-heading",
+    "en": "Gallery",
+    "ru": "Галерея",
+    "de": "Galerie"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-gallery-upload-label-owner",
+    "en": "Add to gallery",
+    "ru": "Добавить в галерею",
+    "de": "Zur Galerie hinzufügen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-gallery-upload-label-fan",
+    "en": "Submit fan art (reviewed by the story owner)",
+    "ru": "Отправить фан-арт (проверяется автором истории)",
+    "de": "Fan-Art einreichen (wird vom Geschichtenautor geprüft)"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-title-empty-hint",
+    "en": "How shall the story be named? Write the story title here",
+    "ru": "Как назвать историю? Введите название истории здесь",
+    "de": "Wie soll die Geschichte heißen? Gib hier den Titel ein"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-description-label",
+    "en": "Description",
+    "ru": "Описание",
+    "de": "Beschreibung"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-tags-label",
+    "en": "Tags",
+    "ru": "Теги",
+    "de": "Tags"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-collaborators-label",
+    "en": "Collaborators",
+    "ru": "Участники",
+    "de": "Mitwirkende"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-transfer-ownership-label",
+    "en": "Transfer ownership to",
+    "ru": "Передать право собственности пользователю",
+    "de": "Eigentum übertragen an"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-transfer-btn-ing",
+    "en": "Transferring…",
+    "ru": "Передача…",
+    "de": "Wird übertragen…"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-transfer-btn",
+    "en": "Transfer",
+    "ru": "Передать",
+    "de": "Übertragen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-authors-label",
+    "en": "Authors",
+    "ru": "Авторы",
+    "de": "Autoren"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-coauthors-label",
+    "en": "Co-authors",
+    "ru": "Соавторы",
+    "de": "Mitautoren"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-chapter-untitled-hint",
+    "en": "(click to add a title)",
+    "ru": "(нажмите, чтобы добавить название)",
+    "de": "(zum Hinzufügen eines Titels klicken)"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-chapter-rename-btn",
+    "en": "Rename",
+    "ru": "Переименовать",
+    "de": "Umbenennen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-chapter-add-another-btn",
+    "en": "Add another chapter",
+    "ru": "Добавить ещё одну главу",
+    "de": "Weiteres Kapitel hinzufügen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-chapter-delete-btn",
+    "en": "Delete",
+    "ru": "Удалить",
+    "de": "Löschen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-create-btn",
+    "en": "Create Branch",
+    "ru": "Создать ветку",
+    "de": "Branch erstellen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-insert-illustration",
+    "en": "Insert illustration",
+    "ru": "Вставить иллюстрацию",
+    "de": "Illustration einfügen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-configure-btn",
+    "en": "Configure branch",
+    "ru": "Настроить ветку",
+    "de": "Branch konfigurieren"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-chapter-add-btn",
+    "en": "+ Add chapter",
+    "ru": "+ Добавить главу",
+    "de": "+ Kapitel hinzufügen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-chapters-login-required",
+    "en": "Please log in to add or edit chapters.",
+    "ru": "Войдите, чтобы добавлять или редактировать главы.",
+    "de": "Bitte melde dich an, um Kapitel hinzuzufügen oder zu bearbeiten."
+  },
+  {
+    "page_key": "/story/:story_id/details",
+    "element_id": "story-details-loading",
+    "en": "Loading story details...",
+    "ru": "Загрузка подробностей истории...",
+    "de": "Geschichtendetails werden geladen..."
+  },
+  {
+    "page_key": "/story/:story_id/details",
+    "element_id": "story-details-heading",
+    "en": "Story details",
+    "ru": "Подробности истории",
+    "de": "Geschichtendetails"
+  },
+  {
+    "page_key": "/story/:story_id/details",
+    "element_id": "story-details-back",
+    "en": "Back to story",
+    "ru": "Назад к истории",
+    "de": "Zurück zur Geschichte"
+  },
+  {
+    "page_key": "/story/:story_id/details",
+    "element_id": "story-details-description-label",
+    "en": "Description",
+    "ru": "Описание",
+    "de": "Beschreibung"
+  },
+  {
+    "page_key": "/story/:story_id/details",
+    "element_id": "story-details-tags-label",
+    "en": "Tags",
+    "ru": "Теги",
+    "de": "Tags"
+  },
+  {
+    "page_key": "/story/:story_id/details",
+    "element_id": "story-details-gallery-title",
+    "en": "Gallery",
+    "ru": "Галерея",
+    "de": "Galerie"
+  },
+  {
+    "page_key": "/story/:story_id/details",
+    "element_id": "story-details-gallery-upload-label-owner",
+    "en": "Add to gallery",
+    "ru": "Добавить в галерею",
+    "de": "Zur Galerie hinzufügen"
+  },
+  {
+    "page_key": "/story/:story_id/details",
+    "element_id": "story-details-gallery-upload-label-fan",
+    "en": "Submit fan art (reviewed by the story owner)",
+    "ru": "Отправить фан-арт (проверяется автором истории)",
+    "de": "Fan-Art einreichen (wird vom Geschichtenautor geprüft)"
+  },
+  {
+    "page_key": "/story/:story_id/details",
+    "element_id": "story-details-space-title",
+    "en": "Creative Space",
+    "ru": "Творческое пространство",
+    "de": "Kreativer Bereich"
+  },
+  {
+    "page_key": "/story/:story_id/details",
+    "element_id": "story-details-open-space",
+    "en": "Open Space",
+    "ru": "Открыть пространство",
+    "de": "Bereich öffnen"
+  },
+  {
+    "page_key": "/story/:story_id/details",
+    "element_id": "story-details-attachments",
+    "en": "Attachments",
+    "ru": "Вложения",
+    "de": "Anhänge"
+  },
+  {
+    "page_key": "/story-to-live",
+    "element_id": "story-to-live-error-stories-failed",
+    "en": "Failed to load newest stories.",
+    "ru": "Не удалось загрузить новейшие истории.",
+    "de": "Neueste Geschichten konnten nicht geladen werden."
+  },
+  {
+    "page_key": "/story-to-live",
+    "element_id": "story-to-live-error-screenplays-failed",
+    "en": "Failed to load newest screenplays.",
+    "ru": "Не удалось загрузить новейшие сценарии.",
+    "de": "Neueste Drehbücher konnten nicht geladen werden."
+  },
+  {
+    "page_key": "/story-to-live",
+    "element_id": "story-to-live-error-generic",
+    "en": "Failed to load content.",
+    "ru": "Не удалось загрузить содержимое.",
+    "de": "Inhalt konnte nicht geladen werden."
+  },
+  {
+    "page_key": "/story-to-live",
+    "element_id": "story-to-live-title",
+    "en": "Story(-ies) to live / to experience",
+    "ru": "История(-и) для проживания / переживания",
+    "de": "Geschichte(n) zum Leben / Erleben"
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "comments-title",
+    "en": "Comments",
+    "ru": "Комментарии",
+    "de": "Kommentare"
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "add-comment-btn",
+    "en": "Add Comment",
+    "ru": "Добавить комментарий",
+    "de": "Kommentar hinzufügen"
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "no-comments",
+    "en": "No comments yet. Be the first to share your thoughts.",
+    "ru": "Комментариев пока нет. Станьте первым, кто поделится мнением.",
+    "de": "Noch keine Kommentare. Sei der Erste, der seine Gedanken teilt."
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "story-title",
+    "en": "Story of my life",
+    "ru": "История моей жизни",
+    "de": "Geschichte meines Lebens"
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "content-type-text",
+    "en": "text",
+    "ru": "текст",
+    "de": "Text"
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "content-type-images",
+    "en": "images",
+    "ru": "изображения",
+    "de": "Bilder"
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "content-type-audio",
+    "en": "audio",
+    "ru": "аудио",
+    "de": "Audio"
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "content-type-video",
+    "en": "video",
+    "ru": "видео",
+    "de": "Video"
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "chapters-title",
+    "en": "Chapters",
+    "ru": "Главы",
+    "de": "Kapitel"
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "clone-menu-item",
+    "en": "Clone",
+    "ru": "Клонировать",
+    "de": "Klonen"
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "generate-audio-menu-item",
+    "en": "Generate Audio",
+    "ru": "Сгенерировать аудио",
+    "de": "Audio generieren"
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "record-audio-menu-item",
+    "en": "Record Audio",
+    "ru": "Записать аудио",
+    "de": "Audio aufnehmen"
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "record-video-menu-item",
+    "en": "Record Video",
+    "ru": "Записать видео",
+    "de": "Video aufnehmen"
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "generate-video-menu-item",
+    "en": "Generate Video",
+    "ru": "Сгенерировать видео",
+    "de": "Video generieren"
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "add-chapter-btn",
+    "en": "Add Chapter",
+    "ru": "Добавить главу",
+    "de": "Kapitel hinzufügen"
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "story-tab",
+    "en": "Story",
+    "ru": "История",
+    "de": "Geschichte"
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "contributors-tab",
+    "en": "Contributors",
+    "ru": "Участники",
+    "de": "Mitwirkende"
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "revisions-tab",
+    "en": "Revisions",
+    "ru": "Версии",
+    "de": "Versionen"
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "branches-tab",
+    "en": "Branches",
+    "ru": "Ветки",
+    "de": "Branches"
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "paragraph-1",
+    "en": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam varius, nunc vel tincidunt tincidunt, nisl nunc aliquam nisi, vel aliquam nisl nunc vel nisi. Nullam varius, nunc vel tincidunt tincidunt, nisl nunc aliquam nisi, vel aliquam nisl nunc vel nisi.",
+    "ru": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam varius, nunc vel tincidunt tincidunt, nisl nunc aliquam nisi, vel aliquam nisl nunc vel nisi. Nullam varius, nunc vel tincidunt tincidunt, nisl nunc aliquam nisi, vel aliquam nisl nunc vel nisi.",
+    "de": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam varius, nunc vel tincidunt tincidunt, nisl nunc aliquam nisi, vel aliquam nisl nunc vel nisi. Nullam varius, nunc vel tincidunt tincidunt, nisl nunc aliquam nisi, vel aliquam nisl nunc vel nisi."
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "paragraph-2",
+    "en": "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.",
+    "ru": "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt.",
+    "de": "Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt."
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "paragraph-3",
+    "en": "Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem. Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur?",
+    "ru": "Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem. Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur?",
+    "de": "Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem. Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur?"
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "presentation-title",
+    "en": "Presentation / Cartoon",
+    "ru": "Презентация / мультфильм",
+    "de": "Präsentation / Cartoon"
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "prev-image",
+    "en": "Previous",
+    "ru": "Предыдущее",
+    "de": "Vorherige"
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "next-image",
+    "en": "Next",
+    "ru": "Далее",
+    "de": "Weiter"
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "image-caption",
+    "en": "Slide caption: Describe what is shown in the presentation slide.",
+    "ru": "Подпись слайда: опишите, что показано на слайде презентации.",
+    "de": "Folienbeschriftung: Beschreibe, was auf der Präsentationsfolie gezeigt wird."
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "audio-title",
+    "en": "Audio Player",
+    "ru": "Аудиоплеер",
+    "de": "Audioplayer"
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "audio-description",
+    "en": "Audio description: Narrative of Chapter 1, read by the author.",
+    "ru": "Описание аудио: повествование главы 1, читает автор.",
+    "de": "Audiobeschreibung: Erzählung von Kapitel 1, gelesen vom Autor."
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "video-title",
+    "en": "Video Player",
+    "ru": "Видеоплеер",
+    "de": "Videoplayer"
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "video-caption",
+    "en": "Video caption: Visual interpretation of Chapter 1 - The Beginning.",
+    "ru": "Подпись видео: визуальная интерпретация главы 1 — Начало.",
+    "de": "Videobeschriftung: Visuelle Interpretation von Kapitel 1 – Der Anfang."
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "contributors-title",
+    "en": "Contributors",
+    "ru": "Участники",
+    "de": "Mitwirkende"
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "contributor-name",
+    "en": "Name",
+    "ru": "Имя",
+    "de": "Name"
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "words-contributed",
+    "en": "Words",
+    "ru": "Слова",
+    "de": "Wörter"
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "paragraphs-contributed",
+    "en": "Paragraphs",
+    "ru": "Абзацы",
+    "de": "Absätze"
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "chapters-contributed",
+    "en": "Chapters",
+    "ru": "Главы",
+    "de": "Kapitel"
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "revisions-title",
+    "en": "Revision History",
+    "ru": "История версий",
+    "de": "Versionsverlauf"
+  },
+  {
+    "page_key": "/story-for-consumers",
+    "element_id": "branches-title",
+    "en": "Story Branches",
+    "ru": "Ветки истории",
+    "de": "Geschichten-Branches"
+  },
+  {
+    "page_key": "/suggest-feature",
+    "element_id": "suggest-heading",
+    "en": "Suggest a feature",
+    "ru": "Предложить функцию",
+    "de": "Funktion vorschlagen"
+  },
+  {
+    "page_key": "/suggest-feature",
+    "element_id": "suggest-published-banner",
+    "en": "Your suggestion will be published on our website",
+    "ru": "Ваше предложение будет опубликовано на нашем сайте",
+    "de": "Dein Vorschlag wird auf unserer Website veröffentlicht"
+  },
+  {
+    "page_key": "/suggest-feature",
+    "element_id": "suggest-published-note",
+    "en": "Your feature request will be published on our website.",
+    "ru": "Ваш запрос на функцию будет опубликован на нашем сайте.",
+    "de": "Deine Funktionsanfrage wird auf unserer Website veröffentlicht."
+  },
+  {
+    "page_key": "/suggest-feature",
+    "element_id": "suggest-public",
+    "en": "Public",
+    "ru": "Публично",
+    "de": "Öffentlich"
+  },
+  {
+    "page_key": "/suggest-feature",
+    "element_id": "suggest-public-tip",
+    "en": "Your suggestion will be visible to everyone",
+    "ru": "Ваше предложение будет видно всем",
+    "de": "Dein Vorschlag ist für alle sichtbar"
+  },
+  {
+    "page_key": "/suggest-feature",
+    "element_id": "suggest-anonymous",
+    "en": "Anonymous",
+    "ru": "Аноним",
+    "de": "Anonym"
+  },
+  {
+    "page_key": "/suggest-feature",
+    "element_id": "suggest-anonymous-tip",
+    "en": "Your name won't be displayed",
+    "ru": "Ваше имя не будет отображаться",
+    "de": "Dein Name wird nicht angezeigt"
+  },
+  {
+    "page_key": "/suggest-feature",
+    "element_id": "suggest-private",
+    "en": "Private",
+    "ru": "Приватно",
+    "de": "Privat"
+  },
+  {
+    "page_key": "/suggest-feature",
+    "element_id": "suggest-private-tip",
+    "en": "Only administrators will see this suggestion",
+    "ru": "Это предложение увидят только администраторы",
+    "de": "Diesen Vorschlag sehen nur Administratoren"
+  },
+  {
+    "page_key": "/suggest-feature",
+    "element_id": "suggest-label-firstname",
+    "en": "First name",
+    "ru": "Имя",
+    "de": "Vorname"
+  },
+  {
+    "page_key": "/suggest-feature",
+    "element_id": "suggest-label-lastname",
+    "en": "Last name",
+    "ru": "Фамилия",
+    "de": "Nachname"
+  },
+  {
+    "page_key": "/suggest-feature",
+    "element_id": "suggest-contact-hidden-note",
+    "en": "This section won't be displayed on the feature suggestion output page",
+    "ru": "Этот раздел не будет отображаться на странице предложений по функциям",
+    "de": "Dieser Bereich wird auf der Funktionsvorschlagsseite nicht angezeigt"
+  },
+  {
+    "page_key": "/suggest-feature",
+    "element_id": "suggest-label-email",
+    "en": "Email",
+    "ru": "Эл. почта",
+    "de": "E-Mail"
+  },
+  {
+    "page_key": "/suggest-feature",
+    "element_id": "suggest-label-telephone",
+    "en": "Telephone",
+    "ru": "Телефон",
+    "de": "Telefon"
+  },
+  {
+    "page_key": "/suggest-feature",
+    "element_id": "suggest-can-contact",
+    "en": "Can we contact you? (in case we have questions)",
+    "ru": "Можем ли мы связаться с вами? (если у нас возникнут вопросы)",
+    "de": "Dürfen wir dich kontaktieren? (falls wir Rückfragen haben)"
+  },
+  {
+    "page_key": "/suggest-feature",
+    "element_id": "suggest-preferred-contact",
+    "en": "What is your preferred way of contacting you?",
+    "ru": "Как вам удобнее, чтобы с вами связались?",
+    "de": "Wie möchtest du am liebsten kontaktiert werden?"
+  },
+  {
+    "page_key": "/suggest-feature",
+    "element_id": "suggest-create-account",
+    "en": "Would you like to create an account?",
+    "ru": "Хотите создать аккаунт?",
+    "de": "Möchtest du ein Konto erstellen?"
+  },
+  {
+    "page_key": "/suggest-feature",
+    "element_id": "suggest-create-account-tip",
+    "en": "You can create an account on this platform",
+    "ru": "Вы можете создать аккаунт на этой платформе",
+    "de": "Du kannst ein Konto auf dieser Plattform erstellen"
+  },
+  {
+    "page_key": "/suggest-feature",
+    "element_id": "suggest-desc-label",
+    "en": "Please describe the feature you're suggesting here",
+    "ru": "Опишите здесь предлагаемую функцию",
+    "de": "Beschreibe hier die vorgeschlagene Funktion"
+  },
+  {
+    "page_key": "/suggest-feature",
+    "element_id": "suggest-attachments-label",
+    "en": "Attachments",
+    "ru": "Вложения",
+    "de": "Anhänge"
+  },
+  {
+    "page_key": "/suggest-feature",
+    "element_id": "suggest-add-btn",
+    "en": "Add",
+    "ru": "Добавить",
+    "de": "Hinzufügen"
+  },
+  {
+    "page_key": "/suggest-feature",
+    "element_id": "suggest-delete-btn",
+    "en": "Delete",
+    "ru": "Удалить",
+    "de": "Löschen"
+  },
+  {
+    "page_key": "/suggest-feature",
+    "element_id": "suggest-sending",
+    "en": "Sending...",
+    "ru": "Отправка...",
+    "de": "Wird gesendet..."
+  },
+  {
+    "page_key": "/suggest-feature",
+    "element_id": "suggest-send-btn",
+    "en": "Send",
+    "ru": "Отправить",
+    "de": "Senden"
+  },
+  {
+    "page_key": "/suggest-feature",
+    "element_id": "suggest-none-compulsory",
+    "en": "None of the fields is compulsory",
+    "ru": "Ни одно из полей не является обязательным",
+    "de": "Keines der Felder ist Pflicht"
+  },
+  {
+    "page_key": "/suggest-feature",
+    "element_id": "suggest-password-exception-tip",
+    "en": "Only password field is the exception, providing you choose Yes and decide to create an account on this platform",
+    "ru": "Единственное исключение — поле пароля, если вы выберете «Да» и решите создать аккаунт на этой платформе",
+    "de": "Nur das Passwortfeld ist die Ausnahme, sofern du „Ja“ wählst und dich für ein Konto auf dieser Plattform entscheidest"
+  },
+  {
+    "page_key": "/suggest-feature",
+    "element_id": "suggest-empty-form-note",
+    "en": "If you try to send an empty form it won't send.",
+    "ru": "Если вы попытаетесь отправить пустую форму, она не отправится.",
+    "de": "Wenn du versuchst, ein leeres Formular zu senden, wird es nicht gesendet."
+  },
+  {
+    "page_key": "/suggest-feature",
+    "element_id": "suggest-empty-form-title",
+    "en": "Empty Form",
+    "ru": "Пустая форма",
+    "de": "Leeres Formular"
+  },
+  {
+    "page_key": "/suggest-feature",
+    "element_id": "suggest-empty-form-desc",
+    "en": "You haven't entered any data. Please fill out at least one field to submit the form.",
+    "ru": "Вы не ввели никаких данных. Заполните хотя бы одно поле, чтобы отправить форму.",
+    "de": "Du hast keine Daten eingegeben. Bitte fülle mindestens ein Feld aus, um das Formular zu senden."
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-heading",
+    "en": "Support Dashboard",
+    "ru": "Панель поддержки",
+    "de": "Support-Dashboard"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-tab-enquiries",
+    "en": "Support Enquiries",
+    "ru": "Обращения в поддержку",
+    "de": "Support-Anfragen"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-tab-feedback",
+    "en": "User Feedback",
+    "ru": "Отзывы пользователей",
+    "de": "Nutzerfeedback"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-tab-suggestions",
+    "en": "Feature Suggestions",
+    "ru": "Предложения по функциям",
+    "de": "Funktionsvorschläge"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-tab-lookup",
+    "en": "User Lookup",
+    "ru": "Поиск пользователей",
+    "de": "Benutzersuche"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-enquiries-title",
+    "en": "Support Enquiries",
+    "ru": "Обращения в поддержку",
+    "de": "Support-Anfragen"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-enquiries-desc",
+    "en": "View and manage user support tickets.",
+    "ru": "Просматривайте и обрабатывайте обращения пользователей в поддержку.",
+    "de": "Zeige und verwalte Support-Tickets von Benutzern."
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-enquiries-empty",
+    "en": "No support enquiries yet",
+    "ru": "Обращений в поддержку пока нет",
+    "de": "Noch keine Support-Anfragen"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-enquiries-empty-detail",
+    "en": "Support tickets from users will appear here.",
+    "ru": "Здесь будут появляться обращения пользователей в поддержку.",
+    "de": "Support-Tickets von Benutzern erscheinen hier."
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-feedback-title",
+    "en": "User Feedback",
+    "ru": "Отзывы пользователей",
+    "de": "Nutzerfeedback"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-feedback-desc",
+    "en": "Review and manage feedback submitted by users.",
+    "ru": "Просматривайте и обрабатывайте отзывы пользователей.",
+    "de": "Überprüfe und verwalte von Benutzern eingereichtes Feedback."
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-feedback-empty",
+    "en": "No user feedback yet",
+    "ru": "Отзывов пользователей пока нет",
+    "de": "Noch kein Nutzerfeedback"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-feedback-empty-detail",
+    "en": "User feedback submissions will appear here.",
+    "ru": "Здесь будут появляться отзывы пользователей.",
+    "de": "Hier erscheinen eingereichte Nutzerrückmeldungen."
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-suggestions-title",
+    "en": "Feature Suggestions",
+    "ru": "Предложения по функциям",
+    "de": "Funktionsvorschläge"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-suggestions-desc",
+    "en": "Review feature suggestions from users.",
+    "ru": "Просматривайте предложения по функциям от пользователей.",
+    "de": "Überprüfe Funktionsvorschläge von Benutzern."
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-suggestions-managed",
+    "en": "Feature suggestions are managed on a dedicated page",
+    "ru": "Предложения по функциям управляются на отдельной странице",
+    "de": "Funktionsvorschläge werden auf einer eigenen Seite verwaltet"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-suggestions-managed-detail",
+    "en": "View and manage all feature suggestions in one place.",
+    "ru": "Просматривайте и управляйте всеми предложениями по функциям в одном месте.",
+    "de": "Zeige und verwalte alle Funktionsvorschläge an einem Ort."
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-go-to-suggestions",
+    "en": "Go to Feature Suggestions",
+    "ru": "Перейти к предложениям по функциям",
+    "de": "Zu den Funktionsvorschlägen"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-lookup-title",
+    "en": "User Lookup",
+    "ru": "Поиск пользователей",
+    "de": "Benutzersuche"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-lookup-desc",
+    "en": "Search for user accounts to assist them.",
+    "ru": "Найдите учётные записи пользователей, чтобы помочь им.",
+    "de": "Suche nach Benutzerkonten, um ihnen zu helfen."
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-lookup-empty",
+    "en": "User lookup coming soon",
+    "ru": "Поиск пользователей скоро появится",
+    "de": "Benutzersuche folgt in Kürze"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-lookup-empty-detail",
+    "en": "Search and look up user accounts to provide assistance.",
+    "ru": "Ищите и находите учётные записи пользователей, чтобы оказать помощь.",
+    "de": "Suche und finde Benutzerkonten, um Unterstützung zu leisten."
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "interactions-loading",
+    "en": "Loading interactions...",
+    "ru": "Загрузка взаимодействий...",
+    "de": "Interaktionen werden geladen..."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "interactions-loading",
+    "en": "Loading interactions...",
+    "ru": "Загрузка взаимодействий...",
+    "de": "Interaktionen werden geladen..."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "interactions-loading",
+    "en": "Loading interactions...",
+    "ru": "Загрузка взаимодействий...",
+    "de": "Interaktionen werden geladen..."
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "interactions-comments-label",
+    "en": "Comments",
+    "ru": "Комментарии",
+    "de": "Kommentare"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "interactions-comments-label",
+    "en": "Comments",
+    "ru": "Комментарии",
+    "de": "Kommentare"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "interactions-comments-label",
+    "en": "Comments",
+    "ru": "Комментарии",
+    "de": "Kommentare"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "interactions-post-btn",
+    "en": "Post",
+    "ru": "Опубликовать",
+    "de": "Veröffentlichen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "interactions-post-btn",
+    "en": "Post",
+    "ru": "Опубликовать",
+    "de": "Veröffentlichen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "interactions-post-btn",
+    "en": "Post",
+    "ru": "Опубликовать",
+    "de": "Veröffentlichen"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "interactions-no-comments",
+    "en": "No comments yet.",
+    "ru": "Комментариев пока нет.",
+    "de": "Noch keine Kommentare."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "interactions-no-comments",
+    "en": "No comments yet.",
+    "ru": "Комментариев пока нет.",
+    "de": "Noch keine Kommentare."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "interactions-no-comments",
+    "en": "No comments yet.",
+    "ru": "Комментариев пока нет.",
+    "de": "Noch keine Kommentare."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "user-interactions-title",
+    "en": "Selected users for this container",
+    "ru": "Выбранные пользователи для этого контейнера",
+    "de": "Ausgewählte Benutzer für diesen Container"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "user-interactions-desc",
+    "en": "Choose which users are allowed to see this container when visibility is set to",
+    "ru": "Выберите, каким пользователям разрешено видеть этот контейнер, если видимость установлена в значение",
+    "de": "Wähle aus, welche Benutzer diesen Container sehen dürfen, wenn die Sichtbarkeit eingestellt ist auf"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "user-interactions-selected-only",
+    "en": "Selected users only",
+    "ru": "Только выбранные пользователи",
+    "de": "Nur ausgewählte Benutzer"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "user-interactions-loading",
+    "en": "Loading users...",
+    "ru": "Загрузка пользователей...",
+    "de": "Benutzer werden geladen..."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "user-interactions-empty",
+    "en": "No users found.",
+    "ru": "Пользователи не найдены.",
+    "de": "Keine Benutzer gefunden."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "user-interactions-prev",
+    "en": "Prev",
+    "ru": "Назад",
+    "de": "Zurück"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "user-interactions-next",
+    "en": "Next",
+    "ru": "Далее",
+    "de": "Weiter"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-reader-loading",
+    "en": "Loading comic...",
+    "ru": "Загрузка комикса...",
+    "de": "Comic wird geladen..."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-reader-rtl-badge",
+    "en": "Right to left",
+    "ru": "Справа налево",
+    "de": "Von rechts nach links"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-reader-ltr-badge",
+    "en": "Left to right",
+    "ru": "Слева направо",
+    "de": "Von links nach rechts"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-reader-empty",
+    "en": "No pages yet.",
+    "ru": "Страниц пока нет.",
+    "de": "Noch keine Seiten."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-reader-page-of",
+    "en": "Page",
+    "ru": "Страница",
+    "de": "Seite"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-reader-add-pages",
+    "en": "Add pages",
+    "ru": "Добавить страницы",
+    "de": "Seiten hinzufügen"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "compare-coming-soon",
+    "en": "Coming soon",
+    "ru": "Скоро",
+    "de": "Demnächst"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "compare-coming-soon",
+    "en": "Coming soon",
+    "ru": "Скоро",
+    "de": "Demnächst"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "compare-coming-soon",
+    "en": "Coming soon",
+    "ru": "Скоро",
+    "de": "Demnächst"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "compare-coming-soon-desc",
+    "en": "Revision comparison for this content type is coming soon.",
+    "ru": "Сравнение версий для этого типа контента скоро появится.",
+    "de": "Der Versionsvergleich für diesen Inhaltstyp folgt in Kürze."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "compare-coming-soon-desc",
+    "en": "Revision comparison for this content type is coming soon.",
+    "ru": "Сравнение версий для этого типа контента скоро появится.",
+    "de": "Der Versionsvergleich für diesen Inhaltstyp folgt in Kürze."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "compare-coming-soon-desc",
+    "en": "Revision comparison for this content type is coming soon.",
+    "ru": "Сравнение версий для этого типа контента скоро появится.",
+    "de": "Der Versionsvergleich für diesen Inhaltstyp folgt in Kürze."
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "compare-loading",
+    "en": "Loading revisions...",
+    "ru": "Загрузка версий...",
+    "de": "Versionen werden geladen..."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "compare-loading",
+    "en": "Loading revisions...",
+    "ru": "Загрузка версий...",
+    "de": "Versionen werden geladen..."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "compare-loading",
+    "en": "Loading revisions...",
+    "ru": "Загрузка версий...",
+    "de": "Versionen werden geladen..."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "filter-total",
+    "en": "total",
+    "ru": "всего",
+    "de": "gesamt"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "filter-total",
+    "en": "total",
+    "ru": "всего",
+    "de": "gesamt"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "filter-approved",
+    "en": "approved",
+    "ru": "одобрено",
+    "de": "genehmigt"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "filter-approved",
+    "en": "approved",
+    "ru": "одобрено",
+    "de": "genehmigt"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "filter-denied",
+    "en": "denied",
+    "ru": "отклонено",
+    "de": "abgelehnt"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "filter-denied",
+    "en": "denied",
+    "ru": "отклонено",
+    "de": "abgelehnt"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "filter-undecided",
+    "en": "undecided",
+    "ru": "не решено",
+    "de": "unentschieden"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "filter-undecided",
+    "en": "undecided",
+    "ru": "не решено",
+    "de": "unentschieden"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "contrib-story-title-heading",
+    "en": "Story title",
+    "ru": "Название истории",
+    "de": "Geschichtentitel"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "contrib-story-title-heading",
+    "en": "Story title",
+    "ru": "Название истории",
+    "de": "Geschichtentitel"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "contrib-chapter-title-heading",
+    "en": "Chapter title",
+    "ru": "Название главы",
+    "de": "Kapiteltitel"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "contrib-chapter-title-heading",
+    "en": "Chapter title",
+    "ru": "Название главы",
+    "de": "Kapiteltitel"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "contrib-paragraph-heading",
+    "en": "Paragraph",
+    "ru": "Абзац",
+    "de": "Absatz"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "contrib-paragraph-heading",
+    "en": "Paragraph",
+    "ru": "Абзац",
+    "de": "Absatz"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "contrib-user-heading",
+    "en": "User",
+    "ru": "Пользователь",
+    "de": "Benutzer"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "contrib-user-heading",
+    "en": "User",
+    "ru": "Пользователь",
+    "de": "Benutzer"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "contrib-date-heading",
+    "en": "Date",
+    "ru": "Дата",
+    "de": "Datum"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "contrib-date-heading",
+    "en": "Date",
+    "ru": "Дата",
+    "de": "Datum"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "contrib-words-heading",
+    "en": "Words",
+    "ru": "Слова",
+    "de": "Wörter"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "contrib-words-heading",
+    "en": "Words",
+    "ru": "Слова",
+    "de": "Wörter"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "contrib-likes-heading",
+    "en": "Likes",
+    "ru": "Нравится",
+    "de": "Gefällt mir"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "contrib-likes-heading",
+    "en": "Likes",
+    "ru": "Нравится",
+    "de": "Gefällt mir"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "contrib-dislikes-heading",
+    "en": "Dislikes",
+    "ru": "Не нравится",
+    "de": "Ablehnungen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "contrib-dislikes-heading",
+    "en": "Dislikes",
+    "ru": "Не нравится",
+    "de": "Ablehnungen"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "contrib-comments-heading",
+    "en": "Comments",
+    "ru": "Комментарии",
+    "de": "Kommentare"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "contrib-comments-heading",
+    "en": "Comments",
+    "ru": "Комментарии",
+    "de": "Kommentare"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "contrib-empty-state",
+    "en": "No contributions yet.",
+    "ru": "Вкладов пока нет.",
+    "de": "Noch keine Beiträge."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "contrib-empty-state",
+    "en": "No contributions yet.",
+    "ru": "Вкладов пока нет.",
+    "de": "Noch keine Beiträge."
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "create-user-title",
+    "en": "Create User",
+    "ru": "Создать пользователя",
+    "de": "Benutzer erstellen"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "create-user-desc",
+    "en": "Add a new user to the platform.",
+    "ru": "Добавить нового пользователя на платформу.",
+    "de": "Einen neuen Benutzer zur Plattform hinzufügen."
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "create-user-fn-label",
+    "en": "First Name",
+    "ru": "Имя",
+    "de": "Vorname"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "create-user-ln-label",
+    "en": "Last Name",
+    "ru": "Фамилия",
+    "de": "Nachname"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "create-user-email-label",
+    "en": "Email",
+    "ru": "Эл. почта",
+    "de": "E-Mail"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "create-user-pw-label",
+    "en": "Password",
+    "ru": "Пароль",
+    "de": "Passwort"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "create-user-roles-label",
+    "en": "Roles",
+    "ru": "Роли",
+    "de": "Rollen"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "create-user-role-translator",
+    "en": "UI Translator",
+    "ru": "Переводчик интерфейса",
+    "de": "UI-Übersetzer"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "create-user-role-support",
+    "en": "Platform Support",
+    "ru": "Поддержка платформы",
+    "de": "Plattform-Support"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "create-user-roles-hint",
+    "en": "If no role is checked, the user is created as a regular consumer.",
+    "ru": "Если ни одна роль не отмечена, пользователь создаётся как обычный потребитель.",
+    "de": "Wenn keine Rolle ausgewählt ist, wird der Benutzer als normaler Konsument angelegt."
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "create-user-langs-label",
+    "en": "Translator Languages",
+    "ru": "Языки переводчика",
+    "de": "Übersetzersprachen"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "create-user-langs-hint",
+    "en": "Select which languages this user will be allowed to translate into. At least one is required.",
+    "ru": "Выберите, на какие языки этому пользователю будет разрешено переводить. Требуется хотя бы один язык.",
+    "de": "Wähle aus, in welche Sprachen dieser Benutzer übersetzen darf. Mindestens eine ist erforderlich."
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "create-user-langs-loading",
+    "en": "Loading languages...",
+    "ru": "Загрузка языков...",
+    "de": "Sprachen werden geladen..."
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "create-user-btn-loading",
+    "en": "Adding...",
+    "ru": "Добавление...",
+    "de": "Wird hinzugefügt..."
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "create-user-btn",
+    "en": "Add",
+    "ru": "Добавить",
+    "de": "Hinzufügen"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "spaces-mod-loading",
+    "en": "Loading creative spaces...",
+    "ru": "Загрузка творческих пространств...",
+    "de": "Kreative Bereiche werden geladen..."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "spaces-mod-title",
+    "en": "Space(s)",
+    "ru": "Пространство(-а)",
+    "de": "Bereich(e)"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "spaces-mod-new-btn",
+    "en": "+ New creative space",
+    "ru": "+ Новое творческое пространство",
+    "de": "+ Neuer kreativer Bereich"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "spaces-mod-empty",
+    "en": "No active spaces here yet.",
+    "ru": "Здесь пока нет активных пространств.",
+    "de": "Hier gibt es noch keine aktiven Bereiche."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "spaces-mod-list-title",
+    "en": "Space(s)",
+    "ru": "Пространство(-а)",
+    "de": "Bereich(e)"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "spaces-mod-new-btn-list",
+    "en": "+ New creative space",
+    "ru": "+ Новое творческое пространство",
+    "de": "+ Neuer kreativer Bereich"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "spaces-mod-open",
+    "en": "Open",
+    "ru": "Открыть",
+    "de": "Öffnen"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "spaces-mod-stats",
+    "en": "Stats",
+    "ru": "Статистика",
+    "de": "Statistiken"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "spaces-mod-make-public",
+    "en": "Make public",
+    "ru": "Сделать публичным",
+    "de": "Öffentlich machen"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "spaces-mod-make-private",
+    "en": "Make private",
+    "ru": "Сделать приватным",
+    "de": "Privat machen"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "spaces-mod-unpublish",
+    "en": "Unpublish",
+    "ru": "Снять с публикации",
+    "de": "Veröffentlichung zurückziehen"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "spaces-mod-publish",
+    "en": "Publish",
+    "ru": "Опубликовать",
+    "de": "Veröffentlichen"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "spaces-mod-rename",
+    "en": "Rename",
+    "ru": "Переименовать",
+    "de": "Umbenennen"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "spaces-mod-clone",
+    "en": "Clone",
+    "ru": "Клонировать",
+    "de": "Klonen"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "spaces-mod-delete",
+    "en": "Delete",
+    "ru": "Удалить",
+    "de": "Löschen"
+  },
+  {
+    "page_key": "/",
+    "element_id": "fav-login-msg",
+    "en": "Login to see your favorite stories and screenplays.",
+    "ru": "Войдите, чтобы увидеть ваши избранные истории и сценарии.",
+    "de": "Melde dich an, um deine Lieblingsgeschichten und -drehbücher zu sehen."
+  },
+  {
+    "page_key": "/:username",
+    "element_id": "fav-login-msg",
+    "en": "Login to see your favorite stories and screenplays.",
+    "ru": "Войдите, чтобы увидеть ваши избранные истории и сценарии.",
+    "de": "Melde dich an, um deine Lieblingsgeschichten und -drehbücher zu sehen."
+  },
+  {
+    "page_key": "/favorites",
+    "element_id": "fav-login-msg",
+    "en": "Login to see your favorite stories and screenplays.",
+    "ru": "Войдите, чтобы увидеть ваши избранные истории и сценарии.",
+    "de": "Melde dich an, um deine Lieblingsgeschichten und -drehbücher zu sehen."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "fav-login-msg",
+    "en": "Login to see your favorite stories and screenplays.",
+    "ru": "Войдите, чтобы увидеть ваши избранные истории и сценарии.",
+    "de": "Melde dich an, um deine Lieblingsgeschichten und -drehbücher zu sehen."
+  },
+  {
+    "page_key": "/",
+    "element_id": "fav-loading",
+    "en": "Loading your favorites...",
+    "ru": "Загрузка вашего избранного...",
+    "de": "Deine Favoriten werden geladen..."
+  },
+  {
+    "page_key": "/:username",
+    "element_id": "fav-loading",
+    "en": "Loading your favorites...",
+    "ru": "Загрузка вашего избранного...",
+    "de": "Deine Favoriten werden geladen..."
+  },
+  {
+    "page_key": "/favorites",
+    "element_id": "fav-loading",
+    "en": "Loading your favorites...",
+    "ru": "Загрузка вашего избранного...",
+    "de": "Deine Favoriten werden geladen..."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "fav-loading",
+    "en": "Loading your favorites...",
+    "ru": "Загрузка вашего избранного...",
+    "de": "Deine Favoriten werden geladen..."
+  },
+  {
+    "page_key": "/",
+    "element_id": "fav-empty",
+    "en": "You have not added any favorites yet.",
+    "ru": "Вы ещё не добавили ничего в избранное.",
+    "de": "Du hast noch keine Favoriten hinzugefügt."
+  },
+  {
+    "page_key": "/:username",
+    "element_id": "fav-empty",
+    "en": "You have not added any favorites yet.",
+    "ru": "Вы ещё не добавили ничего в избранное.",
+    "de": "Du hast noch keine Favoriten hinzugefügt."
+  },
+  {
+    "page_key": "/favorites",
+    "element_id": "fav-empty",
+    "en": "You have not added any favorites yet.",
+    "ru": "Вы ещё не добавили ничего в избранное.",
+    "de": "Du hast noch keine Favoriten hinzugefügt."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "fav-empty",
+    "en": "You have not added any favorites yet.",
+    "ru": "Вы ещё не добавили ничего в избранное.",
+    "de": "Du hast noch keine Favoriten hinzugefügt."
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "groups-create-title",
+    "en": "Create New Group",
+    "ru": "Создать новую группу",
+    "de": "Neue Gruppe erstellen"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "groups-create-title",
+    "en": "Create New Group",
+    "ru": "Создать новую группу",
+    "de": "Neue Gruppe erstellen"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "groups-platform-label",
+    "en": "Platform group",
+    "ru": "Группа платформы",
+    "de": "Plattformgruppe"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "groups-platform-label",
+    "en": "Platform group",
+    "ru": "Группа платформы",
+    "de": "Plattformgruppe"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "groups-btn-creating",
+    "en": "Creating...",
+    "ru": "Создание...",
+    "de": "Wird erstellt..."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "groups-btn-creating",
+    "en": "Creating...",
+    "ru": "Создание...",
+    "de": "Wird erstellt..."
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "groups-btn-create",
+    "en": "Create",
+    "ru": "Создать",
+    "de": "Erstellen"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "groups-btn-create",
+    "en": "Create",
+    "ru": "Создать",
+    "de": "Erstellen"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "groups-loading",
+    "en": "Loading groups...",
+    "ru": "Загрузка групп...",
+    "de": "Gruppen werden geladen..."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "groups-loading",
+    "en": "Loading groups...",
+    "ru": "Загрузка групп...",
+    "de": "Gruppen werden geladen..."
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "groups-empty",
+    "en": "No groups yet.",
+    "ru": "Групп пока нет.",
+    "de": "Noch keine Gruppen."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "groups-empty",
+    "en": "No groups yet.",
+    "ru": "Групп пока нет.",
+    "de": "Noch keine Gruppen."
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "groups-members-loading",
+    "en": "Loading members...",
+    "ru": "Загрузка участников...",
+    "de": "Mitglieder werden geladen..."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "groups-members-loading",
+    "en": "Loading members...",
+    "ru": "Загрузка участников...",
+    "de": "Mitglieder werden geladen..."
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "groups-members-empty",
+    "en": "No members yet.",
+    "ru": "Участников пока нет.",
+    "de": "Noch keine Mitglieder."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "groups-members-empty",
+    "en": "No members yet.",
+    "ru": "Участников пока нет.",
+    "de": "Noch keine Mitglieder."
+  },
+  {
+    "page_key": "/",
+    "element_id": "import-title",
+    "en": "Import",
+    "ru": "Импорт",
+    "de": "Import"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "import-title",
+    "en": "Import",
+    "ru": "Импорт",
+    "de": "Import"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "import-title",
+    "en": "Import",
+    "ru": "Импорт",
+    "de": "Import"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "import-title",
+    "en": "Import",
+    "ru": "Импорт",
+    "de": "Import"
+  },
+  {
+    "page_key": "/",
+    "element_id": "import-choose-type-desc",
+    "en": "What would you like to import the file as?",
+    "ru": "В каком виде вы хотите импортировать файл?",
+    "de": "Als was möchtest du die Datei importieren?"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "import-choose-type-desc",
+    "en": "What would you like to import the file as?",
+    "ru": "В каком виде вы хотите импортировать файл?",
+    "de": "Als was möchtest du die Datei importieren?"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "import-choose-type-desc",
+    "en": "What would you like to import the file as?",
+    "ru": "В каком виде вы хотите импортировать файл?",
+    "de": "Als was möchtest du die Datei importieren?"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "import-choose-type-desc",
+    "en": "What would you like to import the file as?",
+    "ru": "В каком виде вы хотите импортировать файл?",
+    "de": "Als was möchtest du die Datei importieren?"
+  },
+  {
+    "page_key": "/",
+    "element_id": "import-as-story",
+    "en": "Import as regular (novel) story",
+    "ru": "Импортировать как обычную историю (роман)",
+    "de": "Als reguläre Geschichte (Roman) importieren"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "import-as-story",
+    "en": "Import as regular (novel) story",
+    "ru": "Импортировать как обычную историю (роман)",
+    "de": "Als reguläre Geschichte (Roman) importieren"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "import-as-story",
+    "en": "Import as regular (novel) story",
+    "ru": "Импортировать как обычную историю (роман)",
+    "de": "Als reguläre Geschichte (Roman) importieren"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "import-as-story",
+    "en": "Import as regular (novel) story",
+    "ru": "Импортировать как обычную историю (роман)",
+    "de": "Als reguläre Geschichte (Roman) importieren"
+  },
+  {
+    "page_key": "/",
+    "element_id": "import-as-screenplay",
+    "en": "Import as screenplay",
+    "ru": "Импортировать как сценарий",
+    "de": "Als Drehbuch importieren"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "import-as-screenplay",
+    "en": "Import as screenplay",
+    "ru": "Импортировать как сценарий",
+    "de": "Als Drehbuch importieren"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "import-as-screenplay",
+    "en": "Import as screenplay",
+    "ru": "Импортировать как сценарий",
+    "de": "Als Drehbuch importieren"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "import-as-screenplay",
+    "en": "Import as screenplay",
+    "ru": "Импортировать как сценарий",
+    "de": "Als Drehbuch importieren"
+  },
+  {
+    "page_key": "/",
+    "element_id": "import-importing",
+    "en": "Importing...",
+    "ru": "Импортирование...",
+    "de": "Wird importiert..."
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "import-importing",
+    "en": "Importing...",
+    "ru": "Импортирование...",
+    "de": "Wird importiert..."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "import-importing",
+    "en": "Importing...",
+    "ru": "Импортирование...",
+    "de": "Wird importiert..."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "import-importing",
+    "en": "Importing...",
+    "ru": "Импортирование...",
+    "de": "Wird importiert..."
+  },
+  {
+    "page_key": "/",
+    "element_id": "import-drag-drop",
+    "en": "Drag and drop a file here, or click to browse",
+    "ru": "Перетащите файл сюда или нажмите, чтобы выбрать",
+    "de": "Datei hierher ziehen oder zum Durchsuchen klicken"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "import-drag-drop",
+    "en": "Drag and drop a file here, or click to browse",
+    "ru": "Перетащите файл сюда или нажмите, чтобы выбрать",
+    "de": "Datei hierher ziehen oder zum Durchsuchen klicken"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "import-drag-drop",
+    "en": "Drag and drop a file here, or click to browse",
+    "ru": "Перетащите файл сюда или нажмите, чтобы выбрать",
+    "de": "Datei hierher ziehen oder zum Durchsuchen klicken"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "import-drag-drop",
+    "en": "Drag and drop a file here, or click to browse",
+    "ru": "Перетащите файл сюда или нажмите, чтобы выбрать",
+    "de": "Datei hierher ziehen oder zum Durchsuchen klicken"
+  },
+  {
+    "page_key": "/",
+    "element_id": "import-back",
+    "en": "Back",
+    "ru": "Назад",
+    "de": "Zurück"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "import-back",
+    "en": "Back",
+    "ru": "Назад",
+    "de": "Zurück"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "import-back",
+    "en": "Back",
+    "ru": "Назад",
+    "de": "Zurück"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "import-back",
+    "en": "Back",
+    "ru": "Назад",
+    "de": "Zurück"
+  },
+  {
+    "page_key": "/",
+    "element_id": "import-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "import-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "import-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "import-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/",
+    "element_id": "export-title",
+    "en": "Export",
+    "ru": "Экспорт",
+    "de": "Export"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "export-title",
+    "en": "Export",
+    "ru": "Экспорт",
+    "de": "Export"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "export-title",
+    "en": "Export",
+    "ru": "Экспорт",
+    "de": "Export"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "export-title",
+    "en": "Export",
+    "ru": "Экспорт",
+    "de": "Export"
+  },
+  {
+    "page_key": "/",
+    "element_id": "export-choose-action-desc",
+    "en": "How would you like to export this content?",
+    "ru": "Как вы хотите экспортировать это содержимое?",
+    "de": "Wie möchtest du diesen Inhalt exportieren?"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "export-choose-action-desc",
+    "en": "How would you like to export this content?",
+    "ru": "Как вы хотите экспортировать это содержимое?",
+    "de": "Wie möchtest du diesen Inhalt exportieren?"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "export-choose-action-desc",
+    "en": "How would you like to export this content?",
+    "ru": "Как вы хотите экспортировать это содержимое?",
+    "de": "Wie möchtest du diesen Inhalt exportieren?"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "export-choose-action-desc",
+    "en": "How would you like to export this content?",
+    "ru": "Как вы хотите экспортировать это содержимое?",
+    "de": "Wie möchtest du diesen Inhalt exportieren?"
+  },
+  {
+    "page_key": "/",
+    "element_id": "export-save-device",
+    "en": "Save file on this device",
+    "ru": "Сохранить файл на этом устройстве",
+    "de": "Datei auf diesem Gerät speichern"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "export-save-device",
+    "en": "Save file on this device",
+    "ru": "Сохранить файл на этом устройстве",
+    "de": "Datei auf diesem Gerät speichern"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "export-save-device",
+    "en": "Save file on this device",
+    "ru": "Сохранить файл на этом устройстве",
+    "de": "Datei auf diesem Gerät speichern"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "export-save-device",
+    "en": "Save file on this device",
+    "ru": "Сохранить файл на этом устройстве",
+    "de": "Datei auf diesem Gerät speichern"
+  },
+  {
+    "page_key": "/",
+    "element_id": "export-save-space",
+    "en": "Save to a Space",
+    "ru": "Сохранить в пространство",
+    "de": "In einem Bereich speichern"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "export-save-space",
+    "en": "Save to a Space",
+    "ru": "Сохранить в пространство",
+    "de": "In einem Bereich speichern"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "export-save-space",
+    "en": "Save to a Space",
+    "ru": "Сохранить в пространство",
+    "de": "In einem Bereich speichern"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "export-save-space",
+    "en": "Save to a Space",
+    "ru": "Сохранить в пространство",
+    "de": "In einem Bereich speichern"
+  },
+  {
+    "page_key": "/",
+    "element_id": "export-save-device-title",
+    "en": "Save to device",
+    "ru": "Сохранить на устройство",
+    "de": "Auf Gerät speichern"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "export-save-device-title",
+    "en": "Save to device",
+    "ru": "Сохранить на устройство",
+    "de": "Auf Gerät speichern"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "export-save-device-title",
+    "en": "Save to device",
+    "ru": "Сохранить на устройство",
+    "de": "Auf Gerät speichern"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "export-save-device-title",
+    "en": "Save to device",
+    "ru": "Сохранить на устройство",
+    "de": "Auf Gerät speichern"
+  },
+  {
+    "page_key": "/",
+    "element_id": "export-choose-format",
+    "en": "Choose a file format:",
+    "ru": "Выберите формат файла:",
+    "de": "Wähle ein Dateiformat:"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "export-choose-format",
+    "en": "Choose a file format:",
+    "ru": "Выберите формат файла:",
+    "de": "Wähle ein Dateiformat:"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "export-choose-format",
+    "en": "Choose a file format:",
+    "ru": "Выберите формат файла:",
+    "de": "Wähle ein Dateiformat:"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "export-choose-format",
+    "en": "Choose a file format:",
+    "ru": "Выберите формат файла:",
+    "de": "Wähle ein Dateiformat:"
+  },
+  {
+    "page_key": "/",
+    "element_id": "export-html",
+    "en": "HTML (web page with formatting)",
+    "ru": "HTML (веб-страница с форматированием)",
+    "de": "HTML (Webseite mit Formatierung)"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "export-html",
+    "en": "HTML (web page with formatting)",
+    "ru": "HTML (веб-страница с форматированием)",
+    "de": "HTML (Webseite mit Formatierung)"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "export-html",
+    "en": "HTML (web page with formatting)",
+    "ru": "HTML (веб-страница с форматированием)",
+    "de": "HTML (Webseite mit Formatierung)"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "export-html",
+    "en": "HTML (web page with formatting)",
+    "ru": "HTML (веб-страница с форматированием)",
+    "de": "HTML (Webseite mit Formatierung)"
+  },
+  {
+    "page_key": "/",
+    "element_id": "export-plain-text",
+    "en": "Plain Text (simple text without formatting)",
+    "ru": "Обычный текст (простой текст без форматирования)",
+    "de": "Nur Text (einfacher Text ohne Formatierung)"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "export-plain-text",
+    "en": "Plain Text (simple text without formatting)",
+    "ru": "Обычный текст (простой текст без форматирования)",
+    "de": "Nur Text (einfacher Text ohne Formatierung)"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "export-plain-text",
+    "en": "Plain Text (simple text without formatting)",
+    "ru": "Обычный текст (простой текст без форматирования)",
+    "de": "Nur Text (einfacher Text ohne Formatierung)"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "export-plain-text",
+    "en": "Plain Text (simple text without formatting)",
+    "ru": "Обычный текст (простой текст без форматирования)",
+    "de": "Nur Text (einfacher Text ohne Formatierung)"
+  },
+  {
+    "page_key": "/",
+    "element_id": "export-doc-formats",
+    "en": "Document Formats",
+    "ru": "Форматы документов",
+    "de": "Dokumentformate"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "export-doc-formats",
+    "en": "Document Formats",
+    "ru": "Форматы документов",
+    "de": "Dokumentformate"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "export-doc-formats",
+    "en": "Document Formats",
+    "ru": "Форматы документов",
+    "de": "Dokumentformate"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "export-doc-formats",
+    "en": "Document Formats",
+    "ru": "Форматы документов",
+    "de": "Dokumentformate"
+  },
+  {
+    "page_key": "/",
+    "element_id": "export-screenplay-formats",
+    "en": "Screenplay Formats",
+    "ru": "Форматы сценариев",
+    "de": "Drehbuchformate"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "export-screenplay-formats",
+    "en": "Screenplay Formats",
+    "ru": "Форматы сценариев",
+    "de": "Drehbuchformate"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "export-screenplay-formats",
+    "en": "Screenplay Formats",
+    "ru": "Форматы сценариев",
+    "de": "Drehbuchformate"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "export-screenplay-formats",
+    "en": "Screenplay Formats",
+    "ru": "Форматы сценариев",
+    "de": "Drehbuchformate"
+  },
+  {
+    "page_key": "/",
+    "element_id": "export-format-back",
+    "en": "Back",
+    "ru": "Назад",
+    "de": "Zurück"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "export-format-back",
+    "en": "Back",
+    "ru": "Назад",
+    "de": "Zurück"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "export-format-back",
+    "en": "Back",
+    "ru": "Назад",
+    "de": "Zurück"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "export-format-back",
+    "en": "Back",
+    "ru": "Назад",
+    "de": "Zurück"
+  },
+  {
+    "page_key": "/",
+    "element_id": "export-format-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "export-format-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "export-format-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "export-format-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/",
+    "element_id": "export-save-space-title",
+    "en": "Save to a Space",
+    "ru": "Сохранить в пространство",
+    "de": "In einem Bereich speichern"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "export-save-space-title",
+    "en": "Save to a Space",
+    "ru": "Сохранить в пространство",
+    "de": "In einem Bereich speichern"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "export-save-space-title",
+    "en": "Save to a Space",
+    "ru": "Сохранить в пространство",
+    "de": "In einem Bereich speichern"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "export-save-space-title",
+    "en": "Save to a Space",
+    "ru": "Сохранить в пространство",
+    "de": "In einem Bereich speichern"
+  },
+  {
+    "page_key": "/",
+    "element_id": "export-choose-space-desc",
+    "en": "Choose an existing space or create a new one:",
+    "ru": "Выберите существующее пространство или создайте новое:",
+    "de": "Wähle einen bestehenden Bereich oder erstelle einen neuen:"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "export-choose-space-desc",
+    "en": "Choose an existing space or create a new one:",
+    "ru": "Выберите существующее пространство или создайте новое:",
+    "de": "Wähle einen bestehenden Bereich oder erstelle einen neuen:"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "export-choose-space-desc",
+    "en": "Choose an existing space or create a new one:",
+    "ru": "Выберите существующее пространство или создайте новое:",
+    "de": "Wähle einen bestehenden Bereich oder erstelle einen neuen:"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "export-choose-space-desc",
+    "en": "Choose an existing space or create a new one:",
+    "ru": "Выберите существующее пространство или создайте новое:",
+    "de": "Wähle einen bestehenden Bereich oder erstelle einen neuen:"
+  },
+  {
+    "page_key": "/",
+    "element_id": "export-loading-spaces",
+    "en": "Loading spaces...",
+    "ru": "Загрузка пространств...",
+    "de": "Bereiche werden geladen..."
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "export-loading-spaces",
+    "en": "Loading spaces...",
+    "ru": "Загрузка пространств...",
+    "de": "Bereiche werden geladen..."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "export-loading-spaces",
+    "en": "Loading spaces...",
+    "ru": "Загрузка пространств...",
+    "de": "Bereiche werden geladen..."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "export-loading-spaces",
+    "en": "Loading spaces...",
+    "ru": "Загрузка пространств...",
+    "de": "Bereiche werden geladen..."
+  },
+  {
+    "page_key": "/",
+    "element_id": "export-no-spaces",
+    "en": "You have no spaces yet. Create one below.",
+    "ru": "У вас пока нет пространств. Создайте одно ниже.",
+    "de": "Du hast noch keine Bereiche. Erstelle unten einen."
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "export-no-spaces",
+    "en": "You have no spaces yet. Create one below.",
+    "ru": "У вас пока нет пространств. Создайте одно ниже.",
+    "de": "Du hast noch keine Bereiche. Erstelle unten einen."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "export-no-spaces",
+    "en": "You have no spaces yet. Create one below.",
+    "ru": "У вас пока нет пространств. Создайте одно ниже.",
+    "de": "Du hast noch keine Bereiche. Erstelle unten einen."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "export-no-spaces",
+    "en": "You have no spaces yet. Create one below.",
+    "ru": "У вас пока нет пространств. Создайте одно ниже.",
+    "de": "Du hast noch keine Bereiche. Erstelle unten einen."
+  },
+  {
+    "page_key": "/",
+    "element_id": "export-create-space-btn",
+    "en": "+ Create a new Space",
+    "ru": "+ Создать новое пространство",
+    "de": "+ Neuen Bereich erstellen"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "export-create-space-btn",
+    "en": "+ Create a new Space",
+    "ru": "+ Создать новое пространство",
+    "de": "+ Neuen Bereich erstellen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "export-create-space-btn",
+    "en": "+ Create a new Space",
+    "ru": "+ Создать новое пространство",
+    "de": "+ Neuen Bereich erstellen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "export-create-space-btn",
+    "en": "+ Create a new Space",
+    "ru": "+ Создать новое пространство",
+    "de": "+ Neuen Bereich erstellen"
+  },
+  {
+    "page_key": "/",
+    "element_id": "export-saving",
+    "en": "Saving...",
+    "ru": "Сохранение...",
+    "de": "Wird gespeichert..."
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "export-saving",
+    "en": "Saving...",
+    "ru": "Сохранение...",
+    "de": "Wird gespeichert..."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "export-saving",
+    "en": "Saving...",
+    "ru": "Сохранение...",
+    "de": "Wird gespeichert..."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "export-saving",
+    "en": "Saving...",
+    "ru": "Сохранение...",
+    "de": "Wird gespeichert..."
+  },
+  {
+    "page_key": "/",
+    "element_id": "export-space-back",
+    "en": "Back",
+    "ru": "Назад",
+    "de": "Zurück"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "export-space-back",
+    "en": "Back",
+    "ru": "Назад",
+    "de": "Zurück"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "export-space-back",
+    "en": "Back",
+    "ru": "Назад",
+    "de": "Zurück"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "export-space-back",
+    "en": "Back",
+    "ru": "Назад",
+    "de": "Zurück"
+  },
+  {
+    "page_key": "/",
+    "element_id": "export-space-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "export-space-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "export-space-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "export-space-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/",
+    "element_id": "export-create-space-title",
+    "en": "Create a new Space",
+    "ru": "Создать новое пространство",
+    "de": "Neuen Bereich erstellen"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "export-create-space-title",
+    "en": "Create a new Space",
+    "ru": "Создать новое пространство",
+    "de": "Neuen Bereich erstellen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "export-create-space-title",
+    "en": "Create a new Space",
+    "ru": "Создать новое пространство",
+    "de": "Neuen Bereich erstellen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "export-create-space-title",
+    "en": "Create a new Space",
+    "ru": "Создать новое пространство",
+    "de": "Neuen Bereich erstellen"
+  },
+  {
+    "page_key": "/",
+    "element_id": "export-create-space-desc",
+    "en": "Enter a name for the new space. The exported file will be saved to it.",
+    "ru": "Введите название нового пространства. Экспортированный файл будет сохранён в нём.",
+    "de": "Gib einen Namen für den neuen Bereich ein. Die exportierte Datei wird darin gespeichert."
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "export-create-space-desc",
+    "en": "Enter a name for the new space. The exported file will be saved to it.",
+    "ru": "Введите название нового пространства. Экспортированный файл будет сохранён в нём.",
+    "de": "Gib einen Namen für den neuen Bereich ein. Die exportierte Datei wird darin gespeichert."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "export-create-space-desc",
+    "en": "Enter a name for the new space. The exported file will be saved to it.",
+    "ru": "Введите название нового пространства. Экспортированный файл будет сохранён в нём.",
+    "de": "Gib einen Namen für den neuen Bereich ein. Die exportierte Datei wird darin gespeichert."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "export-create-space-desc",
+    "en": "Enter a name for the new space. The exported file will be saved to it.",
+    "ru": "Введите название нового пространства. Экспортированный файл будет сохранён в нём.",
+    "de": "Gib einen Namen für den neuen Bereich ein. Die exportierte Datei wird darin gespeichert."
+  },
+  {
+    "page_key": "/",
+    "element_id": "export-creating-saving",
+    "en": "Creating & Saving...",
+    "ru": "Создание и сохранение...",
+    "de": "Wird erstellt & gespeichert..."
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "export-creating-saving",
+    "en": "Creating & Saving...",
+    "ru": "Создание и сохранение...",
+    "de": "Wird erstellt & gespeichert..."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "export-creating-saving",
+    "en": "Creating & Saving...",
+    "ru": "Создание и сохранение...",
+    "de": "Wird erstellt & gespeichert..."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "export-creating-saving",
+    "en": "Creating & Saving...",
+    "ru": "Создание и сохранение...",
+    "de": "Wird erstellt & gespeichert..."
+  },
+  {
+    "page_key": "/",
+    "element_id": "export-create-save",
+    "en": "Create Space & Save",
+    "ru": "Создать пространство и сохранить",
+    "de": "Bereich erstellen & speichern"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "export-create-save",
+    "en": "Create Space & Save",
+    "ru": "Создать пространство и сохранить",
+    "de": "Bereich erstellen & speichern"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "export-create-save",
+    "en": "Create Space & Save",
+    "ru": "Создать пространство и сохранить",
+    "de": "Bereich erstellen & speichern"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "export-create-save",
+    "en": "Create Space & Save",
+    "ru": "Создать пространство и сохранить",
+    "de": "Bereich erstellen & speichern"
+  },
+  {
+    "page_key": "/",
+    "element_id": "export-newspace-back",
+    "en": "Back",
+    "ru": "Назад",
+    "de": "Zurück"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "export-newspace-back",
+    "en": "Back",
+    "ru": "Назад",
+    "de": "Zurück"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "export-newspace-back",
+    "en": "Back",
+    "ru": "Назад",
+    "de": "Zurück"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "export-newspace-back",
+    "en": "Back",
+    "ru": "Назад",
+    "de": "Zurück"
+  },
+  {
+    "page_key": "/",
+    "element_id": "export-newspace-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "export-newspace-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "export-newspace-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "export-newspace-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/",
+    "element_id": "lived-login-msg",
+    "en": "Login to see the stories and screenplays you have already lived / experienced.",
+    "ru": "Войдите, чтобы увидеть истории и сценарии, которые вы уже прожили / пережили.",
+    "de": "Melde dich an, um die Geschichten und Drehbücher zu sehen, die du bereits gelebt / erlebt hast."
+  },
+  {
+    "page_key": "/:username",
+    "element_id": "lived-login-msg",
+    "en": "Login to see the stories and screenplays you have already lived / experienced.",
+    "ru": "Войдите, чтобы увидеть истории и сценарии, которые вы уже прожили / пережили.",
+    "de": "Melde dich an, um die Geschichten und Drehbücher zu sehen, die du bereits gelebt / erlebt hast."
+  },
+  {
+    "page_key": "/lived_stories",
+    "element_id": "lived-login-msg",
+    "en": "Login to see the stories and screenplays you have already lived / experienced.",
+    "ru": "Войдите, чтобы увидеть истории и сценарии, которые вы уже прожили / пережили.",
+    "de": "Melde dich an, um die Geschichten und Drehbücher zu sehen, die du bereits gelebt / erlebt hast."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "lived-login-msg",
+    "en": "Login to see the stories and screenplays you have already lived / experienced.",
+    "ru": "Войдите, чтобы увидеть истории и сценарии, которые вы уже прожили / пережили.",
+    "de": "Melde dich an, um die Geschichten und Drehbücher zu sehen, die du bereits gelebt / erlebt hast."
+  },
+  {
+    "page_key": "/",
+    "element_id": "lived-loading",
+    "en": "Loading your lived / experienced titles...",
+    "ru": "Загрузка ваших пережитых произведений...",
+    "de": "Deine erlebten Titel werden geladen..."
+  },
+  {
+    "page_key": "/:username",
+    "element_id": "lived-loading",
+    "en": "Loading your lived / experienced titles...",
+    "ru": "Загрузка ваших пережитых произведений...",
+    "de": "Deine erlebten Titel werden geladen..."
+  },
+  {
+    "page_key": "/lived_stories",
+    "element_id": "lived-loading",
+    "en": "Loading your lived / experienced titles...",
+    "ru": "Загрузка ваших пережитых произведений...",
+    "de": "Deine erlebten Titel werden geladen..."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "lived-loading",
+    "en": "Loading your lived / experienced titles...",
+    "ru": "Загрузка ваших пережитых произведений...",
+    "de": "Deine erlebten Titel werden geladen..."
+  },
+  {
+    "page_key": "/",
+    "element_id": "lived-empty",
+    "en": "You have not yet finished experiencing any stories here.",
+    "ru": "Вы ещё не закончили переживать ни одну историю здесь.",
+    "de": "Du hast hier noch keine Geschichte zu Ende erlebt."
+  },
+  {
+    "page_key": "/:username",
+    "element_id": "lived-empty",
+    "en": "You have not yet finished experiencing any stories here.",
+    "ru": "Вы ещё не закончили переживать ни одну историю здесь.",
+    "de": "Du hast hier noch keine Geschichte zu Ende erlebt."
+  },
+  {
+    "page_key": "/lived_stories",
+    "element_id": "lived-empty",
+    "en": "You have not yet finished experiencing any stories here.",
+    "ru": "Вы ещё не закончили переживать ни одну историю здесь.",
+    "de": "Du hast hier noch keine Geschichte zu Ende erlebt."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "lived-empty",
+    "en": "You have not yet finished experiencing any stories here.",
+    "ru": "Вы ещё не закончили переживать ни одну историю здесь.",
+    "de": "Du hast hier noch keine Geschichte zu Ende erlebt."
+  },
+  {
+    "page_key": "/",
+    "element_id": "living-login-msg",
+    "en": "Login to see which stories and screenplays you are currently experiencing.",
+    "ru": "Войдите, чтобы увидеть, какие истории и сценарии вы сейчас переживаете.",
+    "de": "Melde dich an, um zu sehen, welche Geschichten und Drehbücher du gerade erlebst."
+  },
+  {
+    "page_key": "/:username",
+    "element_id": "living-login-msg",
+    "en": "Login to see which stories and screenplays you are currently experiencing.",
+    "ru": "Войдите, чтобы увидеть, какие истории и сценарии вы сейчас переживаете.",
+    "de": "Melde dich an, um zu sehen, welche Geschichten und Drehbücher du gerade erlebst."
+  },
+  {
+    "page_key": "/living_stories",
+    "element_id": "living-login-msg",
+    "en": "Login to see which stories and screenplays you are currently experiencing.",
+    "ru": "Войдите, чтобы увидеть, какие истории и сценарии вы сейчас переживаете.",
+    "de": "Melde dich an, um zu sehen, welche Geschichten und Drehbücher du gerade erlebst."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "living-login-msg",
+    "en": "Login to see which stories and screenplays you are currently experiencing.",
+    "ru": "Войдите, чтобы увидеть, какие истории и сценарии вы сейчас переживаете.",
+    "de": "Melde dich an, um zu sehen, welche Geschichten und Drehbücher du gerade erlebst."
+  },
+  {
+    "page_key": "/",
+    "element_id": "living-loading",
+    "en": "Loading your currently experienced titles...",
+    "ru": "Загрузка ваших текущих произведений...",
+    "de": "Deine aktuell erlebten Titel werden geladen..."
+  },
+  {
+    "page_key": "/:username",
+    "element_id": "living-loading",
+    "en": "Loading your currently experienced titles...",
+    "ru": "Загрузка ваших текущих произведений...",
+    "de": "Deine aktuell erlebten Titel werden geladen..."
+  },
+  {
+    "page_key": "/living_stories",
+    "element_id": "living-loading",
+    "en": "Loading your currently experienced titles...",
+    "ru": "Загрузка ваших текущих произведений...",
+    "de": "Deine aktuell erlebten Titel werden geladen..."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "living-loading",
+    "en": "Loading your currently experienced titles...",
+    "ru": "Загрузка ваших текущих произведений...",
+    "de": "Deine aktuell erlebten Titel werden geladen..."
+  },
+  {
+    "page_key": "/",
+    "element_id": "living-empty",
+    "en": "You are not currently living / experiencing any stories.",
+    "ru": "Сейчас вы не проживаете / не переживаете ни одной истории.",
+    "de": "Du lebst / erlebst derzeit keine Geschichten."
+  },
+  {
+    "page_key": "/:username",
+    "element_id": "living-empty",
+    "en": "You are not currently living / experiencing any stories.",
+    "ru": "Сейчас вы не проживаете / не переживаете ни одной истории.",
+    "de": "Du lebst / erlebst derzeit keine Geschichten."
+  },
+  {
+    "page_key": "/living_stories",
+    "element_id": "living-empty",
+    "en": "You are not currently living / experiencing any stories.",
+    "ru": "Сейчас вы не проживаете / не переживаете ни одной истории.",
+    "de": "Du lebst / erlebst derzeit keine Geschichten."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "living-empty",
+    "en": "You are not currently living / experiencing any stories.",
+    "ru": "Сейчас вы не проживаете / не переживаете ни одной истории.",
+    "de": "Du lebst / erlebst derzeit keine Geschichten."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-information-heading",
+    "en": "Profile information",
+    "ru": "Информация профиля",
+    "de": "Profilinformationen"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "change-photo-text",
+    "en": "Change photo",
+    "ru": "Изменить фото",
+    "de": "Foto ändern"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "first-name",
+    "en": "First name",
+    "ru": "Имя",
+    "de": "Vorname"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "edit-button",
+    "en": "Edit",
+    "ru": "Редактировать",
+    "de": "Bearbeiten"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "last-name",
+    "en": "Last name",
+    "ru": "Фамилия",
+    "de": "Nachname"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-name-label",
+    "en": "Profile page name",
+    "ru": "Имя страницы профиля",
+    "de": "Profilseitenname"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "edit-profile-name-button",
+    "en": "Edit",
+    "ru": "Редактировать",
+    "de": "Bearbeiten"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "no-profile-name-text",
+    "en": "No profile page name set",
+    "ru": "Имя страницы профиля не задано",
+    "de": "Kein Profilseitenname festgelegt"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "real-nickname-label",
+    "en": "Nickname (optional)",
+    "ru": "Никнейм (необязательно)",
+    "de": "Spitzname (optional)"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "edit-real-nickname-button",
+    "en": "Edit",
+    "ru": "Редактировать",
+    "de": "Bearbeiten"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "no-real-nickname-text",
+    "en": "No nickname set",
+    "ru": "Никнейм не указан",
+    "de": "Kein Spitzname angegeben"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-birthday-label",
+    "en": "Birthday (optional)",
+    "ru": "Дата рождения (необязательно)",
+    "de": "Geburtstag (optional)"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-no-birthday",
+    "en": "No birthday set",
+    "ru": "Дата рождения не указана",
+    "de": "Kein Geburtstag angegeben"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-telephone-label",
+    "en": "Telephone (optional)",
+    "ru": "Телефон (необязательно)",
+    "de": "Telefon (optional)"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-no-telephone",
+    "en": "No telephone set",
+    "ru": "Телефон не указан",
+    "de": "Keine Telefonnummer angegeben"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-languages-label",
+    "en": "Languages (optional)",
+    "ru": "Языки (необязательно)",
+    "de": "Sprachen (optional)"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "add-language",
+    "en": "Add",
+    "ru": "Добавить",
+    "de": "Hinzufügen"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-facebook-label",
+    "en": "Facebook",
+    "ru": "Facebook",
+    "de": "Facebook"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-instagram-label",
+    "en": "Instagram",
+    "ru": "Instagram",
+    "de": "Instagram"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-snapchat-label",
+    "en": "Snapchat",
+    "ru": "Snapchat",
+    "de": "Snapchat"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-other-social-label",
+    "en": "Other Social",
+    "ru": "Другие соцсети",
+    "de": "Andere soziale Netzwerke"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-add-social-link",
+    "en": "Add",
+    "ru": "Добавить",
+    "de": "Hinzufügen"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-max-social-links",
+    "en": "Maximum of 20 social links reached.",
+    "ru": "Достигнут максимум в 20 ссылок на соцсети.",
+    "de": "Maximal 20 Social-Media-Links erreicht."
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "screenplay-rev-filter",
+    "en": "Filter by scene:",
+    "ru": "Фильтр по сцене:",
+    "de": "Nach Szene filtern:"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-rev-filter",
+    "en": "Filter by scene:",
+    "ru": "Фильтр по сцене:",
+    "de": "Nach Szene filtern:"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "screenplay-login-required",
+    "en": "You must be logged in to create a screenplay.",
+    "ru": "Чтобы создать сценарий, необходимо войти в систему.",
+    "de": "Du musst angemeldet sein, um ein Drehbuch zu erstellen."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-login-required",
+    "en": "You must be logged in to create a screenplay.",
+    "ru": "Чтобы создать сценарий, необходимо войти в систему.",
+    "de": "Du musst angemeldet sein, um ein Drehbuch zu erstellen."
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "screenplay-mark-finished",
+    "en": "Mark as finished",
+    "ru": "Отметить как завершённое",
+    "de": "Als abgeschlossen markieren"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-mark-finished",
+    "en": "Mark as finished",
+    "ru": "Отметить как завершённое",
+    "de": "Als abgeschlossen markieren"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "screenplay-export-btn",
+    "en": "Export",
+    "ru": "Экспорт",
+    "de": "Export"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-export-btn",
+    "en": "Export",
+    "ru": "Экспорт",
+    "de": "Export"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "screenplay-start-desc",
+    "en": "Start by creating a new screenplay. You will get an initial scene and a few sample elements that demonstrate the formatting.",
+    "ru": "Начните с создания нового сценария. Вы получите начальную сцену и несколько примеров элементов, демонстрирующих форматирование.",
+    "de": "Beginne mit der Erstellung eines neuen Drehbuchs. Du erhältst eine erste Szene und einige Beispielelemente, die die Formatierung zeigen."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-start-desc",
+    "en": "Start by creating a new screenplay. You will get an initial scene and a few sample elements that demonstrate the formatting.",
+    "ru": "Начните с создания нового сценария. Вы получите начальную сцену и несколько примеров элементов, демонстрирующих форматирование.",
+    "de": "Beginne mit der Erstellung eines neuen Drehbuchs. Du erhältst eine erste Szene und einige Beispielelemente, die die Formatierung zeigen."
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "screenplay-creating",
+    "en": "Creating screenplay...",
+    "ru": "Создание сценария...",
+    "de": "Drehbuch wird erstellt..."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-creating",
+    "en": "Creating screenplay...",
+    "ru": "Создание сценария...",
+    "de": "Drehbuch wird erstellt..."
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "screenplay-create-btn",
+    "en": "Create screenplay from template",
+    "ru": "Создать сценарий по шаблону",
+    "de": "Drehbuch aus Vorlage erstellen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-create-btn",
+    "en": "Create screenplay from template",
+    "ru": "Создать сценарий по шаблону",
+    "de": "Drehbuch aus Vorlage erstellen"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "screenplay-scenes-heading",
+    "en": "Scenes",
+    "ru": "Сцены",
+    "de": "Szenen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-scenes-heading",
+    "en": "Scenes",
+    "ru": "Сцены",
+    "de": "Szenen"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "screenplay-add-scene",
+    "en": "Add scene",
+    "ru": "Добавить сцену",
+    "de": "Szene hinzufügen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-add-scene",
+    "en": "Add scene",
+    "ru": "Добавить сцену",
+    "de": "Szene hinzufügen"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "screenplay-loading",
+    "en": "Loading screenplay...",
+    "ru": "Загрузка сценария...",
+    "de": "Drehbuch wird geladen..."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-loading",
+    "en": "Loading screenplay...",
+    "ru": "Загрузка сценария...",
+    "de": "Drehbuch wird geladen..."
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "screenplay-no-scenes",
+    "en": "No scenes yet. Use the \"Add scene\" button above to create your first scene.",
+    "ru": "Сцен пока нет. Используйте кнопку «Добавить сцену» выше, чтобы создать первую сцену.",
+    "de": "Noch keine Szenen. Verwende die Schaltfläche „Szene hinzufügen“ oben, um deine erste Szene zu erstellen."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-no-scenes",
+    "en": "No scenes yet. Use the \"Add scene\" button above to create your first scene.",
+    "ru": "Сцен пока нет. Используйте кнопку «Добавить сцену» выше, чтобы создать первую сцену.",
+    "de": "Noch keine Szenen. Verwende die Schaltfläche „Szene hinzufügen“ oben, um deine erste Szene zu erstellen."
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "screenplay-clone-scene",
+    "en": "Clone",
+    "ru": "Клонировать",
+    "de": "Klonen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-clone-scene",
+    "en": "Clone",
+    "ru": "Клонировать",
+    "de": "Klonen"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "screenplay-delete-scene",
+    "en": "Delete",
+    "ru": "Удалить",
+    "de": "Löschen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-delete-scene",
+    "en": "Delete",
+    "ru": "Удалить",
+    "de": "Löschen"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "screenplay-delete-block",
+    "en": "Delete",
+    "ru": "Удалить",
+    "de": "Löschen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-delete-block",
+    "en": "Delete",
+    "ru": "Удалить",
+    "de": "Löschen"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "screenplay-add-element",
+    "en": "Add element",
+    "ru": "Добавить элемент",
+    "de": "Element hinzufügen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-add-element",
+    "en": "Add element",
+    "ru": "Добавить элемент",
+    "de": "Element hinzufügen"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "screenplay-scene-comments",
+    "en": "Scene comments",
+    "ru": "Комментарии к сцене",
+    "de": "Szenenkommentare"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-scene-comments",
+    "en": "Scene comments",
+    "ru": "Комментарии к сцене",
+    "de": "Szenenkommentare"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "screenplay-revisions-heading",
+    "en": "Revisions",
+    "ru": "Версии",
+    "de": "Versionen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-revisions-heading",
+    "en": "Revisions",
+    "ru": "Версии",
+    "de": "Versionen"
+  },
+  {
+    "page_key": "/favorites",
+    "element_id": "stories-output-display",
+    "en": "Display:",
+    "ru": "Отображать:",
+    "de": "Anzeige:"
+  },
+  {
+    "page_key": "/lived_stories",
+    "element_id": "stories-output-display",
+    "en": "Display:",
+    "ru": "Отображать:",
+    "de": "Anzeige:"
+  },
+  {
+    "page_key": "/living_stories",
+    "element_id": "stories-output-display",
+    "en": "Display:",
+    "ru": "Отображать:",
+    "de": "Anzeige:"
+  },
+  {
+    "page_key": "/newest_comics",
+    "element_id": "stories-output-display",
+    "en": "Display:",
+    "ru": "Отображать:",
+    "de": "Anzeige:"
+  },
+  {
+    "page_key": "/newest_screenplays",
+    "element_id": "stories-output-display",
+    "en": "Display:",
+    "ru": "Отображать:",
+    "de": "Anzeige:"
+  },
+  {
+    "page_key": "/newest_stories",
+    "element_id": "stories-output-display",
+    "en": "Display:",
+    "ru": "Отображать:",
+    "de": "Anzeige:"
+  },
+  {
+    "page_key": "/story-to-live",
+    "element_id": "stories-output-display",
+    "en": "Display:",
+    "ru": "Отображать:",
+    "de": "Anzeige:"
+  },
+  {
+    "page_key": "/favorites",
+    "element_id": "stories-output-loading",
+    "en": "Loading...",
+    "ru": "Загрузка...",
+    "de": "Wird geladen..."
+  },
+  {
+    "page_key": "/lived_stories",
+    "element_id": "stories-output-loading",
+    "en": "Loading...",
+    "ru": "Загрузка...",
+    "de": "Wird geladen..."
+  },
+  {
+    "page_key": "/living_stories",
+    "element_id": "stories-output-loading",
+    "en": "Loading...",
+    "ru": "Загрузка...",
+    "de": "Wird geladen..."
+  },
+  {
+    "page_key": "/newest_comics",
+    "element_id": "stories-output-loading",
+    "en": "Loading...",
+    "ru": "Загрузка...",
+    "de": "Wird geladen..."
+  },
+  {
+    "page_key": "/newest_screenplays",
+    "element_id": "stories-output-loading",
+    "en": "Loading...",
+    "ru": "Загрузка...",
+    "de": "Wird geladen..."
+  },
+  {
+    "page_key": "/newest_stories",
+    "element_id": "stories-output-loading",
+    "en": "Loading...",
+    "ru": "Загрузка...",
+    "de": "Wird geladen..."
+  },
+  {
+    "page_key": "/story-to-live",
+    "element_id": "stories-output-loading",
+    "en": "Loading...",
+    "ru": "Загрузка...",
+    "de": "Wird geladen..."
+  },
+  {
+    "page_key": "/favorites",
+    "element_id": "stories-output-no-items",
+    "en": "No items found.",
+    "ru": "Ничего не найдено.",
+    "de": "Keine Einträge gefunden."
+  },
+  {
+    "page_key": "/lived_stories",
+    "element_id": "stories-output-no-items",
+    "en": "No items found.",
+    "ru": "Ничего не найдено.",
+    "de": "Keine Einträge gefunden."
+  },
+  {
+    "page_key": "/living_stories",
+    "element_id": "stories-output-no-items",
+    "en": "No items found.",
+    "ru": "Ничего не найдено.",
+    "de": "Keine Einträge gefunden."
+  },
+  {
+    "page_key": "/newest_comics",
+    "element_id": "stories-output-no-items",
+    "en": "No items found.",
+    "ru": "Ничего не найдено.",
+    "de": "Keine Einträge gefunden."
+  },
+  {
+    "page_key": "/newest_screenplays",
+    "element_id": "stories-output-no-items",
+    "en": "No items found.",
+    "ru": "Ничего не найдено.",
+    "de": "Keine Einträge gefunden."
+  },
+  {
+    "page_key": "/newest_stories",
+    "element_id": "stories-output-no-items",
+    "en": "No items found.",
+    "ru": "Ничего не найдено.",
+    "de": "Keine Einträge gefunden."
+  },
+  {
+    "page_key": "/story-to-live",
+    "element_id": "stories-output-no-items",
+    "en": "No items found.",
+    "ru": "Ничего не найдено.",
+    "de": "Keine Einträge gefunden."
+  },
+  {
+    "page_key": "/favorites",
+    "element_id": "stories-output-prev",
+    "en": "Previous",
+    "ru": "Предыдущее",
+    "de": "Vorherige"
+  },
+  {
+    "page_key": "/lived_stories",
+    "element_id": "stories-output-prev",
+    "en": "Previous",
+    "ru": "Предыдущее",
+    "de": "Vorherige"
+  },
+  {
+    "page_key": "/living_stories",
+    "element_id": "stories-output-prev",
+    "en": "Previous",
+    "ru": "Предыдущее",
+    "de": "Vorherige"
+  },
+  {
+    "page_key": "/newest_comics",
+    "element_id": "stories-output-prev",
+    "en": "Previous",
+    "ru": "Предыдущее",
+    "de": "Vorherige"
+  },
+  {
+    "page_key": "/newest_screenplays",
+    "element_id": "stories-output-prev",
+    "en": "Previous",
+    "ru": "Предыдущее",
+    "de": "Vorherige"
+  },
+  {
+    "page_key": "/newest_stories",
+    "element_id": "stories-output-prev",
+    "en": "Previous",
+    "ru": "Предыдущее",
+    "de": "Vorherige"
+  },
+  {
+    "page_key": "/story-to-live",
+    "element_id": "stories-output-prev",
+    "en": "Previous",
+    "ru": "Предыдущее",
+    "de": "Vorherige"
+  },
+  {
+    "page_key": "/favorites",
+    "element_id": "stories-output-next",
+    "en": "Next",
+    "ru": "Далее",
+    "de": "Weiter"
+  },
+  {
+    "page_key": "/lived_stories",
+    "element_id": "stories-output-next",
+    "en": "Next",
+    "ru": "Далее",
+    "de": "Weiter"
+  },
+  {
+    "page_key": "/living_stories",
+    "element_id": "stories-output-next",
+    "en": "Next",
+    "ru": "Далее",
+    "de": "Weiter"
+  },
+  {
+    "page_key": "/newest_comics",
+    "element_id": "stories-output-next",
+    "en": "Next",
+    "ru": "Далее",
+    "de": "Weiter"
+  },
+  {
+    "page_key": "/newest_screenplays",
+    "element_id": "stories-output-next",
+    "en": "Next",
+    "ru": "Далее",
+    "de": "Weiter"
+  },
+  {
+    "page_key": "/newest_stories",
+    "element_id": "stories-output-next",
+    "en": "Next",
+    "ru": "Далее",
+    "de": "Weiter"
+  },
+  {
+    "page_key": "/story-to-live",
+    "element_id": "stories-output-next",
+    "en": "Next",
+    "ru": "Далее",
+    "de": "Weiter"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "picker-loading",
+    "en": "Loading...",
+    "ru": "Загрузка...",
+    "de": "Wird geladen..."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "picker-users-header",
+    "en": "Users",
+    "ru": "Пользователи",
+    "de": "Benutzer"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "picker-groups-header",
+    "en": "Groups",
+    "ru": "Группы",
+    "de": "Gruppen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "picker-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "picker-saving",
+    "en": "Saving...",
+    "ru": "Сохранение...",
+    "de": "Wird gespeichert..."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "picker-save",
+    "en": "Save",
+    "ru": "Сохранить",
+    "de": "Speichern"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "header-title",
+    "en": "Crowdly where YOUR entertainment (l)i(ve)s",
+    "ru": "Crowdly — там, где ЖИВЁТ ВАШЕ развлечение",
+    "de": "Crowdly — wo DEINE Unterhaltung (auf)lebt"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "header-notifications-heading",
+    "en": "Notifications",
+    "ru": "Уведомления",
+    "de": "Benachrichtigungen"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "header-notifications-empty",
+    "en": "No notifications yet.",
+    "ru": "Уведомлений пока нет.",
+    "de": "Noch keine Benachrichtigungen."
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "header-register",
+    "en": "Register",
+    "ru": "Регистрация",
+    "de": "Registrieren"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "header-login",
+    "en": "Login",
+    "ru": "Вход",
+    "de": "Anmelden"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "mobile-logout",
+    "en": "Sign out",
+    "ru": "Выйти",
+    "de": "Abmelden"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "mobile-register",
+    "en": "Register",
+    "ru": "Регистрация",
+    "de": "Registrieren"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "mobile-login",
+    "en": "Login",
+    "ru": "Вход",
+    "de": "Anmelden"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-company-title",
+    "en": "Company",
+    "ru": "Компания",
+    "de": "Unternehmen"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-about",
+    "en": "About Us",
+    "ru": "О нас",
+    "de": "Über uns"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-careers",
+    "en": "Careers",
+    "ru": "Карьера",
+    "de": "Karriere"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-press",
+    "en": "Press",
+    "ru": "Пресса",
+    "de": "Presse"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-news",
+    "en": "News",
+    "ru": "Новости",
+    "de": "Neuigkeiten"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-blog",
+    "en": "Blog",
+    "ru": "Блог",
+    "de": "Blog"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-support",
+    "en": "Support",
+    "ru": "Поддержка",
+    "de": "Support"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-terms",
+    "en": "Terms & Conditions",
+    "ru": "Условия использования",
+    "de": "Allgemeine Geschäftsbedingungen"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-privacy",
+    "en": "Privacy",
+    "ru": "Конфиденциальность",
+    "de": "Datenschutz"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-navigation-title",
+    "en": "Finding your ways",
+    "ru": "Полезные ссылки",
+    "de": "Wegweiser"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-sitemap",
+    "en": "Sitemap",
+    "ru": "Карта сайта",
+    "de": "Sitemap"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-lounge",
+    "en": "Lounge",
+    "ru": "Лаунж",
+    "de": "Lounge"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-cocreate-title",
+    "en": "C(o-c)reate with us",
+    "ru": "Со(з)давайте с нами",
+    "de": "Gemeinsam (er)schaffen"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-software",
+    "en": "Apps and software",
+    "ru": "Приложения и ПО",
+    "de": "Apps und Software"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-github",
+    "en": "Crowdly on Github",
+    "ru": "Crowdly на Github",
+    "de": "Crowdly auf Github"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-community-title",
+    "en": "Community",
+    "ru": "Сообщество",
+    "de": "Community"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-contact",
+    "en": "Contact us",
+    "ru": "Связаться с нами",
+    "de": "Kontaktiere uns"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-feedback",
+    "en": "Send feedback",
+    "ru": "Отправить отзыв",
+    "de": "Feedback senden"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-bug",
+    "en": "Submit a bug report",
+    "ru": "Отправить отчёт об ошибке",
+    "de": "Fehlerbericht senden"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-feature",
+    "en": "Suggest a feature",
+    "ru": "Предложить функцию",
+    "de": "Funktion vorschlagen"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-social-title",
+    "en": "Find us on",
+    "ru": "Мы в соцсетях",
+    "de": "Finde uns auf"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-facebook",
+    "en": "Facebook",
+    "ru": "Facebook",
+    "de": "Facebook"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-instagram",
+    "en": "Instagram",
+    "ru": "Instagram",
+    "de": "Instagram"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-twitter",
+    "en": "X",
+    "ru": "X",
+    "de": "X"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-discord",
+    "en": "Discord",
+    "ru": "Discord",
+    "de": "Discord"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-linkedin",
+    "en": "LinkedIn",
+    "ru": "LinkedIn",
+    "de": "LinkedIn"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-youtube",
+    "en": "YouTube",
+    "ru": "YouTube",
+    "de": "YouTube"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-bottom-text",
+    "en": "Built with love and creativity.",
+    "ru": "Создано с любовью и творчеством.",
+    "de": "Mit Liebe und Kreativität gemacht."
+  }
+]

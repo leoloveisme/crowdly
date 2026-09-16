@@ -23,10 +23,10 @@ export type StoriesOutputSortKey = "name" | "createdAt" | "updatedAt";
 export type StoriesOutputSortDirection = "asc" | "desc";
 
 interface StoriesOutputProps {
-  title: string;
+  title: React.ReactNode;
   items: StoriesOutputItem[];
   loading?: boolean;
-  error?: string | null;
+  error?: React.ReactNode | null;
 }
 
 const PAGE_SIZE_OPTIONS = [50, 100, Infinity] as const;

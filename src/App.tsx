@@ -77,6 +77,8 @@ const App = () => {
             <LiveUpdatesProvider>
             <AlphaProvider>
               <EditableContentProvider>
+                {/* Route patterns below are duplicated in src/lib/pageKey.ts for
+                    translation-key matching — keep both lists in sync. */}
                 <Routes>
                   {/* Alpha gate is always accessible */}
                   <Route path="/alpha" element={<AlphaGate />} />
