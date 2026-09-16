@@ -106,10 +106,11 @@ class MainWindow(QMainWindow):
         self._username = "username"
 
         # Simple in-memory flags for synchronisation preferences. These are
-        # placeholders and are not yet persisted.
+        # placeholders and are not yet persisted. Google Drive sync state is
+        # no longer tracked locally — like GitHub sync, it now lives on the
+        # backend per Crowdly Space (see _toggle_sync_google_drive).
         self._sync_web_platform = False
         self._sync_dropbox = False
-        self._sync_google_drive = False
 
         # Best-effort web sync debouncer.
         self._web_sync_timer = QTimer(self)
@@ -374,10 +375,13 @@ class MainWindow(QMainWindow):
         connect_menu = settings_menu.addMenu(self.tr("Connect"))
         self._connect_menu = connect_menu
         self._action_connect_dropbox = connect_menu.addAction(
-            self.tr("to Dropbox"), self._connect_to_dropbox
+            self.tr("Dropbox"), self._connect_to_dropbox
         )
         self._action_connect_gdrive = connect_menu.addAction(
-            self.tr("to Google Drive"), self._connect_to_google_drive
+            self.tr("Google Drive"), self._connect_to_google_drive
+        )
+        self._action_connect_github = connect_menu.addAction(
+            self.tr("GitHub"), self._connect_to_github
         )
 
         # Submenu for changing the interface language.
@@ -2581,8 +2585,10 @@ class MainWindow(QMainWindow):
             self._action_sync_dropbox.setText(self.tr("Dropbox"))
             self._action_sync_dropbox.setChecked(self._sync_dropbox)
         if hasattr(self, "_action_sync_gdrive"):
+            # No local self._sync_google_drive flag to restore here (see
+            # _toggle_sync_github's identical note) — Google Drive sync
+            # state lives on the backend per Crowdly Space.
             self._action_sync_gdrive.setText(self.tr("Google Drive"))
-            self._action_sync_gdrive.setChecked(self._sync_google_drive)
         if hasattr(self, "_import_menu"):
             self._import_menu.setTitle(self.tr("Import"))
         if hasattr(self, "_action_import"):
@@ -2590,9 +2596,11 @@ class MainWindow(QMainWindow):
         if hasattr(self, "_connect_menu"):
             self._connect_menu.setTitle(self.tr("Connect"))
         if hasattr(self, "_action_connect_dropbox"):
-            self._action_connect_dropbox.setText(self.tr("to Dropbox"))
+            self._action_connect_dropbox.setText(self.tr("Dropbox"))
         if hasattr(self, "_action_connect_gdrive"):
-            self._action_connect_gdrive.setText(self.tr("to Google Drive"))
+            self._action_connect_gdrive.setText(self.tr("Google Drive"))
+        if hasattr(self, "_action_connect_github"):
+            self._action_connect_github.setText(self.tr("GitHub"))
         if hasattr(self, "_export_menu"):
             self._export_menu.setTitle(self.tr("Export"))
         if hasattr(self, "_action_export_pdf"):
@@ -4062,12 +4070,78 @@ class MainWindow(QMainWindow):
         )
 
     def _connect_to_google_drive(self) -> None:  # pragma: no cover - UI wiring
-        """Connect to Google Drive (placeholder)."""
+        """Connect to Google Drive.
+
+        Unlike GitHub (where connecting only ever happens on the web
+        platform), this opens the Google OAuth consent URL for the current
+        project space's linked Crowdly Space directly in the system browser
+        — websync.get_drive_auth_url asks the backend for that URL the same
+        way websync.get_github_sync_status asks for GitHub status.
+        """
+
+        import webbrowser
+
+        project_space = self._project_space_path
+        if project_space is None:
+            QMessageBox.information(
+                self,
+                self.tr("Connect"),
+                self.tr("There is no active project space set. Please choose or create one first."),
+            )
+            return
+
+        if not self._crowdly_user_id:
+            if self._username and self._username != "username":
+                try:
+                    self._crowdly_user_id = local_auth.get_user_id_for_email(self._username)
+                except Exception:
+                    self._crowdly_user_id = None
+
+        if not self._crowdly_user_id:
+            QMessageBox.warning(
+                self,
+                self.tr("Connect"),
+                self.tr("You need to be logged in to the Crowdly web platform before connecting Google Drive."),
+            )
+            return
+
+        try:
+            auth_url = websync.get_drive_auth_url(
+                self._settings, project_space, self._crowdly_user_id  # type: ignore[arg-type]
+            )
+        except Exception as exc:  # pragma: no cover - network dependent
+            QMessageBox.warning(
+                self,
+                self.tr("Connect"),
+                self.tr(
+                    "This project space isn't linked to a Crowdly Space on the web yet. "
+                    "Sync with the web platform at least once before connecting Google Drive."
+                    "\n\nDetails: {error}"
+                ).format(error=str(exc)),
+            )
+            return
+
+        if not auth_url:
+            QMessageBox.information(
+                self,
+                self.tr("Connect"),
+                self.tr(
+                    "Google Drive connect is either not configured on this server, "
+                    "or this Space is already connected to a Google Drive folder — "
+                    "use \"Change folder\" on the Space's page on the web platform instead."
+                ),
+            )
+            return
+
+        webbrowser.open(auth_url)
+
+    def _connect_to_github(self) -> None:  # pragma: no cover - UI wiring
+        """Connect to GitHub (placeholder)."""
 
         QMessageBox.information(
             self,
             self.tr("Connect"),
-            self.tr("Connecting to Google Drive is not implemented yet."),
+            self.tr("Connecting to GitHub is not implemented yet."),
         )
 
     def _toggle_sync_web_platform(self) -> None:  # pragma: no cover - UI wiring
@@ -4231,10 +4305,71 @@ class MainWindow(QMainWindow):
         self._retranslate_ui()
 
     def _toggle_sync_google_drive(self) -> None:  # pragma: no cover - UI wiring
-        """Toggle synchronisation with Google Drive (placeholder)."""
+        """Toggle Google Drive sync for the current project space's linked Crowdly Space.
 
-        self._sync_google_drive = not self._sync_google_drive
-        self._retranslate_ui()
+        Mirrors _toggle_sync_github above — backed by a real connector (see
+        backend/src/googleDriveSync.js), the backend owns sync state per
+        Crowdly Space, so this just flips it via
+        websync.set_drive_sync_enabled and reflects whatever the backend
+        confirms back, reverting the checkbox on any failure.
+        """
+
+        from PySide6.QtWidgets import QMessageBox
+
+        desired = self._action_sync_gdrive.isChecked()
+
+        def _revert(checked: bool) -> None:
+            self._action_sync_gdrive.blockSignals(True)
+            self._action_sync_gdrive.setChecked(checked)
+            self._action_sync_gdrive.blockSignals(False)
+
+        project_space = self._project_space_path
+        if project_space is None:
+            _revert(not desired)
+            QMessageBox.information(
+                self,
+                self.tr("Sync with Google Drive"),
+                self.tr("There is no active project space set. Please choose or create one first."),
+            )
+            return
+
+        if not self._crowdly_user_id:
+            if self._username and self._username != "username":
+                try:
+                    self._crowdly_user_id = local_auth.get_user_id_for_email(self._username)
+                except Exception:
+                    self._crowdly_user_id = None
+
+        if not self._crowdly_user_id:
+            _revert(not desired)
+            QMessageBox.warning(
+                self,
+                self.tr("Sync with Google Drive"),
+                self.tr("You need to be logged in to the Crowdly web platform before changing Google Drive sync."),
+            )
+            return
+
+        try:
+            status = websync.set_drive_sync_enabled(
+                self._settings, project_space, self._crowdly_user_id, desired  # type: ignore[arg-type]
+            )
+        except Exception as exc:  # pragma: no cover - network dependent
+            _revert(not desired)
+            QMessageBox.warning(
+                self,
+                self.tr("Sync with Google Drive"),
+                self.tr(
+                    "This Space needs to be connected to a Google Drive folder first "
+                    "(use \"Connect Google Drive\" on the Space's page on the web platform, "
+                    "or Settings → Connect → Google Drive here), or the request failed."
+                    "\n\nDetails: {error}"
+                ).format(error=str(exc)),
+            )
+            return
+
+        confirmed = bool(status.get("enabled"))
+        if confirmed != desired:
+            _revert(confirmed)
 
     def _pull_all_remote_spaces_if_no_project_space(self) -> None:  # pragma: no cover - UI wiring
         """Pull all remote Spaces owned by the current user when no project space is set.

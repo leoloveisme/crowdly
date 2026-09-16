@@ -34,6 +34,7 @@ import {
   verifyWebhookSignature,
   buildInstallUrl,
   getInstallationToken,
+  fetchInstallationRepos,
 } from './githubApp.js';
 import {
   ensureGithubSyncTables,
@@ -41,7 +42,29 @@ import {
   recentSyncLog,
   startGithubPollingLoop,
   handleGithubWebhookEvent,
+  ensureGithubContentLinksTable,
+  initGithubCrdtLinks,
+  createGithubContentLink,
+  listGithubContentLinks,
 } from './githubSync.js';
+import {
+  isGoogleDriveConfigured,
+  buildAuthUrl as buildGoogleDriveAuthUrl,
+  exchangeCodeForTokens,
+  encryptToken,
+  fetchUserEmail,
+  listFolders as listGoogleDriveFolders,
+  stopChannel as stopGoogleDriveChannel,
+} from './googleDriveApp.js';
+import {
+  ensureGoogleDriveSyncTables,
+  runSpaceDriveSync,
+  recentSyncLog as recentDriveSyncLog,
+  startGoogleDrivePollingLoop,
+  handleGoogleDriveWebhookEvent,
+  getValidDriveAccessToken,
+  ensureChannelArmed,
+} from './googleDriveSync.js';
 import path from 'path';
 import http from 'http';
 import { ensureCrdtDocChunksTable } from './crdt/postgresStorageAdapter.js';
@@ -1459,6 +1482,14 @@ ensureCreativeSpaceItemsTable().catch((err) => {
 // Must run after ensureCreativeSpaceItemsTable — it adds a column onto creative_space_items.
 ensureGithubSyncTables().catch((err) => {
   console.error('[init] ensureGithubSyncTables unhandled error:', err);
+});
+// Phase 2 — must run after ensureCreativeSpacesTable (FK) and ensureCrdtDocumentsTables (conceptually references crdt_documents.doc_key, though not FK-enforced to avoid first-boot ordering issues).
+ensureGithubContentLinksTable().catch((err) => {
+  console.error('[init] ensureGithubContentLinksTable unhandled error:', err);
+});
+// Must run after ensureCreativeSpaceItemsTable — it adds a column onto creative_space_items.
+ensureGoogleDriveSyncTables().catch((err) => {
+  console.error('[init] ensureGoogleDriveSyncTables unhandled error:', err);
 });
 ensureStoryCreativeSpaceColumnsAndAttachments().catch((err) => {
   console.error('[init] ensureStoryCreativeSpaceColumnsAndAttachments unhandled error:', err);
@@ -5489,6 +5520,7 @@ async function buildGithubSyncStatus(space, { userId } = {}) {
     branch: space.github_branch || 'master',
     lastSyncedAt: space.last_synced_at || null,
     lastCommitSha: space.github_last_commit_sha || null,
+    installationId: space.github_installation_id || null,
     installUrl:
       !space.github_installation_id && userId ? buildInstallUrl(`${space.id}:${userId}`) : null,
     recentLog: logRows,
@@ -5581,9 +5613,216 @@ app.post('/creative-spaces/:spaceId/github-sync/run', async (req, res) => {
   }
 });
 
+// Lists the repos a GitHub App installation has access to, so the owner can
+// pick which one to connect instead of us guessing. Used both right after
+// a fresh install (installationId from the redirect query param) and for
+// "Change repository" on an already-connected space (installationId from
+// the space's own github_installation_id).
+app.get('/creative-spaces/:spaceId/github-sync/installation-repos', async (req, res) => {
+  const { spaceId } = req.params;
+  const { installationId, userId } = req.query;
+
+  if (!installationId) {
+    return res.status(400).json({ error: 'installationId is required' });
+  }
+
+  try {
+    const spaceRes = await pool.query('SELECT user_id FROM creative_spaces WHERE id = $1', [spaceId]);
+    const space = spaceRes.rows[0];
+    if (!space) return res.status(404).json({ error: 'Creative space not found' });
+    if (!userId || String(space.user_id) !== String(userId)) {
+      return res.status(403).json({ error: 'You do not have access to this creative space' });
+    }
+
+    const token = await getInstallationToken(String(installationId));
+    const { repositories } = await fetchInstallationRepos({ token });
+    res.json({ repositories });
+  } catch (err) {
+    console.error('[GET /creative-spaces/:spaceId/github-sync/installation-repos] failed:', err);
+    res.status(500).json({ error: 'Failed to list repositories for this GitHub installation' });
+  }
+});
+
+// Links a specific repo (chosen from installation-repos above) to this
+// Space. Does not touch github_sync_enabled — connecting a repo and
+// turning on file sync are deliberately separate steps.
+app.post('/creative-spaces/:spaceId/github-sync/connect', async (req, res) => {
+  const { spaceId } = req.params;
+  const { userId, installationId, repo, branch } = req.body ?? {};
+
+  if (!userId || !installationId || !repo) {
+    return res.status(400).json({ error: 'userId, installationId, and repo are required' });
+  }
+
+  try {
+    const spaceRes = await pool.query('SELECT * FROM creative_spaces WHERE id = $1', [spaceId]);
+    const space = spaceRes.rows[0];
+    if (!space) return res.status(404).json({ error: 'Creative space not found' });
+    if (String(space.user_id) !== String(userId)) {
+      return res.status(403).json({ error: 'You do not own this creative space' });
+    }
+
+    const token = await getInstallationToken(String(installationId));
+    const { repositories } = await fetchInstallationRepos({ token });
+    const match = repositories.find((r) => r.fullName === repo);
+    if (!match) {
+      return res.status(400).json({ error: 'That repository is not accessible to this GitHub installation' });
+    }
+
+    await pool.query(
+      `INSERT INTO github_installations (installation_id, connected_by)
+       VALUES ($1, $2)
+       ON CONFLICT (installation_id) DO UPDATE SET connected_by = EXCLUDED.connected_by`,
+      [installationId, userId],
+    );
+
+    const { rows } = await pool.query(
+      `UPDATE creative_spaces
+       SET github_installation_id = $1, github_repo = $2, github_branch = $3, updated_at = now()
+       WHERE id = $4 AND user_id = $5
+       RETURNING *`,
+      [installationId, repo, branch || match.defaultBranch || 'master', spaceId, userId],
+    );
+    res.json(await buildGithubSyncStatus(rows[0], { userId }));
+  } catch (err) {
+    console.error('[POST /creative-spaces/:spaceId/github-sync/connect] failed:', err);
+    res.status(500).json({ error: 'Failed to connect this repository' });
+  }
+});
+
+// Unlinks the connected repo — the owner can then either reconnect (via
+// install-url, if the App needs installing again) or "Connect GitHub"
+// against a different installation. github_installations rows are left
+// alone since other Spaces may still reference the same installation.
+app.post('/creative-spaces/:spaceId/github-sync/disconnect', async (req, res) => {
+  const { spaceId } = req.params;
+  const { userId } = req.body ?? {};
+
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+
+  try {
+    const spaceRes = await pool.query('SELECT user_id FROM creative_spaces WHERE id = $1', [spaceId]);
+    const space = spaceRes.rows[0];
+    if (!space) return res.status(404).json({ error: 'Creative space not found' });
+    if (String(space.user_id) !== String(userId)) {
+      return res.status(403).json({ error: 'You do not own this creative space' });
+    }
+
+    const { rows } = await pool.query(
+      `UPDATE creative_spaces
+       SET github_installation_id = NULL, github_repo = NULL, github_branch = 'master',
+           github_sync_enabled = false, github_last_commit_sha = NULL, updated_at = now()
+       WHERE id = $1 AND user_id = $2
+       RETURNING *`,
+      [spaceId, userId],
+    );
+    res.json(await buildGithubSyncStatus(rows[0], { userId }));
+  } catch (err) {
+    console.error('[POST /creative-spaces/:spaceId/github-sync/disconnect] failed:', err);
+    res.status(500).json({ error: 'Failed to disconnect GitHub' });
+  }
+});
+
+// --- Phase 2: chapter <-> markdown links -----------------------------
+// Unlike the routes above (explicit body/query userId), these require a
+// real session (requireAuth) because they mint/reuse a CRDT doc_key via the
+// same access-gated sequence POST /crdt/docs/ensure uses (server.js:6922),
+// inlined here rather than factored out, to avoid touching that
+// already-working route.
+
+app.post('/creative-spaces/:spaceId/github-sync/link', requireAuth, async (req, res) => {
+  const { spaceId } = req.params;
+  const { relativePath, entityId } = req.body ?? {};
+
+  if (!relativePath || !entityId) {
+    return res.status(400).json({ error: 'relativePath and entityId are required' });
+  }
+
+  const client = await pool.connect();
+  try {
+    const spaceRes = await client.query('SELECT * FROM creative_spaces WHERE id = $1', [spaceId]);
+    const space = spaceRes.rows[0];
+    if (!space) return res.status(404).json({ error: 'Creative space not found' });
+    if (String(space.user_id) !== String(req.user.id)) {
+      return res.status(403).json({ error: 'You do not own this creative space' });
+    }
+
+    await client.query('BEGIN');
+
+    const existing = await client.query(
+      "SELECT doc_key FROM crdt_documents WHERE doc_type = 'chapter' AND chapter_id = $1",
+      [entityId],
+    );
+
+    // Seeded regardless of whether the doc already exists — seeded.entity is
+    // what the access check below needs either way.
+    const seeded = await CRDT_DOC_TYPE_SEEDERS.chapter(client, entityId);
+    if (!seeded) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Chapter not found' });
+    }
+
+    const canAccess = await userCanAccessCrdtEntity(client, req.user, 'chapter', seeded.entity);
+    if (!canAccess) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'You do not have access to this chapter' });
+    }
+
+    let docKey;
+    if (existing.rows.length > 0) {
+      docKey = existing.rows[0].doc_key;
+    } else {
+      const handle = crdtRepo.create(seeded.value);
+      handle.change((d) => { Object.assign(d, seeded.value); }, {
+        message: changeAttribution(req.user),
+        time: Math.floor(Date.now() / 1000),
+      });
+      await client.query(
+        `INSERT INTO crdt_documents
+           (doc_key, story_title_id, chapter_id, branch_id, screenplay_id, scene_id, doc_type, is_canonical, owner_user_id, created_by)
+         VALUES ($1, $2, $3, NULL, NULL, NULL, 'chapter', true, $4, $4)`,
+        [handle.documentId, seeded.entity.storyTitleId, seeded.entity.chapterId, req.user.id],
+      );
+      docKey = handle.documentId;
+    }
+
+    await client.query('COMMIT');
+
+    const link = await createGithubContentLink({ spaceId, relativePath, entityId, docKey, userId: req.user.id });
+    res.json(link);
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('[POST /creative-spaces/:spaceId/github-sync/link] failed:', err);
+    res.status(500).json({ error: 'Failed to link this chapter to GitHub' });
+  } finally {
+    client.release();
+  }
+});
+
+app.get('/creative-spaces/:spaceId/github-sync/links', requireAuth, async (req, res) => {
+  const { spaceId } = req.params;
+  try {
+    const spaceRes = await pool.query('SELECT user_id FROM creative_spaces WHERE id = $1', [spaceId]);
+    const space = spaceRes.rows[0];
+    if (!space) return res.status(404).json({ error: 'Creative space not found' });
+    if (String(space.user_id) !== String(req.user.id)) {
+      return res.status(403).json({ error: 'You do not have access to this creative space' });
+    }
+    const links = await listGithubContentLinks(spaceId);
+    res.json({ links });
+  } catch (err) {
+    console.error('[GET /creative-spaces/:spaceId/github-sync/links] failed:', err);
+    res.status(500).json({ error: 'Failed to list GitHub content links' });
+  }
+});
+
 // GitHub App installation callback — GitHub redirects here after the user
 // installs/approves the App, with `state` carrying back whatever we passed
-// it in buildInstallUrl (`${spaceId}:${userId}`).
+// it in buildInstallUrl (`${spaceId}:${userId}`). Only registers the
+// installation here — the owner picks which repo to connect afterward via
+// the repo picker (installation-repos + connect above), so we don't guess.
 app.get('/api/github/install/callback', async (req, res) => {
   const installationId = req.query.installation_id ? String(req.query.installation_id) : null;
   const state = req.query.state ? String(req.query.state) : '';
@@ -5595,31 +5834,17 @@ app.get('/api/github/install/callback', async (req, res) => {
   }
 
   try {
-    const token = await getInstallationToken(installationId);
-    const reposRes = await fetch('https://api.github.com/installation/repositories', {
-      headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json' },
-    });
-    const reposData = await reposRes.json().catch(() => ({}));
-    const repoFullName = reposData.repositories?.[0]?.full_name || null;
-
     await pool.query(
       `INSERT INTO github_installations (installation_id, connected_by)
        VALUES ($1, $2)
        ON CONFLICT (installation_id) DO UPDATE SET connected_by = EXCLUDED.connected_by`,
       [installationId, userId || null],
     );
-
-    await pool.query(
-      `UPDATE creative_spaces
-       SET github_installation_id = $1, github_repo = COALESCE($2, github_repo), updated_at = now()
-       WHERE id = $3 AND user_id = $4`,
-      [installationId, repoFullName, spaceId, userId || null],
-    );
   } catch (err) {
     console.error('[GET /api/github/install/callback] failed:', err);
   }
 
-  res.redirect(`${frontendBase}/creative_space/${spaceId}?github=connected`);
+  res.redirect(`${frontendBase}/creative_space/${spaceId}?github=choose-repo&installation_id=${installationId}`);
 });
 
 // GitHub App webhook receiver. Signature-verified (not session-authenticated
@@ -5636,6 +5861,292 @@ app.post('/api/github/webhook', async (req, res) => {
   const eventName = req.headers['x-github-event'];
   handleGithubWebhookEvent(eventName, req.body).catch((err) => {
     console.error('[POST /api/github/webhook] async event handling failed:', err);
+  });
+});
+
+// --- Google Drive sync (Phase 1: file-level bidirectional sync for creative_space_items) ---
+// Same access convention as the GitHub sync routes above (explicit
+// body/query userId checked against space.user_id, not requireAuth/cookies).
+
+async function buildGoogleDriveSyncStatus(space, { userId } = {}) {
+  const logRows = await recentDriveSyncLog(space.id, 20);
+  const driveAccountId = space.google_drive_account_id || null;
+  return {
+    configured: isGoogleDriveConfigured(),
+    connected: Boolean(space.google_drive_account_id && space.google_drive_folder_id),
+    enabled: Boolean(space.google_drive_sync_enabled),
+    folderId: space.google_drive_folder_id || null,
+    folderName: space.google_drive_folder_name || null,
+    lastSyncedAt: space.google_drive_last_synced_at || null,
+    driveAccountId,
+    authUrl: !driveAccountId && userId ? buildGoogleDriveAuthUrl(`${space.id}:${userId}`) : null,
+    recentLog: logRows,
+  };
+}
+
+app.get('/creative-spaces/:spaceId/drive-sync/status', async (req, res) => {
+  const { spaceId } = req.params;
+  const userId = req.query.userId ?? null;
+
+  try {
+    const { rows } = await pool.query('SELECT * FROM creative_spaces WHERE id = $1', [spaceId]);
+    const space = rows[0];
+    if (!space) return res.status(404).json({ error: 'Creative space not found' });
+    if (!userId || String(space.user_id) !== String(userId)) {
+      return res.status(403).json({ error: 'You do not have access to this creative space' });
+    }
+
+    res.json(await buildGoogleDriveSyncStatus(space, { userId }));
+  } catch (err) {
+    console.error('[GET /creative-spaces/:spaceId/drive-sync/status] failed:', err);
+    res.status(500).json({ error: 'Failed to load Google Drive sync status' });
+  }
+});
+
+app.patch('/creative-spaces/:spaceId/drive-sync', async (req, res) => {
+  const { spaceId } = req.params;
+  const { userId, enabled } = req.body ?? {};
+
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+
+  try {
+    const spaceRes = await pool.query('SELECT * FROM creative_spaces WHERE id = $1', [spaceId]);
+    const space = spaceRes.rows[0];
+    if (!space) return res.status(404).json({ error: 'Creative space not found' });
+    if (String(space.user_id) !== String(userId)) {
+      return res.status(403).json({ error: 'You do not own this creative space' });
+    }
+    if (enabled && !(space.google_drive_account_id && space.google_drive_folder_id)) {
+      return res.status(400).json({ error: 'Connect this Space to a Google Drive folder before enabling sync' });
+    }
+
+    const { rows } = await pool.query(
+      'UPDATE creative_spaces SET google_drive_sync_enabled = $1, updated_at = now() WHERE id = $2 RETURNING *',
+      [Boolean(enabled), spaceId],
+    );
+    res.json(await buildGoogleDriveSyncStatus(rows[0], { userId }));
+  } catch (err) {
+    console.error('[PATCH /creative-spaces/:spaceId/drive-sync] failed:', err);
+    res.status(500).json({ error: 'Failed to update Google Drive sync settings' });
+  }
+});
+
+app.post('/creative-spaces/:spaceId/drive-sync/run', async (req, res) => {
+  const { spaceId } = req.params;
+  const { userId } = req.body ?? {};
+
+  try {
+    const spaceRes = await pool.query('SELECT user_id FROM creative_spaces WHERE id = $1', [spaceId]);
+    const space = spaceRes.rows[0];
+    if (!space) return res.status(404).json({ error: 'Creative space not found' });
+    if (!userId || String(space.user_id) !== String(userId)) {
+      return res.status(403).json({ error: 'You do not have access to this creative space' });
+    }
+
+    const result = await runSpaceDriveSync(spaceId);
+    res.json(result);
+  } catch (err) {
+    console.error('[POST /creative-spaces/:spaceId/drive-sync/run] failed:', err);
+    res.status(500).json({ error: 'Failed to run Google Drive sync' });
+  }
+});
+
+// Lists folders visible to a connected Google account, so the owner can
+// pick which one to sync — used both right after OAuth consent
+// (driveAccountId from the redirect query param) and for "Change folder" on
+// an already-connected space (driveAccountId from the space's own status).
+app.get('/creative-spaces/:spaceId/drive-sync/folders', async (req, res) => {
+  const { spaceId } = req.params;
+  const { driveAccountId, userId } = req.query;
+
+  if (!driveAccountId) {
+    return res.status(400).json({ error: 'driveAccountId is required' });
+  }
+
+  try {
+    const spaceRes = await pool.query('SELECT user_id FROM creative_spaces WHERE id = $1', [spaceId]);
+    const space = spaceRes.rows[0];
+    if (!space) return res.status(404).json({ error: 'Creative space not found' });
+    if (!userId || String(space.user_id) !== String(userId)) {
+      return res.status(403).json({ error: 'You do not have access to this creative space' });
+    }
+
+    const token = await getValidDriveAccessToken(driveAccountId);
+    const folders = await listGoogleDriveFolders({ token });
+    res.json({ folders });
+  } catch (err) {
+    console.error('[GET /creative-spaces/:spaceId/drive-sync/folders] failed:', err);
+    res.status(500).json({ error: 'Failed to list Google Drive folders for this account' });
+  }
+});
+
+// Links a specific folder (chosen from drive-sync/folders above) to this
+// Space. Does not touch google_drive_sync_enabled — connecting a folder and
+// turning on file sync are deliberately separate steps.
+app.post('/creative-spaces/:spaceId/drive-sync/connect', async (req, res) => {
+  const { spaceId } = req.params;
+  const { userId, driveAccountId, folderId, folderName } = req.body ?? {};
+
+  if (!userId || !driveAccountId || !folderId) {
+    return res.status(400).json({ error: 'userId, driveAccountId, and folderId are required' });
+  }
+
+  try {
+    const spaceRes = await pool.query('SELECT * FROM creative_spaces WHERE id = $1', [spaceId]);
+    const space = spaceRes.rows[0];
+    if (!space) return res.status(404).json({ error: 'Creative space not found' });
+    if (String(space.user_id) !== String(userId)) {
+      return res.status(403).json({ error: 'You do not own this creative space' });
+    }
+
+    const token = await getValidDriveAccessToken(driveAccountId);
+    const folders = await listGoogleDriveFolders({ token });
+    const match = folders.find((f) => f.id === folderId);
+    if (!match) {
+      return res.status(400).json({ error: 'That folder is not accessible to this Google Drive account' });
+    }
+
+    const { rows } = await pool.query(
+      `UPDATE creative_spaces
+       SET google_drive_account_id = $1, google_drive_folder_id = $2, google_drive_folder_name = $3, updated_at = now()
+       WHERE id = $4 AND user_id = $5
+       RETURNING *`,
+      [driveAccountId, folderId, folderName || match.name, spaceId, userId],
+    );
+
+    ensureChannelArmed(driveAccountId).catch((err) => {
+      console.error('[POST /creative-spaces/:spaceId/drive-sync/connect] failed to arm push-notification channel:', err);
+    });
+
+    res.json(await buildGoogleDriveSyncStatus(rows[0], { userId }));
+  } catch (err) {
+    console.error('[POST /creative-spaces/:spaceId/drive-sync/connect] failed:', err);
+    res.status(500).json({ error: 'Failed to connect this Google Drive folder' });
+  }
+});
+
+// Unlinks the connected folder — the connected Google account (and its
+// refresh token/push channel) is left alone if any other Space still uses
+// it, so reconnecting doesn't require re-consent.
+app.post('/creative-spaces/:spaceId/drive-sync/disconnect', async (req, res) => {
+  const { spaceId } = req.params;
+  const { userId } = req.body ?? {};
+
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+
+  try {
+    const spaceRes = await pool.query('SELECT * FROM creative_spaces WHERE id = $1', [spaceId]);
+    const space = spaceRes.rows[0];
+    if (!space) return res.status(404).json({ error: 'Creative space not found' });
+    if (String(space.user_id) !== String(userId)) {
+      return res.status(403).json({ error: 'You do not own this creative space' });
+    }
+
+    const previousAccountId = space.google_drive_account_id;
+
+    const { rows } = await pool.query(
+      `UPDATE creative_spaces
+       SET google_drive_account_id = NULL, google_drive_folder_id = NULL, google_drive_folder_name = NULL,
+           google_drive_sync_enabled = false, updated_at = now()
+       WHERE id = $1 AND user_id = $2
+       RETURNING *`,
+      [spaceId, userId],
+    );
+
+    if (previousAccountId) {
+      pool
+        .query(
+          'SELECT id FROM creative_spaces WHERE google_drive_account_id = $1 AND id != $2',
+          [previousAccountId, spaceId],
+        )
+        .then(async ({ rows: otherRows }) => {
+          if (otherRows.length > 0) return; // another Space still uses this account's channel.
+          const accountRes = await pool.query('SELECT * FROM google_drive_accounts WHERE id = $1', [previousAccountId]);
+          const account = accountRes.rows[0];
+          if (!account?.channel_id || !account?.channel_resource_id) return;
+          const token = await getValidDriveAccessToken(previousAccountId);
+          await stopGoogleDriveChannel({ token, channelId: account.channel_id, resourceId: account.channel_resource_id });
+          await pool.query(
+            'UPDATE google_drive_accounts SET channel_id = NULL, channel_resource_id = NULL, channel_expires_at = NULL WHERE id = $1',
+            [previousAccountId],
+          );
+        })
+        .catch((err) => {
+          console.error('[POST /creative-spaces/:spaceId/drive-sync/disconnect] failed to tear down push channel:', err);
+        });
+    }
+
+    res.json(await buildGoogleDriveSyncStatus(rows[0], { userId }));
+  } catch (err) {
+    console.error('[POST /creative-spaces/:spaceId/drive-sync/disconnect] failed:', err);
+    res.status(500).json({ error: 'Failed to disconnect Google Drive' });
+  }
+});
+
+// Google OAuth callback — Google redirects here after the user grants
+// consent, with `state` carrying back whatever we passed it in
+// buildGoogleDriveAuthUrl (`${spaceId}:${userId}`). Only registers/updates
+// the account here — the owner picks which folder to connect afterward via
+// the folder picker (drive-sync/folders + connect above).
+app.get('/api/google-drive/oauth/callback', async (req, res) => {
+  const code = req.query.code ? String(req.query.code) : null;
+  const state = req.query.state ? String(req.query.state) : '';
+  const [spaceId, userId] = state.split(':');
+  const frontendBase = process.env.FRONTEND_BASE_URL || 'http://localhost:8080';
+
+  if (!code || !spaceId || !userId) {
+    return res.status(400).send('Missing code or state');
+  }
+
+  let driveAccountId = null;
+  try {
+    const tokens = await exchangeCodeForTokens(code);
+    const email = await fetchUserEmail(tokens.access_token);
+    const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
+
+    const { rows } = await pool.query(
+      `INSERT INTO google_drive_accounts (user_id, google_email, access_token_encrypted, refresh_token_encrypted, token_expires_at)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (user_id) DO UPDATE
+       SET google_email = EXCLUDED.google_email,
+           access_token_encrypted = EXCLUDED.access_token_encrypted,
+           refresh_token_encrypted = EXCLUDED.refresh_token_encrypted,
+           token_expires_at = EXCLUDED.token_expires_at
+       RETURNING id`,
+      [userId, email, encryptToken(tokens.access_token), encryptToken(tokens.refresh_token), expiresAt],
+    );
+    driveAccountId = rows[0]?.id || null;
+
+    if (driveAccountId) {
+      ensureChannelArmed(driveAccountId).catch((err) => {
+        console.error('[GET /api/google-drive/oauth/callback] failed to arm push-notification channel:', err);
+      });
+    }
+  } catch (err) {
+    console.error('[GET /api/google-drive/oauth/callback] failed:', err);
+  }
+
+  res.redirect(
+    `${frontendBase}/creative_space/${spaceId}?drive=choose-folder&driveAccountId=${driveAccountId || ''}`,
+  );
+});
+
+// Google Drive push-notification receiver. Trust boundary is the
+// channel-id/resource-id pair (Drive has no HMAC signature like GitHub's
+// X-Hub-Signature-256) matched against a known google_drive_accounts row —
+// see handleGoogleDriveWebhookEvent. Acks immediately since Drive expects a
+// fast response, then processes the event asynchronously.
+app.post('/api/google-drive/webhook', async (req, res) => {
+  res.status(200).json({ ok: true });
+
+  const channelId = req.headers['x-goog-channel-id'];
+  const resourceId = req.headers['x-goog-resource-id'];
+  handleGoogleDriveWebhookEvent(channelId, resourceId).catch((err) => {
+    console.error('[POST /api/google-drive/webhook] async event handling failed:', err);
   });
 });
 
@@ -8943,6 +9454,13 @@ const { repo, wss } = createCrdtRepo({
 crdtRepo = repo;
 attachCrdtWebSocketServer(httpServer, { wss, getSessionUser });
 
+// Phase 2 GitHub sync: attach live push listeners for every already-linked
+// chapter. Safe to run regardless of whether a GitHub App is configured —
+// it only touches the CRDT repo, not the GitHub API.
+initGithubCrdtLinks(crdtRepo).catch((err) => {
+  console.error('[init] initGithubCrdtLinks unhandled error:', err);
+});
+
 httpServer.listen(port, host, () => {
   console.log(`Crowdly backend listening on http://${host === '0.0.0.0' ? 'localhost' : host}:${port}`);
   console.log(`Crowdly real-time CRDT sync listening on ws://${host === '0.0.0.0' ? 'localhost' : host}:${port}${CRDT_WS_PATH}`);
@@ -8952,4 +9470,10 @@ if (isGithubAppConfigured()) {
   startGithubPollingLoop();
 } else {
   console.log('[init] GitHub App not configured (GITHUB_APP_ID/GITHUB_APP_PRIVATE_KEY missing) — GitHub sync disabled');
+}
+
+if (isGoogleDriveConfigured()) {
+  startGoogleDrivePollingLoop();
+} else {
+  console.log('[init] Google Drive OAuth not configured (GOOGLE_OAUTH_CLIENT_ID/GOOGLE_OAUTH_CLIENT_SECRET/GOOGLE_TOKEN_ENCRYPTION_KEY missing) — Google Drive sync disabled');
 }

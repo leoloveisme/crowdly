@@ -18,6 +18,7 @@ import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { pool } from './db.js';
 import { scheduleGithubPush } from './githubSync.js';
+import { scheduleGoogleDrivePush } from './googleDriveSync.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const CREATIVE_SPACE_FILES_ROOT = path.join(__dirname, '..', 'creative-space-files');
@@ -136,6 +137,7 @@ router.post(
         updatedBy: userId,
       });
       scheduleGithubPush(spaceId, itemId);
+      scheduleGoogleDrivePush(spaceId, itemId);
       res.json(updated);
     } catch (err) {
       console.error('[POST /creative-spaces/:spaceId/items/:itemId/content] failed:', err);
@@ -172,6 +174,7 @@ router.put('/creative-spaces/:spaceId/items/:itemId/content', async (req, res) =
       updatedBy: userId,
     });
     scheduleGithubPush(spaceId, itemId);
+    scheduleGoogleDrivePush(spaceId, itemId);
     res.json(updated);
   } catch (err) {
     console.error('[PUT /creative-spaces/:spaceId/items/:itemId/content] failed:', err);

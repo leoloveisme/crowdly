@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import CrowdlyHeader from "@/components/CrowdlyHeader";
 import CrowdlyFooter from "@/components/CrowdlyFooter";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import EditableText from "@/components/EditableText";
 
@@ -83,12 +84,36 @@ interface GithubSyncStatus {
   branch?: string | null;
   lastSyncedAt?: string | null;
   installUrl?: string | null;
+  installationId?: string | number | null;
+}
+
+interface GithubRepoOption {
+  fullName: string;
+  defaultBranch?: string | null;
+  private?: boolean;
+}
+
+interface GoogleDriveSyncStatus {
+  configured: boolean;
+  connected: boolean;
+  enabled: boolean;
+  folderId?: string | null;
+  folderName?: string | null;
+  lastSyncedAt?: string | null;
+  driveAccountId?: string | null;
+  authUrl?: string | null;
+}
+
+interface GoogleDriveFolderOption {
+  id: string;
+  name: string;
 }
 
 const CreativeSpacePage: React.FC = () => {
   const { spaceId } = useParams<{ spaceId: string }>();
   const { user: authUser } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [space, setSpace] = useState<CreativeSpace | null>(null);
   const [currentPath, setCurrentPath] = useState<string>("");
@@ -105,6 +130,24 @@ const CreativeSpacePage: React.FC = () => {
   });
 
   const [githubStatus, setGithubStatus] = useState<GithubSyncStatus | null>(null);
+  const [githubRepoDialogOpen, setGithubRepoDialogOpen] = useState(false);
+  const [githubRepoDialogInstallationId, setGithubRepoDialogInstallationId] = useState<string | null>(null);
+  const [installationRepos, setInstallationRepos] = useState<GithubRepoOption[]>([]);
+  const [installationReposLoading, setInstallationReposLoading] = useState(false);
+  const [installationReposError, setInstallationReposError] = useState<string | null>(null);
+  const [selectedRepo, setSelectedRepo] = useState<string>("");
+  const [connectingRepo, setConnectingRepo] = useState(false);
+  const [disconnectingGithub, setDisconnectingGithub] = useState(false);
+
+  const [driveStatus, setDriveStatus] = useState<GoogleDriveSyncStatus | null>(null);
+  const [driveFolderDialogOpen, setDriveFolderDialogOpen] = useState(false);
+  const [driveFolderDialogAccountId, setDriveFolderDialogAccountId] = useState<string | null>(null);
+  const [driveFolders, setDriveFolders] = useState<GoogleDriveFolderOption[]>([]);
+  const [driveFoldersLoading, setDriveFoldersLoading] = useState(false);
+  const [driveFoldersError, setDriveFoldersError] = useState<string | null>(null);
+  const [selectedDriveFolder, setSelectedDriveFolder] = useState<string>("");
+  const [connectingDriveFolder, setConnectingDriveFolder] = useState(false);
+  const [disconnectingDrive, setDisconnectingDrive] = useState(false);
 
   const [previewItem, setPreviewItem] = useState<CreativeSpaceItem | null>(null);
   const [previewText, setPreviewText] = useState<string>("");
@@ -238,6 +281,261 @@ const CreativeSpacePage: React.FC = () => {
     loadGithubStatus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spaceId, space?.id, authUser?.id, isOwner]);
+
+  const openInstallationRepoPicker = async (installationId: string) => {
+    if (!spaceId || !authUser?.id) return;
+    setGithubRepoDialogInstallationId(installationId);
+    setGithubRepoDialogOpen(true);
+    setInstallationReposLoading(true);
+    setInstallationReposError(null);
+    setInstallationRepos([]);
+    setSelectedRepo("");
+    try {
+      const params = new URLSearchParams({ installationId, userId: authUser.id });
+      const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/github-sync/installation-repos?${params.toString()}`);
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error("[CreativeSpacePage] Failed to list installation repos", { status: res.status, body });
+        setInstallationReposError(body.error || "Failed to list repositories for this GitHub installation.");
+        return;
+      }
+      const repos = Array.isArray(body.repositories) ? (body.repositories as GithubRepoOption[]) : [];
+      setInstallationRepos(repos);
+      if (repos.length > 0) setSelectedRepo(repos[0].fullName);
+    } catch (err) {
+      console.error("[CreativeSpacePage] Error listing installation repos", err);
+      setInstallationReposError("Failed to list repositories for this GitHub installation.");
+    } finally {
+      setInstallationReposLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!spaceId || !isOwner) return;
+    if (searchParams.get("github") !== "choose-repo") return;
+    const installationId = searchParams.get("installation_id");
+    if (!installationId) return;
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("github");
+        next.delete("installation_id");
+        return next;
+      },
+      { replace: true },
+    );
+    openInstallationRepoPicker(installationId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spaceId, isOwner, searchParams]);
+
+  const handleConnectRepo = async () => {
+    if (!spaceId || !authUser?.id || !githubRepoDialogInstallationId || !selectedRepo) return;
+    setConnectingRepo(true);
+    try {
+      const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/github-sync/connect`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: authUser.id,
+          installationId: githubRepoDialogInstallationId,
+          repo: selectedRepo,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error("[CreativeSpacePage] Failed to connect GitHub repo", { status: res.status, body });
+        setInstallationReposError(body.error || "Failed to connect this repository.");
+        return;
+      }
+      setGithubStatus(body as GithubSyncStatus);
+      setGithubRepoDialogOpen(false);
+    } catch (err) {
+      console.error("[CreativeSpacePage] Error connecting GitHub repo", err);
+      setInstallationReposError("Failed to connect this repository.");
+    } finally {
+      setConnectingRepo(false);
+    }
+  };
+
+  const handleOpenChangeRepo = () => {
+    if (!githubStatus?.installationId) return;
+    openInstallationRepoPicker(String(githubStatus.installationId));
+  };
+
+  const handleDisconnectGithub = async () => {
+    if (!spaceId || !authUser?.id) return;
+    const ok = window.confirm("Disconnect this Space from GitHub? File sync will stop until you connect again.");
+    if (!ok) return;
+    setDisconnectingGithub(true);
+    try {
+      const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/github-sync/disconnect`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: authUser.id }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error("[CreativeSpacePage] Failed to disconnect GitHub", { status: res.status, body });
+        setError(body.error || "Failed to disconnect GitHub.");
+        return;
+      }
+      setGithubStatus(body as GithubSyncStatus);
+    } catch (err) {
+      console.error("[CreativeSpacePage] Error disconnecting GitHub", err);
+      setError("Failed to disconnect GitHub.");
+    } finally {
+      setDisconnectingGithub(false);
+    }
+  };
+
+  useEffect(() => {
+    const loadDriveStatus = async () => {
+      if (!spaceId || !space || !authUser?.id || !isOwner) return;
+      try {
+        const params = new URLSearchParams({ userId: authUser.id });
+        const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/drive-sync/status?${params.toString()}`);
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          console.error("[CreativeSpacePage] Failed to load Google Drive sync status", { status: res.status, body });
+          return;
+        }
+        setDriveStatus(body as GoogleDriveSyncStatus);
+      } catch (err) {
+        console.error("[CreativeSpacePage] Error loading Google Drive sync status", err);
+      }
+    };
+    loadDriveStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spaceId, space?.id, authUser?.id, isOwner]);
+
+  const openDriveFolderPicker = async (driveAccountId: string) => {
+    if (!spaceId || !authUser?.id) return;
+    setDriveFolderDialogAccountId(driveAccountId);
+    setDriveFolderDialogOpen(true);
+    setDriveFoldersLoading(true);
+    setDriveFoldersError(null);
+    setDriveFolders([]);
+    setSelectedDriveFolder("");
+    try {
+      const params = new URLSearchParams({ driveAccountId, userId: authUser.id });
+      const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/drive-sync/folders?${params.toString()}`);
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error("[CreativeSpacePage] Failed to list Google Drive folders", { status: res.status, body });
+        setDriveFoldersError(body.error || "Failed to list folders for this Google Drive account.");
+        return;
+      }
+      const folders = Array.isArray(body.folders) ? (body.folders as GoogleDriveFolderOption[]) : [];
+      setDriveFolders(folders);
+      if (folders.length > 0) setSelectedDriveFolder(folders[0].id);
+    } catch (err) {
+      console.error("[CreativeSpacePage] Error listing Google Drive folders", err);
+      setDriveFoldersError("Failed to list folders for this Google Drive account.");
+    } finally {
+      setDriveFoldersLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!spaceId || !isOwner) return;
+    if (searchParams.get("drive") !== "choose-folder") return;
+    const driveAccountId = searchParams.get("driveAccountId");
+    if (!driveAccountId) return;
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("drive");
+        next.delete("driveAccountId");
+        return next;
+      },
+      { replace: true },
+    );
+    openDriveFolderPicker(driveAccountId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spaceId, isOwner, searchParams]);
+
+  const handleConnectDriveFolder = async () => {
+    if (!spaceId || !authUser?.id || !driveFolderDialogAccountId || !selectedDriveFolder) return;
+    setConnectingDriveFolder(true);
+    try {
+      const folder = driveFolders.find((f) => f.id === selectedDriveFolder);
+      const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/drive-sync/connect`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: authUser.id,
+          driveAccountId: driveFolderDialogAccountId,
+          folderId: selectedDriveFolder,
+          folderName: folder?.name,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error("[CreativeSpacePage] Failed to connect Google Drive folder", { status: res.status, body });
+        setDriveFoldersError(body.error || "Failed to connect this folder.");
+        return;
+      }
+      setDriveStatus(body as GoogleDriveSyncStatus);
+      setDriveFolderDialogOpen(false);
+    } catch (err) {
+      console.error("[CreativeSpacePage] Error connecting Google Drive folder", err);
+      setDriveFoldersError("Failed to connect this folder.");
+    } finally {
+      setConnectingDriveFolder(false);
+    }
+  };
+
+  const handleOpenChangeDriveFolder = () => {
+    if (!driveStatus?.driveAccountId) return;
+    openDriveFolderPicker(driveStatus.driveAccountId);
+  };
+
+  const handleDisconnectDrive = async () => {
+    if (!spaceId || !authUser?.id) return;
+    const ok = window.confirm("Disconnect this Space from Google Drive? File sync will stop until you connect again.");
+    if (!ok) return;
+    setDisconnectingDrive(true);
+    try {
+      const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/drive-sync/disconnect`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: authUser.id }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error("[CreativeSpacePage] Failed to disconnect Google Drive", { status: res.status, body });
+        setError(body.error || "Failed to disconnect Google Drive.");
+        return;
+      }
+      setDriveStatus(body as GoogleDriveSyncStatus);
+    } catch (err) {
+      console.error("[CreativeSpacePage] Error disconnecting Google Drive", err);
+      setError("Failed to disconnect Google Drive.");
+    } finally {
+      setDisconnectingDrive(false);
+    }
+  };
+
+  const handleToggleDriveSync = async (checked: boolean) => {
+    if (!spaceId || !authUser?.id) return;
+    try {
+      const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/drive-sync`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: authUser.id, enabled: checked }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error("[CreativeSpacePage] Failed to toggle Google Drive sync", { status: res.status, body });
+        setError(body.error || "Failed to update Google Drive sync.");
+        return;
+      }
+      setDriveStatus(body as GoogleDriveSyncStatus);
+    } catch (err) {
+      console.error("[CreativeSpacePage] Error toggling Google Drive sync", err);
+      setError("Failed to update Google Drive sync.");
+    }
+  };
 
   const handleEnterFolder = (item: CreativeSpaceItem) => {
     const rel = item.relative_path || "";
@@ -632,20 +930,156 @@ const CreativeSpacePage: React.FC = () => {
                     {space.published ? "Unpublish" : "Publish"}
                   </Button>
                   {githubStatus?.connected ? (
-                    <label className="flex items-center gap-2 text-xs text-slate-600 px-1">
-                      <Checkbox
-                        checked={Boolean(githubStatus.enabled)}
-                        onCheckedChange={(val) => handleToggleGithubSync(Boolean(val))}
-                      />
-                      <EditableText id="space-github-sync-label">Sync with GitHub</EditableText>
-                      {githubStatus.repo && <span className="text-slate-400">({githubStatus.repo})</span>}
-                    </label>
+                    <>
+                      <label className="flex items-center gap-2 text-xs text-slate-600 px-1">
+                        <Checkbox
+                          checked={Boolean(githubStatus.enabled)}
+                          onCheckedChange={(val) => handleToggleGithubSync(Boolean(val))}
+                        />
+                        <EditableText id="space-github-sync-label">Sync with GitHub</EditableText>
+                        {githubStatus.repo && <span className="text-slate-400">({githubStatus.repo})</span>}
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleOpenChangeRepo}
+                        className="text-xs text-blue-700 hover:underline px-1"
+                      >
+                        <EditableText id="space-github-change-repo">Change repository</EditableText>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDisconnectGithub}
+                        disabled={disconnectingGithub}
+                        className="text-xs text-red-700 hover:underline px-1 disabled:opacity-50"
+                      >
+                        <EditableText id="space-github-disconnect">Disconnect</EditableText>
+                      </button>
+                    </>
                   ) : githubStatus?.configured && githubStatus?.installUrl ? (
                     <a href={githubStatus.installUrl} className="text-xs text-blue-700 hover:underline px-1">
                       <EditableText id="space-github-connect">Connect GitHub</EditableText>
                     </a>
                   ) : null}
+                  {driveStatus?.connected ? (
+                    <>
+                      <label className="flex items-center gap-2 text-xs text-slate-600 px-1">
+                        <Checkbox
+                          checked={Boolean(driveStatus.enabled)}
+                          onCheckedChange={(val) => handleToggleDriveSync(Boolean(val))}
+                        />
+                        <EditableText id="space-drive-sync-label">Sync with Google Drive</EditableText>
+                        {driveStatus.folderName && <span className="text-slate-400">({driveStatus.folderName})</span>}
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleOpenChangeDriveFolder}
+                        className="text-xs text-blue-700 hover:underline px-1"
+                      >
+                        <EditableText id="space-drive-change-folder">Change folder</EditableText>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDisconnectDrive}
+                        disabled={disconnectingDrive}
+                        className="text-xs text-red-700 hover:underline px-1 disabled:opacity-50"
+                      >
+                        <EditableText id="space-drive-disconnect">Disconnect</EditableText>
+                      </button>
+                    </>
+                  ) : driveStatus?.configured && driveStatus?.authUrl ? (
+                    <a href={driveStatus.authUrl} className="text-xs text-blue-700 hover:underline px-1">
+                      <EditableText id="space-drive-connect">Connect Google Drive</EditableText>
+                    </a>
+                  ) : null}
                 </>
+              )}
+              {isOwner && (
+                <Dialog open={githubRepoDialogOpen} onOpenChange={setGithubRepoDialogOpen}>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>
+                        <EditableText id="space-github-picker-title">Choose a GitHub repository</EditableText>
+                      </DialogTitle>
+                    </DialogHeader>
+                    {installationReposLoading ? (
+                      <p className="text-sm text-slate-500">
+                        <EditableText id="space-github-picker-loading">Loading repositories…</EditableText>
+                      </p>
+                    ) : installationReposError ? (
+                      <p className="text-sm text-red-600">{installationReposError}</p>
+                    ) : installationRepos.length === 0 ? (
+                      <p className="text-sm text-slate-500">
+                        <EditableText id="space-github-picker-empty">
+                          No repositories are accessible to this GitHub installation.
+                        </EditableText>
+                      </p>
+                    ) : (
+                      <Select value={selectedRepo} onValueChange={setSelectedRepo}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a repository" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {installationRepos.map((repo) => (
+                            <SelectItem key={repo.fullName} value={repo.fullName}>
+                              {repo.fullName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                    <Button
+                      onClick={handleConnectRepo}
+                      disabled={connectingRepo || !selectedRepo || installationReposLoading}
+                      className="mt-2"
+                    >
+                      <EditableText id="space-github-picker-connect">Connect</EditableText>
+                    </Button>
+                  </DialogContent>
+                </Dialog>
+              )}
+              {isOwner && (
+                <Dialog open={driveFolderDialogOpen} onOpenChange={setDriveFolderDialogOpen}>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>
+                        <EditableText id="space-drive-picker-title">Choose a Google Drive folder</EditableText>
+                      </DialogTitle>
+                    </DialogHeader>
+                    {driveFoldersLoading ? (
+                      <p className="text-sm text-slate-500">
+                        <EditableText id="space-drive-picker-loading">Loading folders…</EditableText>
+                      </p>
+                    ) : driveFoldersError ? (
+                      <p className="text-sm text-red-600">{driveFoldersError}</p>
+                    ) : driveFolders.length === 0 ? (
+                      <p className="text-sm text-slate-500">
+                        <EditableText id="space-drive-picker-empty">
+                          No folders were found in this Google Drive account.
+                        </EditableText>
+                      </p>
+                    ) : (
+                      <Select value={selectedDriveFolder} onValueChange={setSelectedDriveFolder}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a folder" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {driveFolders.map((folder) => (
+                            <SelectItem key={folder.id} value={folder.id}>
+                              {folder.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                    <Button
+                      onClick={handleConnectDriveFolder}
+                      disabled={connectingDriveFolder || !selectedDriveFolder || driveFoldersLoading}
+                      className="mt-2"
+                    >
+                      <EditableText id="space-drive-picker-connect">Connect</EditableText>
+                    </Button>
+                  </DialogContent>
+                </Dialog>
               )}
               {space && (
                 <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>

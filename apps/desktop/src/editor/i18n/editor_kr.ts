@@ -212,12 +212,12 @@ Details: {error}</translation>
       <translation>Connect</translation>
     </message>
     <message>
-      <source>to Dropbox</source>
-      <translation>to Dropbox</translation>
+      <source>Dropbox</source>
+      <translation>Dropbox</translation>
     </message>
     <message>
-      <source>to Google Drive</source>
-      <translation>to Google Drive</translation>
+      <source>Google Drive</source>
+      <translation>Google Drive</translation>
     </message>
     <message>
       <source>Connecting to Dropbox is not implemented yet.</source>
@@ -226,6 +226,42 @@ Details: {error}</translation>
     <message>
       <source>Connecting to Google Drive is not implemented yet.</source>
       <translation>Connecting to Google Drive is not implemented yet.</translation>
+    </message>
+    <message>
+      <source>Connecting to GitHub is not implemented yet.</source>
+      <translation>Connecting to GitHub is not implemented yet.</translation>
+    </message>
+    <message>
+      <source>Sync with Google Drive</source>
+      <translation>Sync with Google Drive</translation>
+    </message>
+    <message>
+      <source>You need to be logged in to the Crowdly web platform before changing Google Drive sync.</source>
+      <translation>You need to be logged in to the Crowdly web platform before changing Google Drive sync.</translation>
+    </message>
+    <message>
+      <source>This Space needs to be connected to a Google Drive folder first (use "Connect Google Drive" on the Space's page on the web platform, or Settings → Connect → Google Drive here), or the request failed.
+
+Details: {error}</source>
+      <translation>This Space needs to be connected to a Google Drive folder first (use "Connect Google Drive" on the Space's page on the web platform, or Settings → Connect → Google Drive here), or the request failed.
+
+Details: {error}</translation>
+    </message>
+    <message>
+      <source>You need to be logged in to the Crowdly web platform before connecting Google Drive.</source>
+      <translation>You need to be logged in to the Crowdly web platform before connecting Google Drive.</translation>
+    </message>
+    <message>
+      <source>This project space isn't linked to a Crowdly Space on the web yet. Sync with the web platform at least once before connecting Google Drive.
+
+Details: {error}</source>
+      <translation>This project space isn't linked to a Crowdly Space on the web yet. Sync with the web platform at least once before connecting Google Drive.
+
+Details: {error}</translation>
+    </message>
+    <message>
+      <source>Google Drive connect is either not configured on this server, or this Space is already connected to a Google Drive folder — use "Change folder" on the Space's page on the web platform instead.</source>
+      <translation>Google Drive connect is either not configured on this server, or this Space is already connected to a Google Drive folder — use "Change folder" on the Space's page on the web platform instead.</translation>
     </message>
     <message>
       <source>Not implemented</source>
