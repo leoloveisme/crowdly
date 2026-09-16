@@ -6,7 +6,7 @@ export const LAYOUT_PAGE_KEY = "/__layout__";
 // there pointing back to this file). Only `path` strings are needed here —
 // no elements — since this is only ever used for matching, never rendering.
 const ROUTE_PATTERNS: string[] = [
-  "/", "/suggest-feature", "/feedback", "/feature-suggestions", "/account-administration",
+  "/", "/suggest-feature", "/feedback", "/contact", "/feature-suggestions", "/account-administration",
   "/new-story-template", "/new-comic-template", "/story-for-consumers",
   "/story-to-live", "/profile", "/sitemap", "/software", "/about-us",
   "/lounge", "/login", "/register", "/stories/spaces-migration",

@@ -2850,115 +2850,241 @@
   },
   {
     "page_key": "/sitemap",
-    "element_id": "community-section",
-    "en": "Community",
-    "ru": "Сообщество",
-    "de": "Community"
+    "element_id": "sitemap-subtitle",
+    "en": "Everything Crowdly has to offer, in one place.",
+    "ru": "Всё, что может предложить Crowdly, в одном месте.",
+    "de": "Alles, was Crowdly zu bieten hat, an einem Ort."
   },
   {
     "page_key": "/sitemap",
-    "element_id": "popover-suggest-feature",
-    "en": "Suggest a Feature",
-    "ru": "Предложить функцию",
-    "de": "Funktion vorschlagen"
+    "element_id": "sitemap-section-discover",
+    "en": "Discover & Browse",
+    "ru": "Исследовать и просматривать",
+    "de": "Entdecken & Durchsuchen"
   },
   {
     "page_key": "/sitemap",
-    "element_id": "popover-feature-suggestions",
-    "en": "Suggested Features",
-    "ru": "Предложенные функции",
-    "de": "Vorgeschlagene Funktionen"
+    "element_id": "sitemap-link-home",
+    "en": "Home",
+    "ru": "Главная",
+    "de": "Startseite"
   },
   {
     "page_key": "/sitemap",
-    "element_id": "admin-section",
-    "en": "Administration",
-    "ru": "Администрирование",
-    "de": "Verwaltung"
+    "element_id": "sitemap-link-search",
+    "en": "Search",
+    "ru": "Поиск",
+    "de": "Suche"
   },
   {
     "page_key": "/sitemap",
-    "element_id": "popover-account-admin",
-    "en": "Account Administration",
-    "ru": "Управление аккаунтом",
-    "de": "Kontoverwaltung"
-  },
-  {
-    "page_key": "/sitemap",
-    "element_id": "stories-section",
-    "en": "Stories",
-    "ru": "Истории",
-    "de": "Geschichten"
-  },
-  {
-    "page_key": "/sitemap",
-    "element_id": "popover-new-story",
-    "en": "New Story Template",
-    "ru": "Шаблон новой истории",
-    "de": "Vorlage für neue Geschichte"
-  },
-  {
-    "page_key": "/sitemap",
-    "element_id": "story-to-live",
-    "en": "Story(-ies) to live / to experience",
-    "ru": "История(-и) для проживания / переживания",
-    "de": "Geschichte(n) zum Leben / Erleben"
-  },
-  {
-    "page_key": "/sitemap",
-    "element_id": "user-section",
-    "en": "User",
-    "ru": "Пользователь",
-    "de": "Benutzer"
-  },
-  {
-    "page_key": "/sitemap",
-    "element_id": "popover-profile",
-    "en": "Profile",
-    "ru": "Профиль",
-    "de": "Profil"
-  },
-  {
-    "page_key": "/sitemap",
-    "element_id": "finding-your-ways",
-    "en": "Finding your ways",
-    "ru": "Полезные ссылки",
-    "de": "Wegweiser"
-  },
-  {
-    "page_key": "/sitemap",
-    "element_id": "sitemap",
-    "en": "Sitemap - current page",
-    "ru": "Карта сайта — текущая страница",
-    "de": "Sitemap – aktuelle Seite"
-  },
-  {
-    "page_key": "/sitemap",
-    "element_id": "lounge",
+    "element_id": "sitemap-link-lounge",
     "en": "Lounge",
     "ru": "Лаунж",
     "de": "Lounge"
   },
   {
     "page_key": "/sitemap",
-    "element_id": "co-create-section",
-    "en": "C(o-c)reate with us",
-    "ru": "Со(з)давайте с нами",
-    "de": "Gemeinsam (er)schaffen"
+    "element_id": "sitemap-link-favorites",
+    "en": "Favorites",
+    "ru": "Избранное",
+    "de": "Favoriten"
   },
   {
     "page_key": "/sitemap",
-    "element_id": "about-us-link",
+    "element_id": "sitemap-section-stories",
+    "en": "Stories, Screenplays & Comics",
+    "ru": "Истории, сценарии и комиксы",
+    "de": "Geschichten, Drehbücher & Comics"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "sitemap-link-newest-stories",
+    "en": "Newest Stories",
+    "ru": "Новые истории",
+    "de": "Neueste Geschichten"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "sitemap-link-newest-screenplays",
+    "en": "Newest Screenplays",
+    "ru": "Новые сценарии",
+    "de": "Neueste Drehbücher"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "sitemap-link-newest-comics",
+    "en": "Newest Comics",
+    "ru": "Новые комиксы",
+    "de": "Neueste Comics"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "sitemap-link-living-stories",
+    "en": "Living Stories",
+    "ru": "Живые истории",
+    "de": "Lebende Geschichten"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "sitemap-link-lived-stories",
+    "en": "Lived Stories",
+    "ru": "Прожитые истории",
+    "de": "Erlebte Geschichten"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "sitemap-link-story-to-live",
+    "en": "Story(-ies) to live / to experience",
+    "ru": "История(-и) для проживания / переживания",
+    "de": "Geschichte(n) zum Leben / Erleben"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "sitemap-link-story-for-consumers",
+    "en": "Story for Consumers",
+    "ru": "История для читателей",
+    "de": "Geschichte für Leser"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "sitemap-section-create",
+    "en": "Create",
+    "ru": "Создать",
+    "de": "Erstellen"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "sitemap-link-new-story",
+    "en": "New Story Template",
+    "ru": "Шаблон новой истории",
+    "de": "Vorlage für neue Geschichte"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "sitemap-link-new-comic",
+    "en": "New Comic Template",
+    "ru": "Шаблон нового комикса",
+    "de": "Vorlage für neuen Comic"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "sitemap-section-community",
+    "en": "Community",
+    "ru": "Сообщество",
+    "de": "Community"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "sitemap-link-friends",
+    "en": "Friends",
+    "ru": "Друзья",
+    "de": "Freunde"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "sitemap-link-communications",
+    "en": "Communications",
+    "ru": "Сообщения",
+    "de": "Nachrichten"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "sitemap-link-suggest-feature",
+    "en": "Suggest a Feature",
+    "ru": "Предложить функцию",
+    "de": "Funktion vorschlagen"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "sitemap-link-feature-suggestions",
+    "en": "Suggested Features",
+    "ru": "Предложенные функции",
+    "de": "Vorgeschlagene Funktionen"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "sitemap-link-feedback",
+    "en": "Send Feedback",
+    "ru": "Отправить отзыв",
+    "de": "Feedback senden"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "sitemap-section-account",
+    "en": "Account",
+    "ru": "Аккаунт",
+    "de": "Konto"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "sitemap-link-profile",
+    "en": "Profile",
+    "ru": "Профиль",
+    "de": "Profil"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "sitemap-link-account-admin",
+    "en": "Account Administration",
+    "ru": "Управление аккаунтом",
+    "de": "Kontoverwaltung"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "sitemap-section-company",
+    "en": "Company",
+    "ru": "Компания",
+    "de": "Unternehmen"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "sitemap-link-software",
     "en": "Crowdly Software",
     "ru": "ПО Crowdly",
     "de": "Crowdly-Software"
   },
   {
     "page_key": "/sitemap",
-    "element_id": "about-section",
-    "en": "Company",
-    "ru": "Компания",
-    "de": "Unternehmen"
+    "element_id": "sitemap-link-about-us",
+    "en": "About Us",
+    "ru": "О нас",
+    "de": "Über uns"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "sitemap-link-support",
+    "en": "Support",
+    "ru": "Поддержка",
+    "de": "Support"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "sitemap-section-platform-admin",
+    "en": "Platform Administration",
+    "ru": "Администрирование платформы",
+    "de": "Plattformverwaltung"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "sitemap-link-platform-admin",
+    "en": "Platform Admin",
+    "ru": "Администрирование платформы",
+    "de": "Plattform-Admin"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "sitemap-link-admin",
+    "en": "Admin",
+    "ru": "Админ",
+    "de": "Admin"
+  },
+  {
+    "page_key": "/sitemap",
+    "element_id": "sitemap-link-invite-users",
+    "en": "Invite Users",
+    "ru": "Пригласить пользователей",
+    "de": "Benutzer einladen"
   },
   {
     "page_key": "/stories/spaces-migration",
@@ -6753,5 +6879,26 @@
     "en": "Built with love and creativity.",
     "ru": "Создано с любовью и творчеством.",
     "de": "Mit Liebe und Kreativität gemacht."
+  },
+  {
+    "page_key": "/contact",
+    "element_id": "contact-page-title",
+    "en": "Contact Us",
+    "ru": "Свяжитесь с нами",
+    "de": "Kontaktiere uns"
+  },
+  {
+    "page_key": "/contact",
+    "element_id": "contact-card-heading",
+    "en": "Write us an email",
+    "ru": "Напишите нам письмо",
+    "de": "Schreib uns eine E-Mail"
+  },
+  {
+    "page_key": "/contact",
+    "element_id": "contact-card-desc",
+    "en": "Questions, feedback, or just want to say hi? Drop us a line.",
+    "ru": "Есть вопросы, отзывы или просто хотите поздороваться? Напишите нам.",
+    "de": "Fragen, Feedback oder einfach nur Hallo sagen? Schreib uns."
   }
 ]
