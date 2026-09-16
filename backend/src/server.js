@@ -42,6 +42,10 @@ import {
   recentSyncLog,
   startGithubPollingLoop,
   handleGithubWebhookEvent,
+  ensureGithubContentLinksTable,
+  initGithubCrdtLinks,
+  createGithubContentLink,
+  listGithubContentLinks,
 } from './githubSync.js';
 import {
   isGoogleDriveConfigured,
@@ -1478,6 +1482,10 @@ ensureCreativeSpaceItemsTable().catch((err) => {
 // Must run after ensureCreativeSpaceItemsTable — it adds a column onto creative_space_items.
 ensureGithubSyncTables().catch((err) => {
   console.error('[init] ensureGithubSyncTables unhandled error:', err);
+});
+// Phase 2 — must run after ensureCreativeSpacesTable (FK) and ensureCrdtDocumentsTables (conceptually references crdt_documents.doc_key, though not FK-enforced to avoid first-boot ordering issues).
+ensureGithubContentLinksTable().catch((err) => {
+  console.error('[init] ensureGithubContentLinksTable unhandled error:', err);
 });
 // Must run after ensureCreativeSpaceItemsTable — it adds a column onto creative_space_items.
 ensureGoogleDriveSyncTables().catch((err) => {
@@ -5717,6 +5725,99 @@ app.post('/creative-spaces/:spaceId/github-sync/disconnect', async (req, res) =>
   }
 });
 
+// --- Phase 2: chapter <-> markdown links -----------------------------
+// Unlike the routes above (explicit body/query userId), these require a
+// real session (requireAuth) because they mint/reuse a CRDT doc_key via the
+// same access-gated sequence POST /crdt/docs/ensure uses (server.js:6922),
+// inlined here rather than factored out, to avoid touching that
+// already-working route.
+
+app.post('/creative-spaces/:spaceId/github-sync/link', requireAuth, async (req, res) => {
+  const { spaceId } = req.params;
+  const { relativePath, entityId } = req.body ?? {};
+
+  if (!relativePath || !entityId) {
+    return res.status(400).json({ error: 'relativePath and entityId are required' });
+  }
+
+  const client = await pool.connect();
+  try {
+    const spaceRes = await client.query('SELECT * FROM creative_spaces WHERE id = $1', [spaceId]);
+    const space = spaceRes.rows[0];
+    if (!space) return res.status(404).json({ error: 'Creative space not found' });
+    if (String(space.user_id) !== String(req.user.id)) {
+      return res.status(403).json({ error: 'You do not own this creative space' });
+    }
+
+    await client.query('BEGIN');
+
+    const existing = await client.query(
+      "SELECT doc_key FROM crdt_documents WHERE doc_type = 'chapter' AND chapter_id = $1",
+      [entityId],
+    );
+
+    // Seeded regardless of whether the doc already exists — seeded.entity is
+    // what the access check below needs either way.
+    const seeded = await CRDT_DOC_TYPE_SEEDERS.chapter(client, entityId);
+    if (!seeded) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Chapter not found' });
+    }
+
+    const canAccess = await userCanAccessCrdtEntity(client, req.user, 'chapter', seeded.entity);
+    if (!canAccess) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'You do not have access to this chapter' });
+    }
+
+    let docKey;
+    if (existing.rows.length > 0) {
+      docKey = existing.rows[0].doc_key;
+    } else {
+      const handle = crdtRepo.create(seeded.value);
+      handle.change((d) => { Object.assign(d, seeded.value); }, {
+        message: changeAttribution(req.user),
+        time: Math.floor(Date.now() / 1000),
+      });
+      await client.query(
+        `INSERT INTO crdt_documents
+           (doc_key, story_title_id, chapter_id, branch_id, screenplay_id, scene_id, doc_type, is_canonical, owner_user_id, created_by)
+         VALUES ($1, $2, $3, NULL, NULL, NULL, 'chapter', true, $4, $4)`,
+        [handle.documentId, seeded.entity.storyTitleId, seeded.entity.chapterId, req.user.id],
+      );
+      docKey = handle.documentId;
+    }
+
+    await client.query('COMMIT');
+
+    const link = await createGithubContentLink({ spaceId, relativePath, entityId, docKey, userId: req.user.id });
+    res.json(link);
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('[POST /creative-spaces/:spaceId/github-sync/link] failed:', err);
+    res.status(500).json({ error: 'Failed to link this chapter to GitHub' });
+  } finally {
+    client.release();
+  }
+});
+
+app.get('/creative-spaces/:spaceId/github-sync/links', requireAuth, async (req, res) => {
+  const { spaceId } = req.params;
+  try {
+    const spaceRes = await pool.query('SELECT user_id FROM creative_spaces WHERE id = $1', [spaceId]);
+    const space = spaceRes.rows[0];
+    if (!space) return res.status(404).json({ error: 'Creative space not found' });
+    if (String(space.user_id) !== String(req.user.id)) {
+      return res.status(403).json({ error: 'You do not have access to this creative space' });
+    }
+    const links = await listGithubContentLinks(spaceId);
+    res.json({ links });
+  } catch (err) {
+    console.error('[GET /creative-spaces/:spaceId/github-sync/links] failed:', err);
+    res.status(500).json({ error: 'Failed to list GitHub content links' });
+  }
+});
+
 // GitHub App installation callback — GitHub redirects here after the user
 // installs/approves the App, with `state` carrying back whatever we passed
 // it in buildInstallUrl (`${spaceId}:${userId}`). Only registers the
@@ -9352,6 +9453,13 @@ const { repo, wss } = createCrdtRepo({
 });
 crdtRepo = repo;
 attachCrdtWebSocketServer(httpServer, { wss, getSessionUser });
+
+// Phase 2 GitHub sync: attach live push listeners for every already-linked
+// chapter. Safe to run regardless of whether a GitHub App is configured —
+// it only touches the CRDT repo, not the GitHub API.
+initGithubCrdtLinks(crdtRepo).catch((err) => {
+  console.error('[init] initGithubCrdtLinks unhandled error:', err);
+});
 
 httpServer.listen(port, host, () => {
   console.log(`Crowdly backend listening on http://${host === '0.0.0.0' ? 'localhost' : host}:${port}`);

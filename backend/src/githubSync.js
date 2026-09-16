@@ -14,6 +14,7 @@
 
 import fs from 'fs';
 import path from 'path';
+import * as Automerge from '@automerge/automerge';
 import { pool } from './db.js';
 import {
   getInstallationToken,
@@ -24,6 +25,8 @@ import {
   putFileContent,
 } from './githubApp.js';
 import { storeItemContent, guessMimeType, CREATIVE_SPACE_FILES_ROOT } from './creativeSpaceFiles.js';
+import { applyContentToHandle } from './crdt/repo.js';
+import { stripLeadingTitleLine, splitParagraphs } from '../scripts/lib/happybeingsSource.js';
 
 export async function ensureGithubSyncTables() {
   try {
@@ -66,6 +69,37 @@ export async function ensureGithubSyncTables() {
   }
 }
 
+// Phase 2: chapter <-> markdown links. Kept as its own table/columns rather
+// than folding into creative_space_items — a linked chapter is a CRDT
+// document (versioned, mergeable), not a file blob, and the two need
+// different loop-guard/apply logic (see part 3/4 of Phase 2 in the plan).
+export async function ensureGithubContentLinksTable() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS github_content_links (
+        id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        space_id        uuid NOT NULL REFERENCES creative_spaces(id) ON DELETE CASCADE,
+        relative_path   text NOT NULL,
+        doc_type        text NOT NULL DEFAULT 'chapter',
+        entity_id       uuid NOT NULL,
+        doc_key         text NOT NULL,
+        github_blob_sha text,
+        created_at      timestamptz NOT NULL DEFAULT now(),
+        created_by      text
+      )
+    `);
+    await pool.query(
+      'CREATE UNIQUE INDEX IF NOT EXISTS github_content_links_space_path_idx ON github_content_links(space_id, relative_path)',
+    );
+    await pool.query(
+      'CREATE UNIQUE INDEX IF NOT EXISTS github_content_links_doc_key_idx ON github_content_links(doc_key)',
+    );
+    console.log('[init] ensured github_content_links table exists');
+  } catch (err) {
+    console.error('[init] failed to ensure github_content_links table:', err);
+  }
+}
+
 async function logSync(spaceId, direction, level, message, relativePath = null) {
   try {
     await pool.query(
@@ -99,30 +133,59 @@ async function pullChangedPaths(space, token, owner, repo, branch, candidatePath
   );
   const itemsByPath = new Map(itemsRes.rows.map((item) => [item.relative_path, item]));
 
+  const linksRes = await pool.query('SELECT * FROM github_content_links WHERE space_id = $1', [space.id]);
+  const linksByPath = new Map(linksRes.rows.map((link) => [link.relative_path, link]));
+
   const tree = await fetchRepoTree({ token, owner, repo, branch });
   let pulled = 0;
 
   for (const entry of tree.paths) {
     if (candidatePaths && !candidatePaths.has(entry.path)) continue;
     const item = itemsByPath.get(entry.path);
-    if (!item) continue; // not a file we track for this Space — same "don't invent items" rule the backfill script follows.
-    if (item.github_blob_sha === entry.sha) continue; // unchanged, or the echo of our own last push.
+    const link = linksByPath.get(entry.path);
+    if (!item && !link) continue; // not a file/chapter we track for this Space — same "don't invent items" rule the backfill script follows.
 
+    const itemStale = item && item.github_blob_sha !== entry.sha;
+    const linkStale = link && link.github_blob_sha !== entry.sha;
+    if (!itemStale && !linkStale) continue; // unchanged, or the echo of our own last push.
+
+    let buffer;
     try {
-      const buffer = await fetchBlobContent({ token, owner, repo, sha: entry.sha });
-      await storeItemContent({
-        spaceId: space.id,
-        itemId: item.id,
-        buffer,
-        mimeType: item.mime_type || guessMimeType(item.name),
-        updatedBy: 'github-sync',
-      });
-      await pool.query('UPDATE creative_space_items SET github_blob_sha = $1 WHERE id = $2', [entry.sha, item.id]);
-      pulled += 1;
-      await logSync(space.id, 'pull', 'info', `Pulled ${entry.path} from GitHub`, entry.path);
+      buffer = await fetchBlobContent({ token, owner, repo, sha: entry.sha });
     } catch (err) {
-      console.error('[githubSync] pull failed for', entry.path, err);
-      await logSync(space.id, 'pull', 'error', `Failed to pull ${entry.path}: ${err.message}`, entry.path);
+      console.error('[githubSync] pull fetch failed for', entry.path, err);
+      await logSync(space.id, 'pull', 'error', `Failed to fetch ${entry.path}: ${err.message}`, entry.path);
+      continue;
+    }
+
+    if (itemStale) {
+      try {
+        await storeItemContent({
+          spaceId: space.id,
+          itemId: item.id,
+          buffer,
+          mimeType: item.mime_type || guessMimeType(item.name),
+          updatedBy: 'github-sync',
+        });
+        await pool.query('UPDATE creative_space_items SET github_blob_sha = $1 WHERE id = $2', [entry.sha, item.id]);
+        pulled += 1;
+        await logSync(space.id, 'pull', 'info', `Pulled ${entry.path} from GitHub`, entry.path);
+      } catch (err) {
+        console.error('[githubSync] pull failed for', entry.path, err);
+        await logSync(space.id, 'pull', 'error', `Failed to pull ${entry.path}: ${err.message}`, entry.path);
+      }
+    }
+
+    if (linkStale) {
+      try {
+        await pullChapterFromGithub(link, buffer);
+        await pool.query('UPDATE github_content_links SET github_blob_sha = $1 WHERE id = $2', [entry.sha, link.id]);
+        pulled += 1;
+        await logSync(space.id, 'pull', 'info', `Pulled chapter update for ${entry.path} from GitHub`, entry.path);
+      } catch (err) {
+        console.error('[githubSync] chapter pull failed for', entry.path, err);
+        await logSync(space.id, 'pull', 'error', `Failed to pull chapter ${entry.path}: ${err.message}`, entry.path);
+      }
     }
   }
 
@@ -301,6 +364,177 @@ export async function handleGithubWebhookEvent(eventName, payload) {
   if (eventName === 'push') {
     await handlePushEvent(payload);
   }
+}
+
+// --- Phase 2: CRDT-backed chapter sync -----------------------------------
+// Scope: doc_type 'chapter' (novel paragraphs) only — see the plan for why
+// 'scene' (screenplay/Fountain-shaped content) isn't handled here.
+
+const GITHUB_SYNC_ACTOR = { id: 'github-sync', email: 'github-sync@crowdly.internal' };
+
+// Set once via initGithubCrdtLinks() at server startup — module-scoped so
+// both the pull path above (pullChapterFromGithub) and the push listeners
+// below can reach it without server.js threading it through every call.
+let phase2CrdtRepo = null;
+
+function chapterToMarkdown({ title, paragraphs }) {
+  return `# ${title || ''}\n\n${(paragraphs || []).filter(Boolean).join('\n\n')}\n`;
+}
+
+/** True if the doc's most recent change was one of our own pulls (see applyContentToHandle's 'github' extraMessage below) — distinguishes that from a real user edit so the push listener doesn't echo it straight back to GitHub. */
+function lastChangeWasFromGithub(doc) {
+  const history = Automerge.getHistory(doc);
+  if (history.length === 0) return false;
+  const lastMessage = history[history.length - 1].change.message;
+  if (!lastMessage) return false;
+  try {
+    return JSON.parse(lastMessage)?.source === 'github';
+  } catch {
+    return false;
+  }
+}
+
+/** Folds parsed markdown into a linked chapter's CRDT doc as one attributed change (Phase 1's pull path writes bytes directly; this instead goes through applyContentToHandle so the change is a normal, mergeable, restorable revision — see crdt/repo.js). */
+async function pullChapterFromGithub(link, buffer) {
+  if (!phase2CrdtRepo) throw new Error('CRDT repo is not yet initialized');
+
+  const { title: parsedTitle, body } = stripLeadingTitleLine(buffer.toString('utf8'));
+  const paragraphs = splitParagraphs(body);
+
+  const handle = await phase2CrdtRepo.find(link.doc_key);
+  await handle.whenReady();
+  const current = handle.doc();
+  if (!current) throw new Error(`CRDT doc ${link.doc_key} not found`);
+
+  const newValue = { ...current, title: parsedTitle || current.title, paragraphs };
+  applyContentToHandle(handle, newValue, GITHUB_SYNC_ACTOR, 'github');
+}
+
+const contentLinkPushTimers = new Map(); // link id -> Timeout, same debounce shape as Phase 1's pushTimers.
+
+async function pushLinkedChapterToGithub(linkId) {
+  const { rows } = await pool.query('SELECT * FROM github_content_links WHERE id = $1', [linkId]);
+  const link = rows[0];
+  if (!link || !phase2CrdtRepo) return;
+
+  const spaceRes = await pool.query('SELECT * FROM creative_spaces WHERE id = $1', [link.space_id]);
+  const space = spaceRes.rows[0];
+  if (!space || !space.github_sync_enabled || !space.github_installation_id || !space.github_repo) return;
+
+  const { owner, repo } = parseRepoFullName(space.github_repo);
+  if (!owner || !repo) return;
+  const branch = space.github_branch || 'master';
+
+  const handle = await phase2CrdtRepo.find(link.doc_key);
+  await handle.whenReady();
+  const doc = handle.doc();
+  if (!doc) return;
+
+  const buffer = Buffer.from(chapterToMarkdown(doc), 'utf8');
+  const token = await getInstallationToken(space.github_installation_id);
+
+  let remote = null;
+  try {
+    remote = await fetchFileMeta({ token, owner, repo, filePath: link.relative_path, branch });
+  } catch (err) {
+    console.error('[githubSync] failed to look up remote file before chapter push', link.relative_path, err);
+    await logSync(space.id, 'push', 'error', `Failed to check GitHub before pushing ${link.relative_path}: ${err.message}`, link.relative_path);
+    return;
+  }
+
+  // Same conflict guard as Phase 1's file push: don't clobber a GitHub-side edit we haven't pulled yet.
+  if (remote && link.github_blob_sha && remote.sha !== link.github_blob_sha) {
+    await logSync(
+      space.id,
+      'push',
+      'warn',
+      `Skipped push for ${link.relative_path}: GitHub has changes not yet pulled into Crowdly`,
+      link.relative_path,
+    );
+    return;
+  }
+
+  try {
+    const result = await putFileContent({
+      token,
+      owner,
+      repo,
+      filePath: link.relative_path,
+      branch,
+      buffer,
+      sha: remote ? remote.sha : undefined,
+      message: `Crowdly sync: update ${link.relative_path}`,
+    });
+    await pool.query('UPDATE github_content_links SET github_blob_sha = $1 WHERE id = $2', [result.contentSha, linkId]);
+    await pool.query('UPDATE creative_spaces SET github_last_commit_sha = $1, last_synced_at = now() WHERE id = $2', [
+      result.commitSha,
+      space.id,
+    ]);
+    await logSync(space.id, 'push', 'info', `Pushed chapter update for ${link.relative_path} to GitHub`, link.relative_path);
+  } catch (err) {
+    console.error('[githubSync] chapter push failed for', link.relative_path, err);
+    await logSync(space.id, 'push', 'error', `Failed to push chapter ${link.relative_path}: ${err.message}`, link.relative_path);
+  }
+}
+
+/** Wires a live automerge-repo 'change' listener for one linked doc — fires on any change to that doc (ours or a live editor's), debounces, and skips echoing our own pulls back to GitHub via lastChangeWasFromGithub. Called both at startup (initGithubCrdtLinks, for every existing link) and immediately when a new link is created, so pushes work without a restart. */
+async function attachContentLinkListener(link) {
+  if (!phase2CrdtRepo) return;
+  try {
+    const handle = await phase2CrdtRepo.find(link.doc_key);
+    await handle.whenReady();
+    handle.on('change', ({ doc }) => {
+      if (lastChangeWasFromGithub(doc)) return;
+      const existing = contentLinkPushTimers.get(link.id);
+      if (existing) clearTimeout(existing);
+      const timer = setTimeout(() => {
+        contentLinkPushTimers.delete(link.id);
+        pushLinkedChapterToGithub(link.id).catch((err) => {
+          console.error('[githubSync] chapter push failed for link', link.id, err);
+        });
+      }, PUSH_DEBOUNCE_MS);
+      contentLinkPushTimers.set(link.id, timer);
+    });
+  } catch (err) {
+    console.error('[githubSync] failed to attach change listener for link', link.id, err);
+  }
+}
+
+/** Call once at server startup, right after crdtRepo is created (see server.js). Attaches a push listener for every existing chapter link. */
+export async function initGithubCrdtLinks(crdtRepoInstance) {
+  phase2CrdtRepo = crdtRepoInstance;
+  try {
+    const { rows } = await pool.query('SELECT * FROM github_content_links');
+    for (const link of rows) {
+      await attachContentLinkListener(link);
+    }
+    console.log(`[init] attached GitHub sync change listeners for ${rows.length} linked chapter(s)`);
+  } catch (err) {
+    console.error('[init] failed to attach GitHub content-link listeners:', err);
+  }
+}
+
+/** Creates (or repoints) a chapter <-> markdown-path link and starts listening for pushes on it immediately. `docKey` must already exist (server.js's link route mints/reuses it the same way POST /crdt/docs/ensure does). */
+export async function createGithubContentLink({ spaceId, relativePath, entityId, docKey, userId }) {
+  const { rows } = await pool.query(
+    `INSERT INTO github_content_links (space_id, relative_path, doc_type, entity_id, doc_key, created_by)
+     VALUES ($1, $2, 'chapter', $3, $4, $5)
+     ON CONFLICT (space_id, relative_path)
+       DO UPDATE SET entity_id = EXCLUDED.entity_id, doc_key = EXCLUDED.doc_key, github_blob_sha = NULL
+     RETURNING *`,
+    [spaceId, relativePath, entityId, docKey, userId || null],
+  );
+  const link = rows[0];
+  await attachContentLinkListener(link);
+  return link;
+}
+
+export async function listGithubContentLinks(spaceId) {
+  const { rows } = await pool.query(
+    'SELECT * FROM github_content_links WHERE space_id = $1 ORDER BY created_at ASC',
+    [spaceId],
+  );
+  return rows;
 }
 
 // --- Polling fallback ---------------------------------------------------
