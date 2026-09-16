@@ -116,7 +116,15 @@ jobs:
       # half-migrated or broken schema. DATABASE_URL comes from
       # /opt/crowdly-backend/backend/.env via dotenv, same file the
       # crowdly-backend systemd unit loads.
-      - name: Update backend, migrate DB, and restart service
+      #
+      # `npm run seed-interface-translations` upserts UI copy from
+      # backend/scripts/data/interface-translations.seed.json into
+      # interface_translations (idempotent, ON CONFLICT DO UPDATE — see
+      # backend/scripts/seed-interface-translations.js). It's data, not a
+      # schema change, so it's not a backend/migrations/*.sql file, but it
+      # runs on every deploy so new languages/strings added to that JSON
+      # reach production automatically instead of needing a manual run.
+      - name: Update backend, migrate DB, seed translations, and restart service
         run: |
           ssh -i ~/.ssh/deploy_key -p "${{ secrets.VPS_SSH_PORT || 22 }}" \
             "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" '
@@ -126,6 +134,7 @@ jobs:
               git reset --hard origin/alpha
               npm ci --omit=dev --prefix backend
               npm run migrate --prefix backend
+              npm run seed-interface-translations --prefix backend
               sudo systemctl restart crowdly-backend
             '
 
