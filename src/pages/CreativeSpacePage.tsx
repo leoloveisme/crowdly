@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import EditableText from "@/components/EditableText";
 
 const IMAGE_EXTENSIONS = /\.(png|jpe?g|webp|gif|svg)$/i;
@@ -60,6 +61,7 @@ interface CreativeSpaceItem {
   deleted?: boolean;
   created_at?: string | null;
   updated_at?: string | null;
+  linked_chapter_id?: string | null;
 }
 
 interface SpaceStoryRow {
@@ -161,6 +163,79 @@ const CreativeSpacePage: React.FC = () => {
   const newFileInputRef = useRef<HTMLInputElement | null>(null);
   const previewFileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Import wizard: select raw files, then structure them into a chapter of
+  // a new or existing book (story_title) in this Space.
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardBookMode, setWizardBookMode] = useState<"new_book" | "existing_book">("new_book");
+  const [wizardBookTitle, setWizardBookTitle] = useState("");
+  const [wizardStoryTitleId, setWizardStoryTitleId] = useState("");
+  const [wizardChapterTitle, setWizardChapterTitle] = useState("");
+  const [wizardSubmitting, setWizardSubmitting] = useState(false);
+  const [wizardError, setWizardError] = useState<string | null>(null);
+
+  const toggleItemSelected = (itemId: string) => {
+    setSelectedItemIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) next.delete(itemId);
+      else next.add(itemId);
+      return next;
+    });
+  };
+
+  const openStructureWizard = () => {
+    setWizardError(null);
+    setWizardBookMode("new_book");
+    setWizardBookTitle("");
+    setWizardStoryTitleId(contentItems.stories[0]?.story_title_id ?? "");
+    const firstSelected = items.find((it) => selectedItemIds.has(it.id));
+    setWizardChapterTitle(firstSelected ? firstSelected.name.replace(/\.[^./]+$/, "") : "");
+    setWizardOpen(true);
+  };
+
+  const handleSubmitStructureWizard = async () => {
+    if (!spaceId || selectedItemIds.size === 0 || !wizardChapterTitle.trim()) return;
+    if (wizardBookMode === "new_book" && !wizardBookTitle.trim()) {
+      setWizardError("A book title is required.");
+      return;
+    }
+    if (wizardBookMode === "existing_book" && !wizardStoryTitleId) {
+      setWizardError("Choose which book this chapter belongs to.");
+      return;
+    }
+    setWizardSubmitting(true);
+    setWizardError(null);
+    try {
+      const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/import-wizard/structure-chapter`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          itemIds: Array.from(selectedItemIds),
+          mode: wizardBookMode,
+          bookTitle: wizardBookMode === "new_book" ? wizardBookTitle.trim() : undefined,
+          storyTitleId: wizardBookMode === "existing_book" ? wizardStoryTitleId : undefined,
+          chapterTitle: wizardChapterTitle.trim(),
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setWizardError(body.error || "Failed to structure chapter.");
+        return;
+      }
+      setWizardOpen(false);
+      setSelectedItemIds(new Set());
+      setSelectMode(false);
+      await Promise.all([loadItems(currentPath), loadContentItems()]);
+    } catch (err) {
+      console.error("[CreativeSpacePage] Failed to structure chapter", err);
+      setWizardError("Failed to structure chapter.");
+    } finally {
+      setWizardSubmitting(false);
+    }
+  };
+
   const isOwner = Boolean(authUser?.id && space && space.user_id === authUser.id);
 
   useEffect(() => {
@@ -240,29 +315,61 @@ const CreativeSpacePage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spaceId, space?.id]);
 
-  useEffect(() => {
-    const loadContentItems = async () => {
-      if (!spaceId || !space) return;
-      try {
-        const params = new URLSearchParams();
-        if (authUser?.id) params.set("userId", authUser.id);
-        const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/content-items?${params.toString()}`);
-        const body = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          console.error("[CreativeSpacePage] Failed to load stories/screenplays", { status: res.status, body });
-          return;
-        }
-        setContentItems({
-          stories: Array.isArray(body.stories) ? body.stories : [],
-          screenplays: Array.isArray(body.screenplays) ? body.screenplays : [],
-        });
-      } catch (err) {
-        console.error("[CreativeSpacePage] Error loading stories/screenplays", err);
+  const loadContentItems = async () => {
+    if (!spaceId || !space) return;
+    try {
+      const params = new URLSearchParams();
+      if (authUser?.id) params.set("userId", authUser.id);
+      const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/content-items?${params.toString()}`);
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error("[CreativeSpacePage] Failed to load stories/screenplays", { status: res.status, body });
+        return;
       }
-    };
+      setContentItems({
+        stories: Array.isArray(body.stories) ? body.stories : [],
+        screenplays: Array.isArray(body.screenplays) ? body.screenplays : [],
+      });
+    } catch (err) {
+      console.error("[CreativeSpacePage] Error loading stories/screenplays", err);
+    }
+  };
+
+  useEffect(() => {
     loadContentItems();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spaceId, space?.id, authUser?.id]);
+
+  // "Publish book into Space": a book's own visibility/published fields
+  // already gate whether it surfaces anywhere (see PATCH
+  // /story-titles/:storyTitleId/settings) — this checkbox is just a
+  // same-page affordance for that existing setting.
+  const handleToggleStoryPublishedInSpace = async (story: SpaceStoryRow) => {
+    const next = !(story.visibility === "public" && story.published);
+    try {
+      const res = await fetch(`${API_BASE}/story-titles/${story.story_title_id}/settings`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ visibility: next ? "public" : "private", published: next }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        console.error("[CreativeSpacePage] Failed to update story publish state", body);
+        return;
+      }
+      setContentItems((prev) => ({
+        ...prev,
+        stories: prev.stories.map((s) =>
+          s.story_title_id === story.story_title_id
+            ? { ...s, visibility: next ? "public" : "private", published: next }
+            : s,
+        ),
+      }));
+    } catch (err) {
+      console.error("[CreativeSpacePage] Error updating story publish state", err);
+    }
+  };
 
   useEffect(() => {
     const loadGithubStatus = async () => {
@@ -1200,9 +1307,18 @@ const CreativeSpacePage: React.FC = () => {
                   <Link to={`/story/${story.story_title_id}`} className="text-blue-700 hover:underline truncate">
                     {story.title}
                   </Link>
-                  <span className="text-[11px] text-slate-500 whitespace-nowrap">
+                  <span className="text-[11px] text-slate-500 whitespace-nowrap flex items-center gap-1.5">
                     Story · {story.visibility === "public" ? "Public" : story.visibility === "unlisted" ? "Unlisted" : "Private"}
                     {story.published === false ? " · Unpublished" : ""}
+                    {isOwner && (
+                      <label className="ml-1.5 inline-flex items-center gap-1 cursor-pointer">
+                        <Checkbox
+                          checked={story.visibility === "public" && !!story.published}
+                          onCheckedChange={() => handleToggleStoryPublishedInSpace(story)}
+                        />
+                        <span title={`Publish "${story.title}" into "${space?.name ?? "this Space"}"`}>Publish into Space</span>
+                      </label>
+                    )}
                   </span>
                 </li>
               ))}
@@ -1245,8 +1361,29 @@ const CreativeSpacePage: React.FC = () => {
             ))}
           </div>
 
+          {isOwner && (
+            <div className="mb-3 flex items-center gap-2 flex-wrap">
+              <Button
+                size="sm"
+                variant={selectMode ? "secondary" : "outline"}
+                onClick={() => {
+                  setSelectMode((prev) => !prev);
+                  setSelectedItemIds(new Set());
+                }}
+              >
+                {selectMode ? "Cancel selection" : "Select files to structure"}
+              </Button>
+              {selectMode && selectedItemIds.size > 0 && (
+                <Button size="sm" onClick={openStructureWizard}>
+                  Structure {selectedItemIds.size} file{selectedItemIds.size === 1 ? "" : "s"} into chapter…
+                </Button>
+              )}
+            </div>
+          )}
+
           <div className="border border-slate-200 rounded-xl overflow-hidden">
             <div className="flex items-center justify-between px-4 py-2 bg-slate-50 text-xs font-semibold text-slate-600">
+              {selectMode && <div className="w-6" />}
               <div className="flex-1"><EditableText id="space-th-name">Name</EditableText></div>
               <div className="w-24 text-right"><EditableText id="space-th-type">Type</EditableText></div>
               <div className="w-40 text-right"><EditableText id="space-th-updated">Updated</EditableText></div>
@@ -1265,7 +1402,17 @@ const CreativeSpacePage: React.FC = () => {
                     key={item.id}
                     className="flex items-center px-4 py-3 gap-2 hover:bg-slate-50 transition"
                   >
-                    <div className="flex-1 min-w-0">
+                    {selectMode && (
+                      <div className="w-6 flex-shrink-0">
+                        {item.kind === "file" && (
+                          <Checkbox
+                            checked={selectedItemIds.has(item.id)}
+                            onCheckedChange={() => toggleItemSelected(item.id)}
+                          />
+                        )}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0 flex items-center gap-2">
                       {item.kind === "folder" ? (
                         <button
                           type="button"
@@ -1282,6 +1429,14 @@ const CreativeSpacePage: React.FC = () => {
                         >
                           {item.name}
                         </button>
+                      )}
+                      {item.linked_chapter_id && (
+                        <span
+                          className="text-[10px] rounded-full bg-emerald-50 text-emerald-700 px-1.5 py-0.5 whitespace-nowrap"
+                          title="Already structured into a chapter"
+                        >
+                          ✓ Chapter
+                        </span>
                       )}
                     </div>
                     <div className="w-24 text-right text-[11px] text-slate-500">
@@ -1400,6 +1555,72 @@ const CreativeSpacePage: React.FC = () => {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={wizardOpen} onOpenChange={(open) => { if (!open) setWizardOpen(false); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Structure into chapter</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant={wizardBookMode === "new_book" ? "secondary" : "outline"}
+                onClick={() => setWizardBookMode("new_book")}
+              >
+                New book
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={wizardBookMode === "existing_book" ? "secondary" : "outline"}
+                disabled={contentItems.stories.length === 0}
+                onClick={() => setWizardBookMode("existing_book")}
+              >
+                Existing book
+              </Button>
+            </div>
+
+            {wizardBookMode === "new_book" ? (
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-600">Book title</label>
+                <Input value={wizardBookTitle} onChange={(e) => setWizardBookTitle(e.target.value)} placeholder="e.g. Book I — Episode IV: New horizons" />
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-600">Book</label>
+                <Select value={wizardStoryTitleId} onValueChange={setWizardStoryTitleId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose a book" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {contentItems.stories.map((s) => (
+                      <SelectItem key={s.story_title_id} value={s.story_title_id}>{s.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-600">Chapter title</label>
+              <Input value={wizardChapterTitle} onChange={(e) => setWizardChapterTitle(e.target.value)} placeholder="Chapter title" />
+            </div>
+
+            {wizardError && <p className="text-xs text-red-600">{wizardError}</p>}
+
+            <div className="flex justify-end gap-2 pt-2">
+              <Button type="button" size="sm" variant="outline" onClick={() => setWizardOpen(false)} disabled={wizardSubmitting}>
+                Cancel
+              </Button>
+              <Button type="button" size="sm" onClick={handleSubmitStructureWizard} disabled={wizardSubmitting}>
+                {wizardSubmitting ? "Structuring…" : "Structure chapter"}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 

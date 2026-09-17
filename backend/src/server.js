@@ -27,7 +27,7 @@ import messagingRouter, {
 } from './messaging.js';
 import galleryRouter, { ensureStoryGalleryImagesTable, UPLOADS_ROOT } from './gallery.js';
 import comicsRouter, { ensureComicTables } from './comics.js';
-import creativeSpaceFilesRouter from './creativeSpaceFiles.js';
+import creativeSpaceFilesRouter, { CREATIVE_SPACE_FILES_ROOT, guessMimeType } from './creativeSpaceFiles.js';
 import { eventsHandler } from './events.js';
 import {
   isGithubAppConfigured,
@@ -67,6 +67,7 @@ import {
   ensureChannelArmed,
 } from './googleDriveSync.js';
 import path from 'path';
+import fs from 'fs';
 import http from 'http';
 import { ensureCrdtDocChunksTable } from './crdt/postgresStorageAdapter.js';
 import {
@@ -166,6 +167,52 @@ async function ensureStoryAccessTable() {
   }
 }
 
+// Resolves what a user may do with a story's chapters:
+// - 'owner' if they created the story
+// - 'contributor' if they have an explicit story_access row, OR the story
+//   is public (any signed-in user may contribute to a public story)
+// - null otherwise (no access to create/edit chapters)
+async function getStoryAccessRole(storyTitleId, userId) {
+  if (!storyTitleId || !userId) return null;
+  try {
+    const { rows } = await pool.query(
+      'SELECT creator_id, visibility FROM story_title WHERE story_title_id = $1',
+      [storyTitleId],
+    );
+    if (rows.length === 0) return null;
+    const story = rows[0];
+    if (story.creator_id === userId) return 'owner';
+
+    const accessRes = await pool.query(
+      'SELECT role FROM story_access WHERE story_title_id = $1 AND user_id = $2',
+      [storyTitleId, userId],
+    );
+    if (accessRes.rows.length > 0) return accessRes.rows[0].role;
+
+    if ((story.visibility ?? 'public') === 'public') return 'contributor';
+    return null;
+  } catch (err) {
+    console.error('[getStoryAccessRole] failed:', err);
+    return null;
+  }
+}
+
+// Mirrors the frontend's hasRole("platform_admin") / hasRole("editor")
+// checks — platform staff can moderate any story regardless of story_access.
+async function isPlatformAdminOrEditor(userId) {
+  if (!userId) return false;
+  try {
+    const { rows } = await pool.query(
+      "SELECT 1 FROM user_roles WHERE user_id = $1 AND role IN ('platform_admin', 'editor')",
+      [userId],
+    );
+    return rows.length > 0;
+  } catch (err) {
+    console.error('[isPlatformAdminOrEditor] failed:', err);
+    return false;
+  }
+}
+
 async function ensureStoryTitlePublishedColumn() {
   try {
     await pool.query(
@@ -212,6 +259,33 @@ async function ensureChapterTagsColumns() {
     console.log('[init] ensured stories.tags and stories.paragraph_tags columns exist');
   } catch (err) {
     console.error('[init] failed to ensure stories tags columns:', err);
+  }
+}
+
+// Per-chapter publish flag (distinct from story_title.published, which
+// gates the whole book). New rows default false — a freshly-created/
+// imported chapter isn't publicly visible until the owner explicitly
+// includes it. Chapters that already existed before this column was added
+// are backfilled to true (scoped to the ADD COLUMN's own transaction via a
+// one-time flag check) so previously-visible content doesn't silently
+// disappear once Phase 3's chapter-level gating goes live.
+async function ensureChapterPublishedColumn() {
+  try {
+    const before = await pool.query(
+      "SELECT 1 FROM information_schema.columns WHERE table_name = 'stories' AND column_name = 'published'",
+    );
+    const columnAlreadyExisted = before.rows.length > 0;
+
+    await pool.query('ALTER TABLE stories ADD COLUMN IF NOT EXISTS published boolean NOT NULL DEFAULT false');
+
+    if (!columnAlreadyExisted) {
+      await pool.query('UPDATE stories SET published = true');
+      console.log('[init] backfilled stories.published = true for pre-existing chapters');
+    }
+
+    console.log('[init] ensured stories.published column exists');
+  } catch (err) {
+    console.error('[init] failed to ensure stories.published column:', err);
   }
 }
 
@@ -842,6 +916,13 @@ async function ensureCreativeSpaceItemsTable() {
     // uploaded or edited through the web UI, separately from that manifest.
     await pool.query(
       'ALTER TABLE creative_space_items ADD COLUMN IF NOT EXISTS storage_path text',
+    );
+
+    // Tracks which raw file, if any, has already been "structured" into a
+    // real chapter by the import wizard — lets the wizard show
+    // already-imported vs. not-yet-imported files and avoid double-import.
+    await pool.query(
+      'ALTER TABLE creative_space_items ADD COLUMN IF NOT EXISTS linked_chapter_id uuid REFERENCES stories(chapter_id) ON DELETE SET NULL',
     );
 
     console.log('[init] ensured creative_space_items table exists');
@@ -1542,6 +1623,9 @@ ensureScreenplayTitleDescriptionColumn().catch((err) => {
 ensureChapterTagsColumns().catch((err) => {
   console.error('[init] ensureChapterTagsColumns unhandled error:', err);
 });
+ensureChapterPublishedColumn().catch((err) => {
+  console.error('[init] ensureChapterPublishedColumn unhandled error:', err);
+});
 ensureStoryCollaboratorsTable().catch((err) => {
   console.error('[init] ensureStoryCollaboratorsTable unhandled error:', err);
 });
@@ -1817,13 +1901,16 @@ app.get('/search', async (req, res) => {
 
   const pattern = `%${q}%`;
 
+  // Space-linked content also needs its Space to be public — a public+
+  // published book sitting in a still-private Space shouldn't surface in
+  // discovery (see the AND-gating model: most restrictive wins).
   const storyVisibilityFilter = includePrivate
     ? ''
-    : " AND st.visibility = 'public' AND st.published = true";
+    : " AND st.visibility = 'public' AND st.published = true AND (st.creative_space_id IS NULL OR cs.visibility = 'public')";
 
   const screenplayVisibilityFilter = includePrivate
     ? ''
-    : " AND st.visibility = 'public' AND st.published = true";
+    : " AND st.visibility = 'public' AND st.published = true AND (st.creative_space_id IS NULL OR cs.visibility = 'public')";
 
   try {
     const storyPromise = pool.query(
@@ -1836,6 +1923,7 @@ app.get('/search', async (req, res) => {
          LEFT(COALESCE(s.paragraphs[1]::text, ''), 200) AS snippet
        FROM story_title st
        JOIN stories s ON s.story_title_id = st.story_title_id
+       LEFT JOIN creative_spaces cs ON cs.id = st.creative_space_id
        WHERE (st.title ILIKE $1 OR s.chapter_title ILIKE $1 OR s.paragraphs::text ILIKE $1)
        ${storyVisibilityFilter}
        ORDER BY s.created_at DESC
@@ -1851,6 +1939,7 @@ app.get('/search', async (req, res) => {
          COALESCE(MIN(ss.slugline), '') AS slugline
        FROM screenplay_title st
        LEFT JOIN screenplay_scene ss ON ss.screenplay_id = st.screenplay_id
+       LEFT JOIN creative_spaces cs ON cs.id = st.creative_space_id
        WHERE (st.title ILIKE $1 OR ss.slugline ILIKE $1)
        ${screenplayVisibilityFilter}
        GROUP BY st.screenplay_id, st.title, st.created_at
@@ -2430,7 +2519,9 @@ app.get('/screenplays/newest', async (req, res) => {
          ORDER BY ss.scene_index ASC, ss.created_at ASC
          LIMIT 1
        ) fs ON TRUE
+       LEFT JOIN creative_spaces cs ON cs.id = st.creative_space_id
        WHERE st.visibility = 'public' AND st.published = true
+         AND (st.creative_space_id IS NULL OR cs.visibility = 'public')
        ORDER BY st.created_at DESC
        LIMIT $1`,
       [limit],
@@ -2469,7 +2560,9 @@ app.get('/screenplays/most-active', async (req, res) => {
          FROM screenplay_title st
          LEFT JOIN screenplay_scene ss ON ss.screenplay_id = st.screenplay_id
          LEFT JOIN screenplay_block sb ON sb.screenplay_id = st.screenplay_id
+         LEFT JOIN creative_spaces cs ON cs.id = st.creative_space_id
          WHERE st.visibility = 'public' AND st.published = true
+           AND (st.creative_space_id IS NULL OR cs.visibility = 'public')
          GROUP BY st.screenplay_id, st.title
        ),
        scored AS (
@@ -2552,7 +2645,9 @@ app.get('/screenplays/most-popular', async (req, res) => {
          FROM screenplay_title st
          LEFT JOIN reaction_counts rc ON rc.screenplay_id = st.screenplay_id
          LEFT JOIN favorite_counts fc ON fc.screenplay_id = st.screenplay_id
+         LEFT JOIN creative_spaces cs ON cs.id = st.creative_space_id
          WHERE st.visibility = 'public' AND st.published = true
+           AND (st.creative_space_id IS NULL OR cs.visibility = 'public')
        ),
        first_scene AS (
          SELECT
@@ -3807,20 +3902,34 @@ async function getNextParagraphRevisionNumber(chapterId, paragraphIndex) {
 }
 
 // Create story title + initial revision + first chapter in a single transaction
-app.post('/stories/template', async (req, res) => {
-  const { title, chapterTitle, paragraphs, userId, creativeSpaceId, language, coverImageUrl } = req.body ?? {};
-
-  if (!title || !chapterTitle || !Array.isArray(paragraphs) || !userId) {
-    return res.status(400).json({ error: 'title, chapterTitle, paragraphs[], and userId are required' });
-  }
-
+// Shared by POST /stories/template and the import wizard's "new book" path
+// (backend/src/server.js's /creative-spaces/:spaceId/import-wizard/structure-chapter)
+// so there is exactly one place that knows how a story_title + its first
+// chapter get created together.
+//
+// Space-linked stories default to private/unpublished (rather than
+// inheriting story_title's public/true column defaults) so a book isn't
+// silently public the moment it's created inside a Space — the owner must
+// explicitly publish it (see PATCH /story-titles/:storyTitleId/settings).
+async function createStoryFromTemplate({ title, chapterTitle, paragraphs, userId, creativeSpaceId, language, coverImageUrl }) {
+  const isSpaceLinked = Boolean(creativeSpaceId);
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
     const insertTitle = await client.query(
-      'INSERT INTO story_title (title, creator_id, initiator_id, creative_space_id, language, cover_image_url) VALUES ($1, $2, $2, $3, $4, $5) RETURNING story_title_id, title, creative_space_id, language, cover_image_url',
-      [title, userId, creativeSpaceId || null, language || 'en', coverImageUrl || null],
+      `INSERT INTO story_title (title, creator_id, initiator_id, creative_space_id, language, cover_image_url, visibility, published)
+       VALUES ($1, $2, $2, $3, $4, $5, $6, $7)
+       RETURNING story_title_id, title, creative_space_id, language, cover_image_url, visibility, published`,
+      [
+        title,
+        userId,
+        creativeSpaceId || null,
+        language || 'en',
+        coverImageUrl || null,
+        isSpaceLinked ? 'private' : 'public',
+        !isSpaceLinked,
+      ],
     );
     const storyTitleRow = insertTitle.rows[0];
 
@@ -3836,7 +3945,7 @@ app.post('/stories/template', async (req, res) => {
           [storyTitleRow.story_title_id, creativeSpaceId, 'primary'],
         );
       } catch (errSpaces) {
-        console.error('[POST /stories/template] failed to upsert story_spaces row:', errSpaces);
+        console.error('[createStoryFromTemplate] failed to upsert story_spaces row:', errSpaces);
       }
     }
 
@@ -3854,7 +3963,7 @@ app.post('/stories/template', async (req, res) => {
     );
 
     const insertChapter = await client.query(
-      'INSERT INTO stories (story_title_id, episode_number, part_number, chapter_index, chapter_title, paragraphs) VALUES ($1, $2, $3, $4, $5, $6) RETURNING chapter_id, chapter_title, paragraphs, episode_number, part_number, chapter_index',
+      'INSERT INTO stories (story_title_id, episode_number, part_number, chapter_index, chapter_title, paragraphs) VALUES ($1, $2, $3, $4, $5, $6) RETURNING chapter_id, chapter_title, paragraphs, episode_number, part_number, chapter_index, published',
       [storyTitleRow.story_title_id, null, null, 1, chapterTitle, paragraphs],
     );
     const chapterRow = insertChapter.rows[0];
@@ -3871,7 +3980,7 @@ app.post('/stories/template', async (req, res) => {
       );
     } catch (errAccess) {
       // Do not fail story creation if story_access insert fails
-      console.error('[stories/template] failed to insert story_access row:', errAccess);
+      console.error('[createStoryFromTemplate] failed to insert story_access row:', errAccess);
     }
 
     // Best-effort: add creator as the default author in story_collaborators
@@ -3883,8 +3992,35 @@ app.post('/stories/template', async (req, res) => {
         [storyTitleRow.story_title_id, userId],
       );
     } catch (errCollab) {
-      console.error('[stories/template] failed to insert story_collaborators author row:', errCollab);
+      console.error('[createStoryFromTemplate] failed to insert story_collaborators author row:', errCollab);
     }
+
+    return { storyTitleRow, chapterRow };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+app.post('/stories/template', async (req, res) => {
+  const { title, chapterTitle, paragraphs, userId, creativeSpaceId, language, coverImageUrl } = req.body ?? {};
+
+  if (!title || !chapterTitle || !Array.isArray(paragraphs) || !userId) {
+    return res.status(400).json({ error: 'title, chapterTitle, paragraphs[], and userId are required' });
+  }
+
+  try {
+    const { storyTitleRow, chapterRow } = await createStoryFromTemplate({
+      title,
+      chapterTitle,
+      paragraphs,
+      userId,
+      creativeSpaceId,
+      language,
+      coverImageUrl,
+    });
 
     res.status(201).json({
       storyTitleId: storyTitleRow.story_title_id,
@@ -3894,14 +4030,11 @@ app.post('/stories/template', async (req, res) => {
       paragraphs: chapterRow.paragraphs,
     });
   } catch (err) {
-    await client.query('ROLLBACK');
     console.error('[stories/template] failed:', err);
     res.status(500).json({
       error: 'Failed to create story template',
       details: err?.message || String(err),
     });
-  } finally {
-    client.release();
   }
 });
 
@@ -3928,7 +4061,9 @@ app.get('/stories/newest', async (req, res) => {
            ) AS rn
          FROM stories s
          JOIN story_title st ON st.story_title_id = s.story_title_id
+         LEFT JOIN creative_spaces cs ON cs.id = st.creative_space_id
          WHERE st.visibility = 'public' AND st.published = true
+           AND (st.creative_space_id IS NULL OR cs.visibility = 'public')
        )
        SELECT
          lc.chapter_id,
@@ -3987,7 +4122,9 @@ app.get('/stories/most-active', async (req, res) => {
          LEFT JOIN chapter_likes cl ON cl.chapter_id = s.chapter_id
          LEFT JOIN reactions r ON r.chapter_id = s.chapter_id
          LEFT JOIN paragraph_branches pb ON pb.chapter_id = s.chapter_id
+         LEFT JOIN creative_spaces cs ON cs.id = st.creative_space_id
          WHERE st.visibility = 'public' AND st.published = true
+           AND (st.creative_space_id IS NULL OR cs.visibility = 'public')
          GROUP BY st.story_title_id, st.title, st.language, st.cover_image_url
        ),
        scored AS (
@@ -4081,7 +4218,9 @@ app.get('/stories/most-popular', async (req, res) => {
          FROM story_title st
          LEFT JOIN reaction_counts rc ON rc.story_title_id = st.story_title_id
          LEFT JOIN favorite_counts fc ON fc.story_title_id = st.story_title_id
+         LEFT JOIN creative_spaces cs ON cs.id = st.creative_space_id
          WHERE st.visibility = 'public' AND st.published = true
+           AND (st.creative_space_id IS NULL OR cs.visibility = 'public')
        ),
        latest_chapter AS (
          SELECT
@@ -4128,6 +4267,7 @@ app.get('/stories/most-popular', async (req, res) => {
 // List chapters (stories rows) for a story
 app.get('/chapters', async (req, res) => {
   const storyTitleId = req.query.storyTitleId;
+  const viewerId = req.query.userId || null;
   if (!storyTitleId) {
     return res.status(400).json({ error: 'storyTitleId query parameter is required' });
   }
@@ -4137,7 +4277,15 @@ app.get('/chapters', async (req, res) => {
       'SELECT * FROM stories WHERE story_title_id = $1 ORDER BY episode_number NULLS FIRST, part_number NULLS FIRST, chapter_index ASC, created_at ASC',
       [storyTitleId],
     );
-    res.json(rows);
+
+    // Unpublished chapters (see ensureChapterPublishedColumn) are a draft —
+    // only the owner or a contributor should see them; never trust the
+    // client to hide rows it already received.
+    const role = viewerId ? await getStoryAccessRole(storyTitleId, viewerId) : null;
+    const canSeeUnpublished = role === 'owner' || role === 'contributor';
+    const visibleRows = canSeeUnpublished ? rows : rows.filter((r) => r.published);
+
+    res.json(visibleRows);
   } catch (err) {
     console.error('[chapters] failed:', err);
     res.status(500).json({ error: 'Failed to fetch chapters' });
@@ -4148,7 +4296,7 @@ app.get('/chapters', async (req, res) => {
 // provided chapterIds array. This allows the frontend to express an
 // explicit chapter ordering (e.g., inserting a new chapter directly
 // below the current one).
-app.patch('/stories/:storyTitleId/chapters/reorder', async (req, res) => {
+app.patch('/stories/:storyTitleId/chapters/reorder', requireAuth, async (req, res) => {
   const { storyTitleId } = req.params;
   const { chapterIds } = req.body ?? {};
 
@@ -4156,6 +4304,11 @@ app.patch('/stories/:storyTitleId/chapters/reorder', async (req, res) => {
     return res
       .status(400)
       .json({ error: 'storyTitleId and non-empty chapterIds[] are required' });
+  }
+
+  const role = await getStoryAccessRole(storyTitleId, req.user.id);
+  if (role !== 'owner') {
+    return res.status(403).json({ error: 'Not authorized to reorder chapters for this story' });
   }
 
   const client = await pool.connect();
@@ -4463,11 +4616,13 @@ async function fetchUserExperienceItems(userId, flagColumn) {
        us.is_lived
      FROM user_story_status us
      JOIN story_title st ON st.story_title_id = us.story_title_id
+     LEFT JOIN creative_spaces cs ON cs.id = st.creative_space_id
      WHERE us.user_id = $1
        AND us.content_type = 'story'
        AND us.${flagColumn} = true
        AND st.visibility = 'public'
-       AND st.published = true`,
+       AND st.published = true
+       AND (st.creative_space_id IS NULL OR cs.visibility = 'public')`,
     [userId],
   );
 
@@ -4492,11 +4647,13 @@ async function fetchUserExperienceItems(userId, flagColumn) {
        ORDER BY ss.scene_index ASC, ss.created_at ASC
        LIMIT 1
      ) fs ON TRUE
+     LEFT JOIN creative_spaces cs ON cs.id = st.creative_space_id
      WHERE us.user_id = $1
        AND us.content_type = 'screenplay'
        AND us.${flagColumn} = true
        AND st.visibility = 'public'
-       AND st.published = true`,
+       AND st.published = true
+       AND (st.creative_space_id IS NULL OR cs.visibility = 'public')`,
     [userId],
   );
 
@@ -5022,6 +5179,225 @@ app.get('/creative-spaces/:spaceId/content-items', async (req, res) => {
   } catch (err) {
     console.error('[GET /creative-spaces/:spaceId/content-items] failed:', err);
     res.status(500).json({ error: 'Failed to load stories/screenplays for this creative space' });
+  }
+});
+
+// Text-ish mime types the import wizard can parse into paragraphs. Anything
+// else (PDF, ODT, images, ...) is rejected with a clear error instead of
+// being fed through a text parser it isn't — no chapter text is fabricated.
+const IMPORT_WIZARD_TEXT_MIME_TYPES = new Set(['text/plain', 'text/markdown']);
+
+function splitTextIntoParagraphs(text) {
+  return String(text || '')
+    .split(/\n+/)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
+}
+
+// Reads a creative_space_items file's stored content from disk (same
+// storage layout as GET /creative-spaces/:spaceId/items/:itemId/content in
+// creativeSpaceFiles.js) without going through that HTTP route.
+function readCreativeSpaceItemText(item) {
+  if (!item.storage_path) {
+    const err = new Error(`"${item.name}" has no content stored yet`);
+    err.code = 'no_content';
+    throw err;
+  }
+  const mimeType = item.mime_type || guessMimeType(item.name);
+  if (!IMPORT_WIZARD_TEXT_MIME_TYPES.has(mimeType)) {
+    const err = new Error(`"${item.name}" is a ${mimeType} file — only plain text/markdown files can be structured into chapters`);
+    err.code = 'unsupported_type';
+    throw err;
+  }
+  const filePath = path.join(CREATIVE_SPACE_FILES_ROOT, item.storage_path);
+  if (!fs.existsSync(filePath)) {
+    const err = new Error(`"${item.name}"'s stored content could not be found on disk`);
+    err.code = 'no_content';
+    throw err;
+  }
+  return fs.readFileSync(filePath, 'utf8');
+}
+
+// Turns one or more raw Space files into a real chapter (story_title +
+// stories row), generalizing what backend/scripts/import-happybeings.js did
+// by hand for a single Space into a reusable, self-service route. New
+// chapters are always created unpublished (see ensureChapterPublishedColumn)
+// — the owner explicitly publishes afterward via PATCH /chapters/:id/publish.
+app.post('/creative-spaces/:spaceId/import-wizard/structure-chapter', requireAuth, async (req, res) => {
+  const { spaceId } = req.params;
+  const { itemIds, mode, bookTitle, storyTitleId, chapterTitle } = req.body ?? {};
+
+  if (!Array.isArray(itemIds) || itemIds.length === 0 || !chapterTitle) {
+    return res.status(400).json({ error: 'itemIds[] and chapterTitle are required' });
+  }
+  if (mode !== 'new_book' && mode !== 'existing_book') {
+    return res.status(400).json({ error: "mode must be 'new_book' or 'existing_book'" });
+  }
+  if (mode === 'new_book' && !bookTitle) {
+    return res.status(400).json({ error: 'bookTitle is required for mode "new_book"' });
+  }
+  if (mode === 'existing_book' && !storyTitleId) {
+    return res.status(400).json({ error: 'storyTitleId is required for mode "existing_book"' });
+  }
+
+  try {
+    const spaceRes = await pool.query('SELECT user_id FROM creative_spaces WHERE id = $1', [spaceId]);
+    if (spaceRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Creative space not found' });
+    }
+    const isSpaceOwner = spaceRes.rows[0].user_id === req.user.id;
+
+    if (mode === 'existing_book') {
+      const storyRes = await pool.query(
+        'SELECT creative_space_id FROM story_title WHERE story_title_id = $1',
+        [storyTitleId],
+      );
+      if (storyRes.rows.length === 0) {
+        return res.status(404).json({ error: 'Target book not found' });
+      }
+      if (storyRes.rows[0].creative_space_id !== spaceId) {
+        return res.status(400).json({ error: 'Target book does not belong to this Space' });
+      }
+      const role = await getStoryAccessRole(storyTitleId, req.user.id);
+      if (!role) {
+        return res.status(403).json({ error: 'Not authorized to add chapters to this book' });
+      }
+    } else if (!isSpaceOwner) {
+      // Creating a brand-new book in someone else's Space isn't part of this
+      // wizard's scope — only the Space owner may do that.
+      return res.status(403).json({ error: 'Only the Space owner may create a new book here' });
+    }
+
+    const itemsRes = await pool.query(
+      'SELECT * FROM creative_space_items WHERE space_id = $1 AND id = ANY($2::uuid[]) AND deleted = false',
+      [spaceId, itemIds],
+    );
+    const itemsById = new Map(itemsRes.rows.map((row) => [row.id, row]));
+    const missing = itemIds.filter((id) => !itemsById.has(id));
+    if (missing.length > 0) {
+      return res.status(404).json({ error: `Item(s) not found in this Space: ${missing.join(', ')}` });
+    }
+
+    let combinedText;
+    try {
+      combinedText = itemIds.map((id) => readCreativeSpaceItemText(itemsById.get(id))).join('\n\n');
+    } catch (readErr) {
+      return res.status(400).json({ error: readErr.message });
+    }
+
+    const paragraphs = splitTextIntoParagraphs(combinedText);
+    if (paragraphs.length === 0) {
+      return res.status(400).json({ error: 'Selected file(s) contained no text to import' });
+    }
+
+    let resultStoryTitleId;
+    let chapterId;
+
+    if (mode === 'new_book') {
+      const { storyTitleRow, chapterRow } = await createStoryFromTemplate({
+        title: bookTitle,
+        chapterTitle,
+        paragraphs,
+        userId: req.user.id,
+        creativeSpaceId: spaceId,
+      });
+      resultStoryTitleId = storyTitleRow.story_title_id;
+      chapterId = chapterRow.chapter_id;
+    } else {
+      const countRes = await pool.query(
+        'SELECT COALESCE(MAX(chapter_index), 0) AS max_idx FROM stories WHERE story_title_id = $1',
+        [storyTitleId],
+      );
+      const nextIdx = (countRes.rows[0]?.max_idx || 0) + 1;
+      const insertRes = await pool.query(
+        'INSERT INTO stories (story_title_id, chapter_index, chapter_title, paragraphs) VALUES ($1, $2, $3, $4) RETURNING chapter_id',
+        [storyTitleId, nextIdx, chapterTitle, paragraphs],
+      );
+      chapterId = insertRes.rows[0].chapter_id;
+      resultStoryTitleId = storyTitleId;
+
+      try {
+        await pool.query(
+          `INSERT INTO story_access (story_title_id, user_id, role)
+           VALUES ($1, $2, 'contributor')
+           ON CONFLICT (story_title_id, user_id) DO NOTHING`,
+          [storyTitleId, req.user.id],
+        );
+      } catch (accessErr) {
+        console.error('[import-wizard/structure-chapter] failed to insert story_access row:', accessErr);
+      }
+    }
+
+    await pool.query(
+      'UPDATE creative_space_items SET linked_chapter_id = $1 WHERE id = ANY($2::uuid[])',
+      [chapterId, itemIds],
+    );
+
+    res.status(201).json({ storyTitleId: resultStoryTitleId, chapterId });
+  } catch (err) {
+    console.error('[POST /creative-spaces/:spaceId/import-wizard/structure-chapter] failed:', err);
+    res.status(500).json({ error: 'Failed to structure chapter' });
+  }
+});
+
+// Owner-only per-chapter publish toggle (distinct from the book-level
+// PATCH /story-titles/:storyTitleId/settings, which controls the whole book).
+app.patch('/chapters/:chapterId/publish', requireAuth, async (req, res) => {
+  const { chapterId } = req.params;
+  const { published } = req.body ?? {};
+  if (typeof published !== 'boolean') {
+    return res.status(400).json({ error: 'published (boolean) is required' });
+  }
+
+  try {
+    const existing = await pool.query('SELECT story_title_id FROM stories WHERE chapter_id = $1', [chapterId]);
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ error: 'Chapter not found' });
+    }
+    const role = await getStoryAccessRole(existing.rows[0].story_title_id, req.user.id);
+    if (role !== 'owner') {
+      return res.status(403).json({ error: 'Only the story owner may publish/unpublish chapters' });
+    }
+
+    const { rows } = await pool.query(
+      'UPDATE stories SET published = $1 WHERE chapter_id = $2 RETURNING chapter_id, published',
+      [published, chapterId],
+    );
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('[PATCH /chapters/:chapterId/publish] failed:', err);
+    res.status(500).json({ error: 'Failed to update chapter publish state' });
+  }
+});
+
+// Batch variant for the wizard's "publish selected chapters" bulk action.
+app.patch('/creative-spaces/:spaceId/import-wizard/publish-chapters', requireAuth, async (req, res) => {
+  const { chapterIds, published } = req.body ?? {};
+  if (!Array.isArray(chapterIds) || chapterIds.length === 0 || typeof published !== 'boolean') {
+    return res.status(400).json({ error: 'chapterIds[] and published (boolean) are required' });
+  }
+
+  try {
+    const updated = [];
+    const skipped = [];
+    for (const chapterId of chapterIds) {
+      const existing = await pool.query('SELECT story_title_id FROM stories WHERE chapter_id = $1', [chapterId]);
+      if (existing.rows.length === 0) {
+        skipped.push(chapterId);
+        continue;
+      }
+      const role = await getStoryAccessRole(existing.rows[0].story_title_id, req.user.id);
+      if (role !== 'owner') {
+        skipped.push(chapterId);
+        continue;
+      }
+      await pool.query('UPDATE stories SET published = $1 WHERE chapter_id = $2', [published, chapterId]);
+      updated.push(chapterId);
+    }
+    res.json({ updated, skipped });
+  } catch (err) {
+    console.error('[PATCH /creative-spaces/:spaceId/import-wizard/publish-chapters] failed:', err);
+    res.status(500).json({ error: 'Failed to update chapter publish states' });
   }
 });
 
@@ -6176,7 +6552,7 @@ app.post('/api/google-drive/webhook', async (req, res) => {
 });
 
 // Create a new chapter
-app.post('/chapters', async (req, res) => {
+app.post('/chapters', requireAuth, async (req, res) => {
   const {
     storyTitleId,
     chapterTitle,
@@ -6184,11 +6560,16 @@ app.post('/chapters', async (req, res) => {
     episodeNumber,
     partNumber,
     chapterIndex,
-    userId,
   } = req.body ?? {};
+  const userId = req.user.id;
 
   if (!storyTitleId || !chapterTitle || !Array.isArray(paragraphs)) {
     return res.status(400).json({ error: 'storyTitleId, chapterTitle, and paragraphs[] are required' });
+  }
+
+  const role = await getStoryAccessRole(storyTitleId, userId);
+  if (!role) {
+    return res.status(403).json({ error: 'Not authorized to add chapters to this story' });
   }
 
   const ep = Number.isInteger(episodeNumber) ? episodeNumber : null;
@@ -6205,44 +6586,42 @@ app.post('/chapters', async (req, res) => {
     // Best-effort 1: record the chapter creator as a contributor in
     // story_access so they appear in the Contributors tab even if they
     // have not yet edited existing chapters.
-    if (userId) {
-      try {
-        await pool.query(
-          `INSERT INTO story_access (story_title_id, user_id, role)
-           VALUES ($1, $2, $3)
-           ON CONFLICT (story_title_id, user_id) DO NOTHING`,
-          [storyTitleId, userId, 'contributor'],
-        );
-      } catch (accessErr) {
-        console.error('[POST /chapters] failed to insert story_access row for contributor:', accessErr);
-        // Do not fail chapter creation if story_access insert fails.
-      }
+    try {
+      await pool.query(
+        `INSERT INTO story_access (story_title_id, user_id, role)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (story_title_id, user_id) DO NOTHING`,
+        [storyTitleId, userId, role === 'owner' ? 'owner' : 'contributor'],
+      );
+    } catch (accessErr) {
+      console.error('[POST /chapters] failed to insert story_access row for contributor:', accessErr);
+      // Do not fail chapter creation if story_access insert fails.
+    }
 
-      // Best-effort 2: create an initial chapter_revisions row so this
-      // creation is visible as a text contribution and is attributed to
-      // the user in chapter_revisions.created_by.
-      try {
-        const nextRev = await getNextChapterRevisionNumber(chapterRow.chapter_id);
-        await pool.query(
-          `INSERT INTO chapter_revisions
-             (chapter_id, prev_chapter_title, new_chapter_title, prev_paragraphs, new_paragraphs, created_by, revision_number, revision_reason, language)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-          [
-            chapterRow.chapter_id,
-            null,
-            chapterTitle,
-            null,
-            paragraphs,
-            userId,
-            nextRev,
-            'Chapter created',
-            'en',
-          ],
-        );
-      } catch (revErr) {
-        console.error('[POST /chapters] failed to insert initial chapter_revision:', revErr);
-        // Again, do not fail chapter creation if revision insert fails.
-      }
+    // Best-effort 2: create an initial chapter_revisions row so this
+    // creation is visible as a text contribution and is attributed to
+    // the user in chapter_revisions.created_by.
+    try {
+      const nextRev = await getNextChapterRevisionNumber(chapterRow.chapter_id);
+      await pool.query(
+        `INSERT INTO chapter_revisions
+           (chapter_id, prev_chapter_title, new_chapter_title, prev_paragraphs, new_paragraphs, created_by, revision_number, revision_reason, language)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [
+          chapterRow.chapter_id,
+          null,
+          chapterTitle,
+          null,
+          paragraphs,
+          userId,
+          nextRev,
+          'Chapter created',
+          'en',
+        ],
+      );
+    } catch (revErr) {
+      console.error('[POST /chapters] failed to insert initial chapter_revision:', revErr);
+      // Again, do not fail chapter creation if revision insert fails.
     }
 
     // Bump story_title.updated_at so desktop clients can detect remote changes.
@@ -6260,9 +6639,10 @@ app.post('/chapters', async (req, res) => {
 });
 
 // Update an existing chapter and record a revision
-app.patch('/chapters/:chapterId', async (req, res) => {
+app.patch('/chapters/:chapterId', requireAuth, async (req, res) => {
   const { chapterId } = req.params;
-  const { chapterTitle, paragraphs, userId, tags, paragraphTags } = req.body ?? {};
+  const { chapterTitle, paragraphs, tags, paragraphTags } = req.body ?? {};
+  const userId = req.user.id;
 
   if (!chapterTitle && !Array.isArray(paragraphs) && tags === undefined && paragraphTags === undefined) {
     return res.status(400).json({ error: 'chapterTitle, paragraphs[], tags, or paragraphTags must be provided' });
@@ -6278,6 +6658,17 @@ app.patch('/chapters/:chapterId', async (req, res) => {
       return res.status(404).json({ error: 'Chapter not found' });
     }
     const existing = existingRes.rows[0];
+
+    const role = await getStoryAccessRole(existing.story_title_id, userId);
+    if (role === 'contributor') {
+      return res.status(403).json({
+        error: 'Contributors must propose changes to existing chapters',
+        useProposals: true,
+      });
+    }
+    if (role !== 'owner') {
+      return res.status(403).json({ error: 'Not authorized to edit this chapter' });
+    }
 
     const fields = [];
     const values = [];
@@ -6823,11 +7214,11 @@ app.get('/users/:userId/contributions', async (req, res) => {
 });
 
 // Delete a chapter
-app.delete('/chapters/:chapterId', async (req, res) => {
+app.delete('/chapters/:chapterId', requireAuth, async (req, res) => {
   const { chapterId } = req.params;
 
   try {
-    // Look up story_title_id first so we can bump updated_at.
+    // Look up story_title_id first so we can bump updated_at and check access.
     let storyTitleId = null;
     try {
       const lookup = await pool.query('SELECT story_title_id FROM stories WHERE chapter_id = $1', [chapterId]);
@@ -6836,6 +7227,14 @@ app.delete('/chapters/:chapterId', async (req, res) => {
       }
     } catch (errLookup) {
       console.error('[DELETE /chapters/:chapterId] failed to look up story_title_id:', errLookup);
+    }
+    if (!storyTitleId) {
+      return res.status(404).json({ error: 'Chapter not found' });
+    }
+
+    const role = await getStoryAccessRole(storyTitleId, req.user.id);
+    if (role !== 'owner') {
+      return res.status(403).json({ error: 'Not authorized to delete this chapter' });
     }
 
     const { rowCount } = await pool.query('DELETE FROM stories WHERE chapter_id = $1', [chapterId]);
@@ -6859,22 +7258,120 @@ app.delete('/chapters/:chapterId', async (req, res) => {
 });
 
 // Delete a story (story_title) and cascade to chapters via FK
-app.delete('/story-titles/:storyTitleId', async (req, res) => {
+app.delete('/story-titles/:storyTitleId', requireAuth, async (req, res) => {
   const { storyTitleId } = req.params;
 
   try {
-    const { rowCount } = await pool.query(
-      'DELETE FROM story_title WHERE story_title_id = $1',
+    const storyRes = await pool.query(
+      'SELECT creator_id FROM story_title WHERE story_title_id = $1',
       [storyTitleId],
     );
-    if (rowCount === 0) {
+    if (storyRes.rows.length === 0) {
       return res.status(404).json({ error: 'Story not found' });
     }
+
+    // Mirrors the frontend's canDeleteStory: owner, or a platform_admin/editor.
+    let allowed = storyRes.rows[0].creator_id === req.user.id;
+    if (!allowed) {
+      const roleRes = await pool.query(
+        "SELECT 1 FROM user_roles WHERE user_id = $1 AND role IN ('platform_admin', 'editor')",
+        [req.user.id],
+      );
+      allowed = roleRes.rows.length > 0;
+    }
+    if (!allowed) {
+      return res.status(403).json({ error: 'Not authorized to delete this story' });
+    }
+
+    await pool.query('DELETE FROM story_title WHERE story_title_id = $1', [storyTitleId]);
     // FKs on stories and child tables should cascade
     res.status(204).send();
   } catch (err) {
     console.error('[DELETE /story-titles/:storyTitleId] failed:', err);
     res.status(500).json({ error: 'Failed to delete story' });
+  }
+});
+
+// What can the signed-in user do with this story's chapters?
+app.get('/story-titles/:storyTitleId/my-access', requireAuth, async (req, res) => {
+  const { storyTitleId } = req.params;
+  try {
+    const role = await getStoryAccessRole(storyTitleId, req.user.id);
+    res.json({ role });
+  } catch (err) {
+    console.error('[GET /story-titles/:storyTitleId/my-access] failed:', err);
+    res.status(500).json({ error: 'Failed to resolve access role' });
+  }
+});
+
+// Owner grants a specific user contributor access (needed for unlisted
+// stories, where contribution isn't implicit the way it is for public ones).
+app.post('/story-titles/:storyTitleId/contributors', requireAuth, async (req, res) => {
+  const { storyTitleId } = req.params;
+  const { userId, email } = req.body ?? {};
+
+  try {
+    const storyRes = await pool.query(
+      'SELECT creator_id FROM story_title WHERE story_title_id = $1',
+      [storyTitleId],
+    );
+    if (storyRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Story not found' });
+    }
+    if (storyRes.rows[0].creator_id !== req.user.id) {
+      return res.status(403).json({ error: 'Only the story owner may grant contributor access' });
+    }
+
+    let grantUserId = userId || null;
+    if (!grantUserId && email) {
+      const userRes = await pool.query('SELECT id FROM local_users WHERE email = $1', [email]);
+      if (userRes.rows.length === 0) {
+        return res.status(404).json({ error: 'No user found with that email' });
+      }
+      grantUserId = userRes.rows[0].id;
+    }
+    if (!grantUserId) {
+      return res.status(400).json({ error: 'userId or email is required' });
+    }
+
+    await pool.query(
+      `INSERT INTO story_access (story_title_id, user_id, role)
+       VALUES ($1, $2, 'contributor')
+       ON CONFLICT (story_title_id, user_id) DO UPDATE SET role = 'contributor'
+       WHERE story_access.role <> 'owner'`,
+      [storyTitleId, grantUserId],
+    );
+
+    res.status(201).json({ storyTitleId, userId: grantUserId, role: 'contributor' });
+  } catch (err) {
+    console.error('[POST /story-titles/:storyTitleId/contributors] failed:', err);
+    res.status(500).json({ error: 'Failed to grant contributor access' });
+  }
+});
+
+// Owner revokes a previously-granted contributor
+app.delete('/story-titles/:storyTitleId/contributors/:userId', requireAuth, async (req, res) => {
+  const { storyTitleId, userId } = req.params;
+  try {
+    const storyRes = await pool.query(
+      'SELECT creator_id FROM story_title WHERE story_title_id = $1',
+      [storyTitleId],
+    );
+    if (storyRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Story not found' });
+    }
+    if (storyRes.rows[0].creator_id !== req.user.id) {
+      return res.status(403).json({ error: 'Only the story owner may revoke contributor access' });
+    }
+
+    await pool.query(
+      `DELETE FROM story_access WHERE story_title_id = $1 AND user_id = $2 AND role = 'contributor'`,
+      [storyTitleId, userId],
+    );
+    res.status(204).send();
+  } catch (err) {
+    console.error('[DELETE /story-titles/:storyTitleId/contributors/:userId] failed:', err);
+    res.status(500).json({ error: 'Failed to revoke contributor access' });
   }
 });
 
@@ -7202,8 +7699,8 @@ app.post('/crdt/docs/:docKey/apply-content', requireAuth, async (req, res) => {
 // and approval status. It does not yet integrate full CRDT docs, but
 // follows the same approval semantics (approved / declined / undecided).
 
-// Create a new proposal for a chapter paragraph or branch
-app.post('/stories/:storyTitleId/proposals', async (req, res) => {
+// Create a new proposal for a chapter paragraph, chapter title, or branch
+app.post('/stories/:storyTitleId/proposals', requireAuth, async (req, res) => {
   const { storyTitleId } = req.params;
   const {
     targetType,
@@ -7211,27 +7708,31 @@ app.post('/stories/:storyTitleId/proposals', async (req, res) => {
     targetBranchId,
     targetPath,
     proposedText,
-    authorUserId,
   } = req.body ?? {};
+  const authorUserId = req.user.id;
 
   if (
     !storyTitleId ||
     !targetType ||
     proposedText === undefined ||
-    proposedText === null ||
-    !authorUserId
+    proposedText === null
   ) {
     return res
       .status(400)
-      .json({ error: 'storyTitleId, targetType, proposedText, and authorUserId are required' });
+      .json({ error: 'storyTitleId, targetType, and proposedText are required' });
   }
 
-  if (targetType === 'paragraph' && !targetChapterId) {
-    return res.status(400).json({ error: 'targetChapterId is required for paragraph proposals' });
+  if ((targetType === 'paragraph' || targetType === 'chapter_title') && !targetChapterId) {
+    return res.status(400).json({ error: 'targetChapterId is required for this proposal type' });
   }
 
   if (targetType === 'branch' && !targetBranchId) {
     return res.status(400).json({ error: 'targetBranchId is required for branch proposals' });
+  }
+
+  const role = await getStoryAccessRole(storyTitleId, authorUserId);
+  if (!role) {
+    return res.status(403).json({ error: 'Not authorized to propose changes to this story' });
   }
 
   try {
@@ -7334,7 +7835,7 @@ app.get('/stories/:storyTitleId/proposals', async (req, res) => {
 });
 
 // Approve a proposal and (for now) merge by replacing target text
-app.post('/proposals/:proposalId/approve', async (req, res) => {
+app.post('/proposals/:proposalId/approve', requireAuth, async (req, res) => {
   const { proposalId } = req.params;
 
   try {
@@ -7352,12 +7853,28 @@ app.post('/proposals/:proposalId/approve', async (req, res) => {
       }
       const proposal = propRows[0];
 
+      const role = await getStoryAccessRole(proposal.story_title_id, req.user.id);
+      if (role !== 'owner' && !(await isPlatformAdminOrEditor(req.user.id))) {
+        await client.query('ROLLBACK');
+        return res.status(403).json({ error: 'Only the story owner may approve proposals' });
+      }
+
       if (proposal.status === 'approved') {
         await client.query('ROLLBACK');
         return res.status(400).json({ error: 'Proposal already approved' });
       }
 
-      if (proposal.target_type === 'paragraph') {
+      if (proposal.target_type === 'chapter_title') {
+        const chapterId = proposal.target_chapter_id;
+        if (!chapterId) {
+          await client.query('ROLLBACK');
+          return res.status(400).json({ error: 'Invalid chapter_title proposal target' });
+        }
+        await client.query(
+          'UPDATE stories SET chapter_title = $1 WHERE chapter_id = $2',
+          [proposal.proposed_text, chapterId],
+        );
+      } else if (proposal.target_type === 'paragraph') {
         const chapterId = proposal.target_chapter_id;
         const idx = proposal.target_path ? parseInt(proposal.target_path, 10) : null;
         if (!chapterId || Number.isNaN(idx)) {
@@ -7444,10 +7961,22 @@ app.post('/proposals/:proposalId/approve', async (req, res) => {
 });
 
 // Decline a proposal (no merge)
-app.post('/proposals/:proposalId/decline', async (req, res) => {
+app.post('/proposals/:proposalId/decline', requireAuth, async (req, res) => {
   const { proposalId } = req.params;
 
   try {
+    const { rows: propRows } = await pool.query(
+      'SELECT story_title_id, status FROM crdt_proposals WHERE id = $1',
+      [proposalId],
+    );
+    if (propRows.length === 0) {
+      return res.status(404).json({ error: 'Proposal not found' });
+    }
+    const role = await getStoryAccessRole(propRows[0].story_title_id, req.user.id);
+    if (role !== 'owner' && !(await isPlatformAdminOrEditor(req.user.id))) {
+      return res.status(403).json({ error: 'Only the story owner may decline proposals' });
+    }
+
     const now = new Date();
     const { rowCount } = await pool.query(
       `UPDATE crdt_proposals

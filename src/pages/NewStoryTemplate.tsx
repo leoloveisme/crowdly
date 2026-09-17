@@ -334,6 +334,7 @@ const NewStoryTemplate = () => {
           // 2) Update first chapter
           const chapterRes = await fetch(`${API_BASE}/chapters/${chapterId}`, {
             method: "PATCH",
+            credentials: "include",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               chapterTitle: newChapterTitle,
@@ -590,6 +591,7 @@ const NewStoryTemplate = () => {
     try {
       const res = await fetch(`${API_BASE}/chapters`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           storyTitleId,
@@ -635,11 +637,11 @@ const NewStoryTemplate = () => {
     try {
       const res = await fetch(`${API_BASE}/chapters/${chapter_id}`, {
         method: "PATCH",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           chapterTitle: patch.chapter_title,
           paragraphs: patch.paragraphs,
-          userId: user?.id,
         }),
       });
 
@@ -679,6 +681,7 @@ const NewStoryTemplate = () => {
     try {
       const res = await fetch(`${API_BASE}/chapters/${chapter_id}`, {
         method: "DELETE",
+        credentials: "include",
       });
 
       if (!res.ok && res.status !== 204) {

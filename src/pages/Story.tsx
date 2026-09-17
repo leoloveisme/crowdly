@@ -76,6 +76,7 @@ interface Chapter {
   paragraphs: string[];
   tags?: string[];
   paragraphTags?: Record<string, string[]>;
+  published?: boolean;
 }
 
 interface StoryTitleRevision {
@@ -389,6 +390,37 @@ const Story = () => {
   const coauthorDropdownRef = useRef<HTMLDivElement>(null);
   const coauthorDebounceRef = useRef<ReturnType<typeof setTimeout>>();
 
+  // Minimal contributor-grant control for unlisted stories (public stories
+  // don't need this — anyone signed in can already contribute; private
+  // stories don't allow outside contribution at all).
+  const [contributorEmail, setContributorEmail] = useState("");
+  const [grantingContributor, setGrantingContributor] = useState(false);
+
+  const handleGrantContributor = async () => {
+    if (!story?.story_title_id || !contributorEmail.trim()) return;
+    setGrantingContributor(true);
+    try {
+      const res = await fetch(`${API_BASE}/story-titles/${story.story_title_id}/contributors`, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: contributorEmail.trim() }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        toast({ title: "Error", description: body.error || "Failed to add contributor", variant: "destructive" });
+        return;
+      }
+      toast({ title: "Contributor added", description: `${contributorEmail.trim()} can now contribute chapters.` });
+      setContributorEmail("");
+    } catch (err) {
+      console.error("Failed to grant contributor access", err);
+      toast({ title: "Error", description: "Failed to add contributor", variant: "destructive" });
+    } finally {
+      setGrantingContributor(false);
+    }
+  };
+
   // Minimal inline "add chapter" UI in contribute mode
   const [addChapterMode, setAddChapterMode] = useState(false);
   const [newChapterTitle, setNewChapterTitle] = useState("");
@@ -447,6 +479,9 @@ const Story = () => {
 
       // Chapters
       const params = new URLSearchParams({ storyTitleId: story_id });
+      if (user?.id) {
+        params.set('userId', user.id);
+      }
       const chaptersRes = await fetch(`${API_BASE}/chapters?${params.toString()}`);
       let chaptersData: Chapter[] = [];
       if (chaptersRes.ok) {
@@ -675,6 +710,40 @@ const Story = () => {
 
   // Permission checks
   const isOwner = user && story && story.creator_id === user.id;
+
+  // Fetched from the backend (owner / contributor / null) so chapter CRUD
+  // permissions match what the server actually enforces, instead of the old
+  // "any logged-in user" client-side assumption.
+  const [accessRole, setAccessRole] = useState<"owner" | "contributor" | null>(null);
+  useEffect(() => {
+    if (!story_id || !user?.id) {
+      setAccessRole(null);
+      return;
+    }
+    if (isOwner) {
+      setAccessRole("owner");
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/story-titles/${story_id}/my-access`, {
+          credentials: "include",
+        });
+        if (!res.ok) {
+          if (!cancelled) setAccessRole(null);
+          return;
+        }
+        const data = await res.json();
+        if (!cancelled) setAccessRole(data.role ?? null);
+      } catch {
+        if (!cancelled) setAccessRole(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [story_id, user?.id, isOwner]);
   const canDeleteStory =
     user &&
     story &&
@@ -695,6 +764,7 @@ const Story = () => {
     try {
       const res = await fetch(`${API_BASE}/story-titles/${story.story_title_id}`, {
         method: "DELETE",
+        credentials: "include",
       });
       if (!res.ok && res.status !== 204) {
         const body = await res.json().catch(() => ({}));
@@ -917,7 +987,32 @@ const Story = () => {
       return;
     }
     setEditingChapterTitle("");
-    await handleUpdateChapter(chapter.chapter_id, { chapter_title: newTitle });
+
+    if (isOwner) {
+      await handleUpdateChapter(chapter.chapter_id, { chapter_title: newTitle });
+      return;
+    }
+
+    // Contributors propose chapter-title changes for owner review, same as
+    // paragraph edits.
+    try {
+      await createProposal({
+        targetType: "chapter_title",
+        targetChapterId: chapter.chapter_id,
+        proposedText: newTitle,
+      });
+      toast({
+        title: "Change proposed",
+        description: "Your chapter title change is pending review.",
+      });
+    } catch (err) {
+      console.error("Failed to propose chapter title change", err);
+      toast({
+        title: "Error",
+        description: "Failed to submit proposal.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleChapterTitleKeyDown = async (
@@ -1089,12 +1184,12 @@ const Story = () => {
     try {
       const res = await fetch(`${API_BASE}/chapters`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           storyTitleId: story_id,
           chapterTitle: chapter_title,
           paragraphs,
-          userId: user?.id,
         }),
       });
       if (!res.ok) {
@@ -1133,6 +1228,7 @@ const Story = () => {
       try {
         await fetch(`${API_BASE}/stories/${story_id}/chapters/reorder`, {
           method: "PATCH",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             chapterIds: newChapters.map((ch) => ch.chapter_id),
@@ -1154,13 +1250,13 @@ const Story = () => {
     try {
       const res = await fetch(`${API_BASE}/chapters/${chapter_id}`, {
         method: "PATCH",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           chapterTitle: patch.chapter_title,
           paragraphs: patch.paragraphs,
           tags: patch.tags,
           paragraphTags: patch.paragraphTags,
-          userId: user?.id,
         }),
       });
       if (!res.ok) {
@@ -1180,6 +1276,7 @@ const Story = () => {
     try {
       const res = await fetch(`${API_BASE}/chapters/${chapter_id}`, {
         method: "DELETE",
+        credentials: "include",
       });
       if (!res.ok && res.status !== 204) {
         const body = await res.json().catch(() => ({}));
@@ -1191,6 +1288,29 @@ const Story = () => {
     } catch (err) {
       console.error("Failed to delete chapter", err);
       toast({ title: "Error", description: "Could not delete chapter", variant: "destructive" });
+    }
+  };
+  // PUBLISH (owner only — distinct from the whole-book publish toggle)
+  const handleToggleChapterPublish = async (chapter: Chapter) => {
+    const next = !chapter.published;
+    try {
+      const res = await fetch(`${API_BASE}/chapters/${chapter.chapter_id}/publish`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ published: next }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        toast({ title: "Error", description: body.error || "Failed to update chapter publish state", variant: "destructive" });
+        return;
+      }
+      setChapters((prev) =>
+        prev.map((c) => (c.chapter_id === chapter.chapter_id ? { ...c, published: next } : c)),
+      );
+    } catch (err) {
+      console.error("Failed to toggle chapter publish state", err);
+      toast({ title: "Error", description: "Failed to update chapter publish state", variant: "destructive" });
     }
   };
 
@@ -1404,9 +1524,11 @@ const Story = () => {
     setEditingBranchId((current) => (current === branchId ? null : current));
   };
 
-  // Only allow chapter/paragraph CRUD for logged-in users:
-  // For chapter editor: if no user, render as read-only/disabled
-  const canCRUDChapters = !!user;
+  // Chapter list + "add chapter"/rename affordances are shown to the
+  // owner and to contributors (create directly, propose edits to existing
+  // chapters); destructive/structural actions are further gated to the
+  // owner alone at their specific call sites (see isOwner checks below).
+  const canCRUDChapters = accessRole === "owner" || accessRole === "contributor";
 
   // --- Story title revisions (fetched from backend) ---
   const [storyTitleRevisions, setStoryTitleRevisions] = useState<StoryTitleRevision[]>([]);
@@ -1432,7 +1554,7 @@ const Story = () => {
     }
   };
 
-  type ProposalTargetType = "story_title" | "chapter" | "paragraph" | "branch";
+  type ProposalTargetType = "story_title" | "chapter" | "chapter_title" | "paragraph" | "branch";
 
   async function createProposal(args: {
     targetType: ProposalTargetType;
@@ -1454,6 +1576,7 @@ const Story = () => {
     try {
       const res = await fetch(`${API_BASE}/stories/${story_id}/proposals`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           targetType: args.targetType,
@@ -1461,7 +1584,6 @@ const Story = () => {
           targetBranchId: args.targetBranchId,
           targetPath: args.targetPath ?? null,
           proposedText: args.proposedText,
-          authorUserId: user.id,
         }),
       });
       if (!res.ok) {
@@ -2004,6 +2126,7 @@ const Story = () => {
     try {
       const res = await fetch(`${API_BASE}/proposals/${proposalId}/approve`, {
         method: "POST",
+        credentials: "include",
       });
       if (!res.ok && res.status !== 204) {
         const body = await res.json().catch(() => ({}));
@@ -2028,6 +2151,7 @@ const Story = () => {
     try {
       const res = await fetch(`${API_BASE}/proposals/${proposalId}/decline`, {
         method: "POST",
+        credentials: "include",
       });
       if (!res.ok && res.status !== 204) {
         const body = await res.json().catch(() => ({}));
@@ -2831,6 +2955,33 @@ const Story = () => {
                           )}
                         </div>
                       </div>
+
+                      {/* Contributors (unlisted stories only — public stories
+                          already allow any signed-in user to contribute) */}
+                      {story.visibility === "unlisted" && (
+                        <div className="border rounded-md p-3 bg-gray-50 space-y-2">
+                          <div className="text-xs font-semibold text-gray-600">
+                            <EditableText id="story-contributors-label">Contributors</EditableText>
+                          </div>
+                          <div className="flex gap-1.5">
+                            <input
+                              type="email"
+                              placeholder="Add contributor by email…"
+                              value={contributorEmail}
+                              onChange={(e) => setContributorEmail(e.target.value)}
+                              className="flex-1 text-xs border rounded px-2 py-1.5"
+                            />
+                            <button
+                              type="button"
+                              disabled={grantingContributor || !contributorEmail.trim()}
+                              onClick={handleGrantContributor}
+                              className="px-2 py-1 rounded border text-xs hover:bg-gray-100 disabled:opacity-50"
+                            >
+                              Add
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -2907,17 +3058,34 @@ const Story = () => {
                               >
                                 <EditableText id="story-chapter-add-another-btn">Add another chapter</EditableText>
                               </button>
-                              <button
-                                type="button"
-                                className="px-1 py-0.5 rounded border hover:bg-red-50 text-red-600"
-                                onClick={() => {
-                                  if (window.confirm("Delete this chapter? This cannot be undone.")) {
-                                    handleDeleteChapter(chapter.chapter_id);
-                                  }
-                                }}
-                              >
-                                <EditableText id="story-chapter-delete-btn">Delete</EditableText>
-                              </button>
+                              {isOwner ? (
+                                <button
+                                  type="button"
+                                  className={cn(
+                                    "px-1 py-0.5 rounded border hover:bg-gray-100",
+                                    chapter.published ? "text-sky-700 border-sky-300" : "text-gray-500",
+                                  )}
+                                  onClick={() => handleToggleChapterPublish(chapter)}
+                                  title={chapter.published ? "Visible in public listings" : "Hidden from public listings"}
+                                >
+                                  <EditableText id="story-chapter-publish-btn">
+                                    {chapter.published ? "Published" : "Publish"}
+                                  </EditableText>
+                                </button>
+                              ) : null}
+                              {isOwner ? (
+                                <button
+                                  type="button"
+                                  className="px-1 py-0.5 rounded border hover:bg-red-50 text-red-600"
+                                  onClick={() => {
+                                    if (window.confirm("Delete this chapter? This cannot be undone.")) {
+                                      handleDeleteChapter(chapter.chapter_id);
+                                    }
+                                  }}
+                                >
+                                  <EditableText id="story-chapter-delete-btn">Delete</EditableText>
+                                </button>
+                              ) : null}
                             </div>
                           </div>
                           {/* Chapter tags */}

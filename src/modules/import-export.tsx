@@ -442,6 +442,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onOpenChange }
             try {
               await fetch(`${API_BASE}/chapters`, {
                 method: "POST",
+                credentials: "include",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   storyTitleId,
