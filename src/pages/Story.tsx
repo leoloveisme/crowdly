@@ -23,7 +23,7 @@ import TagInput from "@/components/TagInput";
 import ImageGallery from "@/components/ImageGallery";
 import GalleryUpload from "@/components/GalleryUpload";
 import { listGalleryImages, type GalleryImage } from "@/lib/galleryApi";
-import { ImagePlus } from "lucide-react";
+import { ImagePlus, ChevronsUp, ChevronUp, ChevronDown, ChevronsDown, GripVertical } from "lucide-react";
 
 // Use same-origin API base in development; dev server proxies to backend.
 // In production, VITE_API_BASE_URL can point at the deployed API.
@@ -1241,6 +1241,81 @@ const Story = () => {
       console.error("Failed to create chapter", err);
       toast({ title: "Error", description: "Failed to add chapter", variant: "destructive" });
     }
+  };
+
+  // Manual chapter reordering (owner only — matches the backend's
+  // owner-only check on this same endpoint). Shared by the move
+  // top/up/down/bottom buttons and drag-and-drop below.
+  const applyChapterOrder = async (newOrder: Chapter[]) => {
+    setChapters(newOrder);
+    try {
+      const res = await fetch(`${API_BASE}/stories/${story_id}/chapters/reorder`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chapterIds: newOrder.map((ch) => ch.chapter_id) }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        toast({ title: "Error", description: body.error || "Failed to reorder chapters", variant: "destructive" });
+        fetchStoryAndChapters();
+      }
+    } catch (err) {
+      console.error("Failed to reorder chapters", err);
+      toast({ title: "Error", description: "Failed to reorder chapters", variant: "destructive" });
+      fetchStoryAndChapters();
+    }
+  };
+
+  const handleMoveChapterToTop = (idx: number) => {
+    if (idx <= 0) return;
+    const next = [...chapters];
+    const [moved] = next.splice(idx, 1);
+    next.unshift(moved);
+    applyChapterOrder(next);
+  };
+
+  const handleMoveChapterUp = (idx: number) => {
+    if (idx <= 0) return;
+    const next = [...chapters];
+    [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+    applyChapterOrder(next);
+  };
+
+  const handleMoveChapterDown = (idx: number) => {
+    if (idx >= chapters.length - 1) return;
+    const next = [...chapters];
+    [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
+    applyChapterOrder(next);
+  };
+
+  const handleMoveChapterToBottom = (idx: number) => {
+    if (idx >= chapters.length - 1) return;
+    const next = [...chapters];
+    const [moved] = next.splice(idx, 1);
+    next.push(moved);
+    applyChapterOrder(next);
+  };
+
+  // Native HTML5 drag-and-drop (no new dependency — see plan notes for why
+  // not a sortable-hooks library). Dragging is initiated only from the grip
+  // handle; dropping anywhere on another chapter's row moves the dragged
+  // chapter to that row's position.
+  const [draggedChapterId, setDraggedChapterId] = useState<string | null>(null);
+
+  const handleDropChapter = (targetChapterId: string) => {
+    if (!draggedChapterId || draggedChapterId === targetChapterId) {
+      setDraggedChapterId(null);
+      return;
+    }
+    const fromIdx = chapters.findIndex((c) => c.chapter_id === draggedChapterId);
+    const toIdx = chapters.findIndex((c) => c.chapter_id === targetChapterId);
+    setDraggedChapterId(null);
+    if (fromIdx === -1 || toIdx === -1) return;
+    const next = [...chapters];
+    const [moved] = next.splice(fromIdx, 1);
+    next.splice(toIdx, 0, moved);
+    applyChapterOrder(next);
   };
   // UPDATE
   const handleUpdateChapter = async (
@@ -2999,11 +3074,13 @@ const Story = () => {
                   {/* CHAPTERS CRUD & branching (web-editor style) */}
                   {canCRUDChapters ? (
                     <>
-                      {chapters.map((chapter) => (
+                      {chapters.map((chapter, idx) => (
                         <div
                           key={chapter.chapter_id}
                           id={"chapter-" + chapter.chapter_id}
-                          className="mb-10"
+                          className={cn("mb-10", draggedChapterId === chapter.chapter_id && "opacity-40")}
+                          onDragOver={isOwner ? (e) => e.preventDefault() : undefined}
+                          onDrop={isOwner ? () => handleDropChapter(chapter.chapter_id) : undefined}
                         >
                           <div className="flex items-center gap-2 mb-2 group/chapter">
                             {editingChapterId === chapter.chapter_id ? (
@@ -3058,6 +3135,56 @@ const Story = () => {
                               >
                                 <EditableText id="story-chapter-add-another-btn">Add another chapter</EditableText>
                               </button>
+                              {isOwner ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    className="px-1 py-0.5 rounded border hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent"
+                                    onClick={() => handleMoveChapterToTop(idx)}
+                                    disabled={idx === 0}
+                                    title="Move to top"
+                                  >
+                                    <ChevronsUp className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="px-1 py-0.5 rounded border hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent"
+                                    onClick={() => handleMoveChapterUp(idx)}
+                                    disabled={idx === 0}
+                                    title="Move up"
+                                  >
+                                    <ChevronUp className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="px-1 py-0.5 rounded border hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent"
+                                    onClick={() => handleMoveChapterDown(idx)}
+                                    disabled={idx === chapters.length - 1}
+                                    title="Move down"
+                                  >
+                                    <ChevronDown className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="px-1 py-0.5 rounded border hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent"
+                                    onClick={() => handleMoveChapterToBottom(idx)}
+                                    disabled={idx === chapters.length - 1}
+                                    title="Move to bottom"
+                                  >
+                                    <ChevronsDown className="h-3.5 w-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    draggable
+                                    onDragStart={() => setDraggedChapterId(chapter.chapter_id)}
+                                    onDragEnd={() => setDraggedChapterId(null)}
+                                    className="px-1 py-0.5 rounded border hover:bg-gray-100 cursor-grab active:cursor-grabbing"
+                                    title="Drag to reorder"
+                                  >
+                                    <GripVertical className="h-3.5 w-3.5" />
+                                  </button>
+                                </>
+                              ) : null}
                               {isOwner ? (
                                 <button
                                   type="button"
