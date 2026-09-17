@@ -184,6 +184,19 @@ const CreativeSpacePage: React.FC = () => {
     });
   };
 
+  const selectableItemIds = items.filter((it) => it.kind === "file").map((it) => it.id);
+  const allSelected = selectableItemIds.length > 0 && selectableItemIds.every((id) => selectedItemIds.has(id));
+  const toggleSelectAll = () => {
+    setSelectedItemIds((prev) => {
+      if (allSelected) {
+        const next = new Set(prev);
+        selectableItemIds.forEach((id) => next.delete(id));
+        return next;
+      }
+      return new Set([...prev, ...selectableItemIds]);
+    });
+  };
+
   const openStructureWizard = () => {
     setWizardError(null);
     setWizardBookMode("new_book");
@@ -194,8 +207,16 @@ const CreativeSpacePage: React.FC = () => {
     setWizardOpen(true);
   };
 
+  // One file = one chapter (confirmed design — no multi-file merge). When
+  // several files are selected, each becomes its own chapter, titled after
+  // its own filename; the manual "Chapter title" field only applies (and
+  // only renders) for a single-file selection. All chapters land in the
+  // same book: the first file creates it (mode: "new_book") if that's the
+  // chosen mode, and every subsequent file — plus every file at all when
+  // mode is "existing_book" — is added to that one book via one
+  // structure-chapter call each, in selection order.
   const handleSubmitStructureWizard = async () => {
-    if (!spaceId || selectedItemIds.size === 0 || !wizardChapterTitle.trim()) return;
+    if (!spaceId || selectedItemIds.size === 0) return;
     if (wizardBookMode === "new_book" && !wizardBookTitle.trim()) {
       setWizardError("A book title is required.");
       return;
@@ -204,33 +225,56 @@ const CreativeSpacePage: React.FC = () => {
       setWizardError("Choose which book this chapter belongs to.");
       return;
     }
+    const selectedItems = Array.from(selectedItemIds)
+      .map((id) => items.find((it) => it.id === id))
+      .filter((it): it is CreativeSpaceItem => Boolean(it));
+    if (selectedItems.length === 0) return;
+    if (selectedItems.length === 1 && !wizardChapterTitle.trim()) return;
+
     setWizardSubmitting(true);
     setWizardError(null);
     try {
-      const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/import-wizard/structure-chapter`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          itemIds: Array.from(selectedItemIds),
-          mode: wizardBookMode,
-          bookTitle: wizardBookMode === "new_book" ? wizardBookTitle.trim() : undefined,
-          storyTitleId: wizardBookMode === "existing_book" ? wizardStoryTitleId : undefined,
-          chapterTitle: wizardChapterTitle.trim(),
-        }),
-      });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setWizardError(body.error || "Failed to structure chapter.");
-        return;
+      let targetStoryTitleId = wizardBookMode === "existing_book" ? wizardStoryTitleId : "";
+      const errors: string[] = [];
+
+      for (let i = 0; i < selectedItems.length; i++) {
+        const item = selectedItems[i];
+        const chapterTitle =
+          selectedItems.length === 1 ? wizardChapterTitle.trim() : item.name.replace(/\.[^./]+$/, "");
+        const useNewBook = wizardBookMode === "new_book" && i === 0;
+
+        const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/import-wizard/structure-chapter`, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            itemIds: [item.id],
+            mode: useNewBook ? "new_book" : "existing_book",
+            bookTitle: useNewBook ? wizardBookTitle.trim() : undefined,
+            storyTitleId: useNewBook ? undefined : targetStoryTitleId,
+            chapterTitle,
+          }),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          errors.push(`"${item.name}": ${body.error || "failed to structure"}`);
+          continue;
+        }
+        if (useNewBook) targetStoryTitleId = body.storyTitleId;
       }
+
+      if (errors.length > 0) {
+        setWizardError(errors.join("; "));
+        if (errors.length === selectedItems.length) return; // nothing succeeded — leave the dialog open
+      }
+
       setWizardOpen(false);
       setSelectedItemIds(new Set());
       setSelectMode(false);
       await Promise.all([loadItems(currentPath), loadContentItems()]);
     } catch (err) {
-      console.error("[CreativeSpacePage] Failed to structure chapter", err);
-      setWizardError("Failed to structure chapter.");
+      console.error("[CreativeSpacePage] Failed to structure chapter(s)", err);
+      setWizardError("Failed to structure chapter(s).");
     } finally {
       setWizardSubmitting(false);
     }
@@ -1383,7 +1427,16 @@ const CreativeSpacePage: React.FC = () => {
 
           <div className="border border-slate-200 rounded-xl overflow-hidden">
             <div className="flex items-center justify-between px-4 py-2 bg-slate-50 text-xs font-semibold text-slate-600">
-              {selectMode && <div className="w-6" />}
+              {selectMode && (
+                <label className="w-24 flex-shrink-0 flex items-center gap-1.5 font-normal normal-case cursor-pointer">
+                  <Checkbox
+                    checked={allSelected}
+                    disabled={selectableItemIds.length === 0}
+                    onCheckedChange={toggleSelectAll}
+                  />
+                  <EditableText id="space-select-all">Select all</EditableText>
+                </label>
+              )}
               <div className="flex-1"><EditableText id="space-th-name">Name</EditableText></div>
               <div className="w-24 text-right"><EditableText id="space-th-type">Type</EditableText></div>
               <div className="w-40 text-right"><EditableText id="space-th-updated">Updated</EditableText></div>
@@ -1561,7 +1614,9 @@ const CreativeSpacePage: React.FC = () => {
       <Dialog open={wizardOpen} onOpenChange={(open) => { if (!open) setWizardOpen(false); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Structure into chapter</DialogTitle>
+            <DialogTitle>
+              {selectedItemIds.size === 1 ? "Structure into chapter" : `Structure ${selectedItemIds.size} files into chapters`}
+            </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div className="flex gap-2">
@@ -1605,10 +1660,17 @@ const CreativeSpacePage: React.FC = () => {
               </div>
             )}
 
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-600">Chapter title</label>
-              <Input value={wizardChapterTitle} onChange={(e) => setWizardChapterTitle(e.target.value)} placeholder="Chapter title" />
-            </div>
+            {selectedItemIds.size === 1 ? (
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-slate-600">Chapter title</label>
+                <Input value={wizardChapterTitle} onChange={(e) => setWizardChapterTitle(e.target.value)} placeholder="Chapter title" />
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500">
+                Each of the {selectedItemIds.size} selected files will become its own chapter, titled after its file name (in
+                selection order).
+              </p>
+            )}
 
             {wizardError && <p className="text-xs text-red-600">{wizardError}</p>}
 
@@ -1616,8 +1678,17 @@ const CreativeSpacePage: React.FC = () => {
               <Button type="button" size="sm" variant="outline" onClick={() => setWizardOpen(false)} disabled={wizardSubmitting}>
                 Cancel
               </Button>
-              <Button type="button" size="sm" onClick={handleSubmitStructureWizard} disabled={wizardSubmitting}>
-                {wizardSubmitting ? "Structuring…" : "Structure chapter"}
+              <Button
+                type="button"
+                size="sm"
+                onClick={handleSubmitStructureWizard}
+                disabled={wizardSubmitting || (selectedItemIds.size === 1 && !wizardChapterTitle.trim())}
+              >
+                {wizardSubmitting
+                  ? "Structuring…"
+                  : selectedItemIds.size === 1
+                    ? "Structure chapter"
+                    : `Structure ${selectedItemIds.size} chapters`}
               </Button>
             </div>
           </div>
