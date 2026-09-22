@@ -34,6 +34,7 @@ function crdtRevisionToSnapshot(
     createdAt: string;
     createdBy: string | null;
     createdByName: string | null;
+    changeCount?: number;
     snapshot: Record<string, unknown>;
   },
   contentType: ContentType,
@@ -59,7 +60,10 @@ function crdtRevisionToSnapshot(
     createdBy: entry.createdBy,
     createdByName: entry.createdByName ?? undefined,
     createdAt: entry.createdAt,
-    revisionReason: null,
+    // Each CRDT revision is an edit session (changes within a couple of
+    // minutes, grouped server-side) — label it so the list isn't blank.
+    revisionReason:
+      entry.changeCount && entry.changeCount > 1 ? `Edit session (${entry.changeCount} changes)` : "Edit",
     isContribution: false,
     docKey,
     heads: entry.heads,

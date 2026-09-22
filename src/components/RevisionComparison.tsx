@@ -223,12 +223,16 @@ const RevisionComparison: React.FC<RevisionComparisonProps> = ({
   const [fullScreen, setFullScreen] = useState(false);
   const [showAll, setShowAll] = useState(false);
 
-  // Filter: by default hide auto-saves (reason starts with "auto" or is null)
+  // Auto-saves are revisions explicitly labelled as such (reason starting
+  // with "auto"). A missing reason is NOT an auto-save — real-time (CRDT)
+  // edit sessions and older revisions have none, and hiding them left the
+  // list empty. Hidden by default; the toggle only appears when there's
+  // something to reveal.
+  const isAutoSave = (r: RevisionSnapshot) => (r.revisionReason ?? "").trim().toLowerCase().startsWith("auto");
+  const autoSaveCount = useMemo(() => revisions.filter(isAutoSave).length, [revisions]);
   const filteredRevisions = useMemo(() => {
     if (showAll) return revisions;
-    return revisions.filter(
-      (r) => r.revisionReason && !r.revisionReason.toLowerCase().startsWith("auto"),
-    );
+    return revisions.filter((r) => !isAutoSave(r));
   }, [revisions, showAll]);
 
   const toggleSelection = (id: string) => {
@@ -360,7 +364,7 @@ const RevisionComparison: React.FC<RevisionComparisonProps> = ({
       </div>
 
       {/* Filter toggle */}
-      {showFilterToggle && revisions.length > 0 && (
+      {showFilterToggle && autoSaveCount > 0 && (
         <div className="flex items-center gap-2 mb-3">
           <Checkbox
             id="show-all-revisions"
@@ -369,6 +373,7 @@ const RevisionComparison: React.FC<RevisionComparisonProps> = ({
           />
           <label htmlFor="show-all-revisions" className="text-sm cursor-pointer">
             Show all revisions (including auto-saves)
+            {!showAll && <span className="text-gray-500"> — {autoSaveCount} hidden</span>}
           </label>
         </div>
       )}
