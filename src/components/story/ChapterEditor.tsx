@@ -85,7 +85,7 @@ const EDITOR_TABS: { id: EditorTab; icon: React.ReactNode; label: React.ReactNod
   {
     id: "visual",
     icon: <ImageIcon className="h-3.5 w-3.5" />,
-    label: <EditableText id="story-content-type-cartoon">Cartoon/Presentation</EditableText>,
+    label: <EditableText id="story-content-type-cartoon">Comics | Manga / Presentation</EditableText>,
   },
   { id: "video", icon: <Video className="h-3.5 w-3.5" />, label: <EditableText id="story-content-type-video">Video</EditableText> },
 ];

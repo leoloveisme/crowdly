@@ -13,7 +13,7 @@ interface VisualPanelProps {
 }
 
 /**
- * The reader's Cartoon/Presentation panel: a frame-by-frame viewer. When the
+ * The reader's Comics | Manga / Presentation panel: a frame-by-frame viewer. When the
  * reader is also reading the text (or following a narration), the viewer
  * jumps to the frame anchored to the current paragraph.
  */
@@ -47,7 +47,7 @@ const VisualPanel: React.FC<VisualPanelProps> = ({ presentations, activeParagrap
       <div className="w-full bg-gray-50 rounded p-4 border text-sm text-gray-500 space-y-2">
         <div className="flex items-center gap-2">
           <ImageIcon className="h-4 w-4" />
-          <EditableText id="story-visual-none">No cartoon or presentation for this chapter yet.</EditableText>
+          <EditableText id="story-visual-none">No comics, manga or presentation for this chapter yet.</EditableText>
         </div>
         {footer}
       </div>

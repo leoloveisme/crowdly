@@ -7072,9 +7072,9 @@
   {
     "page_key": "/story/:story_id",
     "element_id": "story-content-type-cartoon",
-    "en": "Cartoon/Presentation",
-    "ru": "Мультфильм/Презентация",
-    "de": "Cartoon/Präsentation"
+    "en": "Comics | Manga / Presentation",
+    "ru": "Комикс | Манга / Презентация",
+    "de": "Comics | Manga / Präsentation"
   },
   {
     "page_key": "/story/:story_id",
@@ -7674,9 +7674,9 @@
   {
     "page_key": "/story/:story_id",
     "element_id": "story-contribute-visual",
-    "en": "cartoon / presentation",
-    "ru": "мультфильм / презентацию",
-    "de": "Cartoon / Präsentation"
+    "en": "comics | manga / presentation",
+    "ru": "комикс | мангу / презентацию",
+    "de": "Comics | Manga / Präsentation"
   },
   {
     "page_key": "/story/:story_id",
@@ -7807,9 +7807,9 @@
   {
     "page_key": "/story/:story_id",
     "element_id": "story-visual-new-heading",
-    "en": "New cartoon / presentation",
-    "ru": "Новый мультфильм / презентация",
-    "de": "Neuer Cartoon / neue Präsentation"
+    "en": "New comics | manga / presentation",
+    "ru": "Новый комикс | манга / презентация",
+    "de": "Neue(r) Comic | Manga / Präsentation"
   },
   {
     "page_key": "/story/:story_id",
@@ -7898,9 +7898,9 @@
   {
     "page_key": "/story/:story_id",
     "element_id": "story-visual-none",
-    "en": "No cartoon or presentation for this chapter yet.",
-    "ru": "Для этой главы пока нет мультфильма или презентации.",
-    "de": "Für dieses Kapitel gibt es noch keinen Cartoon und keine Präsentation."
+    "en": "No comics, manga or presentation for this chapter yet.",
+    "ru": "Для этой главы пока нет комикса, манги или презентации.",
+    "de": "Für dieses Kapitel gibt es noch keinen Comic, kein Manga und keine Präsentation."
   },
   {
     "page_key": "/story/:story_id",

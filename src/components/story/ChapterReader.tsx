@@ -97,7 +97,7 @@ const Illustration: React.FC<{ img: GalleryImage }> = ({ img }) => (
 
 const CONTRIBUTE_LABELS: Record<MediaKind, React.ReactNode> = {
   audio: <EditableText id="story-contribute-audio">narration</EditableText>,
-  visual: <EditableText id="story-contribute-visual">cartoon / presentation</EditableText>,
+  visual: <EditableText id="story-contribute-visual">comics | manga / presentation</EditableText>,
   video: <EditableText id="story-contribute-video">video</EditableText>,
 };
 
@@ -129,7 +129,7 @@ function useVisibleParagraph(container: React.RefObject<HTMLElement>, deps: unkn
 /**
  * The single, read-only rendering of the active chapter: its text (current
  * text, a chosen edition, or — while following a narration — the exact
- * edition the narrator read) and the Audio / Cartoon / Video panels, driven
+ * edition the narrator read) and the Audio / Comics | Manga / Presentation / Video panels, driven
  * by the content-type checkboxes.
  */
 const ChapterReader: React.FC<ChapterReaderProps> = ({
@@ -254,7 +254,7 @@ const ChapterReader: React.FC<ChapterReaderProps> = ({
         </div>
       )}
 
-      {/* CARTOON/PRESENTATION */}
+      {/* COMICS | MANGA / PRESENTATION */}
       {contentTypes.cartoon && (
         <div className="mb-4">
           <VisualPanel presentations={byKind("visual")} activeParagraph={activeParagraph} />

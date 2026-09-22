@@ -4,7 +4,7 @@ import EditableText from "@/components/EditableText";
 
 /**
  * Checkbox row for choosing which content type(s) to show for the currently
- * active chapter (Text / Audio / Cartoon-Presentation / Video).
+ * active chapter (Text / Audio / Comics | Manga / Presentation / Video).
  *
  * Controlled: the Story page owns the selection and passes it to the chapter
  * reader, which renders the matching panels.
@@ -42,7 +42,7 @@ const StoryContentTypeSelector: React.FC<StoryContentTypeSelectorProps> = ({ val
   const offTitle: Record<keyof StoryContentTypes, string | undefined> = {
     text: undefined,
     audio: isOff("audio") ? "No narration for this chapter yet" : undefined,
-    cartoon: isOff("cartoon") ? "No cartoon or presentation for this chapter yet" : undefined,
+    cartoon: isOff("cartoon") ? "No comics, manga or presentation for this chapter yet" : undefined,
     video: isOff("video") ? "No video for this chapter yet" : undefined,
   };
 
@@ -77,7 +77,7 @@ const StoryContentTypeSelector: React.FC<StoryContentTypeSelectorProps> = ({ val
           className="accent-blue-500"
         />
         <Image size={16} className="text-pink-400" />
-        <EditableText id="story-content-type-cartoon">Cartoon/Presentation</EditableText>
+        <EditableText id="story-content-type-cartoon">Comics | Manga / Presentation</EditableText>
       </label>
       <label className={labelClass("video")} title={offTitle.video}>
         <input

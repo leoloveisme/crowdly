@@ -41,7 +41,7 @@ export const OverlayBubble: React.FC<{
 );
 
 /**
- * A Cartoon/Presentation frame: the image with its text overlays rendered as
+ * A Comics | Manga / Presentation frame: the image with its text overlays rendered as
  * HTML (not baked into the image), plus the caption underneath.
  */
 const FrameView: React.FC<FrameViewProps> = ({ frame, className, onImageClick, selectedOverlay, onOverlayClick }) => (

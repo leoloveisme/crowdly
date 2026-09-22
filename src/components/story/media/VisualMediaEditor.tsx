@@ -378,7 +378,7 @@ const VisualMediaEditor: React.FC<VisualMediaEditorProps> = ({ chapterId, chapte
 
       <div className="border rounded p-3 bg-gray-50 space-y-2">
         <div className="text-sm font-medium">
-          <EditableText id="story-visual-new-heading">New cartoon / presentation</EditableText>
+          <EditableText id="story-visual-new-heading">New comics | manga / presentation</EditableText>
         </div>
         <input
           value={newLabel}

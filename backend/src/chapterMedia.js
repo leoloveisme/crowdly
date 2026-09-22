@@ -1,4 +1,4 @@
-// Chapter media — the Audio, Cartoon/Presentation and Video formats of a
+// Chapter media — the Audio, Comics | Manga / Presentation and Video formats of a
 // chapter. See backend/migrations/0004_chapter_media.sql.
 //
 // Storage: multer writes uploads to backend/uploads/media/<storyTitleId>/;
@@ -548,11 +548,11 @@ router.post('/chapters/:chapterId/media/embed', requireAuth, withChapterTarget, 
 });
 
 // ---------------------------------------------------------------------------
-// Cartoon / Presentation (frames)
+// Comics | Manga / Presentation (frames)
 // ---------------------------------------------------------------------------
 
 // POST /chapters/:chapterId/media/visual  multipart: images[] (1-20), label?
-// Creates a new Cartoon/Presentation with the uploaded images as frames.
+// Creates a new Comics | Manga / Presentation with the uploaded images as frames.
 router.post(
   '/chapters/:chapterId/media/visual',
   requireAuth,
@@ -623,7 +623,7 @@ router.post(
     const files = req.files ?? [];
     if (media.kind !== 'visual') {
       for (const file of files) fs.promises.unlink(file.path).catch(() => {});
-      return res.status(400).json({ error: 'Frames can only be added to a Cartoon/Presentation' });
+      return res.status(400).json({ error: 'Frames can only be added to a comic, manga or presentation' });
     }
     if (files.length === 0) return res.status(400).json({ error: 'At least one image is required' });
     try {

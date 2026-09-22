@@ -18,7 +18,7 @@ interface ChapterMediaEditorProps {
 }
 
 /**
- * Create / manage one format of a chapter. Used by the Audio / Cartoon /
+ * Create / manage one format of a chapter. Used by the Audio / Comics | Manga /
  * Video tabs of the chapter editor, and by readers' "Contribute" dialogs
  * (their submissions go to the owner for review).
  */
