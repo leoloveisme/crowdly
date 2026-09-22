@@ -7362,5 +7362,208 @@
     "en": "Changes save when you click outside a paragraph (or press Ctrl/⌘+Enter). Esc cancels.",
     "ru": "Изменения сохраняются при щелчке вне абзаца (или Ctrl/⌘+Enter). Esc — отмена.",
     "de": "Änderungen werden gespeichert, wenn du außerhalb eines Absatzes klickst (oder Strg/⌘+Enter drückst). Esc bricht ab."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-lang-heading",
+    "en": "Language versions",
+    "ru": "Языковые версии",
+    "de": "Sprachversionen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-lang-original",
+    "en": "Original",
+    "ru": "Оригинал",
+    "de": "Original"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-lang-official",
+    "en": "Official translation",
+    "ru": "Официальный перевод",
+    "de": "Offizielle Übersetzung"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-lang-community",
+    "en": "Community translation",
+    "ru": "Перевод сообщества",
+    "de": "Community-Übersetzung"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-lang-draft",
+    "en": "draft",
+    "ru": "черновик",
+    "de": "Entwurf"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-lang-stale",
+    "en": "out of date",
+    "ru": "устарело",
+    "de": "veraltet"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-lang-translate",
+    "en": "Translate this story…",
+    "ru": "Перевести эту историю…",
+    "de": "Diese Geschichte übersetzen…"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-translate-title",
+    "en": "Translate this story",
+    "ru": "Перевести эту историю",
+    "de": "Diese Geschichte übersetzen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-translate-desc",
+    "en": "The translation becomes its own story that you own, linked to the original chapter by chapter. It stays a draft until you publish it.",
+    "ru": "Перевод станет отдельной историей, которой владеете вы, связанной с оригиналом глава за главой. Он остаётся черновиком, пока вы его не опубликуете.",
+    "de": "Die Übersetzung wird zu einer eigenen Geschichte, die dir gehört, Kapitel für Kapitel mit dem Original verknüpft. Sie bleibt ein Entwurf, bis du sie veröffentlichst."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-translate-language",
+    "en": "Translate into",
+    "ru": "Перевести на",
+    "de": "Übersetzen in"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-translate-start",
+    "en": "Start from",
+    "ru": "Начать с",
+    "de": "Beginnen mit"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-translate-blank",
+    "en": "Blank chapters",
+    "ru": "Пустых глав",
+    "de": "Leeren Kapiteln"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-translate-blank-desc",
+    "en": "Chapter titles are copied; you write each chapter next to the original.",
+    "ru": "Названия глав копируются; вы пишете каждую главу рядом с оригиналом.",
+    "de": "Kapiteltitel werden übernommen; du schreibst jedes Kapitel neben dem Original."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-translate-copy",
+    "en": "Copy of the original text",
+    "ru": "Копии оригинального текста",
+    "de": "Kopie des Originaltexts"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-translate-copy-desc",
+    "en": "Every chapter starts with the original text for you to overwrite.",
+    "ru": "Каждая глава начинается с оригинального текста, который вы переписываете.",
+    "de": "Jedes Kapitel beginnt mit dem Originaltext, den du überschreibst."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-translate-ai",
+    "en": "AI draft",
+    "ru": "Черновика от ИИ",
+    "de": "KI-Entwurf"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-translate-ai-desc",
+    "en": "Pre-fill a draft using your own AI provider, connected in your settings.",
+    "ru": "Заполнить черновик с помощью вашего ИИ-провайдера, подключённого в настройках.",
+    "de": "Einen Entwurf mit deinem eigenen, in den Einstellungen verbundenen KI-Anbieter vorausfüllen."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-coming-soon",
+    "en": "Coming soon",
+    "ru": "Скоро",
+    "de": "Demnächst"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-translate-create",
+    "en": "Create translation",
+    "ru": "Создать перевод",
+    "de": "Übersetzung erstellen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-translated-from",
+    "en": "Translated from",
+    "ru": "Переведено с",
+    "de": "Übersetzt aus"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-available-in",
+    "en": "This story is available in",
+    "ru": "Эта история доступна на языке:",
+    "de": "Diese Geschichte gibt es auch auf"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-editor-show-original",
+    "en": "Show original",
+    "ru": "Показать оригинал",
+    "de": "Original anzeigen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-editor-translating-from",
+    "en": "Translating from",
+    "ru": "Перевод с",
+    "de": "Übersetzung aus"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-editor-stale",
+    "en": "The original chapter changed since this translation was last marked up to date.",
+    "ru": "Оригинальная глава изменилась с тех пор, как перевод был в последний раз отмечен как актуальный.",
+    "de": "Das Originalkapitel hat sich geändert, seit diese Übersetzung zuletzt als aktuell markiert wurde."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-editor-mark-synced",
+    "en": "Mark as up to date",
+    "ru": "Отметить как актуальный",
+    "de": "Als aktuell markieren"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-settings-translate",
+    "en": "Who can translate",
+    "ru": "Кто может переводить",
+    "de": "Wer darf übersetzen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-settings-translators",
+    "en": "Translators",
+    "ru": "Переводчики",
+    "de": "Übersetzer"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-translate-source-lang",
+    "en": "This story is marked as written in",
+    "ru": "Эта история отмечена как написанная на языке:",
+    "de": "Diese Geschichte ist markiert als geschrieben auf"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-translate-source-lang-hint",
+    "en": "If that's wrong, the owner can change it in Settings → Language.",
+    "ru": "Если это не так, владелец может изменить это в «Настройки → Язык».",
+    "de": "Falls das nicht stimmt, kann der Besitzer es unter Einstellungen → Sprache ändern."
   }
 ]

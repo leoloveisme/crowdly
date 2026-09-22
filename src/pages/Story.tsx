@@ -28,6 +28,15 @@ import ChapterSidebar, { type ChapterSidebarMode } from "@/components/story/Chap
 import ChapterReader from "@/components/story/ChapterReader";
 import ChapterEditor from "@/components/story/ChapterEditor";
 import StorySettingsSheet, { type StoryPolicy, type StoryVisibility } from "@/components/story/StorySettingsSheet";
+import LanguageSwitcher, { localeName, useLocales } from "@/components/story/LanguageSwitcher";
+import TranslateStoryDialog from "@/components/story/TranslateStoryDialog";
+import { useEditableContent } from "@/contexts/EditableContentContext";
+import {
+  createStoryTranslation,
+  fetchStoryTranslations,
+  setOfficialTranslation,
+  type StoryTranslations,
+} from "@/lib/translationsApi";
 
 // Use same-origin API base in development; dev server proxies to backend.
 // In production, VITE_API_BASE_URL can point at the deployed API.
@@ -81,6 +90,8 @@ interface Chapter {
   tags?: string[];
   paragraphTags?: Record<string, string[]>;
   published?: boolean;
+  source_chapter_id?: string | null;
+  source_stale?: boolean | null;
 }
 
 interface StoryTitleRevision {
@@ -277,6 +288,10 @@ const Story = () => {
     completion_status?: string;
     clone_policy?: string;
     export_policy?: string;
+    translation_policy?: string;
+    translation_group_id?: string | null;
+    source_story_title_id?: string | null;
+    is_official_translation?: boolean;
     can_clone?: boolean;
     can_export?: boolean;
     language?: string;
@@ -337,13 +352,23 @@ const Story = () => {
     if (next === "edit") params.set("mode", "edit");
     else params.delete("mode");
     setSearchParams(params, { replace: true });
-    setSidebarMode(next);
     // Cover editor is Editing-only; don't let it reopen on the next switch.
     setCoverEditorOpen(false);
   };
+  // The chapters sidebar follows the page mode (it can still be toggled on
+  // its own). Synced from the URL so it also holds when navigating straight
+  // into ?mode=edit, e.g. right after creating a translation.
   const [sidebarMode, setSidebarMode] = useState<ChapterSidebarMode>(pageMode);
+  useEffect(() => {
+    setSidebarMode(pageMode);
+  }, [pageMode]);
   const [contentTypes, setContentTypes] = useState<StoryContentTypes>(DEFAULT_STORY_CONTENT_TYPES);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // Language versions of this story (original + translations)
+  const [translations, setTranslations] = useState<StoryTranslations | null>(null);
+  const [translateDialogOpen, setTranslateDialogOpen] = useState(false);
+  const locales = useLocales();
+  const { currentLanguage } = useEditableContent();
   const [mobileChaptersOpen, setMobileChaptersOpen] = useState(false);
   // When adding a chapter, optionally remember the chapter after which
   // the new one should appear. If null, the new chapter is appended at
@@ -377,7 +402,7 @@ const Story = () => {
 
   // Access rules picker state
   const [accessPickerOpen, setAccessPickerOpen] = useState(false);
-  const [accessPickerRuleType, setAccessPickerRuleType] = useState<"view" | "clone" | "export">("view");
+  const [accessPickerRuleType, setAccessPickerRuleType] = useState<"view" | "clone" | "export" | "translate">("view");
 
   // Collaborators state
   const [collaborators, setCollaborators] = useState<StoryCollaborator[]>([]);
@@ -597,6 +622,17 @@ const Story = () => {
     }
     // eslint-disable-next-line
   }, [story_id, user?.id]);
+
+  const reloadTranslations = useCallback(() => {
+    if (!story_id) return;
+    fetchStoryTranslations(story_id)
+      .then(setTranslations)
+      .catch(() => setTranslations(null));
+  }, [story_id]);
+
+  useEffect(() => {
+    reloadTranslations();
+  }, [reloadTranslations, user?.id]);
 
   const reloadInlineIllustrations = useCallback(() => {
     if (!story_id) return;
@@ -2005,7 +2041,42 @@ const Story = () => {
     }
   };
 
-  const openAccessPicker = (rule: "view" | "clone" | "export") => {
+  const setTranslationPolicy = (next: StoryPolicy) => {
+    if (!story) return;
+    updateStorySetting('translation_policy', next);
+    if (next === 'restricted') openAccessPicker("translate");
+  };
+
+  const handleCreateTranslation = async (language: string, start: "blank" | "copy") => {
+    if (!story) return;
+    try {
+      const created = await createStoryTranslation(story.story_title_id, language, start);
+      toast({ title: "Translation created", description: "It's a draft until you publish it." });
+      navigate(`/story/${created.story_title_id}?mode=edit`);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to create translation",
+        variant: "destructive",
+      });
+      throw err;
+    }
+  };
+
+  const handleToggleOfficialTranslation = async (translationId: string, official: boolean) => {
+    try {
+      await setOfficialTranslation(translationId, official);
+      reloadTranslations();
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to update official translation",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const openAccessPicker = (rule: "view" | "clone" | "export" | "translate") => {
     // The picker is its own modal — close the settings sheet so the two
     // dialogs don't fight over focus.
     setSettingsOpen(false);
@@ -2288,6 +2359,53 @@ const Story = () => {
     }
     await handleDeleteChapter(chapterId);
   };
+
+  // "Translated from …" for translations, and a nudge towards the version in
+  // the reader's interface language when one is available.
+  const versions = translations?.versions ?? [];
+  const originalVersion = versions.find((v) => v.is_original);
+  const interfaceLocale = locales.find((l) => l.english_name === currentLanguage);
+  const preferredVersion =
+    interfaceLocale && interfaceLocale.code !== (story.language || "en")
+      ? versions.find(
+          (v) =>
+            v.language === interfaceLocale.code &&
+            v.published &&
+            (v.is_original || v.is_official) &&
+            v.story_title_id !== story.story_title_id,
+        )
+      : undefined;
+  const translationNotice =
+    (story.source_story_title_id && originalVersion && originalVersion.story_title_id !== story.story_title_id) ||
+    (preferredVersion && !(story.source_story_title_id && preferredVersion.is_original)) ? (
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">
+        {story.source_story_title_id && originalVersion && originalVersion.story_title_id !== story.story_title_id && (
+          <span>
+            <EditableText id="story-translated-from">Translated from</EditableText>{" "}
+            {localeName(locales, originalVersion.language)} ·{" "}
+            <button
+              type="button"
+              onClick={() => navigate(`/story/${originalVersion.story_title_id}`)}
+              className="text-blue-700 hover:underline"
+            >
+              {originalVersion.title}
+            </button>
+          </span>
+        )}
+        {preferredVersion && !(story.source_story_title_id && preferredVersion.is_original) && (
+          <span className="text-purple-800">
+            <EditableText id="story-available-in">This story is available in</EditableText>{" "}
+            <button
+              type="button"
+              onClick={() => navigate(`/story/${preferredVersion.story_title_id}`)}
+              className="font-medium hover:underline"
+            >
+              {localeName(locales, preferredVersion.language)}
+            </button>
+          </span>
+        )}
+      </div>
+    ) : null;
 
   const chapterSidebar = (
     <ChapterSidebar
@@ -2701,11 +2819,13 @@ const Story = () => {
                       <EditableText id="story-badge-draft">Draft</EditableText>
                     )}
                   </span>
-                  {story.language && (
-                    <span className="px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
-                      {story.language.toUpperCase()}
-                    </span>
-                  )}
+                  <LanguageSwitcher
+                    storyTitleId={story.story_title_id}
+                    language={story.language || "en"}
+                    translations={translations}
+                    onTranslate={() => setTranslateDialogOpen(true)}
+                    onToggleOfficial={handleToggleOfficialTranslation}
+                  />
                 </div>
 
                 {isCreator ? (
@@ -2776,7 +2896,15 @@ const Story = () => {
                   )}
                 </div>
               )}
+              {translationNotice}
             </section>
+
+            <TranslateStoryDialog
+              open={translateDialogOpen}
+              onOpenChange={setTranslateDialogOpen}
+              sourceLanguage={story.language || "en"}
+              onCreate={handleCreateTranslation}
+            />
 
             <div className="lg:grid lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-8">
               {/* CHAPTERS SIDEBAR (desktop) — mobile uses the sheet below */}
@@ -2933,6 +3061,14 @@ const Story = () => {
                           setIllustrationTarget(null);
                           reloadInlineIllustrations();
                         }}
+                        canMarkSynced={isCreator}
+                        onSourceSynced={() => {
+                          const syncedId = currentChapter.chapter_id;
+                          setChapters((prev) =>
+                            prev.map((c) => (c.chapter_id === syncedId ? { ...c, source_stale: false } : c)),
+                          );
+                          reloadTranslations();
+                        }}
                       />
                     ) : (
                       <ChapterReader
@@ -3054,6 +3190,7 @@ const Story = () => {
                 onSetCompletion={setCompletionStatus}
                 onSetClonePolicy={setClonePolicy}
                 onSetExportPolicy={setExportPolicy}
+                onSetTranslationPolicy={setTranslationPolicy}
                 onOpenAccessPicker={openAccessPicker}
                 onUpdateSetting={updateStorySetting}
                 onOpenDetails={() => navigate(`/story/${story.story_title_id}/details`)}

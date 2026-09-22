@@ -8,6 +8,10 @@ export interface StoryChapter {
   tags?: string[];
   paragraphTags?: Record<string, string[]>;
   published?: boolean;
+  /** Set on chapters of a translation: the chapter this one translates. */
+  source_chapter_id?: string | null;
+  /** The source chapter changed since the translation was last marked up to date. */
+  source_stale?: boolean | null;
 }
 
 export interface StoryProposal {

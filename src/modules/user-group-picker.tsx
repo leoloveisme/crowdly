@@ -52,7 +52,7 @@ type GroupResult = {
 
 type Props = {
   storyTitleId: string;
-  ruleType: "view" | "clone" | "export";
+  ruleType: "view" | "clone" | "export" | "translate";
   open: boolean;
   onClose: () => void;
 };
@@ -61,6 +61,7 @@ const ruleTypeLabels: Record<string, string> = {
   view: "Who can view this story",
   clone: "Who can clone this story",
   export: "Who can export this story",
+  translate: "Who can translate this story",
 };
 
 export default function UserGroupPicker({ storyTitleId, ruleType, open, onClose }: Props) {

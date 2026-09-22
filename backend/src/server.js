@@ -27,6 +27,7 @@ import messagingRouter, {
 } from './messaging.js';
 import galleryRouter, { ensureStoryGalleryImagesTable, UPLOADS_ROOT } from './gallery.js';
 import comicsRouter, { ensureComicTables } from './comics.js';
+import translationsRouter from './translations.js';
 import creativeSpaceFilesRouter, { CREATIVE_SPACE_FILES_ROOT, guessMimeType } from './creativeSpaceFiles.js';
 import { eventsHandler } from './events.js';
 import {
@@ -142,6 +143,7 @@ app.get('/api/events', requireAuth, eventsHandler);
 // same as the rest of the story routes below — not under /api.
 app.use(galleryRouter);
 app.use(comicsRouter);
+app.use(translationsRouter);
 // Not statically served (unlike /uploads below) — Space items can be
 // private, so content is only ever handed out through the authenticated
 // routes in creativeSpaceFiles.js.
@@ -4274,7 +4276,14 @@ app.get('/chapters', async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      'SELECT * FROM stories WHERE story_title_id = $1 ORDER BY episode_number NULLS FIRST, part_number NULLS FIRST, chapter_index ASC, created_at ASC',
+      // source_stale: for a translated chapter, the chapter it translates has
+      // changed since the translator last marked it up to date.
+      `SELECT s.*,
+              (src.content_updated_at > COALESCE(s.source_synced_at, s.created_at)) AS source_stale
+         FROM stories s
+         LEFT JOIN stories src ON src.chapter_id = s.source_chapter_id
+        WHERE s.story_title_id = $1
+        ORDER BY s.episode_number NULLS FIRST, s.part_number NULLS FIRST, s.chapter_index ASC, s.created_at ASC`,
       [storyTitleId],
     );
 
@@ -8456,7 +8465,7 @@ app.patch('/story-titles/:storyTitleId', async (req, res) => {
 // Update story visibility / published flags (no revision)
 app.patch('/story-titles/:storyTitleId/settings', async (req, res) => {
   const { storyTitleId } = req.params;
-  const { visibility, published, genre, tags, completion_status, clone_policy, export_policy, language, cover_image_url, description } = req.body ?? {};
+  const { visibility, published, genre, tags, completion_status, clone_policy, export_policy, translation_policy, language, cover_image_url, description } = req.body ?? {};
 
   if (
     visibility === undefined &&
@@ -8466,12 +8475,13 @@ app.patch('/story-titles/:storyTitleId/settings', async (req, res) => {
     completion_status === undefined &&
     clone_policy === undefined &&
     export_policy === undefined &&
+    translation_policy === undefined &&
     language === undefined &&
     cover_image_url === undefined &&
     description === undefined
   ) {
     return res.status(400).json({
-      error: 'At least one of visibility, published, genre, tags, completion_status, clone_policy, export_policy, language, cover_image_url, or description must be provided',
+      error: 'At least one of visibility, published, genre, tags, completion_status, clone_policy, export_policy, translation_policy, language, cover_image_url, or description must be provided',
     });
   }
 
@@ -8506,6 +8516,13 @@ app.patch('/story-titles/:storyTitleId/settings', async (req, res) => {
   if (export_policy !== undefined) {
     fields.push(`export_policy = $${idx++}`);
     values.push(export_policy);
+  }
+  if (translation_policy !== undefined) {
+    if (!['anyone', 'restricted', 'none'].includes(translation_policy)) {
+      return res.status(400).json({ error: "translation_policy must be 'anyone', 'restricted' or 'none'" });
+    }
+    fields.push(`translation_policy = $${idx++}`);
+    values.push(translation_policy);
   }
   if (language !== undefined) {
     fields.push(`language = $${idx++}`);

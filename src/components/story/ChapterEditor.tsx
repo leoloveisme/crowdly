@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { GitBranch, ImagePlus } from "lucide-react";
+import React, { useCallback, useEffect, useState } from "react";
+import { AlertTriangle, Columns2, GitBranch, ImagePlus } from "lucide-react";
 import EditableText from "@/components/EditableText";
 import ParagraphBranchPopover from "@/components/ParagraphBranchPopover";
 import GalleryUpload from "@/components/GalleryUpload";
@@ -7,6 +7,8 @@ import TagBadge from "@/components/TagBadge";
 import TagInput from "@/components/TagInput";
 import { cn } from "@/lib/utils";
 import type { GalleryImage } from "@/lib/galleryApi";
+import { fetchSourceChapter, markChapterSourceSynced, type SourceChapter } from "@/lib/translationsApi";
+import { useLocales, localeName } from "./LanguageSwitcher";
 import { ChapterNav } from "./ChapterReader";
 import { isChapterUntitled, type InlineBranch, type StoryChapter } from "./types";
 
@@ -50,6 +52,10 @@ interface ChapterEditorProps {
   illustrationTarget: { chapterId: string; anchorIndex: number } | null;
   onToggleIllustrationTarget: (chapterId: string, anchorIndex: number) => void;
   onIllustrationUploaded: () => void;
+
+  /** Translation team may mark a translated chapter as up to date with its source. */
+  canMarkSynced: boolean;
+  onSourceSynced: () => void;
 }
 
 const textareaRows = (text: string) => Math.min(20, Math.max(3, Math.ceil(text.length / 90) + 1));
@@ -90,7 +96,36 @@ const ChapterEditor: React.FC<ChapterEditorProps> = (props) => {
     illustrationTarget,
     onToggleIllustrationTarget,
     onIllustrationUploaded,
+    canMarkSynced,
+    onSourceSynced,
   } = props;
+
+  // --- Translation support: the chapter this one translates, side by side ---
+  const locales = useLocales();
+  const [source, setSource] = useState<SourceChapter | null>(null);
+  const [showOriginal, setShowOriginal] = useState(true);
+  const [markingSynced, setMarkingSynced] = useState(false);
+  const loadSource = useCallback(() => {
+    if (!chapter.source_chapter_id) {
+      setSource(null);
+      return;
+    }
+    fetchSourceChapter(chapter.chapter_id)
+      .then(setSource)
+      .catch(() => setSource(null));
+  }, [chapter.chapter_id, chapter.source_chapter_id]);
+  useEffect(loadSource, [loadSource]);
+
+  const handleMarkSynced = async () => {
+    setMarkingSynced(true);
+    try {
+      await markChapterSourceSynced(chapter.chapter_id);
+      loadSource();
+      onSourceSynced();
+    } finally {
+      setMarkingSynced(false);
+    }
+  };
 
   const [titleValue, setTitleValue] = useState(isChapterUntitled(chapter) ? "" : chapter.chapter_title);
   useEffect(() => {
@@ -105,6 +140,17 @@ const ChapterEditor: React.FC<ChapterEditorProps> = (props) => {
   // An empty chapter still gets one textarea so there's somewhere to type.
   const hasParagraphs = Array.isArray(chapter.paragraphs) && chapter.paragraphs.length > 0;
   const editableChapter: StoryChapter = hasParagraphs ? chapter : { ...chapter, paragraphs: [""] };
+
+  // Side by side: one row per paragraph position, original on the left. While
+  // the original is longer, keep one empty slot after the last translated
+  // paragraph so the translator can continue.
+  const sideBySide = showOriginal && !!source?.source;
+  const srcParas = sideBySide ? source!.source!.paragraphs : [];
+  const trParas = editableChapter.paragraphs;
+  const needsTrailingSlot =
+    sideBySide && srcParas.length > trParas.length && (trParas[trParas.length - 1] ?? "").trim() !== "";
+  const slotChapter: StoryChapter = needsTrailingSlot ? { ...editableChapter, paragraphs: [...trParas, ""] } : editableChapter;
+  const rowCount = sideBySide ? Math.max(srcParas.length, slotChapter.paragraphs.length) : slotChapter.paragraphs.length;
 
   return (
     <div className="mb-8">
@@ -140,6 +186,47 @@ const ChapterEditor: React.FC<ChapterEditorProps> = (props) => {
         </p>
       )}
 
+      {source?.source && (
+        <div className="mb-3 space-y-2">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600">
+            <button
+              type="button"
+              onClick={() => setShowOriginal((v) => !v)}
+              aria-pressed={showOriginal}
+              className={cn(
+                "inline-flex items-center gap-1 px-2 py-1 rounded border",
+                showOriginal ? "bg-blue-50 border-blue-300 text-blue-700" : "bg-white hover:bg-gray-50",
+              )}
+            >
+              <Columns2 className="h-3.5 w-3.5" />
+              <EditableText id="story-editor-show-original">Show original</EditableText>
+            </button>
+            <span>
+              <EditableText id="story-editor-translating-from">Translating from</EditableText>{" "}
+              {localeName(locales, source.source.language || "en")}: “{source.source.chapter_title}”
+            </span>
+          </div>
+          {source.stale && (
+            <div className="flex flex-wrap items-center gap-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              <EditableText id="story-editor-stale">
+                The original chapter changed since this translation was last marked up to date.
+              </EditableText>
+              {canMarkSynced && (
+                <button
+                  type="button"
+                  disabled={markingSynced}
+                  onClick={handleMarkSynced}
+                  className="ml-auto px-2 py-0.5 rounded border border-amber-300 bg-white hover:bg-amber-100 disabled:opacity-50"
+                >
+                  <EditableText id="story-editor-mark-synced">Mark as up to date</EditableText>
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Chapter tags */}
       {isOwner ? (
         <div className="mb-4">
@@ -158,7 +245,22 @@ const ChapterEditor: React.FC<ChapterEditorProps> = (props) => {
         </div>
       ) : null}
 
-      {editableChapter.paragraphs.map((paragraph, idx) => {
+      {Array.from({ length: rowCount }, (_, idx) => {
+        const paragraph = slotChapter.paragraphs[idx];
+        const sourceCell = sideBySide ? (
+          <div className="text-sm leading-relaxed text-gray-600 bg-gray-50 border border-gray-100 rounded px-2 py-1.5 whitespace-pre-wrap">
+            {srcParas[idx] ?? ""}
+          </div>
+        ) : null;
+        if (paragraph === undefined) {
+          // Original has more paragraphs than the translation so far.
+          return (
+            <div key={idx} className="mb-4 grid md:grid-cols-2 gap-3 items-start">
+              {sourceCell}
+              <div />
+            </div>
+          );
+        }
         const isActive = editingParagraph?.chapterId === chapter.chapter_id && editingParagraph?.index === idx;
         const value = isActive ? editingParagraphText : paragraph;
         const branchesHere = inlineBranches.filter(
@@ -170,16 +272,22 @@ const ChapterEditor: React.FC<ChapterEditorProps> = (props) => {
           illustrationTarget?.anchorIndex === idx;
 
         return (
-          <div key={idx} className="mb-4">
+          <div key={idx} className={cn("mb-4", sideBySide && "grid md:grid-cols-2 gap-3 items-start")}>
+            {sourceCell}
+            <div className="min-w-0">
             <div className="group/paragraph flex items-start gap-2">
               <textarea
                 className="flex-1 border border-gray-200 hover:border-gray-300 focus:border-blue-400 px-2 py-1.5 text-sm leading-relaxed focus:outline-none resize-y rounded bg-white"
                 value={value}
                 placeholder="Type the chapter text here..."
-                onFocus={() => onStartEditParagraph(editableChapter, idx, paragraph)}
+                onFocus={() => onStartEditParagraph(slotChapter, idx, paragraph)}
                 onChange={(e) => onParagraphTextChange(e.target.value)}
-                onBlur={() => onSaveParagraph(editableChapter, idx)}
-                onKeyDown={(e) => onParagraphKeyDown(e, editableChapter, idx)}
+                onBlur={() => {
+                  // Leaving the empty "continue here" slot untouched is not an edit.
+                  if (needsTrailingSlot && idx === trParas.length && !value.trim()) return;
+                  onSaveParagraph(slotChapter, idx);
+                }}
+                onKeyDown={(e) => onParagraphKeyDown(e, slotChapter, idx)}
                 rows={textareaRows(value)}
               />
               <div className="flex flex-col gap-1 opacity-60 group-hover/paragraph:opacity-100 focus-within:opacity-100 transition-opacity">
@@ -191,7 +299,7 @@ const ChapterEditor: React.FC<ChapterEditorProps> = (props) => {
                   <GitBranch className="h-3.5 w-3.5" />
                   <EditableText id="story-branch-create-btn">Create Branch</EditableText>
                 </button>
-                {isOwner && hasParagraphs && (
+                {isOwner && hasParagraphs && idx < trParas.length && (
                   <button
                     className={actionBtn}
                     type="button"
@@ -269,6 +377,7 @@ const ChapterEditor: React.FC<ChapterEditorProps> = (props) => {
                 </div>
               </div>
             ))}
+            </div>
           </div>
         );
       })}
