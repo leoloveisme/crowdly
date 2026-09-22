@@ -6900,5 +6900,467 @@
     "en": "Questions, feedback, or just want to say hi? Drop us a line.",
     "ru": "Есть вопросы, отзывы или просто хотите поздороваться? Напишите нам.",
     "de": "Fragen, Feedback oder einfach nur Hallo sagen? Schreib uns."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-sidebar-heading",
+    "en": "Chapters",
+    "ru": "Главы",
+    "de": "Kapitel"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-mode-viewing",
+    "en": "Viewing",
+    "ru": "Просмотр",
+    "de": "Ansehen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-mode-editing",
+    "en": "Editing",
+    "ru": "Редактирование",
+    "de": "Bearbeiten"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-contribute-back-btn",
+    "en": "Back to experiencing the story",
+    "ru": "Вернуться к истории",
+    "de": "Zurück zur Geschichte"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-contributors-label",
+    "en": "Contributors",
+    "ru": "Участники",
+    "de": "Mitwirkende"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-badge-private",
+    "en": "Private",
+    "ru": "Приватная",
+    "de": "Privat"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-badge-unlisted",
+    "en": "Unlisted",
+    "ru": "По ссылке",
+    "de": "Nicht gelistet"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-badge-public",
+    "en": "Public",
+    "ru": "Публичная",
+    "de": "Öffentlich"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-badge-unpublished",
+    "en": "Unpublished",
+    "ru": "Не опубликована",
+    "de": "Unveröffentlicht"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-badge-completed",
+    "en": "Completed",
+    "ru": "Завершена",
+    "de": "Abgeschlossen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-badge-draft",
+    "en": "Draft",
+    "ru": "Черновик",
+    "de": "Entwurf"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-settings-btn",
+    "en": "Settings",
+    "ru": "Настройки",
+    "de": "Einstellungen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-mark-finished-btn",
+    "en": "Mark as finished",
+    "ru": "Отметить как прочитанную",
+    "de": "Als beendet markieren"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-clone-btn",
+    "en": "Clone",
+    "ru": "Клонировать",
+    "de": "Klonen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-export-btn",
+    "en": "Export",
+    "ru": "Экспорт",
+    "de": "Exportieren"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-delete-btn",
+    "en": "Delete Story",
+    "ru": "Удалить историю",
+    "de": "Geschichte löschen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-no-chapters",
+    "en": "No chapters have been added yet.",
+    "ru": "Главы ещё не добавлены.",
+    "de": "Es wurden noch keine Kapitel hinzugefügt."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-add-chapter-after-heading",
+    "en": "New chapter (inserted after the selected one)",
+    "ru": "Новая глава (после выбранной)",
+    "de": "Neues Kapitel (nach dem ausgewählten)"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-add-chapter-heading",
+    "en": "New chapter",
+    "ru": "Новая глава",
+    "de": "Neues Kapitel"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-dialog-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-add-chapter-save",
+    "en": "Add chapter",
+    "ru": "Добавить главу",
+    "de": "Kapitel hinzufügen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-contribute-btn",
+    "en": "I want to contribute to the story",
+    "ru": "Я хочу внести вклад в историю",
+    "de": "Ich möchte zur Geschichte beitragen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-content-type-text",
+    "en": "Text",
+    "ru": "Текст",
+    "de": "Text"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-content-type-audio",
+    "en": "Audio",
+    "ru": "Аудио",
+    "de": "Audio"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-content-type-cartoon",
+    "en": "Cartoon/Presentation",
+    "ru": "Мультфильм/Презентация",
+    "de": "Cartoon/Präsentation"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-content-type-video",
+    "en": "Video",
+    "ru": "Видео",
+    "de": "Video"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-settings-title",
+    "en": "Story settings",
+    "ru": "Настройки истории",
+    "de": "Einstellungen der Geschichte"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-settings-desc",
+    "en": "Only you, as the story owner, can change these.",
+    "ru": "Изменять их можете только вы как владелец истории.",
+    "de": "Nur du als Besitzer der Geschichte kannst diese ändern."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-settings-publishing",
+    "en": "Publishing",
+    "ru": "Публикация",
+    "de": "Veröffentlichung"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-settings-visibility",
+    "en": "Visibility",
+    "ru": "Видимость",
+    "de": "Sichtbarkeit"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-settings-viewers",
+    "en": "Viewers",
+    "ru": "Читатели",
+    "de": "Leser"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-settings-published",
+    "en": "Published in listings",
+    "ru": "Показывать в списках",
+    "de": "In Listen veröffentlicht"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-settings-completed",
+    "en": "Story is completed",
+    "ru": "История завершена",
+    "de": "Geschichte ist abgeschlossen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-settings-permissions",
+    "en": "Permissions",
+    "ru": "Разрешения",
+    "de": "Berechtigungen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-settings-clone",
+    "en": "Who can clone",
+    "ru": "Кто может клонировать",
+    "de": "Wer darf klonen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-settings-cloners",
+    "en": "Cloners",
+    "ru": "Кто клонирует",
+    "de": "Kloner"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-settings-export",
+    "en": "Who can export",
+    "ru": "Кто может экспортировать",
+    "de": "Wer darf exportieren"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-settings-exporters",
+    "en": "Exporters",
+    "ru": "Кто экспортирует",
+    "de": "Exporteure"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-settings-details",
+    "en": "Details",
+    "ru": "Подробности",
+    "de": "Details"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-settings-details-space",
+    "en": "Details & Space",
+    "ru": "Подробности и пространство",
+    "de": "Details & Space"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-settings-danger",
+    "en": "Danger zone",
+    "ru": "Опасная зона",
+    "de": "Gefahrenbereich"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-delete-confirm-title",
+    "en": "Permanently delete this story?",
+    "ru": "Удалить эту историю навсегда?",
+    "de": "Diese Geschichte endgültig löschen?"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-delete-confirm-desc",
+    "en": "All chapters, revisions and comments will be removed. This cannot be undone.",
+    "ru": "Все главы, ревизии и комментарии будут удалены. Это действие нельзя отменить.",
+    "de": "Alle Kapitel, Revisionen und Kommentare werden entfernt. Dies kann nicht rückgängig gemacht werden."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-sidebar-view",
+    "en": "View",
+    "ru": "Просмотр",
+    "de": "Ansicht"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-sidebar-edit",
+    "en": "Edit",
+    "ru": "Правка",
+    "de": "Bearbeiten"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-sidebar-empty",
+    "en": "No chapters yet.",
+    "ru": "Глав пока нет.",
+    "de": "Noch keine Kapitel."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-sidebar-untitled",
+    "en": "Untitled chapter",
+    "ru": "Глава без названия",
+    "de": "Unbenanntes Kapitel"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-sidebar-insert-after",
+    "en": "Insert chapter after",
+    "ru": "Вставить главу после",
+    "de": "Kapitel danach einfügen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-sidebar-move-top",
+    "en": "Move to top",
+    "ru": "В начало",
+    "de": "Nach ganz oben"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-sidebar-move-up",
+    "en": "Move up",
+    "ru": "Выше",
+    "de": "Nach oben"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-sidebar-move-down",
+    "en": "Move down",
+    "ru": "Ниже",
+    "de": "Nach unten"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-sidebar-move-bottom",
+    "en": "Move to bottom",
+    "ru": "В конец",
+    "de": "Nach ganz unten"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-sidebar-unpublish",
+    "en": "Unpublish chapter",
+    "ru": "Снять главу с публикации",
+    "de": "Kapitel zurückziehen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-sidebar-publish",
+    "en": "Publish chapter",
+    "ru": "Опубликовать главу",
+    "de": "Kapitel veröffentlichen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-sidebar-reorder-hint",
+    "en": "Drag the handle or use the ⋯ menu to reorder. Double-click a title to rename.",
+    "ru": "Перетащите за маркер или используйте меню ⋯, чтобы изменить порядок. Дважды щёлкните по названию, чтобы переименовать.",
+    "de": "Zum Umsortieren den Griff ziehen oder das ⋯-Menü nutzen. Doppelklick auf einen Titel zum Umbenennen."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-chapter-delete-title",
+    "en": "Delete this chapter?",
+    "ru": "Удалить эту главу?",
+    "de": "Dieses Kapitel löschen?"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-chapter-delete-desc",
+    "en": "This cannot be undone.",
+    "ru": "Это действие нельзя отменить.",
+    "de": "Dies kann nicht rückgängig gemacht werden."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-chapter-prev",
+    "en": "Previous chapter",
+    "ru": "Предыдущая глава",
+    "de": "Vorheriges Kapitel"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-chapter-next",
+    "en": "Next chapter",
+    "ru": "Следующая глава",
+    "de": "Nächstes Kapitel"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-proposal-deletion",
+    "en": "(Proposed deletion of this paragraph)",
+    "ru": "(Предложено удалить этот абзац)",
+    "de": "(Vorgeschlagene Löschung dieses Absatzes)"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-proposal-by",
+    "en": "Proposed by",
+    "ru": "Предложил(а)",
+    "de": "Vorgeschlagen von"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-demo-audio",
+    "en": "Demo audio (replace with real story audio)",
+    "ru": "Демо-аудио (замените настоящим аудио истории)",
+    "de": "Demo-Audio (durch echtes Audio der Geschichte ersetzen)"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-demo-cartoon",
+    "en": "Demo cartoon/presentation image",
+    "ru": "Демо-изображение мультфильма/презентации",
+    "de": "Demo-Bild für Cartoon/Präsentation"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-demo-video",
+    "en": "Demo video (replace with real story video)",
+    "ru": "Демо-видео (замените настоящим видео истории)",
+    "de": "Demo-Video (durch echtes Video der Geschichte ersetzen)"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-editor-proposal-hint",
+    "en": "Your changes are submitted as proposals for the story owner to review.",
+    "ru": "Ваши изменения отправляются владельцу истории как предложения на рассмотрение.",
+    "de": "Deine Änderungen werden dem Besitzer der Geschichte als Vorschläge zur Prüfung übermittelt."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-editor-save-hint",
+    "en": "Changes save when you click outside a paragraph (or press Ctrl/⌘+Enter). Esc cancels.",
+    "ru": "Изменения сохраняются при щелчке вне абзаца (или Ctrl/⌘+Enter). Esc — отмена.",
+    "de": "Änderungen werden gespeichert, wenn du außerhalb eines Absatzes klickst (oder Strg/⌘+Enter drückst). Esc bricht ab."
   }
 ]

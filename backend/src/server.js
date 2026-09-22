@@ -7297,7 +7297,18 @@ app.get('/story-titles/:storyTitleId/my-access', requireAuth, async (req, res) =
   const { storyTitleId } = req.params;
   try {
     const role = await getStoryAccessRole(storyTitleId, req.user.id);
-    res.json({ role });
+    // `explicit` separates the story's own team (owner or a story_access
+    // row) from the implicit "any signed-in user" contributor role on public
+    // stories, so the frontend can show creator-only UI to the team alone.
+    let explicit = role === 'owner';
+    if (role === 'contributor') {
+      const accessRes = await pool.query(
+        'SELECT 1 FROM story_access WHERE story_title_id = $1 AND user_id = $2',
+        [storyTitleId, req.user.id],
+      );
+      explicit = accessRes.rows.length > 0;
+    }
+    res.json({ role, explicit });
   } catch (err) {
     console.error('[GET /story-titles/:storyTitleId/my-access] failed:', err);
     res.status(500).json({ error: 'Failed to resolve access role' });
