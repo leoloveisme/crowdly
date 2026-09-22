@@ -4351,14 +4351,20 @@ app.patch('/stories/:storyTitleId/chapters/reorder', requireAuth, async (req, re
   }
 });
 
-// List stories a user is creating or contributing to
+// List stories a user is creating or contributing to.
+// Role labels:
+// - creator:     everyone who wrote, created and/or contributed to the story
+//                (so every row here has it)
+// - initiator:   started the story (story_title.initiator_id, never changes)
+// - owner:       current owner (story_title.creator_id, changes on transfer)
+// - contributor: wrote chapters / chapter revisions
 app.get('/users/:userId/stories', async (req, res) => {
   const { userId } = req.params;
 
   try {
-    // Stories created by the user
+    // Stories the user initiated or currently owns
     const created = await pool.query(
-      'SELECT story_title_id, title, created_at, visibility, published, language, cover_image_url FROM story_title WHERE creator_id = $1',
+      'SELECT story_title_id, title, created_at, visibility, published, language, cover_image_url, creator_id, initiator_id FROM story_title WHERE creator_id = $1 OR initiator_id = $1',
       [userId],
     );
 
@@ -4382,6 +4388,9 @@ app.get('/users/:userId/stories', async (req, res) => {
     // Merge and tag roles
     const map = new Map();
     for (const row of created.rows) {
+      const roles = ['creator'];
+      if (row.initiator_id === userId) roles.push('initiator');
+      if (row.creator_id === userId) roles.push('owner');
       map.set(row.story_title_id, {
         story_title_id: row.story_title_id,
         title: row.title,
@@ -4390,7 +4399,7 @@ app.get('/users/:userId/stories', async (req, res) => {
         published: row.published,
         language: row.language,
         cover_image_url: row.cover_image_url,
-        roles: ['creator'],
+        roles,
       });
     }
     for (const row of contributed.rows) {
@@ -4408,7 +4417,7 @@ app.get('/users/:userId/stories', async (req, res) => {
           published: row.published,
           language: row.language,
           cover_image_url: row.cover_image_url,
-          roles: ['contributor'],
+          roles: ['creator', 'contributor'],
         });
       }
     }
@@ -4449,6 +4458,8 @@ app.get('/users/:userId/screenplays', async (req, res) => {
       [userId],
     );
 
+    // Same role labels as GET /users/:userId/stories. Screenplays have no
+    // ownership transfer, so creator_id is both the initiator and the owner.
     const map = new Map();
     for (const row of created.rows) {
       map.set(row.screenplay_id, {
@@ -4457,7 +4468,7 @@ app.get('/users/:userId/screenplays', async (req, res) => {
         created_at: row.created_at,
         visibility: row.visibility,
         published: row.published,
-        roles: ['creator'],
+        roles: ['creator', 'initiator', 'owner'],
       });
     }
 
@@ -4474,7 +4485,7 @@ app.get('/users/:userId/screenplays', async (req, res) => {
           created_at: row.created_at,
           visibility: row.visibility,
           published: row.published,
-          roles: [row.role],
+          roles: ['creator', row.role],
         });
       }
     }
@@ -8844,6 +8855,8 @@ app.post('/story-titles/:storyTitleId/sync-desktop', async (req, res) => {
         [creatorId, authorId],
       );
 
+      // Legacy desktop-sync metadata, keyed per user (not per story) — not
+      // authoritative. story_title.initiator_id is the source of truth.
       await client.query(
         `INSERT INTO story_initiators (creator_id, initiator_id, updated_at)
          VALUES ($1, $2, now())
@@ -9207,11 +9220,12 @@ app.get('/stories/:storyTitleId/collaborators', async (req, res) => {
 });
 
 // POST /stories/:storyTitleId/authors — add an author
-app.post('/stories/:storyTitleId/authors', async (req, res) => {
+app.post('/stories/:storyTitleId/authors', requireAuth, async (req, res) => {
   const { storyTitleId } = req.params;
-  const { userId, requestingUserId } = req.body ?? {};
-  if (!userId || !requestingUserId) {
-    return res.status(400).json({ error: 'userId and requestingUserId are required' });
+  const { userId } = req.body ?? {};
+  const requestingUserId = req.user.id;
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
   }
   try {
     const storyRes = await pool.query('SELECT creator_id FROM story_title WHERE story_title_id = $1', [storyTitleId]);
@@ -9241,12 +9255,9 @@ app.post('/stories/:storyTitleId/authors', async (req, res) => {
 });
 
 // DELETE /stories/:storyTitleId/authors/:userId — remove an author
-app.delete('/stories/:storyTitleId/authors/:userId', async (req, res) => {
+app.delete('/stories/:storyTitleId/authors/:userId', requireAuth, async (req, res) => {
   const { storyTitleId, userId } = req.params;
-  const requestingUserId = req.query.requestingUserId;
-  if (!requestingUserId) {
-    return res.status(400).json({ error: 'requestingUserId is required' });
-  }
+  const requestingUserId = req.user.id;
   try {
     const storyRes = await pool.query('SELECT creator_id FROM story_title WHERE story_title_id = $1', [storyTitleId]);
     if (!storyRes.rows.length) return res.status(404).json({ error: 'Story not found' });
@@ -9265,11 +9276,12 @@ app.delete('/stories/:storyTitleId/authors/:userId', async (req, res) => {
 });
 
 // POST /stories/:storyTitleId/coauthors — add a co-author
-app.post('/stories/:storyTitleId/coauthors', async (req, res) => {
+app.post('/stories/:storyTitleId/coauthors', requireAuth, async (req, res) => {
   const { storyTitleId } = req.params;
-  const { userId, requestingUserId } = req.body ?? {};
-  if (!userId || !requestingUserId) {
-    return res.status(400).json({ error: 'userId and requestingUserId are required' });
+  const { userId } = req.body ?? {};
+  const requestingUserId = req.user.id;
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
   }
   try {
     const storyRes = await pool.query('SELECT creator_id FROM story_title WHERE story_title_id = $1', [storyTitleId]);
@@ -9299,12 +9311,9 @@ app.post('/stories/:storyTitleId/coauthors', async (req, res) => {
 });
 
 // DELETE /stories/:storyTitleId/coauthors/:userId — remove a co-author
-app.delete('/stories/:storyTitleId/coauthors/:userId', async (req, res) => {
+app.delete('/stories/:storyTitleId/coauthors/:userId', requireAuth, async (req, res) => {
   const { storyTitleId, userId } = req.params;
-  const requestingUserId = req.query.requestingUserId;
-  if (!requestingUserId) {
-    return res.status(400).json({ error: 'requestingUserId is required' });
-  }
+  const requestingUserId = req.user.id;
   try {
     const storyRes = await pool.query('SELECT creator_id FROM story_title WHERE story_title_id = $1', [storyTitleId]);
     if (!storyRes.rows.length) return res.status(404).json({ error: 'Story not found' });
@@ -9323,11 +9332,12 @@ app.delete('/stories/:storyTitleId/coauthors/:userId', async (req, res) => {
 });
 
 // POST /stories/:storyTitleId/transfer-ownership — transfer story ownership
-app.post('/stories/:storyTitleId/transfer-ownership', async (req, res) => {
+app.post('/stories/:storyTitleId/transfer-ownership', requireAuth, async (req, res) => {
   const { storyTitleId } = req.params;
-  const { newOwnerId, requestingUserId } = req.body ?? {};
-  if (!newOwnerId || !requestingUserId) {
-    return res.status(400).json({ error: 'newOwnerId and requestingUserId are required' });
+  const { newOwnerId } = req.body ?? {};
+  const requestingUserId = req.user.id;
+  if (!newOwnerId) {
+    return res.status(400).json({ error: 'newOwnerId is required' });
   }
   const client = await pool.connect();
   try {
@@ -9360,9 +9370,13 @@ app.post('/stories/:storyTitleId/transfer-ownership', async (req, res) => {
       'UPDATE story_title SET creator_id = $1 WHERE story_title_id = $2',
       [newOwnerId, storyTitleId],
     );
-    // Demote old owner in story_access to contributor
+    // Demote old owner to contributor. Upsert, because story creation doesn't
+    // add a story_access row for the creator — without one the previous owner
+    // would lose all access (and be locked out of a private story).
     await client.query(
-      `UPDATE story_access SET role = 'contributor' WHERE story_title_id = $1 AND user_id = $2`,
+      `INSERT INTO story_access (story_title_id, user_id, role)
+       VALUES ($1, $2, 'contributor')
+       ON CONFLICT (story_title_id, user_id) DO UPDATE SET role = 'contributor'`,
       [storyTitleId, currentOwnerId],
     );
     // Promote new owner in story_access
@@ -9453,7 +9467,7 @@ app.post('/stories/:storyTitleId/clone', async (req, res) => {
     }
 
     const insertTitleRes = await client.query(
-      'INSERT INTO story_title (title, creator_id, visibility, published, creative_space_id, language, cover_image_url) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING story_title_id, title, visibility, published, creative_space_id, language, cover_image_url',
+      'INSERT INTO story_title (title, creator_id, initiator_id, visibility, published, creative_space_id, language, cover_image_url) VALUES ($1, $2, $2, $3, $4, $5, $6, $7) RETURNING story_title_id, title, visibility, published, creative_space_id, language, cover_image_url',
       [src.title, userId, src.visibility ?? 'public', src.published ?? true, newCreativeSpaceId, src.language || 'en', src.cover_image_url || null],
     );
     const newTitle = insertTitleRes.rows[0];

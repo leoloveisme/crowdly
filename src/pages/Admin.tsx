@@ -96,6 +96,7 @@ type ContentItem = (StoryItem & { type: "story" }) | (ScreenplayItem & { type: "
 const RoleBadge = ({ role }: { role: string }) => {
   const colors: Record<string, string> = {
     creator: "bg-blue-100 text-blue-700",
+    initiator: "bg-teal-100 text-teal-700",
     owner: "bg-indigo-100 text-indigo-700",
     contributor: "bg-amber-100 text-amber-700",
     editor: "bg-purple-100 text-purple-700",
@@ -295,9 +296,10 @@ const Admin = () => {
     ...screenplays.map((s) => ({ ...s, type: "screenplay" as const })),
   ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-  // For Co-Authors tab: stories/screenplays where user is a collaborator (not sole creator)
+  // For Co-Authors tab: stories/screenplays where user has a collaborator role
+  // (anything beyond creator/initiator/owner)
   const collaboratorContent = allContent.filter(
-    (item) => item.roles.length > 1 || !item.roles.includes("creator")
+    (item) => item.roles.some((r) => !["creator", "initiator", "owner"].includes(r))
   );
 
   return (
