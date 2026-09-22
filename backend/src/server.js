@@ -7123,6 +7123,26 @@ app.get('/stories/:storyTitleId/contributions', async (req, res) => {
       }
     }
 
+    // Attach who made each contribution. Both the contributions table and the
+    // legacy fallback above only carry author_user_id; resolve it to the
+    // email/name the Contributions tab shows (was always "Unknown").
+    const authorIds = [...new Set(rows.map((r) => r.author_user_id).filter(Boolean))];
+    if (authorIds.length > 0) {
+      const { rows: authors } = await pool.query(
+        `SELECT u.id, u.email,
+                NULLIF(TRIM(CONCAT_WS(' ', p.first_name, p.last_name)), '') AS full_name
+           FROM local_users u
+           LEFT JOIN profiles p ON p.id = u.id
+          WHERE u.id = ANY($1::uuid[])`,
+        [authorIds],
+      );
+      const byId = new Map(authors.map((a) => [a.id, a]));
+      rows = rows.map((r) => {
+        const author = byId.get(r.author_user_id);
+        return author ? { ...r, user_email: author.email, user_name: author.full_name } : r;
+      });
+    }
+
     // Attach reactions and comment counts
     const { rows: reactions } = await pool.query(
       `SELECT chapter_id, paragraph_index,

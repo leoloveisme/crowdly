@@ -127,6 +127,7 @@ interface RawContributionRow {
   chapter_title?: string;
   new_paragraph?: string;
   user_email?: string;
+  user_name?: string | null;
   created_at?: string;
   likes?: number;
   dislikes?: number;
@@ -1864,7 +1865,7 @@ const Story = () => {
             story_title: row.story_title ?? '',
             chapter_title: row.chapter_title ?? '',
             paragraph: row.new_paragraph ?? '',
-            user: row.user_email ?? 'Unknown',
+            user: row.user_name || row.user_email || 'Unknown',
             date: row.created_at ? new Date(row.created_at).toLocaleString() : '',
             // Always compute word count on the frontend using the same
             // logic so results are stable and not tied to DB
