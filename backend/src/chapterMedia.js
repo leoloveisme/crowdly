@@ -1,10 +1,13 @@
 // Chapter media — the Audio, Cartoon/Presentation and Video formats of a
 // chapter. See backend/migrations/0004_chapter_media.sql.
 //
-// Storage follows the gallery: multer disk storage under
-// backend/uploads/media/<storyTitleId>/, served by the /uploads static route.
-// Video is embed-only for now (YouTube / Vimeo); uploading video files and
-// object storage are "coming soon".
+// Storage: multer writes uploads to backend/uploads/media/<storyTitleId>/;
+// when S3-compatible object storage is configured (backend/src/storage.js)
+// files are moved to the bucket right after. Large files (narrations, video
+// files) can instead go straight from the browser to the bucket through a
+// presigned URL (POST .../media/upload-url, then the matching "complete"
+// request with the returned storageKey). Video files need object storage;
+// without it, video is embed-only (YouTube / Vimeo).
 //
 // Moderation mirrors the gallery: the story team (owner or an explicit
 // story_access row) publishes directly; anyone else's submission starts as
@@ -24,10 +27,27 @@ import { requireAuth } from './sessions.js';
 import { UPLOADS_ROOT } from './gallery.js';
 import { optionalUserId, loadStory, isStoryTeam, canViewStory, canUsePolicy } from './storyAccess.js';
 import { createAutoSnapshotEdition } from './editions.js';
+import {
+  adoptLocalFile,
+  removeStoredFile,
+  isObjectStorageConfigured,
+  newKey,
+  presignUpload,
+  headObject,
+  deleteObjectKey,
+  publicUrlForKey,
+} from './storage.js';
 
 const MEDIA_UPLOADS_DIR = path.join(UPLOADS_ROOT, 'media');
 const MAX_AUDIO_BYTES = 200 * 1024 * 1024;
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
+const MAX_VIDEO_BYTES = (Number(process.env.MAX_VIDEO_UPLOAD_MB) || 1024) * 1024 * 1024;
+
+const VIDEO_TYPES = {
+  'video/mp4': '.mp4',
+  'video/webm': '.webm',
+  'video/quicktime': '.mov',
+};
 
 const AUDIO_TYPES = {
   'audio/mpeg': '.mp3',
@@ -127,13 +147,50 @@ function runUpload(middleware) {
     });
 }
 
-const publicUrl = (storyTitleId, filename) => `/uploads/media/${storyTitleId}/${filename}`;
-
 function removeUploadedFile(url) {
-  if (!url || !url.startsWith('/uploads/media/')) return;
-  const filePath = path.join(UPLOADS_ROOT, url.slice('/uploads/'.length));
-  if (!filePath.startsWith(MEDIA_UPLOADS_DIR)) return;
-  fs.promises.unlink(filePath).catch(() => {});
+  removeStoredFile(url).catch(() => {});
+}
+
+/** Media MIME type without parameters ("audio/webm;codecs=opus" → "audio/webm"). */
+const baseMime = (type) => String(type || '').split(';')[0].trim().toLowerCase();
+
+class UploadError extends Error {}
+
+/**
+ * Claim a finished direct-to-bucket upload: it must be one this user started
+ * for this chapter and purpose, it must exist, and it must not exceed the
+ * size limit (oversized objects are deleted). Returns { url, mime, size }.
+ */
+async function claimDirectUpload(storageKey, { userId, chapterId, purpose }) {
+  const { rows } = await pool.query(
+    'SELECT * FROM pending_uploads WHERE storage_key = $1 AND user_id = $2 AND chapter_id = $3 AND purpose = $4',
+    [String(storageKey || ''), userId, chapterId, purpose],
+  );
+  const pending = rows[0];
+  if (!pending) throw new UploadError('Unknown upload — please try again');
+  const object = await headObject(pending.storage_key);
+  if (!object) throw new UploadError("The file hasn't finished uploading");
+  await pool.query('DELETE FROM pending_uploads WHERE storage_key = $1', [pending.storage_key]);
+  if (object.size > Number(pending.max_bytes)) {
+    await deleteObjectKey(pending.storage_key);
+    throw new UploadError('File is too large');
+  }
+  // The presigned URL binds the Content-Type, but don't rely on every
+  // S3-compatible service enforcing that: never keep an object served with a
+  // different type than the one we approved (e.g. text/html).
+  if (baseMime(object.contentType) !== pending.content_type) {
+    await deleteObjectKey(pending.storage_key);
+    throw new UploadError('The uploaded file type does not match');
+  }
+  return { url: publicUrlForKey(pending.storage_key), mime: pending.content_type, size: object.size };
+}
+
+/** Forget (and delete) direct uploads that were never completed. */
+async function sweepAbandonedUploads() {
+  const { rows } = await pool.query(
+    "DELETE FROM pending_uploads WHERE created_at < now() - interval '1 day' RETURNING storage_key",
+  );
+  for (const r of rows) await deleteObjectKey(r.storage_key);
 }
 
 /** Turn a YouTube / Vimeo page URL into its embeddable URL, or null. */
@@ -224,6 +281,10 @@ router.get('/chapters/:chapterId/media', async (req, res) => {
     res.json({
       can_moderate: isTeam,
       can_narrate: await canUsePolicy(pool, target.story, userId, 'narration_policy', 'narrate'),
+      // Object storage on: large files go straight to the bucket, and video
+      // files can be uploaded.
+      direct_upload: isObjectStorageConfigured(),
+      max_video_bytes: MAX_VIDEO_BYTES,
       media,
     });
   } catch (err) {
@@ -293,7 +354,47 @@ router.post('/stories/:storyTitleId/narration-snapshot', requireAuth, async (req
   }
 });
 
-// POST /chapters/:chapterId/media/audio  multipart: file, label?, editionId?
+// POST /chapters/:chapterId/media/upload-url { purpose: 'audio' | 'video', contentType, size }
+// → { storageKey, url, method, headers }: a presigned URL for uploading the
+// file straight to object storage. Finish with the matching "complete"
+// request (media/audio or media/video-file) passing storageKey.
+router.post('/chapters/:chapterId/media/upload-url', requireAuth, withChapterTarget, async (req, res) => {
+  if (!isObjectStorageConfigured()) {
+    return res.status(409).json({ error: 'Direct uploads need object storage, which is not configured' });
+  }
+  const { story, chapter } = req.mediaTarget;
+  const purpose = req.body?.purpose;
+  const contentType = baseMime(req.body?.contentType);
+  const size = Number(req.body?.size);
+  const rules = {
+    audio: { types: AUDIO_TYPES, max: MAX_AUDIO_BYTES },
+    video: { types: VIDEO_TYPES, max: MAX_VIDEO_BYTES },
+  }[purpose];
+  if (!rules) return res.status(400).json({ error: "purpose must be 'audio' or 'video'" });
+  if (!rules.types[contentType]) return res.status(400).json({ error: `Unsupported file type: ${contentType || 'unknown'}` });
+  if (!Number.isFinite(size) || size <= 0) return res.status(400).json({ error: 'size is required' });
+  if (size > rules.max) return res.status(400).json({ error: 'File is too large' });
+  try {
+    if (purpose === 'audio' && !(await canUsePolicy(pool, story, req.user.id, 'narration_policy', 'narrate'))) {
+      return res.status(403).json({ error: 'You do not have permission to narrate this story' });
+    }
+    sweepAbandonedUploads().catch(() => {});
+    const storageKey = newKey('media', story.story_title_id, rules.types[contentType]);
+    await pool.query(
+      `INSERT INTO pending_uploads (storage_key, user_id, story_title_id, chapter_id, purpose, content_type, max_bytes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [storageKey, req.user.id, story.story_title_id, chapter.chapter_id, purpose, contentType, rules.max],
+    );
+    res.json({ storageKey, ...(await presignUpload(storageKey, contentType)) });
+  } catch (err) {
+    console.error('[POST /chapters/:chapterId/media/upload-url] failed:', err);
+    res.status(500).json({ error: 'Failed to prepare the upload' });
+  }
+});
+
+// POST /chapters/:chapterId/media/audio
+//   multipart: file, label?, editionId?, durationSeconds?     (upload through the backend), or
+//   JSON: { storageKey, label?, editionId?, durationSeconds? } (after a direct upload)
 // Without editionId, the current text is frozen as an auto-snapshot edition.
 router.post(
   '/chapters/:chapterId/media/audio',
@@ -312,14 +413,31 @@ router.post(
   async (req, res) => {
     const { chapter, story, isTeam } = req.mediaTarget;
     const file = req.file;
-    if (!file) return res.status(400).json({ error: 'An audio file is required' });
+    if (!file && !req.body?.storageKey) return res.status(400).json({ error: 'An audio file is required' });
+
+    let stored;
+    try {
+      stored = file
+        ? { url: await adoptLocalFile(file.path, file.mimetype), mime: file.mimetype, size: file.size }
+        : await claimDirectUpload(req.body.storageKey, {
+            userId: req.user.id,
+            chapterId: chapter.chapter_id,
+            purpose: 'audio',
+          });
+    } catch (err) {
+      if (file) fs.promises.unlink(file.path).catch(() => {});
+      if (err instanceof UploadError) return res.status(400).json({ error: err.message });
+      console.error('[POST /chapters/:chapterId/media/audio] storing failed:', err);
+      return res.status(500).json({ error: 'Failed to store the audio file' });
+    }
+
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
       let editionId = await resolveEditionForStory(client, req.body.editionId, story.story_title_id);
       if (editionId === undefined) {
         await client.query('ROLLBACK');
-        fs.promises.unlink(file.path).catch(() => {});
+        removeUploadedFile(stored.url);
         return res.status(400).json({ error: 'Edition does not belong to this story' });
       }
       if (editionId === null) {
@@ -336,9 +454,9 @@ router.post(
           chapter.chapter_id,
           editionId,
           (req.body.label || '').trim() || null,
-          publicUrl(story.story_title_id, file.filename),
-          file.mimetype,
-          file.size,
+          stored.url,
+          stored.mime,
+          stored.size,
           Number.isFinite(duration) && duration > 0 ? duration : null,
           isTeam ? 'approved' : 'pending',
           req.user.id,
@@ -348,7 +466,7 @@ router.post(
       res.status(201).json(rows[0]);
     } catch (err) {
       await client.query('ROLLBACK').catch(() => {});
-      fs.promises.unlink(file.path).catch(() => {});
+      removeUploadedFile(stored.url);
       console.error('[POST /chapters/:chapterId/media/audio] failed:', err);
       res.status(500).json({ error: 'Failed to save narration' });
     } finally {
@@ -358,8 +476,48 @@ router.post(
 );
 
 // ---------------------------------------------------------------------------
-// Video (embed only for now)
+// Video: YouTube / Vimeo embeds, or your own files (object storage only)
 // ---------------------------------------------------------------------------
+
+// POST /chapters/:chapterId/media/video-file { storageKey, label? } — after a
+// direct upload (purpose 'video'). Only available with object storage.
+router.post('/chapters/:chapterId/media/video-file', requireAuth, withChapterTarget, async (req, res) => {
+  const { chapter, story, isTeam } = req.mediaTarget;
+  let stored;
+  try {
+    stored = await claimDirectUpload(req.body?.storageKey, {
+      userId: req.user.id,
+      chapterId: chapter.chapter_id,
+      purpose: 'video',
+    });
+  } catch (err) {
+    if (err instanceof UploadError) return res.status(400).json({ error: err.message });
+    console.error('[POST /chapters/:chapterId/media/video-file] storing failed:', err);
+    return res.status(500).json({ error: 'Failed to store the video' });
+  }
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO chapter_media (story_title_id, chapter_id, kind, source, label, url, mime, size_bytes, status, created_by)
+       VALUES ($1, $2, 'video', 'upload', $3, $4, $5, $6, $7, $8)
+       RETURNING *`,
+      [
+        story.story_title_id,
+        chapter.chapter_id,
+        (req.body?.label || '').trim() || null,
+        stored.url,
+        stored.mime,
+        stored.size,
+        isTeam ? 'approved' : 'pending',
+        req.user.id,
+      ],
+    );
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    removeUploadedFile(stored.url);
+    console.error('[POST /chapters/:chapterId/media/video-file] failed:', err);
+    res.status(500).json({ error: 'Failed to save the video' });
+  }
+});
 
 // POST /chapters/:chapterId/media/embed { url, label? }
 router.post('/chapters/:chapterId/media/embed', requireAuth, withChapterTarget, async (req, res) => {
@@ -417,7 +575,7 @@ router.post(
       for (const [i, file] of files.entries()) {
         await client.query(
           'INSERT INTO chapter_media_frames (media_id, frame_index, image_url) VALUES ($1, $2, $3)',
-          [media.id, i, publicUrl(story.story_title_id, file.filename)],
+          [media.id, i, await adoptLocalFile(file.path, file.mimetype)],
         );
       }
       await client.query('COMMIT');
@@ -478,7 +636,7 @@ router.post(
       for (const file of files) {
         const r = await pool.query(
           'INSERT INTO chapter_media_frames (media_id, frame_index, image_url) VALUES ($1, $2, $3) RETURNING *',
-          [media.id, next++, publicUrl(story.story_title_id, file.filename)],
+          [media.id, next++, await adoptLocalFile(file.path, file.mimetype)],
         );
         inserted.push(r.rows[0]);
       }

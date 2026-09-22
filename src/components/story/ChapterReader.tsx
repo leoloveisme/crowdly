@@ -158,6 +158,7 @@ const ChapterReader: React.FC<ChapterReaderProps> = ({
   const [followNarration, setFollowNarration] = useState<ChapterMedia | null>(null);
   const [followEdition, setFollowEdition] = useState<Edition | null>(null);
   const [narratedParagraph, setNarratedParagraph] = useState<number | null>(null);
+  const [seekRequest, setSeekRequest] = useState<{ paragraph: number; nonce: number } | null>(null);
   useEffect(() => {
     const id = followNarration?.edition_id;
     if (!id) return setFollowEdition(null);
@@ -248,6 +249,7 @@ const ChapterReader: React.FC<ChapterReaderProps> = ({
             following={Boolean(followNarration)}
             onFollowingChange={(following, narration) => setFollowNarration(following ? narration : null)}
             onParagraphChange={setNarratedParagraph}
+            seekRequest={seekRequest}
           />
         </div>
       )}
@@ -281,8 +283,15 @@ const ChapterReader: React.FC<ChapterReaderProps> = ({
               <React.Fragment key={idx}>
                 <div
                   data-paragraph-index={idx}
+                  onClick={
+                    followNarration?.timings?.some((t) => t.paragraph === idx)
+                      ? () => setSeekRequest({ paragraph: idx, nonce: Date.now() })
+                      : undefined
+                  }
+                  title={followNarration ? "Listen from here" : undefined}
                   className={cn(
                     "mb-3 leading-relaxed rounded transition-colors",
+                    followNarration && "cursor-pointer hover:bg-yellow-50",
                     isNarrated && "bg-yellow-100 -mx-2 px-2",
                   )}
                 >

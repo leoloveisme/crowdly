@@ -70,7 +70,7 @@ const ChapterMediaEditor: React.FC<ChapterMediaEditorProps> = ({
           onAiJobQueued={onAiJobQueued}
         />
       )}
-      <StorageNote />
+      <StorageNote objectStorage={list.direct_upload} />
     </div>
   );
 };

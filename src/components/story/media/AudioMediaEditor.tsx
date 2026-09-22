@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { BookAudio, Loader2, Sparkles, Timer, Upload } from "lucide-react";
+import { BookAudio, Download, Loader2, Sparkles, Timer, Upload } from "lucide-react";
+import QuickTakeRecorder from "./QuickTakeRecorder";
 import { Link } from "react-router-dom";
 import { aiNarrateChapter, connectionName, connectionsFor, useAiConnections } from "@/lib/aiApi";
 import EditableText from "@/components/EditableText";
@@ -81,12 +82,18 @@ const AudioMediaEditor: React.FC<AudioMediaEditorProps> = ({
       .catch(() => setEditions([]));
   }, [storyTitleId]);
 
-  const handleUpload = async () => {
-    if (!file) return;
+  /** Upload a chosen file or a recorded take; resolves true on success. */
+  const handleUpload = async (chosen: File | null = file): Promise<boolean> => {
+    if (!chosen) return false;
     setProgress(0);
     try {
-      const durationSeconds = await readAudioDuration(file);
-      const created = await uploadNarration(chapterId, file, { label, editionId: editionId || null, durationSeconds }, setProgress);
+      const durationSeconds = await readAudioDuration(chosen);
+      const created = await uploadNarration(
+        chapterId,
+        chosen,
+        { label, editionId: editionId || null, durationSeconds, direct: list.direct_upload },
+        setProgress,
+      );
       setFile(null);
       setLabel("");
       toast({
@@ -97,12 +104,14 @@ const AudioMediaEditor: React.FC<AudioMediaEditorProps> = ({
             : "Use “Sync to paragraphs” to enable read-along.",
       });
       onChanged();
+      return true;
     } catch (err) {
       toast({
         title: "Upload failed",
         description: err instanceof Error ? err.message : "Upload failed",
         variant: "destructive",
       });
+      return false;
     } finally {
       setProgress(null);
     }
@@ -128,6 +137,18 @@ const AudioMediaEditor: React.FC<AudioMediaEditorProps> = ({
                   </span>
                 </div>
                 <MediaItemControls media={m} canModerate={list.can_moderate} onChanged={onChanged}>
+                  {m.url && (list.can_moderate || m.is_mine) && (
+                    <a
+                      href={m.url}
+                      download
+                      target="_blank"
+                      rel="noreferrer"
+                      title="Download"
+                      className="p-1 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                    </a>
+                  )}
                   {(list.can_moderate || m.is_mine) && (
                     <button
                       type="button"
@@ -179,7 +200,7 @@ const AudioMediaEditor: React.FC<AudioMediaEditorProps> = ({
             <button
               type="button"
               disabled={!file || progress !== null}
-              onClick={handleUpload}
+              onClick={() => handleUpload()}
               className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
             >
               <Upload className="h-3.5 w-3.5" />
@@ -193,6 +214,9 @@ const AudioMediaEditor: React.FC<AudioMediaEditorProps> = ({
               <BookAudio className="h-3.5 w-3.5" />
               <EditableText id="story-audio-audiobook-btn">Upload a whole audiobook…</EditableText>
             </button>
+          </div>
+          <div className="border-t pt-2">
+            <QuickTakeRecorder onUpload={(take) => handleUpload(take)} uploading={progress !== null} />
           </div>
           <div className="border-t pt-2 space-y-2">
             <div className="flex items-center gap-1 text-sm font-medium text-purple-900">
@@ -262,6 +286,7 @@ const AudioMediaEditor: React.FC<AudioMediaEditorProps> = ({
         />
       )}
       <AudiobookUploadDialog
+        direct={list.direct_upload}
         open={audiobookOpen}
         onOpenChange={setAudiobookOpen}
         storyTitleId={storyTitleId}

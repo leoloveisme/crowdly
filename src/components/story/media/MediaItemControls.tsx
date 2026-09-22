@@ -95,14 +95,20 @@ const MediaItemControls: React.FC<{
 
 export default MediaItemControls;
 
-/** Footer shown under every media editor: where files live, and what's next. */
-export const StorageNote: React.FC = () => (
+/** Footer shown under every media editor: where files live. */
+export const StorageNote: React.FC<{ objectStorage?: boolean }> = ({ objectStorage }) => (
   <p className="text-[11px] text-gray-400 pt-2 border-t">
-    <EditableText id="story-media-storage-note">Stored on Crowdly servers.</EditableText>{" "}
-    <span className="text-gray-400">
-      <EditableText id="story-media-object-storage">Object storage (S3/R2)</EditableText> —{" "}
-      <EditableText id="story-coming-soon">Coming soon</EditableText>
-    </span>
+    {objectStorage ? (
+      <EditableText id="story-media-storage-cloud">Stored in Crowdly's media storage; large files upload directly.</EditableText>
+    ) : (
+      <>
+        <EditableText id="story-media-storage-note">Stored on Crowdly servers.</EditableText>{" "}
+        <span className="text-gray-400">
+          <EditableText id="story-media-object-storage">Object storage (S3/R2)</EditableText> —{" "}
+          <EditableText id="story-coming-soon">Coming soon</EditableText>
+        </span>
+      </>
+    )}
   </p>
 );
 

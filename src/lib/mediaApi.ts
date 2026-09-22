@@ -99,6 +99,9 @@ export interface ChapterMedia {
 export interface ChapterMediaList {
   can_moderate: boolean;
   can_narrate: boolean;
+  /** Object storage is configured: large files upload straight to it, and video files are allowed. */
+  direct_upload?: boolean;
+  max_video_bytes?: number;
   media: ChapterMedia[];
 }
 
@@ -196,18 +199,76 @@ export const getMediaSummary = (storyTitleId: string) =>
 export const createNarrationSnapshot = (storyTitleId: string) =>
   request<{ id: string }>(`/stories/${storyTitleId}/narration-snapshot`, json("POST"));
 
-export function uploadNarration(
+/** MIME type without parameters ("audio/webm;codecs=opus" → "audio/webm"). */
+export const baseMime = (type: string) => type.split(";")[0].trim().toLowerCase();
+
+/** PUT a file straight to object storage with a presigned URL (no cookies). */
+function putToBucket(url: string, headers: Record<string, string>, file: Blob, onProgress?: (fraction: number) => void) {
+  return new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", url);
+    for (const [k, v] of Object.entries(headers)) xhr.setRequestHeader(k, v);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) onProgress(e.loaded / e.total);
+    };
+    xhr.onload = () =>
+      xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`Upload to storage failed (${xhr.status})`));
+    xhr.onerror = () => reject(new Error("Network error while uploading to storage"));
+    xhr.send(file);
+  });
+}
+
+/** Presigned direct upload: ask for a URL, PUT the file, return the storage key. */
+async function directUpload(
   chapterId: string,
+  purpose: "audio" | "video",
   file: File,
-  opts: { label?: string; editionId?: string | null; durationSeconds?: number | null },
   onProgress?: (fraction: number) => void,
 ) {
+  const contentType = baseMime(file.type);
+  const target = await request<{ storageKey: string; url: string; headers: Record<string, string> }>(
+    `/chapters/${chapterId}/media/upload-url`,
+    json("POST", { purpose, contentType, size: file.size }),
+  );
+  await putToBucket(target.url, target.headers, file, onProgress);
+  return target.storageKey;
+}
+
+export async function uploadNarration(
+  chapterId: string,
+  file: File,
+  opts: { label?: string; editionId?: string | null; durationSeconds?: number | null; direct?: boolean },
+  onProgress?: (fraction: number) => void,
+) {
+  if (opts.direct) {
+    const storageKey = await directUpload(chapterId, "audio", file, onProgress);
+    return request<ChapterMedia>(
+      `/chapters/${chapterId}/media/audio`,
+      json("POST", {
+        storageKey,
+        label: opts.label,
+        editionId: opts.editionId,
+        durationSeconds: opts.durationSeconds ?? undefined,
+      }),
+    );
+  }
   const form = new FormData();
   form.append("file", file);
   if (opts.label) form.append("label", opts.label);
   if (opts.editionId) form.append("editionId", opts.editionId);
   if (opts.durationSeconds) form.append("durationSeconds", String(opts.durationSeconds));
   return uploadWithProgress<ChapterMedia>(`/chapters/${chapterId}/media/audio`, form, onProgress);
+}
+
+/** Upload your own video file (requires object storage — list.direct_upload). */
+export async function uploadVideoFile(
+  chapterId: string,
+  file: File,
+  label: string | undefined,
+  onProgress?: (fraction: number) => void,
+) {
+  const storageKey = await directUpload(chapterId, "video", file, onProgress);
+  return request<ChapterMedia>(`/chapters/${chapterId}/media/video-file`, json("POST", { storageKey, label }));
 }
 
 export const addVideoEmbed = (chapterId: string, url: string, label?: string) =>

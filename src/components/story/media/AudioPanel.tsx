@@ -23,6 +23,8 @@ interface AudioPanelProps {
   following: boolean;
   onFollowingChange: (following: boolean, narration: ChapterMedia | null) => void;
   onParagraphChange: (paragraph: number | null) => void;
+  /** Reader clicked a paragraph while following: jump the narration there. */
+  seekRequest?: { paragraph: number; nonce: number } | null;
   /** Rendered at the bottom (e.g. "Submit your narration"). */
   footer?: React.ReactNode;
 }
@@ -37,6 +39,7 @@ const AudioPanel: React.FC<AudioPanelProps> = ({
   following,
   onFollowingChange,
   onParagraphChange,
+  seekRequest,
   footer,
 }) => {
   const approved = narrations.filter((m) => m.status === "approved");
@@ -64,6 +67,16 @@ const AudioPanel: React.FC<AudioPanelProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
+
+  useEffect(() => {
+    if (!seekRequest || !audioRef.current) return;
+    const timing = selected?.timings?.find((t) => t.paragraph === seekRequest.paragraph);
+    if (!timing) return;
+    audioRef.current.currentTime = timing.start;
+    audioRef.current.play().catch(() => {});
+    onParagraphChange(seekRequest.paragraph);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seekRequest]);
 
   if (approved.length === 0) {
     return (

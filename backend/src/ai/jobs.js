@@ -3,11 +3,8 @@
 // the worker claims one at a time with FOR UPDATE SKIP LOCKED, so a second
 // backend process would simply share the queue.
 
-import path from 'path';
-import fs from 'fs';
-import { randomUUID } from 'crypto';
 import { pool } from '../db.js';
-import { UPLOADS_ROOT } from '../gallery.js';
+import { storeBuffer, newKey, removeStoredFile } from '../storage.js';
 import { decryptSecret } from '../secrets.js';
 import { loadStory, isStoryTeam } from '../storyAccess.js';
 import {
@@ -65,12 +62,10 @@ async function saveParams(job, patch) {
   await pool.query('UPDATE ai_jobs SET params = $2 WHERE id = $1', [job.id, JSON.stringify(job.params)]);
 }
 
-async function saveMediaFile(storyTitleId, buffer, ext) {
-  const dir = path.join(UPLOADS_ROOT, 'media', storyTitleId);
-  await fs.promises.mkdir(dir, { recursive: true });
-  const filename = `${randomUUID()}${ext}`;
-  await fs.promises.writeFile(path.join(dir, filename), buffer);
-  return { url: `/uploads/media/${storyTitleId}/${filename}`, filePath: path.join(dir, filename) };
+/** Store a generated file (object storage when configured, local disk otherwise). */
+async function saveMediaFile(storyTitleId, buffer, ext, contentType) {
+  const url = await storeBuffer(newKey('media', storyTitleId, ext), buffer, contentType);
+  return { url, remove: () => removeStoredFile(url).catch(() => {}) };
 }
 
 async function submitterIsTeam(job, storyTitleId) {
@@ -169,10 +164,7 @@ async function runTtsChapter(job) {
 
   const audio = await synthesizeSpeech(connection, apiKey, paragraphs, { voice: params.voice, model: params.model });
 
-  const dir = path.join(UPLOADS_ROOT, 'media', chapter.story_title_id);
-  await fs.promises.mkdir(dir, { recursive: true });
-  const filename = `${randomUUID()}${audio.ext}`;
-  await fs.promises.writeFile(path.join(dir, filename), audio.buffer);
+  const saved = await saveMediaFile(chapter.story_title_id, audio.buffer, audio.ext, audio.mime);
 
   const story = await loadStory(pool, chapter.story_title_id);
   const isTeam = story ? await isStoryTeam(pool, story, job.user_id) : false;
@@ -188,7 +180,7 @@ async function runTtsChapter(job) {
         chapter.chapter_id,
         params.editionId ?? null,
         label,
-        `/uploads/media/${chapter.story_title_id}/${filename}`,
+        saved.url,
         audio.mime,
         audio.buffer.length,
         isTeam ? 'approved' : 'pending',
@@ -199,7 +191,7 @@ async function runTtsChapter(job) {
     );
     return { mediaId: inserted.rows[0].id, bytes: audio.buffer.length };
   } catch (err) {
-    fs.promises.unlink(path.join(dir, filename)).catch(() => {});
+    saved.remove();
     throw err;
   }
 }
@@ -265,7 +257,7 @@ async function runComicFrames(job) {
       .filter(Boolean)
       .join('\n\n');
     const img = await generateImage(image.connection, image.apiKey, prompt);
-    const saved = await saveMediaFile(chapter.story_title_id, img.buffer, img.ext);
+    const saved = await saveMediaFile(chapter.story_title_id, img.buffer, img.ext, img.mime);
     try {
       await pool.query(
         `INSERT INTO chapter_media_frames (media_id, frame_index, image_url, caption, overlays, anchor_start, anchor_end)
@@ -273,7 +265,7 @@ async function runComicFrames(job) {
         [mediaId, i, saved.url, frame.caption || null, JSON.stringify(frame.bubbles), frame.anchor_start, frame.anchor_end],
       );
     } catch (err) {
-      fs.promises.unlink(saved.filePath).catch(() => {});
+      saved.remove();
       throw err;
     }
   }
@@ -316,7 +308,7 @@ async function runVideoChapter(job) {
   }
 
   const video = await downloadVideo(connection, apiKey, params.providerJobId);
-  const saved = await saveMediaFile(chapter.story_title_id, video.buffer, video.ext);
+  const saved = await saveMediaFile(chapter.story_title_id, video.buffer, video.ext, video.mime);
   const isTeam = await submitterIsTeam(job, chapter.story_title_id);
   try {
     const inserted = await pool.query(
@@ -340,7 +332,7 @@ async function runVideoChapter(job) {
     );
     return { mediaId: inserted.rows[0].id, bytes: video.buffer.length };
   } catch (err) {
-    fs.promises.unlink(saved.filePath).catch(() => {});
+    saved.remove();
     throw err;
   }
 }

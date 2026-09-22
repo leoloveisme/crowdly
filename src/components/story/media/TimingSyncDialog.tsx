@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Loader2, RotateCcw, Undo2 } from "lucide-react";
+import { Loader2, Minus, Plus, RotateCcw, Undo2, Wand2 } from "lucide-react";
 import EditableText from "@/components/EditableText";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -40,6 +40,40 @@ const TimingSyncDialog: React.FC<TimingSyncDialogProps> = ({ media, fallbackPara
 
   const nextParagraph = timings.length === 0 ? 0 : Math.max(...timings.map((t) => t.paragraph)) + 1;
   const done = paragraphs !== null && nextParagraph >= paragraphs.length;
+
+  /**
+   * First guess: split the recording's duration across paragraphs in
+   * proportion to their length. Readers pause between paragraphs, so this is
+   * a starting point to fine-tune with the ± buttons, not a final answer.
+   */
+  const estimate = () => {
+    const duration = audioRef.current?.duration;
+    if (!paragraphs || !duration || !Number.isFinite(duration)) {
+      toast({ title: "Load the audio first", description: "Press play once so the duration is known." });
+      return;
+    }
+    const lengths = paragraphs.map((p) => Math.max(1, p.trim().length));
+    const total = lengths.reduce((a, b) => a + b, 0);
+    let at = 0;
+    setTimings(
+      lengths.map((len, i) => {
+        const t = { paragraph: i, start: Math.round(at * 10) / 10 };
+        at += (len / total) * duration;
+        return t;
+      }),
+    );
+  };
+
+  const nudge = (paragraph: number, delta: number) =>
+    setTimings((prev) =>
+      prev.map((t) => (t.paragraph === paragraph ? { ...t, start: Math.max(0, Math.round((t.start + delta) * 10) / 10) } : t)),
+    );
+
+  const seek = (seconds: number) => {
+    if (!audioRef.current) return;
+    audioRef.current.currentTime = seconds;
+    audioRef.current.play().catch(() => {});
+  };
 
   const mark = () => {
     if (done || !audioRef.current) return;
@@ -116,6 +150,16 @@ const TimingSyncDialog: React.FC<TimingSyncDialogProps> = ({ media, fallbackPara
           </button>
           <button
             type="button"
+            disabled={paragraphs === null}
+            onClick={estimate}
+            className="inline-flex items-center gap-1 px-2 py-1.5 text-sm rounded border hover:bg-gray-50 disabled:opacity-40"
+            title="Spread the recording across paragraphs by their length"
+          >
+            <Wand2 className="h-3.5 w-3.5" />
+            <EditableText id="story-sync-estimate">Estimate from length</EditableText>
+          </button>
+          <button
+            type="button"
             disabled={timings.length === 0}
             onClick={() => setTimings([])}
             className="inline-flex items-center gap-1 px-2 py-1.5 text-sm rounded border hover:bg-gray-50 disabled:opacity-40"
@@ -137,15 +181,35 @@ const TimingSyncDialog: React.FC<TimingSyncDialogProps> = ({ media, fallbackPara
                 <li
                   key={i}
                   className={cn(
-                    "flex gap-2 rounded px-2 py-1",
+                    "flex items-start gap-2 rounded px-2 py-1",
                     i === nextParagraph && "bg-blue-50 ring-1 ring-blue-200",
-                    t && "text-gray-500",
+                    t && "text-gray-600",
                   )}
                 >
-                  <span className="w-12 shrink-0 text-xs tabular-nums pt-0.5 text-gray-500">
-                    {t ? fmt(t.start) : "—"}
+                  <span className="w-24 shrink-0 flex items-center gap-0.5 text-xs tabular-nums pt-0.5 text-gray-500">
+                    {t ? (
+                      <>
+                        <button type="button" title="0.5 s earlier" onClick={() => nudge(i, -0.5)} className="p-0.5 rounded hover:bg-gray-200">
+                          <Minus className="h-3 w-3" />
+                        </button>
+                        <span className="w-9 text-center">{fmt(t.start)}</span>
+                        <button type="button" title="0.5 s later" onClick={() => nudge(i, 0.5)} className="p-0.5 rounded hover:bg-gray-200">
+                          <Plus className="h-3 w-3" />
+                        </button>
+                      </>
+                    ) : (
+                      "—"
+                    )}
                   </span>
-                  <span className="line-clamp-2">{p}</span>
+                  <button
+                    type="button"
+                    disabled={!t}
+                    onClick={() => t && seek(t.start)}
+                    title={t ? "Play from here" : undefined}
+                    className="line-clamp-2 text-left disabled:cursor-default hover:enabled:text-blue-700"
+                  >
+                    {p}
+                  </button>
                 </li>
               );
             })

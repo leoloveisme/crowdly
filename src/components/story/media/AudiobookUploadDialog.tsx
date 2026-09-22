@@ -28,6 +28,8 @@ interface AudiobookUploadDialogProps {
   chapters: { chapter_id: string; chapter_title: string }[];
   editions: EditionSummary[];
   onDone: () => void;
+  /** Upload straight to object storage (when configured). */
+  direct?: boolean;
 }
 
 /**
@@ -43,6 +45,7 @@ const AudiobookUploadDialog: React.FC<AudiobookUploadDialogProps> = ({
   chapters,
   editions,
   onDone,
+  direct,
 }) => {
   const { toast } = useToast();
   const [editionId, setEditionId] = useState("");
@@ -83,7 +86,7 @@ const AudiobookUploadDialog: React.FC<AudiobookUploadDialogProps> = ({
           await uploadNarration(
             ch.chapter_id,
             row.file,
-            { label, editionId: targetEdition, durationSeconds },
+            { label, editionId: targetEdition, durationSeconds, direct },
             (p) => setRow(ch.chapter_id, { progress: p }),
           );
           setRow(ch.chapter_id, { progress: null, status: "done" });

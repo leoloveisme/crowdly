@@ -8377,5 +8377,82 @@
     "en": "Video (experimental)",
     "ru": "Видео (экспериментально)",
     "de": "Video (experimentell)"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-recorder-unsupported",
+    "en": "This browser can't record audio — upload a file instead.",
+    "ru": "Этот браузер не умеет записывать звук — загрузите файл.",
+    "de": "Dieser Browser kann kein Audio aufnehmen — lade stattdessen eine Datei hoch."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-recorder-heading",
+    "en": "Or record a quick take here",
+    "ru": "Или запишите дубль прямо здесь",
+    "de": "Oder nimm hier schnell eine Aufnahme auf"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-recorder-start",
+    "en": "Record",
+    "ru": "Записать",
+    "de": "Aufnehmen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-recorder-stop",
+    "en": "Stop",
+    "ru": "Стоп",
+    "de": "Stopp"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-recorder-upload",
+    "en": "Upload this take",
+    "ru": "Загрузить этот дубль",
+    "de": "Diese Aufnahme hochladen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-recorder-download",
+    "en": "Download",
+    "ru": "Скачать",
+    "de": "Herunterladen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-recorder-retake",
+    "en": "Re-take",
+    "ru": "Переписать",
+    "de": "Neu aufnehmen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-recorder-delete",
+    "en": "Delete take",
+    "ru": "Удалить дубль",
+    "de": "Aufnahme löschen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-video-file-formats",
+    "en": "MP4, WEBM or MOV, up to",
+    "ru": "MP4, WEBM или MOV, до",
+    "de": "MP4, WEBM oder MOV, bis"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-media-storage-cloud",
+    "en": "Stored in Crowdly's media storage; large files upload directly.",
+    "ru": "Хранится в медиахранилище Crowdly; большие файлы загружаются напрямую.",
+    "de": "Gespeichert im Medienspeicher von Crowdly; große Dateien werden direkt hochgeladen."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-sync-estimate",
+    "en": "Estimate from length",
+    "ru": "Оценить по длине",
+    "de": "Aus Länge schätzen"
   }
 ]
