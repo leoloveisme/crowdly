@@ -4,6 +4,8 @@
 //   /chapters/:id/ai/translate         — AI draft of one translated chapter
 //   /stories/:id/ai/translate          — AI drafts of all (empty) chapters of a translation
 //   /chapters/:id/ai/narrate           — AI narration (TTS) of a chapter
+//   /chapters/:id/ai/comic             — AI comic frames for a paragraph range
+//   /chapters/:id/ai/video             — AI video clip (experimental)
 //   /stories/:id/ai-jobs               — job status for the story page
 //   /stories/ai-jobs/:jobId/cancel     — cancel a queued job
 //
@@ -82,9 +84,8 @@ async function usableConnection(userId, connectionId, capability) {
   const conn = rows[0];
   if (!conn) throw new ProviderError('Choose one of your AI connections');
   if (!(conn.capabilities ?? []).includes(capability)) {
-    throw new ProviderError(
-      capability === 'tts' ? 'This connection is not set up for narration' : 'This connection is not set up for translation',
-    );
+    const what = { tts: 'narration', image: 'images', video: 'video', translate: 'text (translation, comic scripts)' };
+    throw new ProviderError(`This connection is not set up for ${what[capability] ?? capability}`);
   }
   return conn;
 }
@@ -374,6 +375,87 @@ router.post('/chapters/:chapterId/ai/narrate', requireAuth, async (req, res) => 
 });
 
 // ---------------------------------------------------------------------------
+// Comics and video
+// ---------------------------------------------------------------------------
+
+/** Chapter + story the caller may view (submissions from non-team users are reviewed). */
+async function viewableChapter(chapterId, userId) {
+  const { rows } = await pool.query('SELECT chapter_id, story_title_id, paragraphs FROM stories WHERE chapter_id = $1', [
+    chapterId,
+  ]);
+  const chapter = rows[0];
+  if (!chapter) return { status: 404, error: 'Chapter not found' };
+  const story = await loadStory(pool, chapter.story_title_id);
+  if (!story || !(await canViewStory(pool, story, userId))) {
+    return { status: 403, error: 'Not allowed to add media to this story' };
+  }
+  return { chapter, story };
+}
+
+// { textConnectionId, imageConnectionId, anchorStart, anchorEnd, frameCount, style?, label? }
+router.post('/chapters/:chapterId/ai/comic', requireAuth, async (req, res) => {
+  try {
+    const found = await viewableChapter(req.params.chapterId, req.user.id);
+    if (found.error) return res.status(found.status).json({ error: found.error });
+    const body = req.body ?? {};
+    const textConn = await usableConnection(req.user.id, body.textConnectionId, 'translate');
+    const imageConn = await usableConnection(req.user.id, body.imageConnectionId, 'image');
+    const count = (found.chapter.paragraphs ?? []).length;
+    const anchorStart = Math.max(0, Math.min(count - 1, Number.parseInt(body.anchorStart, 10) || 0));
+    const anchorEnd = Math.max(anchorStart, Math.min(count - 1, Number.parseInt(body.anchorEnd, 10) || anchorStart));
+    if (count === 0) return res.status(400).json({ error: 'This chapter has no text yet' });
+    await checkJobQuota(req.user.id, 1);
+    const job = await enqueueJob(pool, {
+      userId: req.user.id,
+      connectionId: imageConn.id,
+      kind: 'comic_frames',
+      storyTitleId: found.story.story_title_id,
+      chapterId: found.chapter.chapter_id,
+      params: {
+        textConnectionId: textConn.id,
+        anchorStart,
+        anchorEnd,
+        frameCount: Math.min(8, Math.max(1, Number.parseInt(body.frameCount, 10) || 4)),
+        style: typeof body.style === 'string' ? body.style.trim().slice(0, 300) : '',
+        label: typeof body.label === 'string' ? body.label.trim().slice(0, 200) : '',
+      },
+    });
+    res.status(202).json(job);
+  } catch (err) {
+    sendProviderError(res, err, 'Failed to start comic generation');
+  }
+});
+
+// { connectionId, prompt, seconds?, label? }
+router.post('/chapters/:chapterId/ai/video', requireAuth, async (req, res) => {
+  try {
+    const found = await viewableChapter(req.params.chapterId, req.user.id);
+    if (found.error) return res.status(found.status).json({ error: found.error });
+    const body = req.body ?? {};
+    const prompt = typeof body.prompt === 'string' ? body.prompt.trim() : '';
+    if (prompt.length < 10) return res.status(400).json({ error: 'Describe the scene for the video' });
+    const seconds = [4, 8, 12].includes(Number(body.seconds)) ? Number(body.seconds) : 8;
+    const conn = await usableConnection(req.user.id, body.connectionId, 'video');
+    await checkJobQuota(req.user.id, 1);
+    const job = await enqueueJob(pool, {
+      userId: req.user.id,
+      connectionId: conn.id,
+      kind: 'video_chapter',
+      storyTitleId: found.story.story_title_id,
+      chapterId: found.chapter.chapter_id,
+      params: {
+        prompt: prompt.slice(0, 2000),
+        seconds,
+        label: typeof body.label === 'string' ? body.label.trim().slice(0, 200) : '',
+      },
+    });
+    res.status(202).json(job);
+  } catch (err) {
+    sendProviderError(res, err, 'Failed to start video generation');
+  }
+});
+
+// ---------------------------------------------------------------------------
 // Job status
 // ---------------------------------------------------------------------------
 
@@ -385,6 +467,7 @@ router.get('/stories/:storyTitleId/ai-jobs', requireAuth, async (req, res) => {
     const isTeam = await isStoryTeam(pool, story, req.user.id);
     const { rows } = await pool.query(
       `SELECT j.id, j.kind, j.status, j.error, j.chapter_id, j.created_at, j.started_at, j.finished_at,
+              (j.result->>'progress')::numeric AS progress,
               j.user_id = $2 AS is_mine, s.chapter_title
          FROM ai_jobs j
          LEFT JOIN stories s ON s.chapter_id = j.chapter_id

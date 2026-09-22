@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 
 const API_BASE = import.meta.env.PROD ? (import.meta.env.VITE_API_BASE_URL ?? "") : "";
 
-export type AiCapability = "translate" | "tts";
+export type AiCapability = "translate" | "tts" | "image" | "video";
 export type AiProviderId = "anthropic" | "openai" | "openai_compatible" | "elevenlabs";
 
 export interface AiProvider {
@@ -37,9 +37,11 @@ export interface AiConnectionsResponse {
 
 export interface AiJob {
   id: string;
-  kind: "translate_chapter" | "tts_chapter";
+  kind: "translate_chapter" | "tts_chapter" | "comic_frames" | "video_chapter";
   status: "queued" | "running" | "succeeded" | "failed" | "cancelled";
   error: string | null;
+  /** 0-100 while a provider reports progress (video). */
+  progress: number | null;
   chapter_id: string | null;
   chapter_title: string | null;
   created_at: string;
@@ -99,6 +101,22 @@ export const aiNarrateChapter = (
   chapterId: string,
   data: { connectionId: string; editionId?: string | null; voice?: string; label?: string },
 ) => request<AiJob>(`/chapters/${chapterId}/ai/narrate`, json("POST", data));
+
+export const aiComic = (
+  chapterId: string,
+  data: {
+    textConnectionId: string;
+    imageConnectionId: string;
+    anchorStart: number;
+    anchorEnd: number;
+    frameCount: number;
+    style?: string;
+    label?: string;
+  },
+) => request<AiJob>(`/chapters/${chapterId}/ai/comic`, json("POST", data));
+
+export const aiVideo = (chapterId: string, data: { connectionId: string; prompt: string; seconds: number; label?: string }) =>
+  request<AiJob>(`/chapters/${chapterId}/ai/video`, json("POST", data));
 
 export const listStoryAiJobs = (storyTitleId: string) => request<AiJob[]>(`/stories/${storyTitleId}/ai-jobs`);
 

@@ -8223,5 +8223,159 @@
     "en": "AI connections aren't enabled on this server yet.",
     "ru": "Подключения ИИ на этом сервере пока не включены.",
     "de": "KI-Verbindungen sind auf diesem Server noch nicht aktiviert."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-ai-job-comic",
+    "en": "AI comic",
+    "ru": "Комикс ИИ",
+    "de": "KI-Comic"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-ai-job-video",
+    "en": "AI video",
+    "ru": "Видео ИИ",
+    "de": "KI-Video"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-comic-ai-heading",
+    "en": "Generate a comic with your AI",
+    "ru": "Создать комикс с помощью вашего ИИ",
+    "de": "Comic mit deiner KI erstellen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-comic-ai-no-text",
+    "en": "Write the chapter text first.",
+    "ru": "Сначала напишите текст главы.",
+    "de": "Schreibe zuerst den Kapiteltext."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-comic-ai-connect",
+    "en": "Needs a text AI (Claude, OpenAI…) and an image AI (OpenAI) — connect them in your profile",
+    "ru": "Нужны текстовый ИИ (Claude, OpenAI…) и ИИ для изображений (OpenAI) — подключите их в профиле",
+    "de": "Benötigt eine Text-KI (Claude, OpenAI…) und eine Bild-KI (OpenAI) — verbinde sie in deinem Profil"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-comic-ai-from",
+    "en": "From paragraph",
+    "ru": "С абзаца",
+    "de": "Ab Absatz"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-comic-ai-to",
+    "en": "To paragraph",
+    "ru": "По абзац",
+    "de": "Bis Absatz"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-comic-ai-frames",
+    "en": "Frames",
+    "ru": "Кадры",
+    "de": "Bilder"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-comic-ai-text-conn",
+    "en": "Script:",
+    "ru": "Сценарий:",
+    "de": "Skript:"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-comic-ai-image-conn",
+    "en": "Drawing:",
+    "ru": "Рисунки:",
+    "de": "Zeichnung:"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-comic-ai-generate",
+    "en": "Generate comic",
+    "ru": "Создать комикс",
+    "de": "Comic erstellen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-comic-ai-note",
+    "en": "Speech bubbles and captions are added as editable text, not drawn into the images. Uses your own provider accounts; each frame is one image request.",
+    "ru": "Реплики и подписи добавляются редактируемым текстом, а не рисуются на изображениях. Используются ваши аккаунты у провайдеров; каждый кадр — один запрос изображения.",
+    "de": "Sprechblasen und Bildunterschriften werden als bearbeitbarer Text hinzugefügt, nicht ins Bild gezeichnet. Nutzt deine eigenen Anbieterkonten; jedes Bild ist eine Bildanfrage."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-video-ai-heading",
+    "en": "Generate a video with your AI",
+    "ru": "Создать видео с помощью вашего ИИ",
+    "de": "Video mit deiner KI erstellen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-video-ai-experimental",
+    "en": "Experimental",
+    "ru": "Экспериментально",
+    "de": "Experimentell"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-video-ai-connect",
+    "en": "Connect a video AI (OpenAI) in your profile",
+    "ru": "Подключите видео-ИИ (OpenAI) в профиле",
+    "de": "Verbinde eine Video-KI (OpenAI) in deinem Profil"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-video-ai-length",
+    "en": "Length",
+    "ru": "Длительность",
+    "de": "Länge"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-video-ai-conn",
+    "en": "Using:",
+    "ru": "Через:",
+    "de": "Mit:"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-video-ai-generate",
+    "en": "Generate video",
+    "ru": "Создать видео",
+    "de": "Video erstellen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-video-ai-note",
+    "en": "Video generation can be expensive and takes minutes. The finished clip is stored on Crowdly (up to 200 MB).",
+    "ru": "Создание видео может быть дорогим и занимает минуты. Готовый ролик хранится на Crowdly (до 200 МБ).",
+    "de": "Videoerstellung kann teuer sein und dauert Minuten. Der fertige Clip wird auf Crowdly gespeichert (bis 200 MB)."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-ai-cap-text",
+    "en": "Text (translation drafts, comic scripts)",
+    "ru": "Текст (черновики переводов, сценарии комиксов)",
+    "de": "Text (Übersetzungsentwürfe, Comic-Skripte)"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-ai-cap-image",
+    "en": "Images (comic frames)",
+    "ru": "Изображения (кадры комиксов)",
+    "de": "Bilder (Comic-Bilder)"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-ai-cap-video",
+    "en": "Video (experimental)",
+    "ru": "Видео (экспериментально)",
+    "de": "Video (experimentell)"
   }
 ]

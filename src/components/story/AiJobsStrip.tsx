@@ -59,6 +59,8 @@ export function useAiJobs(storyTitleId: string | undefined, enabled: boolean, on
 const KIND_LABEL: Record<AiJob["kind"], React.ReactNode> = {
   translate_chapter: <EditableText id="story-ai-job-translate">Translation draft</EditableText>,
   tts_chapter: <EditableText id="story-ai-job-tts">AI narration</EditableText>,
+  comic_frames: <EditableText id="story-ai-job-comic">AI comic</EditableText>,
+  video_chapter: <EditableText id="story-ai-job-video">AI video</EditableText>,
 };
 
 /** Compact status line + expandable list of recent AI jobs. */
@@ -97,6 +99,7 @@ const AiJobsStrip: React.FC<{ jobs: AiJob[]; onChanged: () => void }> = ({ jobs,
               <span className="w-20 shrink-0 font-medium capitalize">{j.status}</span>
               <span className="flex-1 min-w-0">
                 {KIND_LABEL[j.kind]} · {j.chapter_title || "—"}
+                {isOpen(j) && j.progress !== null && ` · ${Math.round(j.progress)}%`}
                 {j.error && <span className="block text-red-700">{j.error}</span>}
               </span>
               {j.status === "queued" && j.is_mine && (

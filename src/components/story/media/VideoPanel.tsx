@@ -3,8 +3,14 @@ import { Video } from "lucide-react";
 import EditableText from "@/components/EditableText";
 import type { ChapterMedia } from "@/lib/mediaApi";
 
-/** Responsive YouTube / Vimeo embed. The URL was normalised server-side. */
-export const VideoEmbed: React.FC<{ media: ChapterMedia }> = ({ media }) => (
+/**
+ * A chapter video: YouTube / Vimeo embeds (URL normalised server-side) play
+ * in an iframe; clips stored on Crowdly (AI-generated) in a <video> element.
+ */
+export const VideoEmbed: React.FC<{ media: ChapterMedia }> = ({ media }) =>
+  media.source !== "embed" ? (
+    <video controls preload="metadata" src={media.url ?? undefined} className="w-full rounded-md bg-black aspect-video" />
+  ) : (
   <div className="relative w-full aspect-video rounded-md overflow-hidden bg-black">
     <iframe
       src={media.url ?? undefined}
@@ -16,7 +22,7 @@ export const VideoEmbed: React.FC<{ media: ChapterMedia }> = ({ media }) => (
       sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
     />
   </div>
-);
+  );
 
 const VideoPanel: React.FC<{ videos: ChapterMedia[]; footer?: React.ReactNode }> = ({ videos, footer }) => {
   const approved = videos.filter((m) => m.status === "approved");

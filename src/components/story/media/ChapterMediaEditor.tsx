@@ -53,9 +53,23 @@ const ChapterMediaEditor: React.FC<ChapterMediaEditorProps> = ({
         />
       )}
       {kind === "visual" && (
-        <VisualMediaEditor chapterId={chapterId} chapterParagraphs={chapterParagraphs} list={list} onChanged={onChanged} />
+        <VisualMediaEditor
+          chapterId={chapterId}
+          chapterParagraphs={chapterParagraphs}
+          list={list}
+          onChanged={onChanged}
+          onAiJobQueued={onAiJobQueued}
+        />
       )}
-      {kind === "video" && <VideoMediaEditor chapterId={chapterId} list={list} onChanged={onChanged} />}
+      {kind === "video" && (
+        <VideoMediaEditor
+          chapterId={chapterId}
+          chapterParagraphs={chapterParagraphs}
+          list={list}
+          onChanged={onChanged}
+          onAiJobQueued={onAiJobQueued}
+        />
+      )}
       <StorageNote />
     </div>
   );

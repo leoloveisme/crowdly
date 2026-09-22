@@ -16,6 +16,7 @@ import {
 } from "@/lib/mediaApi";
 import FrameView from "./FrameView";
 import MediaItemControls, { ProgressBar } from "./MediaItemControls";
+import { AiComicGenerator } from "./AiGenerators";
 
 const IMAGE_ACCEPT = "image/png,image/jpeg,image/webp,image/gif";
 
@@ -24,6 +25,7 @@ interface VisualMediaEditorProps {
   chapterParagraphs: string[];
   list: ChapterMediaList;
   onChanged: () => void;
+  onAiJobQueued?: () => void;
 }
 
 /** Edit one frame: overlays (click the image to add), caption, paragraph anchor. */
@@ -239,7 +241,7 @@ const FrameEditor: React.FC<{
   );
 };
 
-const VisualMediaEditor: React.FC<VisualMediaEditorProps> = ({ chapterId, chapterParagraphs, list, onChanged }) => {
+const VisualMediaEditor: React.FC<VisualMediaEditorProps> = ({ chapterId, chapterParagraphs, list, onChanged, onAiJobQueued }) => {
   const { toast } = useToast();
   const presentations = list.media.filter((m) => m.kind === "visual");
   const [selectedId, setSelectedId] = useState<string | null>(presentations[0]?.id ?? null);
@@ -409,6 +411,8 @@ const VisualMediaEditor: React.FC<VisualMediaEditorProps> = ({ chapterId, chapte
           <EditableText id="story-visual-formats">PNG, JPEG, WEBP or GIF, up to 10 MB each and 20 per upload.</EditableText>
         </p>
       </div>
+
+      <AiComicGenerator chapterId={chapterId} paragraphs={chapterParagraphs} onQueued={onAiJobQueued} />
     </div>
   );
 };

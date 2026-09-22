@@ -5,12 +5,15 @@ import { useToast } from "@/hooks/use-toast";
 import { addVideoEmbed, type ChapterMediaList } from "@/lib/mediaApi";
 import MediaItemControls from "./MediaItemControls";
 import { VideoEmbed } from "./VideoPanel";
+import { AiVideoGenerator } from "./AiGenerators";
 
-const VideoMediaEditor: React.FC<{ chapterId: string; list: ChapterMediaList; onChanged: () => void }> = ({
-  chapterId,
-  list,
-  onChanged,
-}) => {
+const VideoMediaEditor: React.FC<{
+  chapterId: string;
+  chapterParagraphs: string[];
+  list: ChapterMediaList;
+  onChanged: () => void;
+  onAiJobQueued?: () => void;
+}> = ({ chapterId, chapterParagraphs, list, onChanged, onAiJobQueued }) => {
   const { toast } = useToast();
   const videos = list.media.filter((m) => m.kind === "video");
   const [url, setUrl] = useState("");
@@ -87,6 +90,8 @@ const VideoMediaEditor: React.FC<{ chapterId: string; list: ChapterMediaList; on
           </button>
         </div>
       </div>
+
+      <AiVideoGenerator chapterId={chapterId} paragraphs={chapterParagraphs} onQueued={onAiJobQueued} />
     </div>
   );
 };

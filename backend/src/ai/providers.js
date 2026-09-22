@@ -2,8 +2,11 @@
 // passed in per call — nothing here is platform-paid.
 //
 // Capabilities:
-//   translate — translateChapter(): translate a chapter paragraph-for-paragraph
+//   translate — text AI: translateChapter() (paragraph-for-paragraph), and
+//               storyboardComic() (comic scripts)
 //   tts       — synthesizeSpeech(): text → audio buffer
+//   image     — generateImage(): prompt → image buffer (comic frames)
+//   video     — startVideo() / checkVideo() / downloadVideo(): async clip generation
 //
 // Anthropic goes through the official @anthropic-ai/sdk; the others are
 // plain REST calls. Models / voices are configurable per connection
@@ -21,8 +24,13 @@ export const PROVIDERS = {
   },
   openai: {
     label: 'OpenAI',
-    capabilities: ['translate', 'tts'],
-    defaults: { translate: { model: 'gpt-4.1' }, tts: { model: 'gpt-4o-mini-tts', voice: 'alloy' } },
+    capabilities: ['translate', 'tts', 'image', 'video'],
+    defaults: {
+      translate: { model: 'gpt-4.1' },
+      tts: { model: 'gpt-4o-mini-tts', voice: 'alloy' },
+      image: { model: 'gpt-image-1' },
+      video: { model: 'sora-2' },
+    },
   },
   openai_compatible: {
     label: 'OpenAI-compatible server',
@@ -53,8 +61,12 @@ export function effectiveSettings(connection, capability) {
   return merged;
 }
 
+// OpenAI's API root. AI_OPENAI_BASE_URL is a server-operator setting (e.g. a
+// corporate proxy, or a local mock for testing) — never user-supplied.
+const OPENAI_ROOT = () => (process.env.AI_OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\/+$/, '');
+
 const openAiBase = (connection) =>
-  (connection.provider === 'openai_compatible' ? connection.base_url : 'https://api.openai.com/v1').replace(/\/+$/, '');
+  (connection.provider === 'openai_compatible' ? connection.base_url : OPENAI_ROOT()).replace(/\/+$/, '');
 
 // --- SSRF guard for user-supplied server URLs (OpenAI-compatible) ---------
 // A user-chosen URL must not let the Crowdly server reach its own machine or
@@ -217,22 +229,25 @@ function anthropicError(err) {
   return err;
 }
 
-async function translateWithAnthropic(apiKey, model, input, from, to) {
+/**
+ * One request to a text AI that must answer with JSON matching `schema`.
+ * Anthropic: official SDK, structured outputs (json_schema), server-side
+ * fallbacks, streaming for long outputs. OpenAI / compatible: JSON mode with
+ * the schema described in the instructions.
+ */
+async function anthropicJson(apiKey, model, system, userContent, schema) {
   const client = new Anthropic({ apiKey });
   let message;
   try {
-    // Streaming: long chapters can produce long outputs; finalMessage()
-    // assembles the complete response. Server-side fallbacks re-run a
-    // request that a safety classifier declines on the recommended model.
     message = await client.beta.messages
       .stream({
         model,
         max_tokens: 64000,
         betas: ['server-side-fallback-2026-07-01'],
         fallbacks: 'default',
-        system: translationInstructions(from, to, input.paragraphs.length),
-        output_config: { format: { type: 'json_schema', schema: TRANSLATION_SCHEMA } },
-        messages: [{ role: 'user', content: JSON.stringify(input) }],
+        system,
+        output_config: { format: { type: 'json_schema', schema } },
+        messages: [{ role: 'user', content: userContent }],
       })
       .finalMessage();
   } catch (err) {
@@ -240,27 +255,25 @@ async function translateWithAnthropic(apiKey, model, input, from, to) {
   }
   if (message.stop_reason === 'refusal') {
     const category = message.stop_details?.category;
-    throw new ProviderError(`Claude declined to translate this chapter${category ? ` (${category})` : ''}`);
+    throw new ProviderError(`Claude declined this request${category ? ` (${category})` : ''}`);
   }
   if (message.stop_reason === 'max_tokens') {
-    throw new ProviderError('The chapter is too long to translate in one pass');
+    throw new ProviderError('The text is too long to process in one pass');
   }
   const text = message.content
     .filter((b) => b.type === 'text')
     .map((b) => b.text)
     .join('');
-  let parsed;
   try {
-    parsed = JSON.parse(text);
+    return JSON.parse(text);
   } catch {
     throw new ProviderError('Anthropic returned an unreadable response', { retryable: true });
   }
-  return checkShape(parsed, input.paragraphs.length, 'Anthropic');
 }
 
-async function translateWithOpenAi(connection, apiKey, model, input, from, to) {
+async function openAiJson(connection, apiKey, model, system, userContent, schemaHint) {
   const label = PROVIDERS[connection.provider].label;
-  if (!model) throw new ProviderError(`${label}: set a model for translation in your AI connection settings`);
+  if (!model) throw new ProviderError(`${label}: set a model for text in your AI connection settings`);
   const res = await providerFetch(connection, `${openAiBase(connection)}/chat/completions`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
@@ -268,24 +281,27 @@ async function translateWithOpenAi(connection, apiKey, model, input, from, to) {
       model,
       response_format: { type: 'json_object' },
       messages: [
-        {
-          role: 'system',
-          content: `${translationInstructions(from, to, input.paragraphs.length)}\nRespond with a JSON object: {"title": string, "paragraphs": string[]}.`,
-        },
-        { role: 'user', content: JSON.stringify(input) },
+        { role: 'system', content: `${system}\nRespond with a JSON object: ${schemaHint}` },
+        { role: 'user', content: userContent },
       ],
     }),
   });
   if (!res.ok) throw await httpError(res, label);
   const body = await res.json();
   const text = body?.choices?.[0]?.message?.content ?? '';
-  let parsed;
   try {
-    parsed = JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, ''));
+    return JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, ''));
   } catch {
     throw new ProviderError(`${label} returned an unreadable response`, { retryable: true });
   }
-  return checkShape(parsed, input.paragraphs.length, label);
+}
+
+/** Structured JSON from whichever text AI the connection is. */
+async function textJson(connection, apiKey, { system, user, schema, schemaHint }) {
+  const { model } = effectiveSettings(connection, 'translate');
+  return connection.provider === 'anthropic'
+    ? anthropicJson(apiKey, model, system, user, schema)
+    : openAiJson(connection, apiKey, model, system, user, schemaHint);
 }
 
 /** Paragraph batches small enough for one request each. */
@@ -311,11 +327,18 @@ function batchParagraphs(paragraphs, maxChars = 24000) {
  * count. `from` / `to` are language names (e.g. "English", "Russian").
  */
 export async function translateChapter(connection, apiKey, { title, paragraphs }, from, to) {
-  const { model } = effectiveSettings(connection, 'translate');
-  const run = (input) =>
-    connection.provider === 'anthropic'
-      ? translateWithAnthropic(apiKey, model, input, from, to)
-      : translateWithOpenAi(connection, apiKey, model, input, from, to);
+  const label = PROVIDERS[connection.provider].label;
+  const run = async (input) =>
+    checkShape(
+      await textJson(connection, apiKey, {
+        system: translationInstructions(from, to, input.paragraphs.length),
+        user: JSON.stringify(input),
+        schema: TRANSLATION_SCHEMA,
+        schemaHint: '{"title": string, "paragraphs": string[]}',
+      }),
+      input.paragraphs.length,
+      label,
+    );
 
   const out = { title: '', paragraphs: [] };
   const batches = batchParagraphs(paragraphs);
@@ -361,7 +384,7 @@ function speechChunks(paragraphs, maxChars = 3500) {
 }
 
 async function speakOpenAi(connection, apiKey, settings, text) {
-  const res = await providerFetch(connection, 'https://api.openai.com/v1/audio/speech', {
+  const res = await providerFetch(connection, `${OPENAI_ROOT()}/audio/speech`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({ model: settings.model, voice: settings.voice, input: text, response_format: 'mp3' }),
@@ -402,4 +425,169 @@ export async function synthesizeSpeech(connection, apiKey, paragraphs, overrides
   const parts = [];
   for (const chunk of chunks) parts.push(await speak(chunk));
   return { buffer: Buffer.concat(parts), mime: 'audio/mpeg', ext: '.mp3', model: settings.model, voice: settings.voice };
+}
+
+// ---------------------------------------------------------------------------
+// Comics: storyboard (text AI) + frames (image AI)
+// ---------------------------------------------------------------------------
+
+const STORYBOARD_SCHEMA = {
+  type: 'object',
+  properties: {
+    style_guide: { type: 'string' },
+    frames: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          image_prompt: { type: 'string' },
+          caption: { type: 'string' },
+          bubbles: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                text: { type: 'string' },
+                x: { type: 'number' },
+                y: { type: 'number' },
+                style: { type: 'string', enum: ['bubble', 'box'] },
+              },
+              required: ['text', 'x', 'y', 'style'],
+              additionalProperties: false,
+            },
+          },
+          anchor_start: { type: 'integer' },
+          anchor_end: { type: 'integer' },
+        },
+        required: ['image_prompt', 'caption', 'bubbles', 'anchor_start', 'anchor_end'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['style_guide', 'frames'],
+  additionalProperties: false,
+};
+
+/**
+ * Turn a passage into a comic storyboard. `paragraphs` are
+ * [{ index, text }] with the chapter's own paragraph indexes, which the
+ * frames' anchors refer to. Captions and bubbles are in `language`; they are
+ * rendered as text over the images, never drawn into them.
+ */
+export async function storyboardComic(connection, apiKey, { paragraphs, frameCount, style, language }) {
+  const first = paragraphs[0]?.index ?? 0;
+  const last = paragraphs[paragraphs.length - 1]?.index ?? first;
+  const system = [
+    `You are a comic artist's storyboard writer. Turn the story passage into exactly ${frameCount} comic frame(s), in reading order.`,
+    'First write a short style_guide: the visual style and a consistent description of each recurring character and setting, so separately drawn frames look like one comic.',
+    'For each frame: image_prompt describes only what is drawn (scene, characters, composition, mood) and must NOT ask for any text, letters, captions or speech bubbles in the image;',
+    `caption is a short narration line; bubbles are what characters say or think (0-3 per frame), with x/y as the bubble centre in percent of the image (0-100), placed near the speaker and away from faces, style "bubble" for speech or "box" for narration;`,
+    `anchor_start / anchor_end are the paragraph indexes (between ${first} and ${last}) the frame illustrates.`,
+    `Write captions and bubbles in ${language}. Stay faithful to the passage; do not invent major events.`,
+    style ? `Requested visual style: ${style}.` : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+  const user = JSON.stringify({ paragraphs });
+  const result = await textJson(connection, apiKey, {
+    system,
+    user,
+    schema: STORYBOARD_SCHEMA,
+    schemaHint:
+      '{"style_guide": string, "frames": [{"image_prompt": string, "caption": string, "bubbles": [{"text": string, "x": number, "y": number, "style": "bubble"|"box"}], "anchor_start": integer, "anchor_end": integer}]}',
+  });
+  const label = PROVIDERS[connection.provider].label;
+  if (!result || !Array.isArray(result.frames) || result.frames.length === 0) {
+    throw new ProviderError(`${label} returned an unexpected storyboard`, { retryable: true });
+  }
+  const clampIndex = (n) => Math.min(last, Math.max(first, Number.isInteger(n) ? n : first));
+  return {
+    style_guide: String(result.style_guide ?? ''),
+    frames: result.frames.slice(0, frameCount).map((f) => {
+      const start = clampIndex(f.anchor_start);
+      return {
+        image_prompt: String(f.image_prompt ?? ''),
+        caption: String(f.caption ?? ''),
+        bubbles: (Array.isArray(f.bubbles) ? f.bubbles : []).slice(0, 4).map((b) => ({
+          text: String(b.text ?? '').slice(0, 500),
+          x: Math.min(95, Math.max(5, Number(b.x) || 50)),
+          y: Math.min(95, Math.max(5, Number(b.y) || 15)),
+          style: b.style === 'box' ? 'box' : 'bubble',
+        })),
+        anchor_start: start,
+        anchor_end: Math.max(start, clampIndex(f.anchor_end)),
+      };
+    }),
+  };
+}
+
+/** One image from a prompt → PNG buffer. */
+export async function generateImage(connection, apiKey, prompt) {
+  if (connection.provider !== 'openai') throw new ProviderError('This connection cannot generate images');
+  const { model } = effectiveSettings(connection, 'image');
+  const res = await providerFetch(connection, `${OPENAI_ROOT()}/images/generations`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model,
+      prompt,
+      n: 1,
+      size: '1024x1024',
+      // gpt-image models always return base64; DALL·E models need asking.
+      ...(String(model).startsWith('dall-e') ? { response_format: 'b64_json' } : {}),
+    }),
+  });
+  if (!res.ok) throw await httpError(res, 'OpenAI');
+  const body = await res.json();
+  const b64 = body?.data?.[0]?.b64_json;
+  if (!b64) throw new ProviderError('OpenAI returned no image', { retryable: true });
+  return { buffer: Buffer.from(b64, 'base64'), ext: '.png', mime: 'image/png', model };
+}
+
+// ---------------------------------------------------------------------------
+// Video (experimental): submit, then poll
+// ---------------------------------------------------------------------------
+
+export const MAX_VIDEO_BYTES = 200 * 1024 * 1024;
+
+export async function startVideo(connection, apiKey, { prompt, seconds }) {
+  if (connection.provider !== 'openai') throw new ProviderError('This connection cannot generate video');
+  const { model } = effectiveSettings(connection, 'video');
+  const res = await providerFetch(connection, `${OPENAI_ROOT()}/videos`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model, prompt, seconds: String(seconds), size: '1280x720' }),
+  });
+  if (!res.ok) throw await httpError(res, 'OpenAI');
+  const body = await res.json();
+  if (!body?.id) throw new ProviderError('OpenAI did not accept the video request', { retryable: true });
+  return { providerJobId: body.id, model };
+}
+
+/** → { state: 'pending' | 'done' | 'failed', progress?, error? } */
+export async function checkVideo(connection, apiKey, providerJobId) {
+  const res = await providerFetch(connection, `${OPENAI_ROOT()}/videos/${encodeURIComponent(providerJobId)}`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+  if (!res.ok) throw await httpError(res, 'OpenAI');
+  const body = await res.json();
+  if (body.status === 'completed') return { state: 'done' };
+  if (body.status === 'failed' || body.status === 'cancelled') {
+    return { state: 'failed', error: body?.error?.message || 'The video could not be generated' };
+  }
+  return { state: 'pending', progress: typeof body.progress === 'number' ? body.progress : null };
+}
+
+export async function downloadVideo(connection, apiKey, providerJobId) {
+  const res = await providerFetch(
+    connection,
+    `${OPENAI_ROOT()}/videos/${encodeURIComponent(providerJobId)}/content`,
+    { headers: { Authorization: `Bearer ${apiKey}` } },
+  );
+  if (!res.ok) throw await httpError(res, 'OpenAI');
+  const declared = Number(res.headers.get('content-length'));
+  if (Number.isFinite(declared) && declared > MAX_VIDEO_BYTES) throw new ProviderError('The generated video is too large to store');
+  const buffer = Buffer.from(await res.arrayBuffer());
+  if (buffer.length > MAX_VIDEO_BYTES) throw new ProviderError('The generated video is too large to store');
+  return { buffer, ext: '.mp4', mime: res.headers.get('content-type') || 'video/mp4' };
 }

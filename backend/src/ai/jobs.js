@@ -1,5 +1,5 @@
-// Background AI jobs (machine-translation drafts, TTS narration), run by a
-// small in-process worker — no Redis/queue service. Jobs are rows in ai_jobs;
+// Background AI jobs (translation drafts, TTS narration, comics, video), run
+// by a small in-process worker — no Redis/queue service. Jobs are rows in ai_jobs;
 // the worker claims one at a time with FOR UPDATE SKIP LOCKED, so a second
 // backend process would simply share the queue.
 
@@ -10,7 +10,18 @@ import { pool } from '../db.js';
 import { UPLOADS_ROOT } from '../gallery.js';
 import { decryptSecret } from '../secrets.js';
 import { loadStory, isStoryTeam } from '../storyAccess.js';
-import { ProviderError, translateChapter, synthesizeSpeech, effectiveSettings, PROVIDERS } from './providers.js';
+import {
+  ProviderError,
+  translateChapter,
+  synthesizeSpeech,
+  effectiveSettings,
+  PROVIDERS,
+  storyboardComic,
+  generateImage,
+  startVideo,
+  checkVideo,
+  downloadVideo,
+} from './providers.js';
 
 const POLL_MS = 3000;
 const MAX_ATTEMPTS = 3;
@@ -39,13 +50,32 @@ async function languageName(code) {
   return rows[0]?.english_name ?? code ?? 'English';
 }
 
-async function loadConnection(job) {
+async function loadConnection(job, connectionId = job.connection_id) {
   const { rows } = await pool.query('SELECT * FROM user_ai_connections WHERE id = $1 AND user_id = $2', [
-    job.connection_id,
+    connectionId,
     job.user_id,
   ]);
   if (rows.length === 0) throw new ProviderError('The AI connection used for this job was removed');
   return { connection: rows[0], apiKey: decryptSecret(rows[0].encrypted_api_key) };
+}
+
+/** Persist progress into the job's params so a retry resumes instead of starting over. */
+async function saveParams(job, patch) {
+  job.params = { ...(job.params ?? {}), ...patch };
+  await pool.query('UPDATE ai_jobs SET params = $2 WHERE id = $1', [job.id, JSON.stringify(job.params)]);
+}
+
+async function saveMediaFile(storyTitleId, buffer, ext) {
+  const dir = path.join(UPLOADS_ROOT, 'media', storyTitleId);
+  await fs.promises.mkdir(dir, { recursive: true });
+  const filename = `${randomUUID()}${ext}`;
+  await fs.promises.writeFile(path.join(dir, filename), buffer);
+  return { url: `/uploads/media/${storyTitleId}/${filename}`, filePath: path.join(dir, filename) };
+}
+
+async function submitterIsTeam(job, storyTitleId) {
+  const story = await loadStory(pool, storyTitleId);
+  return story ? isStoryTeam(pool, story, job.user_id) : false;
 }
 
 // ---------------------------------------------------------------------------
@@ -174,9 +204,152 @@ async function runTtsChapter(job) {
   }
 }
 
+// Comic: storyboard the paragraph range with the text AI, then draw each
+// frame with the image AI. Progress (storyboard, media row, finished frames)
+// is saved as it goes, so a retry never pays for the same work twice. The
+// presentation stays 'pending' (hidden from readers) until every frame is in.
+async function runComicFrames(job) {
+  const params = job.params ?? {};
+  const { rows } = await pool.query('SELECT chapter_id, story_title_id, paragraphs FROM stories WHERE chapter_id = $1', [
+    job.chapter_id,
+  ]);
+  if (rows.length === 0) throw new ProviderError('Chapter not found');
+  const chapter = rows[0];
+  const all = chapter.paragraphs ?? [];
+  const start = Math.max(0, Number(params.anchorStart) || 0);
+  const end = Math.min(all.length - 1, Number.isInteger(params.anchorEnd) ? params.anchorEnd : all.length - 1);
+  const passage = all
+    .map((text, index) => ({ index, text }))
+    .filter((p) => p.index >= start && p.index <= end && p.text.trim());
+  if (passage.length === 0) throw new ProviderError('The selected paragraphs have no text');
+
+  if (!params.storyboard) {
+    const text = await loadConnection(job, params.textConnectionId);
+    const story = await loadStory(pool, chapter.story_title_id);
+    const storyboard = await storyboardComic(text.connection, text.apiKey, {
+      paragraphs: passage,
+      frameCount: Math.min(8, Math.max(1, Number(params.frameCount) || 4)),
+      style: params.style || '',
+      language: await languageName(story?.language),
+    });
+    await saveParams(job, { storyboard });
+  }
+
+  const image = await loadConnection(job);
+  if (!job.params.mediaId) {
+    const inserted = await pool.query(
+      `INSERT INTO chapter_media (story_title_id, chapter_id, kind, source, label, status, created_by, ai_provider, ai_model)
+       VALUES ($1, $2, 'visual', 'ai', $3, 'pending', $4, $5, $6) RETURNING id`,
+      [
+        chapter.story_title_id,
+        chapter.chapter_id,
+        params.label || 'AI comic',
+        job.user_id,
+        image.connection.provider,
+        effectiveSettings(image.connection, 'image').model,
+      ],
+    );
+    await saveParams(job, { mediaId: inserted.rows[0].id });
+  }
+  const mediaId = job.params.mediaId;
+  const { storyboard } = job.params;
+
+  const done = await pool.query('SELECT count(*)::int AS n FROM chapter_media_frames WHERE media_id = $1', [mediaId]);
+  for (let i = done.rows[0].n; i < storyboard.frames.length; i++) {
+    const frame = storyboard.frames[i];
+    const prompt = [
+      storyboard.style_guide,
+      `Comic frame ${i + 1} of ${storyboard.frames.length}: ${frame.image_prompt}`,
+      'Draw the scene only: no text, letters, captions, signs or speech bubbles anywhere in the image.',
+    ]
+      .filter(Boolean)
+      .join('\n\n');
+    const img = await generateImage(image.connection, image.apiKey, prompt);
+    const saved = await saveMediaFile(chapter.story_title_id, img.buffer, img.ext);
+    try {
+      await pool.query(
+        `INSERT INTO chapter_media_frames (media_id, frame_index, image_url, caption, overlays, anchor_start, anchor_end)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [mediaId, i, saved.url, frame.caption || null, JSON.stringify(frame.bubbles), frame.anchor_start, frame.anchor_end],
+      );
+    } catch (err) {
+      fs.promises.unlink(saved.filePath).catch(() => {});
+      throw err;
+    }
+  }
+
+  const isTeam = await submitterIsTeam(job, chapter.story_title_id);
+  await pool.query("UPDATE chapter_media SET status = $2, updated_at = now() WHERE id = $1", [
+    mediaId,
+    isTeam ? 'approved' : 'pending',
+  ]);
+  return { mediaId, frames: storyboard.frames.length };
+}
+
+// Video (experimental): submit once, then re-check every VIDEO_POLL_SECONDS
+// without holding the worker (the job re-queues itself with run_after).
+const VIDEO_POLL_SECONDS = 20;
+const VIDEO_TIMEOUT_MINUTES = 45;
+
+async function runVideoChapter(job) {
+  const params = job.params ?? {};
+  const { connection, apiKey } = await loadConnection(job);
+  const { rows } = await pool.query('SELECT chapter_id, story_title_id FROM stories WHERE chapter_id = $1', [
+    job.chapter_id,
+  ]);
+  if (rows.length === 0) throw new ProviderError('Chapter not found');
+  const chapter = rows[0];
+
+  if (!params.providerJobId) {
+    const started = await startVideo(connection, apiKey, { prompt: params.prompt, seconds: params.seconds || 8 });
+    await saveParams(job, { providerJobId: started.providerJobId, model: started.model, submittedAt: new Date().toISOString() });
+    return { defer: VIDEO_POLL_SECONDS, progress: 0 };
+  }
+
+  const status = await checkVideo(connection, apiKey, params.providerJobId);
+  if (status.state === 'failed') throw new ProviderError(status.error);
+  if (status.state === 'pending') {
+    if (Date.now() - new Date(params.submittedAt).getTime() > VIDEO_TIMEOUT_MINUTES * 60_000) {
+      throw new ProviderError('The video took too long to generate');
+    }
+    return { defer: VIDEO_POLL_SECONDS, progress: status.progress };
+  }
+
+  const video = await downloadVideo(connection, apiKey, params.providerJobId);
+  const saved = await saveMediaFile(chapter.story_title_id, video.buffer, video.ext);
+  const isTeam = await submitterIsTeam(job, chapter.story_title_id);
+  try {
+    const inserted = await pool.query(
+      `INSERT INTO chapter_media
+         (story_title_id, chapter_id, kind, source, label, url, mime, size_bytes, duration_seconds, status, created_by, ai_provider, ai_model)
+       VALUES ($1, $2, 'video', 'ai', $3, $4, $5, $6, $7, $8, $9, $10, $11)
+       RETURNING id`,
+      [
+        chapter.story_title_id,
+        chapter.chapter_id,
+        params.label || 'AI video',
+        saved.url,
+        video.mime,
+        video.buffer.length,
+        Number(params.seconds) || null,
+        isTeam ? 'approved' : 'pending',
+        job.user_id,
+        connection.provider,
+        params.model ?? null,
+      ],
+    );
+    return { mediaId: inserted.rows[0].id, bytes: video.buffer.length };
+  } catch (err) {
+    fs.promises.unlink(saved.filePath).catch(() => {});
+    throw err;
+  }
+}
+
 const HANDLERS = {
   translate_chapter: runTranslateChapter,
   tts_chapter: runTtsChapter,
+  comic_frames: runComicFrames,
+  video_chapter: runVideoChapter,
 };
 
 // ---------------------------------------------------------------------------
@@ -189,7 +362,8 @@ async function claimNextJob() {
   const { rows } = await pool.query(
     `UPDATE ai_jobs SET status = 'running', started_at = now(), attempts = attempts + 1
       WHERE id = (
-        SELECT id FROM ai_jobs WHERE status = 'queued'
+        SELECT id FROM ai_jobs
+         WHERE status = 'queued' AND (run_after IS NULL OR run_after <= now())
          ORDER BY created_at
          FOR UPDATE SKIP LOCKED
          LIMIT 1
@@ -206,6 +380,17 @@ async function tick() {
     for (let job = await claimNextJob(); job; job = await claimNextJob()) {
       try {
         const result = await HANDLERS[job.kind](job);
+        if (result?.defer) {
+          // Waiting on the provider (e.g. video still rendering): re-queue for
+          // later without counting it as an attempt.
+          await pool.query(
+            `UPDATE ai_jobs SET status = 'queued', started_at = NULL, attempts = GREATEST(attempts - 1, 0),
+                    run_after = now() + make_interval(secs => $2), result = $3
+              WHERE id = $1`,
+            [job.id, result.defer, JSON.stringify({ progress: result.progress ?? null })],
+          );
+          continue;
+        }
         await pool.query(
           "UPDATE ai_jobs SET status = 'succeeded', result = $2, error = NULL, finished_at = now() WHERE id = $1",
           [job.id, JSON.stringify(result ?? {})],
@@ -218,16 +403,17 @@ async function tick() {
         if (!(err instanceof ProviderError)) console.error(`[ai-jobs] job ${job.id} (${job.kind}) failed:`, err);
         const retry = err instanceof ProviderError && err.retryable && job.attempts < MAX_ATTEMPTS;
         await pool.query(
-          `UPDATE ai_jobs SET status = $2, error = $3, finished_at = CASE WHEN $2 = 'queued' THEN NULL ELSE now() END
+          `UPDATE ai_jobs SET status = $2, error = $3,
+                  finished_at = CASE WHEN $2 = 'queued' THEN NULL ELSE now() END,
+                  run_after = CASE WHEN $2 = 'queued' THEN now() + make_interval(secs => $4) ELSE run_after END
             WHERE id = $1`,
-          [job.id, retry ? 'queued' : 'failed', userMessage],
+          [job.id, retry ? 'queued' : 'failed', userMessage, 10 * job.attempts],
         );
         if (job.connection_id) {
           await pool
             .query('UPDATE user_ai_connections SET last_error = $2 WHERE id = $1', [job.connection_id, userMessage])
             .catch(() => {});
         }
-        if (retry) break; // give a rate-limited provider a moment before the next claim
       }
     }
   } catch (err) {

@@ -15,8 +15,17 @@ import {
 } from "@/lib/aiApi";
 
 const CAPABILITY_LABELS: Record<AiCapability, React.ReactNode> = {
-  translate: <EditableText id="profile-ai-cap-translate">Translation drafts</EditableText>,
+  translate: <EditableText id="profile-ai-cap-text">Text (translation drafts, comic scripts)</EditableText>,
   tts: <EditableText id="profile-ai-cap-tts">Narration (text-to-speech)</EditableText>,
+  image: <EditableText id="profile-ai-cap-image">Images (comic frames)</EditableText>,
+  video: <EditableText id="profile-ai-cap-video">Video (experimental)</EditableText>,
+};
+
+const CAPABILITY_SHORT: Record<AiCapability, string> = {
+  translate: "text",
+  tts: "narration",
+  image: "images",
+  video: "video",
 };
 
 /** Model / voice overrides for one capability of one provider. */
@@ -230,7 +239,7 @@ const AddConnectionForm: React.FC<{ providers: AiProvider[]; onAdded: () => void
         {providers.map((p) => (
           <option key={p.id} value={p.id}>
             {p.label} —{" "}
-            {p.capabilities.map((c) => (c === "tts" ? "narration" : "translation")).join(" + ")}
+            {p.capabilities.map((c) => CAPABILITY_SHORT[c]).join(" + ")}
           </option>
         ))}
       </select>
