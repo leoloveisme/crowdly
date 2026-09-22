@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, Columns2, GitBranch, ImagePlus } from "lucide-react";
+import { AlertTriangle, Columns2, FileAudio, FileText, GitBranch, Image as ImageIcon, ImagePlus, Video } from "lucide-react";
 import EditableText from "@/components/EditableText";
 import ParagraphBranchPopover from "@/components/ParagraphBranchPopover";
 import GalleryUpload from "@/components/GalleryUpload";
@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 import type { GalleryImage } from "@/lib/galleryApi";
 import { fetchSourceChapter, markChapterSourceSynced, type SourceChapter } from "@/lib/translationsApi";
 import { useLocales, localeName } from "./LanguageSwitcher";
+import type { ChapterMediaList, MediaKind } from "@/lib/mediaApi";
+import ChapterMediaEditor from "./media/ChapterMediaEditor";
 import { ChapterNav } from "./ChapterReader";
 import { isChapterUntitled, type InlineBranch, type StoryChapter } from "./types";
 
@@ -56,7 +58,28 @@ interface ChapterEditorProps {
   /** Translation team may mark a translated chapter as up to date with its source. */
   canMarkSynced: boolean;
   onSourceSynced: () => void;
+
+  /** All chapters (for the whole-audiobook uploader) and this chapter's media. */
+  chapters: { chapter_id: string; chapter_title: string }[];
+  media: ChapterMediaList | null;
+  onMediaChanged: () => void;
+  /** Active format tab, kept by the page so it survives chapter switches. */
+  tab: EditorTab;
+  onTabChange: (tab: EditorTab) => void;
 }
+
+export type EditorTab = "text" | MediaKind;
+
+const EDITOR_TABS: { id: EditorTab; icon: React.ReactNode; label: React.ReactNode }[] = [
+  { id: "text", icon: <FileText className="h-3.5 w-3.5" />, label: <EditableText id="story-content-type-text">Text</EditableText> },
+  { id: "audio", icon: <FileAudio className="h-3.5 w-3.5" />, label: <EditableText id="story-content-type-audio">Audio</EditableText> },
+  {
+    id: "visual",
+    icon: <ImageIcon className="h-3.5 w-3.5" />,
+    label: <EditableText id="story-content-type-cartoon">Cartoon/Presentation</EditableText>,
+  },
+  { id: "video", icon: <Video className="h-3.5 w-3.5" />, label: <EditableText id="story-content-type-video">Video</EditableText> },
+];
 
 const textareaRows = (text: string) => Math.min(20, Math.max(3, Math.ceil(text.length / 90) + 1));
 
@@ -98,7 +121,14 @@ const ChapterEditor: React.FC<ChapterEditorProps> = (props) => {
     onIllustrationUploaded,
     canMarkSynced,
     onSourceSynced,
+    chapters,
+    media,
+    onMediaChanged,
+    tab,
+    onTabChange: setTab,
   } = props;
+
+  const mediaCount = (kind: MediaKind) => (media?.media ?? []).filter((m) => m.kind === kind).length;
 
   // --- Translation support: the chapter this one translates, side by side ---
   const locales = useLocales();
@@ -177,6 +207,43 @@ const ChapterEditor: React.FC<ChapterEditorProps> = (props) => {
         </div>
         <ChapterNav index={index} total={total} onPrevious={onPrevious} onNext={onNext} />
       </div>
+
+      {/* Formats of this chapter — mirrors the reader's content-type checkboxes */}
+      <div className="mb-4 flex flex-wrap gap-1 border-b" role="tablist">
+        {EDITOR_TABS.map((t) => {
+          const count = t.id === "text" ? 0 : mediaCount(t.id);
+          return (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={tab === t.id}
+              onClick={() => setTab(t.id)}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3 py-1.5 text-sm border-b-2 -mb-px transition",
+                tab === t.id ? "border-blue-500 text-blue-700" : "border-transparent text-gray-600 hover:text-gray-900",
+              )}
+            >
+              {t.icon}
+              {t.label}
+              {count > 0 && <span className="text-[10px] rounded-full bg-gray-100 px-1.5">{count}</span>}
+            </button>
+          );
+        })}
+      </div>
+
+      {tab !== "text" ? (
+        <ChapterMediaEditor
+          kind={tab}
+          storyTitleId={storyTitleId}
+          chapterId={chapter.chapter_id}
+          chapterParagraphs={Array.isArray(chapter.paragraphs) ? chapter.paragraphs : []}
+          chapters={chapters}
+          list={media}
+          onChanged={onMediaChanged}
+        />
+      ) : (
+      <>
 
       {!isOwner && (
         <p className="mb-3 text-xs text-purple-700 bg-purple-50 border border-purple-100 rounded px-2 py-1">
@@ -387,6 +454,8 @@ const ChapterEditor: React.FC<ChapterEditorProps> = (props) => {
           Changes save when you click outside a paragraph (or press Ctrl/⌘+Enter). Esc cancels.
         </EditableText>
       </p>
+      </>
+      )}
     </div>
   );
 };

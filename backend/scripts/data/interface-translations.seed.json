@@ -7565,5 +7565,474 @@
     "en": "If that's wrong, the owner can change it in Settings → Language.",
     "ru": "Если это не так, владелец может изменить это в «Настройки → Язык».",
     "de": "Falls das nicht stimmt, kann der Besitzer es unter Einstellungen → Sprache ändern."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-edition-reading",
+    "en": "Reading:",
+    "ru": "Читаю:",
+    "de": "Lese:"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-edition-new-btn",
+    "en": "New edition",
+    "ru": "Новая редакция",
+    "de": "Neue Ausgabe"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-settings-narrate",
+    "en": "Who can narrate",
+    "ru": "Кто может озвучивать",
+    "de": "Wer darf vorlesen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-settings-narrators",
+    "en": "Narrators",
+    "ru": "Чтецы",
+    "de": "Sprecher"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-edition-edit-title",
+    "en": "Edit edition",
+    "ru": "Изменить редакцию",
+    "de": "Ausgabe bearbeiten"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-edition-new-title",
+    "en": "Build an edition",
+    "ru": "Собрать редакцию",
+    "de": "Eine Ausgabe zusammenstellen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-edition-desc",
+    "en": "Choose which paragraph branches make up your version of the story. The result is frozen when you save, so narrations of it stay in sync even if the story changes.",
+    "ru": "Выберите ветки абзацев, из которых состоит ваша версия истории. При сохранении текст фиксируется, поэтому озвучки остаются синхронными, даже если история изменится.",
+    "de": "Wähle, welche Absatz-Zweige deine Version der Geschichte bilden. Beim Speichern wird der Text eingefroren, damit Lesungen synchron bleiben, auch wenn sich die Geschichte ändert."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-edition-no-branches",
+    "en": "This story has no paragraph branches yet — an edition would be identical to the original.",
+    "ru": "У этой истории пока нет веток абзацев — редакция совпала бы с оригиналом.",
+    "de": "Diese Geschichte hat noch keine Absatz-Zweige — eine Ausgabe wäre mit dem Original identisch."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-edition-paragraph",
+    "en": "Paragraph",
+    "ru": "Абзац",
+    "de": "Absatz"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-edition-original",
+    "en": "Original",
+    "ru": "Оригинал",
+    "de": "Original"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-edition-branch",
+    "en": "Branch",
+    "ru": "Ветка",
+    "de": "Zweig"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-edition-publish",
+    "en": "Visible to readers",
+    "ru": "Видна читателям",
+    "de": "Für Leser sichtbar"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-edition-branches-chosen",
+    "en": "branch(es) chosen",
+    "ru": "веток выбрано",
+    "de": "Zweig(e) gewählt"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-edition-save",
+    "en": "Save edition",
+    "ru": "Сохранить редакцию",
+    "de": "Ausgabe speichern"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-contribute-audio",
+    "en": "narration",
+    "ru": "озвучку",
+    "de": "Lesung"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-contribute-visual",
+    "en": "cartoon / presentation",
+    "ru": "мультфильм / презентацию",
+    "de": "Cartoon / Präsentation"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-contribute-video",
+    "en": "video",
+    "ru": "видео",
+    "de": "Video"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-contribute-add-own",
+    "en": "Add your own:",
+    "ru": "Добавьте своё:",
+    "de": "Eigenes hinzufügen:"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-reading-edition",
+    "en": "Reading the edition",
+    "ru": "Читается редакция",
+    "de": "Gelesen wird die Ausgabe"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-edition-missing-chapter",
+    "en": "This chapter isn't part of the selected edition — showing the current text.",
+    "ru": "Этой главы нет в выбранной редакции — показан текущий текст.",
+    "de": "Dieses Kapitel ist nicht Teil der gewählten Ausgabe — es wird der aktuelle Text angezeigt."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-contribute-dialog-title",
+    "en": "Contribute to this chapter",
+    "ru": "Внести вклад в эту главу",
+    "de": "Zu diesem Kapitel beitragen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-contribute-review-note",
+    "en": "The story owner reviews submissions before readers see them.",
+    "ru": "Владелец истории проверяет материалы, прежде чем их увидят читатели.",
+    "de": "Der Besitzer der Geschichte prüft Einsendungen, bevor Leser sie sehen."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audiobook-title",
+    "en": "Upload an audiobook",
+    "ru": "Загрузить аудиокнигу",
+    "de": "Hörbuch hochladen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audiobook-desc",
+    "en": "One audio file per chapter. Drop several files at once to assign them to chapters in filename order.",
+    "ru": "Один аудиофайл на главу. Перетащите сразу несколько файлов — они распределятся по главам в порядке имён файлов.",
+    "de": "Eine Audiodatei pro Kapitel. Ziehe mehrere Dateien auf einmal hierher, um sie in Dateinamen-Reihenfolge den Kapiteln zuzuordnen."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audio-which-text",
+    "en": "Which text did you read?",
+    "ru": "Какой текст вы читали?",
+    "de": "Welchen Text hast du gelesen?"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audiobook-drop",
+    "en": "Drop audio files here, or click to choose several",
+    "ru": "Перетащите аудиофайлы сюда или нажмите, чтобы выбрать несколько",
+    "de": "Audiodateien hierher ziehen oder klicken, um mehrere auszuwählen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-dialog-close",
+    "en": "Close",
+    "ru": "Закрыть",
+    "de": "Schließen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audiobook-upload",
+    "en": "Upload",
+    "ru": "Загрузить",
+    "de": "Hochladen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-frame-click-hint",
+    "en": "Click on the image to add a speech bubble or text box.",
+    "ru": "Нажмите на изображение, чтобы добавить реплику или текстовый блок.",
+    "de": "Klicke auf das Bild, um eine Sprechblase oder ein Textfeld hinzuzufügen."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-frame-caption",
+    "en": "Caption",
+    "ru": "Подпись",
+    "de": "Bildunterschrift"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-frame-anchor",
+    "en": "Shown while reading paragraphs",
+    "ru": "Показывается при чтении абзацев",
+    "de": "Angezeigt beim Lesen der Absätze"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-frame-save",
+    "en": "Save frame",
+    "ru": "Сохранить кадр",
+    "de": "Bild speichern"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-frame-delete",
+    "en": "Delete frame",
+    "ru": "Удалить кадр",
+    "de": "Bild löschen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-frame-add",
+    "en": "Add frames",
+    "ru": "Добавить кадры",
+    "de": "Bilder hinzufügen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-visual-new-heading",
+    "en": "New cartoon / presentation",
+    "ru": "Новый мультфильм / презентация",
+    "de": "Neuer Cartoon / neue Präsentation"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-visual-choose-images",
+    "en": "Choose images…",
+    "ru": "Выбрать изображения…",
+    "de": "Bilder auswählen…"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-visual-formats",
+    "en": "PNG, JPEG, WEBP or GIF, up to 10 MB each and 20 per upload.",
+    "ru": "PNG, JPEG, WEBP или GIF, до 10 МБ каждый и до 20 за раз.",
+    "de": "PNG, JPEG, WEBP oder GIF, je bis 10 MB und 20 pro Upload."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-video-add-heading",
+    "en": "Add a video",
+    "ru": "Добавить видео",
+    "de": "Video hinzufügen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-video-add-btn",
+    "en": "Add YouTube / Vimeo link",
+    "ru": "Добавить ссылку YouTube / Vimeo",
+    "de": "YouTube-/Vimeo-Link hinzufügen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-video-upload-file",
+    "en": "Upload video file",
+    "ru": "Загрузить видеофайл",
+    "de": "Videodatei hochladen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-video-none",
+    "en": "No video for this chapter yet.",
+    "ru": "Для этой главы пока нет видео.",
+    "de": "Für dieses Kapitel gibt es noch kein Video."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-media-pending",
+    "en": "Pending review",
+    "ru": "На проверке",
+    "de": "Wartet auf Prüfung"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-media-rejected",
+    "en": "Rejected",
+    "ru": "Отклонено",
+    "de": "Abgelehnt"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-media-approve",
+    "en": "Approve",
+    "ru": "Одобрить",
+    "de": "Freigeben"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-media-reject",
+    "en": "Reject",
+    "ru": "Отклонить",
+    "de": "Ablehnen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-media-storage-note",
+    "en": "Stored on Crowdly servers.",
+    "ru": "Хранится на серверах Crowdly.",
+    "de": "Gespeichert auf Crowdly-Servern."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-media-object-storage",
+    "en": "Object storage (S3/R2)",
+    "ru": "Объектное хранилище (S3/R2)",
+    "de": "Objektspeicher (S3/R2)"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-visual-none",
+    "en": "No cartoon or presentation for this chapter yet.",
+    "ru": "Для этой главы пока нет мультфильма или презентации.",
+    "de": "Für dieses Kapitel gibt es noch keinen Cartoon und keine Präsentation."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audio-sync-btn",
+    "en": "Sync to paragraphs",
+    "ru": "Синхронизировать с абзацами",
+    "de": "Mit Absätzen synchronisieren"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audio-closed",
+    "en": "The story owner hasn't opened this story for narration.",
+    "ru": "Владелец истории не открыл её для озвучивания.",
+    "de": "Der Besitzer hat diese Geschichte nicht zum Vorlesen freigegeben."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audio-add-heading",
+    "en": "Add a narration of this chapter",
+    "ru": "Добавить озвучку этой главы",
+    "de": "Lesung dieses Kapitels hinzufügen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audio-upload-btn",
+    "en": "Upload narration",
+    "ru": "Загрузить озвучку",
+    "de": "Lesung hochladen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audio-audiobook-btn",
+    "en": "Upload a whole audiobook…",
+    "ru": "Загрузить всю аудиокнигу…",
+    "de": "Ganzes Hörbuch hochladen…"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audio-formats",
+    "en": "MP3, M4A, OGG, WAV, WEBM or FLAC, up to 200 MB per chapter.",
+    "ru": "MP3, M4A, OGG, WAV, WEBM или FLAC, до 200 МБ на главу.",
+    "de": "MP3, M4A, OGG, WAV, WEBM oder FLAC, bis 200 MB pro Kapitel."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audio-record-hint",
+    "en": "Record with any app you like (e.g. Audacity or your phone), then upload here.",
+    "ru": "Записывайте в любом удобном приложении (например, Audacity или на телефоне), затем загрузите сюда.",
+    "de": "Nimm mit einer beliebigen App auf (z. B. Audacity oder dem Handy) und lade es dann hier hoch."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-sync-title",
+    "en": "Sync narration to paragraphs",
+    "ru": "Синхронизация озвучки с абзацами",
+    "de": "Lesung mit Absätzen synchronisieren"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-sync-desc",
+    "en": "Play the narration and press Space (or the button) each time a new paragraph begins.",
+    "ru": "Включите озвучку и нажимайте пробел (или кнопку) в начале каждого нового абзаца.",
+    "de": "Spiele die Lesung ab und drücke die Leertaste (oder den Knopf), sobald ein neuer Absatz beginnt."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-sync-all-marked",
+    "en": "All paragraphs marked",
+    "ru": "Все абзацы отмечены",
+    "de": "Alle Absätze markiert"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-sync-mark",
+    "en": "Paragraph starts now",
+    "ru": "Абзац начинается сейчас",
+    "de": "Absatz beginnt jetzt"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-sync-undo",
+    "en": "Undo last",
+    "ru": "Отменить последнее",
+    "de": "Letzte rückgängig"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-sync-clear",
+    "en": "Start over",
+    "ru": "Начать заново",
+    "de": "Neu beginnen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-sync-save",
+    "en": "Save timings",
+    "ru": "Сохранить разметку",
+    "de": "Zeitmarken speichern"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audio-none",
+    "en": "No narration for this chapter yet.",
+    "ru": "Для этой главы пока нет озвучки.",
+    "de": "Für dieses Kapitel gibt es noch keine Lesung."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audio-narrated-by",
+    "en": "Narrated by",
+    "ru": "Читает",
+    "de": "Gelesen von"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audio-version-of",
+    "en": "Narrated from the version of",
+    "ru": "Озвучено по версии от",
+    "de": "Gelesen nach der Fassung vom"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audio-edition",
+    "en": "Edition:",
+    "ru": "Редакция:",
+    "de": "Ausgabe:"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audio-follow",
+    "en": "Follow along in the text",
+    "ru": "Следить по тексту",
+    "de": "Im Text mitlesen"
   }
 ]

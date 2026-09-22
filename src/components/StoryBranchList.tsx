@@ -99,6 +99,7 @@ const StoryBranchList: React.FC<StoryBranchListProps> = ({ storyId }) => {
     try {
       const res = await fetch(`${API_BASE}/paragraph-branches/${branch.id}`, {
         method: 'PATCH',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           branchText: editBranchText,
@@ -136,6 +137,7 @@ const StoryBranchList: React.FC<StoryBranchListProps> = ({ storyId }) => {
     try {
       const res = await fetch(`${API_BASE}/paragraph-branches/${id}`, {
         method: 'DELETE',
+        credentials: 'include',
       });
       if (!res.ok && res.status !== 204) {
         const body = await res.json().catch(() => ({}));

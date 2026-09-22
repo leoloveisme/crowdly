@@ -12,66 +12,10 @@
 
 import express from 'express';
 import { pool } from './db.js';
-import { requireAuth, getSessionUser, SESSION_COOKIE_NAME } from './sessions.js';
+import { requireAuth } from './sessions.js';
+import { optionalUserId, loadStory, groupIdOf, isStoryTeam, hasAccessRule, canViewStory, canUsePolicy } from './storyAccess.js';
 
 const router = express.Router();
-
-async function optionalUserId(req) {
-  try {
-    const user = await getSessionUser(req.cookies?.[SESSION_COOKIE_NAME]);
-    return user?.id ?? null;
-  } catch {
-    return null;
-  }
-}
-
-async function loadStory(db, storyTitleId) {
-  const { rows } = await db.query('SELECT * FROM story_title WHERE story_title_id = $1', [storyTitleId]);
-  return rows[0] ?? null;
-}
-
-const groupIdOf = (story) => story.translation_group_id ?? story.story_title_id;
-
-// Owner or anyone with an explicit story_access row.
-async function isStoryTeam(db, story, userId) {
-  if (!userId) return false;
-  if (story.creator_id === userId) return true;
-  const { rows } = await db.query(
-    'SELECT 1 FROM story_access WHERE story_title_id = $1 AND user_id = $2 LIMIT 1',
-    [story.story_title_id, userId],
-  );
-  return rows.length > 0;
-}
-
-async function hasAccessRule(db, storyTitleId, userId, ruleType) {
-  if (!userId) return false;
-  const { rows } = await db.query(
-    `SELECT 1 FROM story_access_rules WHERE story_title_id = $1 AND rule_type = $3
-     AND (grantee_user_id = $2 OR grantee_group_id IN (SELECT group_id FROM user_group_members WHERE user_id = $2))
-     LIMIT 1`,
-    [storyTitleId, userId, ruleType],
-  );
-  return rows.length > 0;
-}
-
-// Same visibility semantics as GET /story-titles/:storyTitleId.
-async function canViewStory(db, story, userId) {
-  const visibility = story.visibility ?? 'public';
-  if (visibility === 'public') return true;
-  if (await isStoryTeam(db, story, userId)) return true;
-  if (visibility === 'unlisted') return hasAccessRule(db, story.story_title_id, userId, 'view');
-  return false;
-}
-
-// Evaluated against the original story of the group.
-async function canTranslate(db, original, userId) {
-  if (!userId) return false;
-  if (await isStoryTeam(db, original, userId)) return true;
-  const policy = original.translation_policy ?? 'anyone';
-  if (policy === 'none') return false;
-  if (policy === 'restricted') return hasAccessRule(db, original.story_title_id, userId, 'translate');
-  return true;
-}
 
 // GET /stories/:storyTitleId/translations
 // All language versions in this story's group that the viewer may see, with
@@ -135,7 +79,7 @@ router.get('/stories/:storyTitleId/translations', async (req, res) => {
 
     res.json({
       group_id: groupId,
-      can_translate: await canTranslate(pool, original, userId),
+      can_translate: await canUsePolicy(pool, original, userId, 'translation_policy', 'translate'),
       can_mark_official: Boolean(userId && original.creator_id === userId),
       versions,
     });
@@ -171,7 +115,7 @@ router.post('/stories/:storyTitleId/translations', requireAuth, async (req, res)
 
     const groupId = groupIdOf(source);
     const original = (await loadStory(client, groupId)) ?? source;
-    if (!(await canTranslate(client, original, userId))) {
+    if (!(await canUsePolicy(client, original, userId, 'translation_policy', 'translate'))) {
       return res.status(403).json({ error: 'You do not have permission to translate this story.' });
     }
 

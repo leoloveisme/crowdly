@@ -899,6 +899,7 @@ const NewStoryTemplate = () => {
     try {
       const res = await fetch(`${API_BASE}/paragraph-branches`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           chapterId,

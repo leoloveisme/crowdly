@@ -28,6 +28,8 @@ import messagingRouter, {
 import galleryRouter, { ensureStoryGalleryImagesTable, UPLOADS_ROOT } from './gallery.js';
 import comicsRouter, { ensureComicTables } from './comics.js';
 import translationsRouter from './translations.js';
+import editionsRouter from './editions.js';
+import chapterMediaRouter from './chapterMedia.js';
 import creativeSpaceFilesRouter, { CREATIVE_SPACE_FILES_ROOT, guessMimeType } from './creativeSpaceFiles.js';
 import { eventsHandler } from './events.js';
 import {
@@ -144,6 +146,8 @@ app.get('/api/events', requireAuth, eventsHandler);
 app.use(galleryRouter);
 app.use(comicsRouter);
 app.use(translationsRouter);
+app.use(editionsRouter);
+app.use(chapterMediaRouter);
 // Not statically served (unlike /uploads below) — Space items can be
 // private, so content is only ever handed out through the authenticated
 // routes in creativeSpaceFiles.js.
@@ -8186,17 +8190,37 @@ app.get('/comments', async (req, res) => {
   }
 });
 
-// Paragraph branches: create
-app.post('/paragraph-branches', async (req, res) => {
+// Who may edit/delete an existing paragraph branch: the story owner, the
+// branch's own author, or platform staff. Resolves the branch's story via its
+// chapter. Returns { status, error } on refusal, or { branch } when allowed.
+async function authorizeParagraphBranchWrite(branchId, userId) {
+  const { rows } = await pool.query(
+    `SELECT pb.id, pb.user_id, s.story_title_id
+       FROM paragraph_branches pb
+       JOIN stories s ON s.chapter_id = pb.chapter_id
+      WHERE pb.id = $1`,
+    [branchId],
+  );
+  if (rows.length === 0) return { status: 404, error: 'Branch not found' };
+  const branch = rows[0];
+  if (branch.user_id && branch.user_id === userId) return { branch };
+  const role = await getStoryAccessRole(branch.story_title_id, userId);
+  if (role === 'owner') return { branch };
+  if (await isPlatformAdminOrEditor(userId)) return { branch };
+  return { status: 403, error: 'Not authorized to change this branch' };
+}
+
+// Paragraph branches: create (story owner or contributor)
+app.post('/paragraph-branches', requireAuth, async (req, res) => {
   const {
     chapterId,
     parentParagraphIndex,
     parentParagraphText,
     branchText,
-    userId,
     language,
     metadata,
   } = req.body ?? {};
+  const userId = req.user.id;
 
   // Allow empty string for branchText so that a "quick branch" can be
   // created before the user has typed any content. We only reject if the
@@ -8208,6 +8232,15 @@ app.post('/paragraph-branches', async (req, res) => {
   }
 
   try {
+    const chapterRes = await pool.query('SELECT story_title_id FROM stories WHERE chapter_id = $1', [chapterId]);
+    if (chapterRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Chapter not found' });
+    }
+    const role = await getStoryAccessRole(chapterRes.rows[0].story_title_id, userId);
+    if (role !== 'owner' && role !== 'contributor') {
+      return res.status(403).json({ error: 'Not authorized to add branches to this story' });
+    }
+
     const { rows } = await pool.query(
       `INSERT INTO paragraph_branches
          (chapter_id, parent_paragraph_index, parent_paragraph_text, branch_text, user_id, language, metadata)
@@ -8218,7 +8251,7 @@ app.post('/paragraph-branches', async (req, res) => {
         parentParagraphIndex,
         parentParagraphText || null,
         branchText,
-        userId || null,
+        userId,
         language || 'en',
         metadata ?? null,
       ],
@@ -8265,13 +8298,21 @@ app.get('/stories/:storyTitleId/branches', async (req, res) => {
   }
 });
 
-// Paragraph branches: update
-app.patch('/paragraph-branches/:id', async (req, res) => {
+// Paragraph branches: update (story owner, branch author, or platform staff)
+app.patch('/paragraph-branches/:id', requireAuth, async (req, res) => {
   const { id } = req.params;
   const { branchText, parentParagraphText } = req.body ?? {};
 
   if (!branchText && !parentParagraphText) {
     return res.status(400).json({ error: 'branchText or parentParagraphText must be provided' });
+  }
+
+  try {
+    const auth = await authorizeParagraphBranchWrite(id, req.user.id);
+    if (auth.error) return res.status(auth.status).json({ error: auth.error });
+  } catch (err) {
+    console.error('[PATCH /paragraph-branches/:id] authorization failed:', err);
+    return res.status(500).json({ error: 'Failed to update paragraph branch' });
   }
 
   const fields = [];
@@ -8302,10 +8343,12 @@ app.patch('/paragraph-branches/:id', async (req, res) => {
   }
 });
 
-// Paragraph branches: delete
-app.delete('/paragraph-branches/:id', async (req, res) => {
+// Paragraph branches: delete (story owner, branch author, or platform staff)
+app.delete('/paragraph-branches/:id', requireAuth, async (req, res) => {
   const { id } = req.params;
   try {
+    const auth = await authorizeParagraphBranchWrite(id, req.user.id);
+    if (auth.error) return res.status(auth.status).json({ error: auth.error });
     const { rowCount } = await pool.query('DELETE FROM paragraph_branches WHERE id = $1', [id]);
     if (!rowCount) {
       return res.status(404).json({ error: 'Branch not found' });
@@ -8465,7 +8508,7 @@ app.patch('/story-titles/:storyTitleId', async (req, res) => {
 // Update story visibility / published flags (no revision)
 app.patch('/story-titles/:storyTitleId/settings', async (req, res) => {
   const { storyTitleId } = req.params;
-  const { visibility, published, genre, tags, completion_status, clone_policy, export_policy, translation_policy, language, cover_image_url, description } = req.body ?? {};
+  const { visibility, published, genre, tags, completion_status, clone_policy, export_policy, translation_policy, narration_policy, language, cover_image_url, description } = req.body ?? {};
 
   if (
     visibility === undefined &&
@@ -8476,12 +8519,13 @@ app.patch('/story-titles/:storyTitleId/settings', async (req, res) => {
     clone_policy === undefined &&
     export_policy === undefined &&
     translation_policy === undefined &&
+    narration_policy === undefined &&
     language === undefined &&
     cover_image_url === undefined &&
     description === undefined
   ) {
     return res.status(400).json({
-      error: 'At least one of visibility, published, genre, tags, completion_status, clone_policy, export_policy, translation_policy, language, cover_image_url, or description must be provided',
+      error: 'At least one of visibility, published, genre, tags, completion_status, clone_policy, export_policy, translation_policy, narration_policy, language, cover_image_url, or description must be provided',
     });
   }
 
@@ -8523,6 +8567,13 @@ app.patch('/story-titles/:storyTitleId/settings', async (req, res) => {
     }
     fields.push(`translation_policy = $${idx++}`);
     values.push(translation_policy);
+  }
+  if (narration_policy !== undefined) {
+    if (!['anyone', 'restricted', 'none'].includes(narration_policy)) {
+      return res.status(400).json({ error: "narration_policy must be 'anyone', 'restricted' or 'none'" });
+    }
+    fields.push(`narration_policy = $${idx++}`);
+    values.push(narration_policy);
   }
   if (language !== undefined) {
     fields.push(`language = $${idx++}`);

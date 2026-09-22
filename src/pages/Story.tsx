@@ -30,6 +30,10 @@ import ChapterEditor from "@/components/story/ChapterEditor";
 import StorySettingsSheet, { type StoryPolicy, type StoryVisibility } from "@/components/story/StorySettingsSheet";
 import LanguageSwitcher, { localeName, useLocales } from "@/components/story/LanguageSwitcher";
 import TranslateStoryDialog from "@/components/story/TranslateStoryDialog";
+import EditionPicker from "@/components/story/EditionPicker";
+import type { EditorTab } from "@/components/story/ChapterEditor";
+import { useChapterMedia } from "@/components/story/media/useChapterMedia";
+import { getMediaSummary, type Edition, type MediaSummary } from "@/lib/mediaApi";
 import { useEditableContent } from "@/contexts/EditableContentContext";
 import {
   createStoryTranslation,
@@ -289,6 +293,7 @@ const Story = () => {
     clone_policy?: string;
     export_policy?: string;
     translation_policy?: string;
+    narration_policy?: string;
     translation_group_id?: string | null;
     source_story_title_id?: string | null;
     is_official_translation?: boolean;
@@ -362,7 +367,29 @@ const Story = () => {
   useEffect(() => {
     setSidebarMode(pageMode);
   }, [pageMode]);
-  const [contentTypes, setContentTypes] = useState<StoryContentTypes>(DEFAULT_STORY_CONTENT_TYPES);
+  // Reader's format choice, remembered per browser.
+  const [contentTypes, setContentTypesState] = useState<StoryContentTypes>(() => {
+    try {
+      const saved = localStorage.getItem("crowdly_story_content_types");
+      return saved ? { ...DEFAULT_STORY_CONTENT_TYPES, ...JSON.parse(saved) } : DEFAULT_STORY_CONTENT_TYPES;
+    } catch {
+      return DEFAULT_STORY_CONTENT_TYPES;
+    }
+  });
+  const setContentTypes = (next: StoryContentTypes) => {
+    setContentTypesState(next);
+    try {
+      localStorage.setItem("crowdly_story_content_types", JSON.stringify(next));
+    } catch {
+      // storage unavailable (private mode) — the choice just isn't remembered
+    }
+  };
+  // Edition being read (null = the story's current text) and the editor's format tab
+  const [readingEdition, setReadingEdition] = useState<Edition | null>(null);
+  const [editorTab, setEditorTab] = useState<EditorTab>("text");
+  // Media of the active chapter + per-chapter availability for the checkboxes
+  const chapterMedia = useChapterMedia(currentChapterId);
+  const [mediaSummary, setMediaSummary] = useState<MediaSummary>({});
   const [settingsOpen, setSettingsOpen] = useState(false);
   // Language versions of this story (original + translations)
   const [translations, setTranslations] = useState<StoryTranslations | null>(null);
@@ -402,7 +429,7 @@ const Story = () => {
 
   // Access rules picker state
   const [accessPickerOpen, setAccessPickerOpen] = useState(false);
-  const [accessPickerRuleType, setAccessPickerRuleType] = useState<"view" | "clone" | "export" | "translate">("view");
+  const [accessPickerRuleType, setAccessPickerRuleType] = useState<"view" | "clone" | "export" | "translate" | "narrate">("view");
 
   // Collaborators state
   const [collaborators, setCollaborators] = useState<StoryCollaborator[]>([]);
@@ -622,6 +649,23 @@ const Story = () => {
     }
     // eslint-disable-next-line
   }, [story_id, user?.id]);
+
+  const reloadMediaSummary = useCallback(() => {
+    if (!story_id) return;
+    getMediaSummary(story_id)
+      .then(setMediaSummary)
+      .catch(() => setMediaSummary({}));
+  }, [story_id]);
+
+  useEffect(() => {
+    reloadMediaSummary();
+    setReadingEdition(null);
+  }, [reloadMediaSummary, user?.id]);
+
+  const handleMediaChanged = () => {
+    chapterMedia.reload();
+    reloadMediaSummary();
+  };
 
   const reloadTranslations = useCallback(() => {
     if (!story_id) return;
@@ -1415,6 +1459,7 @@ const Story = () => {
       if (isOwner) {
         const res = await fetch(`${API_BASE}/paragraph-branches/${branchId}`, {
           method: "PATCH",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             branchText: branch_text,
@@ -1487,6 +1532,7 @@ const Story = () => {
     try {
       const res = await fetch(`${API_BASE}/paragraph-branches`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           chapterId: chapter.chapter_id,
@@ -1553,6 +1599,7 @@ const Story = () => {
         // Story initiator: write directly to canonical branch text
         const res = await fetch(`${API_BASE}/paragraph-branches/${branchId}`, {
           method: "PATCH",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ branchText: branch.text ?? "" }),
         });
@@ -2041,6 +2088,12 @@ const Story = () => {
     }
   };
 
+  const setNarrationPolicy = (next: StoryPolicy) => {
+    if (!story) return;
+    updateStorySetting('narration_policy', next);
+    if (next === 'restricted') openAccessPicker("narrate");
+  };
+
   const setTranslationPolicy = (next: StoryPolicy) => {
     if (!story) return;
     updateStorySetting('translation_policy', next);
@@ -2076,7 +2129,7 @@ const Story = () => {
     }
   };
 
-  const openAccessPicker = (rule: "view" | "clone" | "export" | "translate") => {
+  const openAccessPicker = (rule: "view" | "clone" | "export" | "translate" | "narrate") => {
     // The picker is its own modal — close the settings sheet so the two
     // dialogs don't fight over focus.
     setSettingsOpen(false);
@@ -2406,6 +2459,22 @@ const Story = () => {
         )}
       </div>
     ) : null;
+
+  // Formats the current chapter actually has (approved media). Missing ones
+  // are shown disabled in the checkbox row and not rendered in the reader.
+  const currentSummary = (currentChapter && mediaSummary[currentChapter.chapter_id]) || null;
+  const chapterAvailability = {
+    text: true,
+    audio: (currentSummary?.audio ?? 0) > 0,
+    cartoon: (currentSummary?.visual ?? 0) > 0,
+    video: (currentSummary?.video ?? 0) > 0,
+  };
+  const effectiveContentTypes: StoryContentTypes = {
+    text: contentTypes.text,
+    audio: contentTypes.audio && chapterAvailability.audio,
+    cartoon: contentTypes.cartoon && chapterAvailability.cartoon,
+    video: contentTypes.video && chapterAvailability.video,
+  };
 
   const chapterSidebar = (
     <ChapterSidebar
@@ -3019,7 +3088,22 @@ const Story = () => {
 
                 {/* CHAPTER — reader for everyone in Viewing mode, editor in Editing mode */}
                 <div id="chapter-top" className="scroll-mt-4 mt-8 pt-6 border-t">
-                  {!isEditing && <StoryContentTypeSelector value={contentTypes} onChange={setContentTypes} />}
+                  {!isEditing && chapters.length > 0 && (
+                    <>
+                      <EditionPicker
+                        storyTitleId={story.story_title_id}
+                        chapters={chapters}
+                        canCreate={!!user}
+                        value={readingEdition}
+                        onChange={setReadingEdition}
+                      />
+                      <StoryContentTypeSelector
+                        value={contentTypes}
+                        onChange={setContentTypes}
+                        available={chapterAvailability}
+                      />
+                    </>
+                  )}
 
                   {currentChapter ? (
                     isEditing ? (
@@ -3069,17 +3153,28 @@ const Story = () => {
                           );
                           reloadTranslations();
                         }}
+                        chapters={chapters}
+                        media={chapterMedia.list}
+                        onMediaChanged={handleMediaChanged}
+                        tab={editorTab}
+                        onTabChange={setEditorTab}
                       />
                     ) : (
                       <ChapterReader
+                        storyTitleId={story.story_title_id}
                         chapter={currentChapter}
+                        chapters={chapters}
                         index={currentChapterIndex}
                         total={chapters.length}
                         onPrevious={handlePreviousChapter}
                         onNext={handleNextChapter}
-                        contentTypes={contentTypes}
+                        contentTypes={effectiveContentTypes}
                         proposals={proposals}
                         illustrations={galleryImages}
+                        edition={readingEdition}
+                        media={chapterMedia.list}
+                        onMediaChanged={handleMediaChanged}
+                        canContributeMedia={!!user}
                         headerExtra={mobileChaptersButton}
                       />
                     )
@@ -3191,6 +3286,7 @@ const Story = () => {
                 onSetClonePolicy={setClonePolicy}
                 onSetExportPolicy={setExportPolicy}
                 onSetTranslationPolicy={setTranslationPolicy}
+                onSetNarrationPolicy={setNarrationPolicy}
                 onOpenAccessPicker={openAccessPicker}
                 onUpdateSetting={updateStorySetting}
                 onOpenDetails={() => navigate(`/story/${story.story_title_id}/details`)}
