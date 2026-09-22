@@ -338,6 +338,8 @@ const Story = () => {
     else params.delete("mode");
     setSearchParams(params, { replace: true });
     setSidebarMode(next);
+    // Cover editor is Editing-only; don't let it reopen on the next switch.
+    setCoverEditorOpen(false);
   };
   const [sidebarMode, setSidebarMode] = useState<ChapterSidebarMode>(pageMode);
   const [contentTypes, setContentTypes] = useState<StoryContentTypes>(DEFAULT_STORY_CONTENT_TYPES);
@@ -2803,7 +2805,7 @@ const Story = () => {
                       <BookOpen className="h-8 w-8 text-white/80" />
                     </div>
                   )}
-                  {isOwner && (
+                  {isOwner && isEditing && (
                     <button
                       type="button"
                       onClick={() => setCoverEditorOpen((v) => !v)}
@@ -2817,7 +2819,7 @@ const Story = () => {
                     </button>
                   )}
                 </div>
-                {isOwner && coverEditorOpen && (
+                {isOwner && isEditing && coverEditorOpen && (
                   <div className="max-w-xs">
                     <CoverImageUpload
                       value={story.cover_image_url || null}
@@ -2860,7 +2862,9 @@ const Story = () => {
                   idPrefix="story-page-gallery"
                   refreshToken={galleryRefreshToken}
                 />
-                {user && (
+                {/* Owners/co-authors upload from Editing mode; readers who
+                    can't enter Editing submit fan art from Viewing. */}
+                {user && (isEditing || !canCRUDChapters) && (
                   <div className="mt-3 pt-3 border-t max-w-sm">
                     <h3 className="text-xs font-semibold mb-1">
                       {isOwner ? (
@@ -2881,8 +2885,9 @@ const Story = () => {
                 )}
               </div>
 
-              {/* Unified reactions + comments for this story */}
-              <InteractionsWidget kind="story" storyTitleId={story.story_title_id} />
+              {/* Unified reactions + comments for this story — reader-facing,
+                  so hidden in Editing mode */}
+              {!isEditing && <InteractionsWidget kind="story" storyTitleId={story.story_title_id} />}
 
                 {/* CHAPTER — reader for everyone in Viewing mode, editor in Editing mode */}
                 <div id="chapter-top" className="scroll-mt-4 mt-8 pt-6 border-t">
