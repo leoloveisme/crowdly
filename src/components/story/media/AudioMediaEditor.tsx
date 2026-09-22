@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { BookAudio, Timer, Upload } from "lucide-react";
+import { BookAudio, Loader2, Sparkles, Timer, Upload } from "lucide-react";
+import { Link } from "react-router-dom";
+import { aiNarrateChapter, connectionName, connectionsFor, useAiConnections } from "@/lib/aiApi";
 import EditableText from "@/components/EditableText";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -23,6 +25,8 @@ interface AudioMediaEditorProps {
   chapters: { chapter_id: string; chapter_title: string }[];
   list: ChapterMediaList;
   onChanged: () => void;
+  /** Called after an AI narration job is queued (so the page starts watching it). */
+  onAiJobQueued?: () => void;
 }
 
 const AudioMediaEditor: React.FC<AudioMediaEditorProps> = ({
@@ -32,8 +36,36 @@ const AudioMediaEditor: React.FC<AudioMediaEditorProps> = ({
   chapters,
   list,
   onChanged,
+  onAiJobQueued,
 }) => {
   const { toast } = useToast();
+  const { connections } = useAiConnections(true);
+  const ttsConnections = connectionsFor(connections, "tts");
+  const [aiConnectionId, setAiConnectionId] = useState("");
+  const [aiVoice, setAiVoice] = useState("");
+  const [aiQueuing, setAiQueuing] = useState(false);
+  const aiConnection = ttsConnections.find((c) => c.id === aiConnectionId) ?? ttsConnections[0];
+
+  const handleGenerate = async () => {
+    if (!aiConnection) return;
+    setAiQueuing(true);
+    try {
+      await aiNarrateChapter(chapterId, {
+        connectionId: aiConnection.id,
+        editionId: editionId || null,
+        voice: aiVoice.trim() || undefined,
+      });
+      toast({
+        title: "Generating narration",
+        description: "Your AI is narrating this chapter in the background — it appears here when ready.",
+      });
+      onAiJobQueued?.();
+    } catch (err) {
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Could not start", variant: "destructive" });
+    } finally {
+      setAiQueuing(false);
+    }
+  };
   const narrations = list.media.filter((m) => m.kind === "audio");
   const [editions, setEditions] = useState<EditionSummary[]>([]);
   const [file, setFile] = useState<File | null>(null);
@@ -161,6 +193,53 @@ const AudioMediaEditor: React.FC<AudioMediaEditorProps> = ({
               <BookAudio className="h-3.5 w-3.5" />
               <EditableText id="story-audio-audiobook-btn">Upload a whole audiobook…</EditableText>
             </button>
+          </div>
+          <div className="border-t pt-2 space-y-2">
+            <div className="flex items-center gap-1 text-sm font-medium text-purple-900">
+              <Sparkles className="h-3.5 w-3.5" />
+              <EditableText id="story-audio-ai-heading">Or generate a narration with your AI</EditableText>
+            </div>
+            {ttsConnections.length === 0 ? (
+              <Link to="/profile" className="text-xs text-purple-700 hover:underline">
+                <EditableText id="story-audio-ai-connect">Connect a text-to-speech provider (OpenAI or ElevenLabs) in your profile</EditableText>
+              </Link>
+            ) : (
+              <div className="flex flex-wrap items-center gap-2">
+                {ttsConnections.length > 1 && (
+                  <select
+                    value={aiConnection?.id ?? ""}
+                    onChange={(e) => setAiConnectionId(e.target.value)}
+                    className="border rounded px-2 py-1.5 text-sm bg-white"
+                  >
+                    {ttsConnections.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {connectionName(c)}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <input
+                  value={aiVoice}
+                  onChange={(e) => setAiVoice(e.target.value)}
+                  placeholder={`Voice (default: ${aiConnection?.settings?.tts?.voice || "provider default"})`}
+                  className="border rounded px-2 py-1.5 text-sm flex-1 min-w-[10rem]"
+                />
+                <button
+                  type="button"
+                  disabled={aiQueuing}
+                  onClick={handleGenerate}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded border border-purple-300 bg-white text-purple-800 hover:bg-purple-50 disabled:opacity-50"
+                >
+                  {aiQueuing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                  <EditableText id="story-audio-ai-generate">Generate narration</EditableText>
+                </button>
+              </div>
+            )}
+            <p className="text-[11px] text-gray-500">
+              <EditableText id="story-audio-ai-note">
+                Uses the text chosen above and bills your own provider account. Labelled as an AI narration.
+              </EditableText>
+            </p>
           </div>
           <p className="text-[11px] text-gray-500">
             <EditableText id="story-audio-formats">MP3, M4A, OGG, WAV, WEBM or FLAC, up to 200 MB per chapter.</EditableText>{" "}

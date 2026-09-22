@@ -77,6 +77,7 @@ interface ChapterReaderProps {
   onMediaChanged: () => void;
   /** Signed-in readers may submit media (reviewed by the owner). */
   canContributeMedia: boolean;
+  onAiJobQueued?: () => void;
   /** Rendered next to the heading (e.g. the mobile "Chapters" button). */
   headerExtra?: React.ReactNode;
 }
@@ -146,6 +147,7 @@ const ChapterReader: React.FC<ChapterReaderProps> = ({
   media,
   onMediaChanged,
   canContributeMedia,
+  onAiJobQueued,
   headerExtra,
 }) => {
   const textRef = useRef<HTMLDivElement | null>(null);
@@ -354,6 +356,7 @@ const ChapterReader: React.FC<ChapterReaderProps> = ({
               chapters={chapters}
               list={media}
               onChanged={onMediaChanged}
+              onAiJobQueued={onAiJobQueued}
             />
           )}
         </DialogContent>

@@ -12,6 +12,8 @@ export interface StoryChapter {
   source_chapter_id?: string | null;
   /** The source chapter changed since the translation was last marked up to date. */
   source_stale?: boolean | null;
+  /** Machine-translated and not yet edited by a person. */
+  ai_draft?: boolean;
 }
 
 export interface StoryProposal {

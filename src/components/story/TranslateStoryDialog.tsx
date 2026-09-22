@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import EditableText from "@/components/EditableText";
 import { cn } from "@/lib/utils";
@@ -12,14 +13,17 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLocales } from "./LanguageSwitcher";
+import { connectionName, type AiConnection } from "@/lib/aiApi";
 
-type Start = "blank" | "copy";
+type Start = "blank" | "copy" | "ai";
 
 interface TranslateStoryDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sourceLanguage: string;
-  onCreate: (language: string, start: Start) => Promise<void>;
+  /** The user's AI connections that can translate (empty = AI draft unavailable). */
+  aiConnections: AiConnection[];
+  onCreate: (language: string, start: Start, connectionId?: string) => Promise<void>;
 }
 
 const StartOption: React.FC<{
@@ -49,6 +53,7 @@ const TranslateStoryDialog: React.FC<TranslateStoryDialogProps> = ({
   open,
   onOpenChange,
   sourceLanguage,
+  aiConnections,
   onCreate,
 }) => {
   const locales = useLocales();
@@ -56,12 +61,14 @@ const TranslateStoryDialog: React.FC<TranslateStoryDialogProps> = ({
   const [language, setLanguage] = useState("");
   const [start, setStart] = useState<Start>("blank");
   const [creating, setCreating] = useState(false);
+  const [connectionId, setConnectionId] = useState("");
+  const chosenConnection = aiConnections.find((c) => c.id === connectionId) ?? aiConnections[0];
 
   const handleCreate = async () => {
     if (!language) return;
     setCreating(true);
     try {
-      await onCreate(language, start);
+      await onCreate(language, start, start === "ai" ? chosenConnection?.id : undefined);
       onOpenChange(false);
     } finally {
       setCreating(false);
@@ -138,22 +145,40 @@ const TranslateStoryDialog: React.FC<TranslateStoryDialogProps> = ({
               }
             />
             <StartOption
-              selected={false}
-              disabled
-              title={
-                <>
-                  <EditableText id="story-translate-ai">AI draft</EditableText>
-                  <span className="ml-2 text-[10px] uppercase tracking-wide text-gray-500">
-                    <EditableText id="story-coming-soon">Coming soon</EditableText>
-                  </span>
-                </>
-              }
+              selected={start === "ai"}
+              disabled={aiConnections.length === 0}
+              onSelect={() => setStart("ai")}
+              title={<EditableText id="story-translate-ai">AI draft</EditableText>}
               description={
-                <EditableText id="story-translate-ai-desc">
-                  Pre-fill a draft using your own AI provider, connected in your settings.
-                </EditableText>
+                aiConnections.length === 0 ? (
+                  <EditableText id="story-translate-ai-desc">
+                    Pre-fill a draft using your own AI provider, connected in your settings.
+                  </EditableText>
+                ) : (
+                  <EditableText id="story-translate-ai-ready">
+                    Every chapter is drafted in the background with your AI; you review and edit next to the original.
+                  </EditableText>
+                )
               }
             />
+            {aiConnections.length === 0 && (
+              <Link to="/profile" className="block text-xs text-blue-700 hover:underline pl-3">
+                <EditableText id="story-translate-ai-connect">Connect an AI provider in your profile</EditableText>
+              </Link>
+            )}
+            {start === "ai" && aiConnections.length > 1 && (
+              <select
+                value={chosenConnection?.id ?? ""}
+                onChange={(e) => setConnectionId(e.target.value)}
+                className="w-full border rounded px-2 py-1.5 text-sm bg-white"
+              >
+                {aiConnections.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {connectionName(c)}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
         </div>
 

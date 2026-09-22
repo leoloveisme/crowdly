@@ -58,10 +58,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export const fetchStoryTranslations = (storyTitleId: string) =>
   request<StoryTranslations>(`/stories/${storyTitleId}/translations`);
 
-export const createStoryTranslation = (storyTitleId: string, language: string, start: "blank" | "copy") =>
-  request<{ story_title_id: string }>(`/stories/${storyTitleId}/translations`, {
+export const createStoryTranslation = (
+  storyTitleId: string,
+  language: string,
+  start: "blank" | "copy" | "ai",
+  connectionId?: string,
+) =>
+  request<{ story_title_id: string; ai_error?: string }>(`/stories/${storyTitleId}/translations`, {
     method: "POST",
-    body: JSON.stringify({ language, start }),
+    body: JSON.stringify({ language, start, connectionId }),
   });
 
 export const setOfficialTranslation = (storyTitleId: string, official: boolean) =>

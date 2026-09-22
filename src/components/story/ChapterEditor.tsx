@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, Columns2, FileAudio, FileText, GitBranch, Image as ImageIcon, ImagePlus, Video } from "lucide-react";
+import { AlertTriangle, Columns2, FileAudio, FileText, GitBranch, Image as ImageIcon, ImagePlus, Loader2, Sparkles, Video } from "lucide-react";
+import { Link } from "react-router-dom";
 import EditableText from "@/components/EditableText";
 import ParagraphBranchPopover from "@/components/ParagraphBranchPopover";
 import GalleryUpload from "@/components/GalleryUpload";
@@ -11,6 +12,7 @@ import { fetchSourceChapter, markChapterSourceSynced, type SourceChapter } from 
 import { useLocales, localeName } from "./LanguageSwitcher";
 import type { ChapterMediaList, MediaKind } from "@/lib/mediaApi";
 import ChapterMediaEditor from "./media/ChapterMediaEditor";
+import { connectionName, type AiConnection, type AiJob } from "@/lib/aiApi";
 import { ChapterNav } from "./ChapterReader";
 import { isChapterUntitled, type InlineBranch, type StoryChapter } from "./types";
 
@@ -66,6 +68,13 @@ interface ChapterEditorProps {
   /** Active format tab, kept by the page so it survives chapter switches. */
   tab: EditorTab;
   onTabChange: (tab: EditorTab) => void;
+
+  /** The user's translation-capable AI connections, and AI job state for this chapter. */
+  aiTranslateConnections: AiConnection[];
+  aiJob: AiJob | null;
+  onAiTranslateChapter: (connectionId: string) => void;
+  onAiTranslateAll: (connectionId: string) => void;
+  onAiJobQueued: () => void;
 }
 
 export type EditorTab = "text" | MediaKind;
@@ -126,7 +135,17 @@ const ChapterEditor: React.FC<ChapterEditorProps> = (props) => {
     onMediaChanged,
     tab,
     onTabChange: setTab,
+    aiTranslateConnections,
+    aiJob,
+    onAiTranslateChapter,
+    onAiTranslateAll,
+    onAiJobQueued,
   } = props;
+
+  const [aiConnectionId, setAiConnectionId] = useState("");
+  const aiConnection = aiTranslateConnections.find((c) => c.id === aiConnectionId) ?? aiTranslateConnections[0];
+  const aiBusy = aiJob !== null && (aiJob.status === "queued" || aiJob.status === "running");
+  const chapterHasText = (chapter.paragraphs ?? []).some((p) => p.trim());
 
   const mediaCount = (kind: MediaKind) => (media?.media ?? []).filter((m) => m.kind === kind).length;
 
@@ -241,6 +260,7 @@ const ChapterEditor: React.FC<ChapterEditorProps> = (props) => {
           chapters={chapters}
           list={media}
           onChanged={onMediaChanged}
+          onAiJobQueued={onAiJobQueued}
         />
       ) : (
       <>
@@ -273,6 +293,72 @@ const ChapterEditor: React.FC<ChapterEditorProps> = (props) => {
               {localeName(locales, source.source.language || "en")}: “{source.source.chapter_title}”
             </span>
           </div>
+          {/* AI translation draft */}
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            {aiBusy ? (
+              <span className="inline-flex items-center gap-1 text-purple-800">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <EditableText id="story-editor-ai-drafting">AI is drafting this chapter…</EditableText>
+              </span>
+            ) : aiTranslateConnections.length === 0 ? (
+              <Link to="/profile" className="inline-flex items-center gap-1 text-purple-700 hover:underline">
+                <Sparkles className="h-3.5 w-3.5" />
+                <EditableText id="story-editor-ai-connect">Connect an AI provider to draft translations</EditableText>
+              </Link>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (
+                      chapterHasText &&
+                      !window.confirm("Replace this chapter's current text with a new AI draft? (It stays in Revisions.)")
+                    ) {
+                      return;
+                    }
+                    onAiTranslateChapter(aiConnection.id);
+                  }}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded border border-purple-300 bg-white text-purple-800 hover:bg-purple-50"
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  <EditableText id="story-editor-ai-draft-chapter">Draft this chapter with AI</EditableText>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onAiTranslateAll(aiConnection.id)}
+                  className="px-2 py-1 rounded border bg-white hover:bg-gray-50"
+                >
+                  <EditableText id="story-editor-ai-draft-all">Draft all empty chapters</EditableText>
+                </button>
+                {aiTranslateConnections.length > 1 && (
+                  <select
+                    value={aiConnection.id}
+                    onChange={(e) => setAiConnectionId(e.target.value)}
+                    className="border rounded px-1 py-1 bg-white"
+                  >
+                    {aiTranslateConnections.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {connectionName(c)}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </>
+            )}
+            {aiJob?.status === "failed" && aiJob.error && (
+              <span className="text-red-700">
+                <EditableText id="story-editor-ai-failed">Last AI draft failed:</EditableText> {aiJob.error}
+              </span>
+            )}
+          </div>
+          {chapter.ai_draft && (
+            <div className="flex items-center gap-2 text-xs text-purple-900 bg-purple-50 border border-purple-200 rounded px-2 py-1.5">
+              <Sparkles className="h-3.5 w-3.5" />
+              <EditableText id="story-editor-ai-draft-note">
+                AI draft — review it against the original. This note disappears after your first edit.
+              </EditableText>
+            </div>
+          )}
           {source.stale && (
             <div className="flex flex-wrap items-center gap-2 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-2 py-1.5">
               <AlertTriangle className="h-3.5 w-3.5" />

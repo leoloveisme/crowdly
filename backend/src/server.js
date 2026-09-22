@@ -30,6 +30,8 @@ import comicsRouter, { ensureComicTables } from './comics.js';
 import translationsRouter from './translations.js';
 import editionsRouter from './editions.js';
 import chapterMediaRouter from './chapterMedia.js';
+import aiRouter from './ai/router.js';
+import { startAiWorker } from './ai/jobs.js';
 import creativeSpaceFilesRouter, { CREATIVE_SPACE_FILES_ROOT, guessMimeType } from './creativeSpaceFiles.js';
 import { eventsHandler } from './events.js';
 import {
@@ -148,6 +150,7 @@ app.use(comicsRouter);
 app.use(translationsRouter);
 app.use(editionsRouter);
 app.use(chapterMediaRouter);
+app.use(aiRouter);
 // Not statically served (unlike /uploads below) — Space items can be
 // private, so content is only ever handed out through the authenticated
 // routes in creativeSpaceFiles.js.
@@ -10098,6 +10101,9 @@ httpServer.listen(port, host, () => {
   console.log(`Crowdly backend listening on http://${host === '0.0.0.0' ? 'localhost' : host}:${port}`);
   console.log(`Crowdly real-time CRDT sync listening on ws://${host === '0.0.0.0' ? 'localhost' : host}:${port}${CRDT_WS_PATH}`);
 });
+
+// Background AI jobs (users' own AI providers): translation drafts, narration
+startAiWorker();
 
 if (isGithubAppConfigured()) {
   startGithubPollingLoop();

@@ -34,6 +34,8 @@ import EditionPicker from "@/components/story/EditionPicker";
 import type { EditorTab } from "@/components/story/ChapterEditor";
 import { useChapterMedia } from "@/components/story/media/useChapterMedia";
 import { getMediaSummary, type Edition, type MediaSummary } from "@/lib/mediaApi";
+import AiJobsStrip, { useAiJobs } from "@/components/story/AiJobsStrip";
+import { aiTranslateChapter, aiTranslateStory, connectionsFor, useAiConnections, type AiJob } from "@/lib/aiApi";
 import { useEditableContent } from "@/contexts/EditableContentContext";
 import {
   createStoryTranslation,
@@ -665,6 +667,60 @@ const Story = () => {
   const handleMediaChanged = () => {
     chapterMedia.reload();
     reloadMediaSummary();
+  };
+
+  // Reload just the chapter list (no full-page loading state) — used when a
+  // background AI job has written new chapter text.
+  const reloadChaptersQuietly = async () => {
+    if (!story_id) return;
+    const params = new URLSearchParams({ storyTitleId: story_id });
+    if (user?.id) params.set('userId', user.id);
+    try {
+      const res = await fetch(`${API_BASE}/chapters?${params.toString()}`);
+      if (res.ok) {
+        const rows = await res.json();
+        if (Array.isArray(rows)) setChapters(rows);
+      }
+    } catch {
+      // keep what's on screen
+    }
+  };
+
+  // The user's own AI connections and the story's background AI jobs.
+  const aiConnections = useAiConnections(!!user);
+  const aiJobs = useAiJobs(story_id, !!user, (job: AiJob) => {
+    if (job.kind === "translate_chapter") {
+      reloadChaptersQuietly();
+      reloadTranslations();
+    } else {
+      handleMediaChanged();
+    }
+    if (job.status === "failed") {
+      toast({ title: "AI job failed", description: job.error || undefined, variant: "destructive" });
+    }
+  });
+
+  const handleAiTranslateChapter = async (chapterId: string, connectionId: string) => {
+    try {
+      await aiTranslateChapter(chapterId, connectionId);
+      aiJobs.refresh();
+    } catch (err) {
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Could not start", variant: "destructive" });
+    }
+  };
+
+  const handleAiTranslateAll = async (connectionId: string) => {
+    if (!story_id) return;
+    try {
+      const { queued } = await aiTranslateStory(story_id, connectionId);
+      toast({
+        title: queued ? `Drafting ${queued} chapter(s) with AI` : "Nothing to draft",
+        description: queued ? "They fill in as each one finishes." : "Every chapter already has text.",
+      });
+      aiJobs.refresh();
+    } catch (err) {
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Could not start", variant: "destructive" });
+    }
   };
 
   const reloadTranslations = useCallback(() => {
@@ -2100,11 +2156,21 @@ const Story = () => {
     if (next === 'restricted') openAccessPicker("translate");
   };
 
-  const handleCreateTranslation = async (language: string, start: "blank" | "copy") => {
+  const handleCreateTranslation = async (language: string, start: "blank" | "copy" | "ai", connectionId?: string) => {
     if (!story) return;
     try {
-      const created = await createStoryTranslation(story.story_title_id, language, start);
-      toast({ title: "Translation created", description: "It's a draft until you publish it." });
+      const created = await createStoryTranslation(story.story_title_id, language, start, connectionId);
+      if (created.ai_error) {
+        toast({ title: "Translation created, but AI drafting didn't start", description: created.ai_error, variant: "destructive" });
+      } else {
+        toast({
+          title: "Translation created",
+          description:
+            start === "ai"
+              ? "Your AI is drafting the chapters in the background. It's a draft until you publish it."
+              : "It's a draft until you publish it.",
+        });
+      }
       navigate(`/story/${created.story_title_id}?mode=edit`);
     } catch (err) {
       toast({
@@ -2972,6 +3038,7 @@ const Story = () => {
               open={translateDialogOpen}
               onOpenChange={setTranslateDialogOpen}
               sourceLanguage={story.language || "en"}
+              aiConnections={connectionsFor(aiConnections.connections, "translate")}
               onCreate={handleCreateTranslation}
             />
 
@@ -3088,6 +3155,7 @@ const Story = () => {
 
                 {/* CHAPTER — reader for everyone in Viewing mode, editor in Editing mode */}
                 <div id="chapter-top" className="scroll-mt-4 mt-8 pt-6 border-t">
+                  <AiJobsStrip jobs={aiJobs.jobs} onChanged={aiJobs.refresh} />
                   {!isEditing && chapters.length > 0 && (
                     <>
                       <EditionPicker
@@ -3158,6 +3226,17 @@ const Story = () => {
                         onMediaChanged={handleMediaChanged}
                         tab={editorTab}
                         onTabChange={setEditorTab}
+                        aiTranslateConnections={connectionsFor(aiConnections.connections, "translate")}
+                        aiJob={
+                          aiJobs.jobs.find(
+                            (j) => j.chapter_id === currentChapter.chapter_id && j.kind === "translate_chapter",
+                          ) ?? null
+                        }
+                        onAiTranslateChapter={(connectionId) =>
+                          handleAiTranslateChapter(currentChapter.chapter_id, connectionId)
+                        }
+                        onAiTranslateAll={handleAiTranslateAll}
+                        onAiJobQueued={aiJobs.refresh}
                       />
                     ) : (
                       <ChapterReader
@@ -3175,6 +3254,7 @@ const Story = () => {
                         media={chapterMedia.list}
                         onMediaChanged={handleMediaChanged}
                         canContributeMedia={!!user}
+                        onAiJobQueued={aiJobs.refresh}
                         headerExtra={mobileChaptersButton}
                       />
                     )

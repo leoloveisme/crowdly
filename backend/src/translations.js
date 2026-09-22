@@ -13,6 +13,8 @@
 import express from 'express';
 import { pool } from './db.js';
 import { requireAuth } from './sessions.js';
+import { ProviderError } from './ai/providers.js';
+import { usableConnection, checkJobQuota, enqueueTranslationJobs } from './ai/router.js';
 import { optionalUserId, loadStory, groupIdOf, isStoryTeam, hasAccessRule, canViewStory, canUsePolicy } from './storyAccess.js';
 
 const router = express.Router();
@@ -89,10 +91,12 @@ router.get('/stories/:storyTitleId/translations', async (req, res) => {
   }
 });
 
-// POST /stories/:storyTitleId/translations  { language, start: 'blank' | 'copy' }
+// POST /stories/:storyTitleId/translations  { language, start: 'blank' | 'copy' | 'ai', connectionId? }
 // Creates a new, unpublished story in `language` owned by the requester, with
 // one chapter per source chapter. `blank` leaves the text empty for the
-// translator; `copy` pre-fills it with the source text to overwrite.
+// translator; `copy` pre-fills it with the source text to overwrite; `ai`
+// starts blank and queues a machine-translation draft of every chapter using
+// the requester's own AI connection.
 router.post('/stories/:storyTitleId/translations', requireAuth, async (req, res) => {
   const { storyTitleId } = req.params;
   const { language, start = 'blank' } = req.body ?? {};
@@ -101,8 +105,17 @@ router.post('/stories/:storyTitleId/translations', requireAuth, async (req, res)
   if (!language || typeof language !== 'string') {
     return res.status(400).json({ error: 'language is required' });
   }
-  if (!['blank', 'copy'].includes(start)) {
-    return res.status(400).json({ error: "start must be 'blank' or 'copy'" });
+  if (!['blank', 'copy', 'ai'].includes(start)) {
+    return res.status(400).json({ error: "start must be 'blank', 'copy' or 'ai'" });
+  }
+  let aiConnection = null;
+  if (start === 'ai') {
+    try {
+      aiConnection = await usableConnection(userId, req.body?.connectionId, 'translate');
+    } catch (err) {
+      if (err instanceof ProviderError) return res.status(400).json({ error: err.message });
+      throw err;
+    }
   }
 
   const client = await pool.connect();
@@ -187,6 +200,25 @@ router.post('/stories/:storyTitleId/translations', requireAuth, async (req, res)
     );
 
     await client.query('COMMIT');
+
+    if (aiConnection) {
+      const { rows: created } = await pool.query(
+        'SELECT chapter_id FROM stories WHERE story_title_id = $1 ORDER BY chapter_index',
+        [translation.story_title_id],
+      );
+      try {
+        await checkJobQuota(userId, created.length);
+        await enqueueTranslationJobs(pool, {
+          userId,
+          connectionId: aiConnection.id,
+          storyTitleId: translation.story_title_id,
+          chapterIds: created.map((r) => r.chapter_id),
+        });
+      } catch (err) {
+        // The (blank) translation exists either way; report why drafting didn't start.
+        return res.status(201).json({ ...translation, ai_error: err instanceof ProviderError ? err.message : 'Could not start AI drafts' });
+      }
+    }
     res.status(201).json(translation);
   } catch (err) {
     await client.query('ROLLBACK').catch(() => {});

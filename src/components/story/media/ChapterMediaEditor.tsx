@@ -14,6 +14,7 @@ interface ChapterMediaEditorProps {
   chapters: { chapter_id: string; chapter_title: string }[];
   list: ChapterMediaList | null;
   onChanged: () => void;
+  onAiJobQueued?: () => void;
 }
 
 /**
@@ -29,6 +30,7 @@ const ChapterMediaEditor: React.FC<ChapterMediaEditorProps> = ({
   chapters,
   list,
   onChanged,
+  onAiJobQueued,
 }) => {
   if (!list) {
     return (
@@ -47,6 +49,7 @@ const ChapterMediaEditor: React.FC<ChapterMediaEditorProps> = ({
           chapters={chapters}
           list={list}
           onChanged={onChanged}
+          onAiJobQueued={onAiJobQueued}
         />
       )}
       {kind === "visual" && (
