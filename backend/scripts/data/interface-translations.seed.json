@@ -8454,5 +8454,124 @@
     "en": "Estimate from length",
     "ru": "Оценить по длине",
     "de": "Aus Länge schätzen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-settings-title",
+    "en": "Branch settings",
+    "ru": "Настройки ветки",
+    "de": "Zweig-Einstellungen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-settings-desc",
+    "en": "A branch is an alternative version of one paragraph. Readers can choose it when building an edition.",
+    "ru": "Ветка — это альтернативная версия одного абзаца. Читатели могут выбрать её, собирая редакцию.",
+    "de": "Ein Zweig ist eine alternative Fassung eines Absatzes. Leser können ihn beim Zusammenstellen einer Ausgabe wählen."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-original",
+    "en": "Original paragraph",
+    "ru": "Исходный абзац",
+    "de": "Ursprünglicher Absatz"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-name",
+    "en": "Name (optional)",
+    "ru": "Название (необязательно)",
+    "de": "Name (optional)"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-text",
+    "en": "Branch text",
+    "ru": "Текст ветки",
+    "de": "Text des Zweigs"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-text-hint",
+    "en": "Leave a blank line between paragraphs to split the branch into several paragraphs.",
+    "ru": "Оставьте пустую строку между абзацами, чтобы разделить ветку на несколько абзацев.",
+    "de": "Lass zwischen Absätzen eine Leerzeile, um den Zweig in mehrere Absätze zu teilen."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-language",
+    "en": "Language",
+    "ru": "Язык",
+    "de": "Sprache"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-note",
+    "en": "Note",
+    "ru": "Заметка",
+    "de": "Notiz"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-advanced",
+    "en": "Advanced: metadata (JSON)",
+    "ru": "Дополнительно: метаданные (JSON)",
+    "de": "Erweitert: Metadaten (JSON)"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-json-error",
+    "en": "This isn't a valid JSON object.",
+    "ru": "Это не корректный JSON-объект.",
+    "de": "Das ist kein gültiges JSON-Objekt."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-proposal-note",
+    "en": "Your text change is sent to the story owner as a proposal. Only the owner and the branch's author can change its name, language and note.",
+    "ru": "Ваше изменение текста отправляется владельцу истории как предложение. Название, язык и заметку могут менять только владелец и автор ветки.",
+    "de": "Deine Textänderung wird dem Besitzer der Geschichte als Vorschlag gesendet. Nur der Besitzer und der Autor des Zweigs können Name, Sprache und Notiz ändern."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-delete",
+    "en": "Delete branch",
+    "ru": "Удалить ветку",
+    "de": "Zweig löschen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-save",
+    "en": "Save",
+    "ru": "Сохранить",
+    "de": "Speichern"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-propose",
+    "en": "Propose change",
+    "ru": "Предложить изменение",
+    "de": "Änderung vorschlagen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-unnamed",
+    "en": "Unnamed branch",
+    "ru": "Ветка без названия",
+    "de": "Unbenannter Zweig"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-settings-btn",
+    "en": "Branch settings",
+    "ru": "Настройки ветки",
+    "de": "Zweig-Einstellungen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-replaces",
+    "en": "Replaces:",
+    "ru": "Заменяет:",
+    "de": "Ersetzt:"
   }
 ]

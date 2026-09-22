@@ -8213,6 +8213,34 @@ async function authorizeParagraphBranchWrite(branchId, userId) {
   return { status: 403, error: 'Not authorized to change this branch' };
 }
 
+// Paragraph-branch field validation shared by create and update.
+// parent_paragraph_text is a copy of the ORIGINAL paragraph the branch
+// replaces; the branch's own name lives in branch_name (migration 0008).
+const MAX_BRANCH_METADATA_BYTES = 10 * 1024;
+
+async function cleanBranchLanguage(language) {
+  if (language === undefined || language === null || language === '') return undefined;
+  const { rows } = await pool.query('SELECT 1 FROM locales WHERE code = $1', [String(language)]);
+  if (rows.length === 0) throw Object.assign(new Error('Unsupported language'), { status: 400 });
+  return String(language);
+}
+
+function cleanBranchMetadata(metadata) {
+  if (metadata === undefined) return undefined;
+  if (metadata === null) return null;
+  if (typeof metadata !== 'object' || Array.isArray(metadata)) {
+    throw Object.assign(new Error('metadata must be a JSON object'), { status: 400 });
+  }
+  const json = JSON.stringify(metadata);
+  if (Buffer.byteLength(json, 'utf8') > MAX_BRANCH_METADATA_BYTES) {
+    throw Object.assign(new Error('metadata is too large'), { status: 400 });
+  }
+  return json;
+}
+
+const cleanBranchName = (name) =>
+  name === undefined ? undefined : name === null ? null : String(name).trim().slice(0, 200) || null;
+
 // Paragraph branches: create (story owner or contributor)
 app.post('/paragraph-branches', requireAuth, async (req, res) => {
   const {
@@ -8220,6 +8248,7 @@ app.post('/paragraph-branches', requireAuth, async (req, res) => {
     parentParagraphIndex,
     parentParagraphText,
     branchText,
+    branchName,
     language,
     metadata,
   } = req.body ?? {};
@@ -8244,23 +8273,31 @@ app.post('/paragraph-branches', requireAuth, async (req, res) => {
       return res.status(403).json({ error: 'Not authorized to add branches to this story' });
     }
 
+    // A branch is written in the story's language unless told otherwise.
+    const storyLang = await pool.query('SELECT language FROM story_title WHERE story_title_id = $1', [
+      chapterRes.rows[0].story_title_id,
+    ]);
+    const cleanLanguage = (await cleanBranchLanguage(language)) ?? storyLang.rows[0]?.language ?? 'en';
+
     const { rows } = await pool.query(
       `INSERT INTO paragraph_branches
-         (chapter_id, parent_paragraph_index, parent_paragraph_text, branch_text, user_id, language, metadata)
-       VALUES ($1, $2, $3, $4, $5, COALESCE($6, 'en'), $7)
+         (chapter_id, parent_paragraph_index, parent_paragraph_text, branch_text, user_id, language, metadata, branch_name)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
       [
         chapterId,
         parentParagraphIndex,
-        parentParagraphText || null,
+        parentParagraphText || '',
         branchText,
         userId,
-        language || 'en',
-        metadata ?? null,
+        cleanLanguage,
+        cleanBranchMetadata(metadata) ?? null,
+        cleanBranchName(branchName) ?? null,
       ],
     );
     res.status(201).json(rows[0]);
   } catch (err) {
+    if (err.status === 400) return res.status(400).json({ error: err.message });
     console.error('[POST /paragraph-branches] failed:', err);
     res.status(500).json({ error: 'Failed to create paragraph branch' });
   }
@@ -8302,12 +8339,17 @@ app.get('/stories/:storyTitleId/branches', async (req, res) => {
 });
 
 // Paragraph branches: update (story owner, branch author, or platform staff)
+// { branchText?, branchName?, language?, metadata? }. The original paragraph
+// copy (parent_paragraph_text) is not editable here.
 app.patch('/paragraph-branches/:id', requireAuth, async (req, res) => {
   const { id } = req.params;
-  const { branchText, parentParagraphText } = req.body ?? {};
+  const { branchText, branchName, language, metadata } = req.body ?? {};
 
-  if (!branchText && !parentParagraphText) {
-    return res.status(400).json({ error: 'branchText or parentParagraphText must be provided' });
+  if ([branchText, branchName, language, metadata].every((v) => v === undefined)) {
+    return res.status(400).json({ error: 'Nothing to update' });
+  }
+  if (branchText !== undefined && typeof branchText !== 'string') {
+    return res.status(400).json({ error: 'branchText must be a string' });
   }
 
   try {
@@ -8322,25 +8364,40 @@ app.patch('/paragraph-branches/:id', requireAuth, async (req, res) => {
   const values = [];
   let idx = 1;
 
-  if (branchText !== undefined) {
-    fields.push(`branch_text = $${idx++}`);
-    values.push(branchText);
-  }
-  if (parentParagraphText !== undefined) {
-    fields.push(`parent_paragraph_text = $${idx++}`);
-    values.push(parentParagraphText);
-  }
-  values.push(id);
-
-  const sql = `UPDATE paragraph_branches SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`;
-
   try {
-    const { rows } = await pool.query(sql, values);
+    const cleanLanguage = await cleanBranchLanguage(language);
+    const cleanMetadata = cleanBranchMetadata(metadata);
+    const cleanName = cleanBranchName(branchName);
+
+    if (branchText !== undefined) {
+      fields.push(`branch_text = $${idx++}`);
+      values.push(branchText);
+    }
+    if (cleanName !== undefined) {
+      fields.push(`branch_name = $${idx++}`);
+      values.push(cleanName);
+    }
+    if (cleanLanguage !== undefined) {
+      fields.push(`language = $${idx++}`);
+      values.push(cleanLanguage);
+    }
+    if (cleanMetadata !== undefined) {
+      fields.push(`metadata = $${idx++}`);
+      values.push(cleanMetadata);
+    }
+    if (fields.length === 0) return res.status(400).json({ error: 'Nothing to update' });
+    values.push(id);
+
+    const { rows } = await pool.query(
+      `UPDATE paragraph_branches SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+      values,
+    );
     if (!rows.length) {
       return res.status(404).json({ error: 'Branch not found' });
     }
     res.json(rows[0]);
   } catch (err) {
+    if (err.status === 400) return res.status(400).json({ error: err.message });
     console.error('[PATCH /paragraph-branches/:id] failed:', err);
     res.status(500).json({ error: 'Failed to update paragraph branch' });
   }

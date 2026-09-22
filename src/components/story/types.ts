@@ -26,11 +26,27 @@ export interface StoryProposal {
   author_email?: string;
 }
 
+/** A paragraph branch: an alternative version of one paragraph of a chapter. */
 export interface InlineBranch {
-  id: number;
+  /** paragraph_branches.id — a uuid in real databases, so always a string here. */
+  id: string;
   chapterId: string;
   parentParagraphIndex: number;
   text: string;
+  name: string | null;
+  language: string;
+  metadata: Record<string, unknown> | null;
+  userId: string | null;
+  /** Copy of the original paragraph this branch replaces. */
+  parentParagraphText: string;
+}
+
+/** Changes saved from the Branch settings dialog. */
+export interface BranchSettingsPatch {
+  text: string;
+  name: string | null;
+  language: string;
+  metadata: Record<string, unknown> | null;
 }
 
 // Chapters that were never given a custom title (including the old

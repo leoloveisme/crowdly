@@ -12,10 +12,12 @@ const API_BASE = import.meta.env.PROD
   : "";
 
 type Branch = {
-  id: number;
+  /** paragraph_branches.id — a uuid, so a string */
+  id: string;
   chapter_id: string;
   parent_paragraph_index: number;
   parent_paragraph_text: string | null;
+  branch_name?: string | null;
   branch_text: string;
   created_at: string;
   story_title_id?: string;
@@ -71,7 +73,7 @@ const BranchList: React.FC<BranchListProps> = ({ className }) => {
   const handleEdit = (branch: Branch) => {
     setEditId(branch.id);
     setEditBranchText(branch.branch_text);
-    setEditBranchName(branch.parent_paragraph_text);
+    setEditBranchName(branch.branch_name ?? "");
   };
 
   const handleCancel = () => {
@@ -88,7 +90,7 @@ const BranchList: React.FC<BranchListProps> = ({ className }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           branchText: editBranchText,
-          parentParagraphText: editBranchName,
+          branchName: editBranchName,
         }),
       });
       if (!res.ok) {
@@ -101,7 +103,7 @@ const BranchList: React.FC<BranchListProps> = ({ className }) => {
       setBranches(b =>
         b.map(item =>
           item.id === branch.id
-            ? { ...item, branch_text: updated.branch_text, parent_paragraph_text: updated.parent_paragraph_text }
+            ? { ...item, branch_text: updated.branch_text, branch_name: updated.branch_name }
             : item
         )
       );
@@ -115,7 +117,7 @@ const BranchList: React.FC<BranchListProps> = ({ className }) => {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     try {
       const res = await fetch(`${API_BASE}/paragraph-branches/${id}`, {
         method: 'DELETE',
@@ -179,7 +181,7 @@ const BranchList: React.FC<BranchListProps> = ({ className }) => {
                 ) : (
                   <div className="flex-1">
                     <div className="font-semibold text-sm mb-1 truncate">
-                      {branch.parent_paragraph_text || <span className="italic text-gray-400">Unnamed branch</span>}
+                      {branch.branch_name || <span className="italic text-gray-400">Unnamed branch</span>}
                     </div>
                     <div className="text-xs text-gray-700 dark:text-gray-300 mb-1 truncate">
                       {branch.branch_text}

@@ -904,7 +904,8 @@ const NewStoryTemplate = () => {
         body: JSON.stringify({
           chapterId,
           parentParagraphIndex: paragraphIndex,
-          parentParagraphText: branchName || paragraphText || "",
+          parentParagraphText: paragraphText || "",
+          branchName: branchName || undefined,
           branchText,
           userId: user.id,
           language,

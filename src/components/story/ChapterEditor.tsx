@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, Columns2, FileAudio, FileText, GitBranch, Image as ImageIcon, ImagePlus, Loader2, Sparkles, Video } from "lucide-react";
+import { AlertTriangle, Columns2, FileAudio, FileText, GitBranch, Image as ImageIcon, ImagePlus, Loader2, Settings2, Sparkles, StickyNote, Video } from "lucide-react";
 import { Link } from "react-router-dom";
 import EditableText from "@/components/EditableText";
-import ParagraphBranchPopover from "@/components/ParagraphBranchPopover";
+import BranchSettingsDialog from "./BranchSettingsDialog";
 import GalleryUpload from "@/components/GalleryUpload";
 import TagBadge from "@/components/TagBadge";
 import TagInput from "@/components/TagInput";
@@ -14,14 +14,7 @@ import type { ChapterMediaList, MediaKind } from "@/lib/mediaApi";
 import ChapterMediaEditor from "./media/ChapterMediaEditor";
 import { connectionName, type AiConnection, type AiJob } from "@/lib/aiApi";
 import { ChapterNav } from "./ChapterReader";
-import { isChapterUntitled, type InlineBranch, type StoryChapter } from "./types";
-
-export interface BranchConfig {
-  branchName: string;
-  paragraphs: string[];
-  language: string;
-  metadata: Record<string, unknown> | null;
-}
+import { isChapterUntitled, type BranchSettingsPatch, type InlineBranch, type StoryChapter } from "./types";
 
 interface ChapterEditorProps {
   storyTitleId: string;
@@ -45,12 +38,17 @@ interface ChapterEditorProps {
   onParagraphKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>, chapter: StoryChapter, index: number) => void;
 
   inlineBranches: InlineBranch[];
-  editingBranchId: number | null;
-  onBranchFocus: (branchId: number) => void;
-  onBranchTextChange: (branchId: number, text: string) => void;
-  onBranchBlur: (branchId: number) => void;
+  editingBranchId: string | null;
+  onBranchFocus: (branchId: string) => void;
+  onBranchTextChange: (branchId: string, text: string) => void;
+  onBranchBlur: (branchId: string) => void;
   onQuickCreateBranch: (chapter: StoryChapter, index: number, text: string) => void;
-  onConfigureBranch: (branchId: number, config: BranchConfig) => void;
+  /** Branch settings dialog: save (resolves true on success) and delete. */
+  onSaveBranchSettings: (branchId: string, patch: BranchSettingsPatch) => Promise<boolean>;
+  onDeleteBranch: (branchId: string) => Promise<boolean>;
+  /** Story owner or the branch's author may change every branch field. */
+  canEditBranch: (branch: InlineBranch) => boolean;
+  storyLanguage: string;
 
   illustrations: GalleryImage[];
   illustrationTarget: { chapterId: string; anchorIndex: number } | null;
@@ -123,7 +121,10 @@ const ChapterEditor: React.FC<ChapterEditorProps> = (props) => {
     onBranchTextChange,
     onBranchBlur,
     onQuickCreateBranch,
-    onConfigureBranch,
+    onSaveBranchSettings,
+    onDeleteBranch,
+    canEditBranch,
+    storyLanguage,
     illustrations,
     illustrationTarget,
     onToggleIllustrationTarget,
@@ -141,6 +142,10 @@ const ChapterEditor: React.FC<ChapterEditorProps> = (props) => {
     onAiTranslateAll,
     onAiJobQueued,
   } = props;
+
+  // Branch settings dialog
+  const [settingsBranchId, setSettingsBranchId] = useState<string | null>(null);
+  const settingsBranch = inlineBranches.find((b) => b.id === settingsBranchId) ?? null;
 
   const [aiConnectionId, setAiConnectionId] = useState("");
   const aiConnection = aiTranslateConnections.find((c) => c.id === aiConnectionId) ?? aiTranslateConnections[0];
@@ -494,6 +499,24 @@ const ChapterEditor: React.FC<ChapterEditorProps> = (props) => {
             {/* Inline branches created under this base paragraph */}
             {branchesHere.map((b) => (
               <div key={b.id} className="ml-4 mt-2 border-l border-dashed border-blue-200 pl-2">
+                <div className="flex items-center gap-2 mb-1 text-[11px] text-blue-800">
+                  <GitBranch className="h-3 w-3" />
+                  {b.name ? (
+                    <span className="font-medium">{b.name}</span>
+                  ) : (
+                    <span className="italic text-blue-700/70">
+                      <EditableText id="story-branch-unnamed">Unnamed branch</EditableText>
+                    </span>
+                  )}
+                  {b.language && b.language !== storyLanguage && (
+                    <span className="rounded bg-blue-100 px-1 uppercase">{b.language}</span>
+                  )}
+                  {typeof b.metadata?.note === "string" && b.metadata.note && (
+                    <span title={b.metadata.note as string} className="inline-flex">
+                      <StickyNote className="h-3 w-3" />
+                    </span>
+                  )}
+                </div>
                 <div className="flex items-start gap-2">
                   <textarea
                     className={cn(
@@ -516,16 +539,10 @@ const ChapterEditor: React.FC<ChapterEditorProps> = (props) => {
                       <GitBranch className="h-3.5 w-3.5" />
                       <EditableText id="story-branch-create-btn">Create Branch</EditableText>
                     </button>
-                    <ParagraphBranchPopover
-                      trigger={
-                        <button type="button" className={actionBtn}>
-                          <EditableText id="story-branch-configure-btn">Configure branch</EditableText>
-                        </button>
-                      }
-                      onCreateBranch={({ branchName, paragraphs }) =>
-                        onConfigureBranch(b.id, { branchName, paragraphs, language: "en", metadata: null })
-                      }
-                    />
+                    <button type="button" className={actionBtn} onClick={() => setSettingsBranchId(b.id)}>
+                      <Settings2 className="h-3.5 w-3.5" />
+                      <EditableText id="story-branch-settings-btn">Branch settings</EditableText>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -534,6 +551,19 @@ const ChapterEditor: React.FC<ChapterEditorProps> = (props) => {
           </div>
         );
       })}
+
+      {settingsBranch && (
+        <BranchSettingsDialog
+          branch={settingsBranch}
+          onOpenChange={(open) => !open && setSettingsBranchId(null)}
+          originalParagraph={chapter.paragraphs?.[settingsBranch.parentParagraphIndex] ?? ""}
+          storyLanguage={storyLanguage}
+          canEditAll={canEditBranch(settingsBranch)}
+          canDelete={canEditBranch(settingsBranch)}
+          onSave={(patch) => onSaveBranchSettings(settingsBranch.id, patch)}
+          onDelete={() => onDeleteBranch(settingsBranch.id)}
+        />
+      )}
 
       <p className="text-[11px] text-gray-400">
         <EditableText id="story-editor-save-hint">

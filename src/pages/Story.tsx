@@ -34,6 +34,7 @@ import EditionPicker from "@/components/story/EditionPicker";
 import type { EditorTab } from "@/components/story/ChapterEditor";
 import { useChapterMedia } from "@/components/story/media/useChapterMedia";
 import { getMediaSummary, type Edition, type MediaSummary } from "@/lib/mediaApi";
+import type { BranchSettingsPatch, InlineBranch } from "@/components/story/types";
 import AiJobsStrip, { useAiJobs } from "@/components/story/AiJobsStrip";
 import { aiTranslateChapter, aiTranslateStory, connectionsFor, useAiConnections, type AiJob } from "@/lib/aiApi";
 import { useEditableContent } from "@/contexts/EditableContentContext";
@@ -414,13 +415,8 @@ const Story = () => {
   // Each entry represents a branch positioned under a specific base
   // paragraph. Only the active branch is rendered as a textarea; all
   // others are shown as inline text, like regular paragraphs.
-  const [inlineBranches, setInlineBranches] = useState<{
-    id: number;
-    chapterId: string;
-    parentParagraphIndex: number;
-    text: string;
-  }[]>([]);
-  const [editingBranchId, setEditingBranchId] = useState<number | null>(null);
+  const [inlineBranches, setInlineBranches] = useState<InlineBranch[]>([]);
+  const [editingBranchId, setEditingBranchId] = useState<string | null>(null);
 
   // Story-level favorite state (for Index favorites container)
   const [isFavorite, setIsFavorite] = useState(false);
@@ -1485,92 +1481,119 @@ const Story = () => {
     }
   };
 
-  // Legacy branch creation logic used by the configuration popover.
-  // This now updates an existing branch instead of creating a new one.
-  const handleConfigureExistingBranch = async (
-    branchId: number,
-    {
-      branchName,
-      paragraphs,
-    }: {
-      branchName: string;
-      paragraphs: string[];
-      language: string;
-      metadata: Record<string, unknown> | null;
-    },
-  ) => {
-    // Compose branch_text as joined array
-    const branch_text = paragraphs.join("\n\n");
-
-    if (!user) {
-      toast({
-        title: "Login required",
-        description: "You must be logged in to edit a branch.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  // Load a story's saved paragraph branches so they appear under their
+  // paragraphs in the editor (not only the ones created this session).
+  const reloadBranches = useCallback(async () => {
+    if (!story_id) return;
     try {
-      if (isOwner) {
+      const res = await fetch(`${API_BASE}/stories/${story_id}/branches`);
+      if (!res.ok) return;
+      const rows: Array<Record<string, unknown>> = await res.json();
+      setInlineBranches(
+        rows
+          .map((row) => ({
+            id: String(row.id),
+            chapterId: String(row.chapter_id),
+            parentParagraphIndex: Number(row.parent_paragraph_index),
+            text: String(row.branch_text ?? ""),
+            name: (row.branch_name as string | null) ?? null,
+            language: String(row.language ?? "en"),
+            metadata: (row.metadata as Record<string, unknown> | null) ?? null,
+            userId: (row.user_id as string | null) ?? null,
+            parentParagraphText: String(row.parent_paragraph_text ?? ""),
+          }))
+          // oldest first, so branches keep a stable order under their paragraph
+          .reverse(),
+      );
+    } catch (err) {
+      console.error("Failed to load branches", err);
+    }
+  }, [story_id]);
+
+  useEffect(() => {
+    reloadBranches();
+  }, [reloadBranches]);
+
+  /** The story owner and the branch's author change a branch directly; others propose. */
+  const canEditBranchDirectly = (branch: InlineBranch) => Boolean(isOwner || (user && branch.userId === user.id));
+
+  // Save the Branch settings dialog: text, name, language, note/metadata.
+  const saveBranchSettings = async (branchId: string, patch: BranchSettingsPatch): Promise<boolean> => {
+    const branch = inlineBranches.find((b) => b.id === branchId);
+    if (!branch) return false;
+    if (!user) {
+      toast({ title: "Login required", description: "You must be logged in to edit a branch.", variant: "destructive" });
+      return false;
+    }
+    try {
+      if (canEditBranchDirectly(branch)) {
         const res = await fetch(`${API_BASE}/paragraph-branches/${branchId}`, {
           method: "PATCH",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            branchText: branch_text,
-            parentParagraphText: branchName || undefined,
+            branchText: patch.text,
+            branchName: patch.name,
+            language: patch.language,
+            metadata: patch.metadata,
           }),
         });
-
+        const body = await res.json().catch(() => ({}));
         if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          toast({
-            title: "Error",
-            description: body.error || "Failed to update branch.",
-            variant: "destructive",
-          });
-          return;
+          toast({ title: "Error", description: body.error || "Failed to update branch.", variant: "destructive" });
+          return false;
         }
-
-        // Update local inline branch cache so the textarea reflects changes
-        const updated = await res.json();
         setInlineBranches((prev) =>
-          prev.map((b) => (b.id === branchId ? { ...b, text: updated.branch_text ?? branch_text } : b)),
+          prev.map((b) =>
+            b.id === branchId
+              ? {
+                  ...b,
+                  text: body.branch_text ?? patch.text,
+                  name: body.branch_name ?? null,
+                  language: body.language ?? patch.language,
+                  metadata: body.metadata ?? null,
+                }
+              : b,
+          ),
         );
-
-        toast({
-          title: "Branch updated",
-          description: "Your branch has been updated.",
-        });
-      } else {
-        await createProposal({
-          targetType: "branch",
-          targetBranchId: branchId,
-          proposedText: branch_text,
-          targetPath: null,
-        });
-        // Keep local inline state so the contributor still sees their text
-        setInlineBranches((prev) =>
-          prev.map((b) => (b.id === branchId ? { ...b, text: branch_text } : b)),
-        );
-        toast({
-          title: "Branch proposal submitted",
-          description: "Your branch changes are pending review.",
-        });
+        toast({ title: "Branch saved" });
+        return true;
       }
+      // Contributors can only propose a text change; the owner reviews it.
+      if (patch.text !== branch.text) {
+        await createProposal({ targetType: "branch", targetBranchId: branchId, proposedText: patch.text, targetPath: null });
+        setInlineBranches((prev) => prev.map((b) => (b.id === branchId ? { ...b, text: patch.text } : b)));
+        toast({ title: "Branch proposal submitted", description: "Your branch changes are pending review." });
+      }
+      return true;
     } catch (e) {
       console.error("Failed to update branch", e);
-      toast({
-        title: "Error",
-        description: "Something went wrong updating the branch.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to update branch.", variant: "destructive" });
+      return false;
     }
   };
 
-  // Quick inline branch creation: create an empty branch row and show a
-  // new editable paragraph directly under the source paragraph.
+  const deleteBranch = async (branchId: string): Promise<boolean> => {
+    try {
+      const res = await fetch(`${API_BASE}/paragraph-branches/${branchId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok && res.status !== 204) {
+        const body = await res.json().catch(() => ({}));
+        toast({ title: "Error", description: body.error || "Could not delete the branch.", variant: "destructive" });
+        return false;
+      }
+      setInlineBranches((prev) => prev.filter((b) => b.id !== branchId));
+      toast({ title: "Branch deleted" });
+      return true;
+    } catch (e) {
+      console.error("Failed to delete branch", e);
+      toast({ title: "Error", description: "Could not delete the branch.", variant: "destructive" });
+      return false;
+    }
+  };
+
   const handleQuickCreateBranch = async (
     chapter: Chapter,
     paragraphIndex: number,
@@ -1595,9 +1618,7 @@ const Story = () => {
           parentParagraphIndex: paragraphIndex,
           parentParagraphText: paragraphText || "",
           branchText: "", // start empty; user will type into inline editor
-          userId: user.id,
-          language: "en",
-          metadata: null,
+          // language defaults to the story's language server-side
         }),
       });
 
@@ -1615,14 +1636,19 @@ const Story = () => {
       setInlineBranches((prev) => [
         ...prev,
         {
-          id: created.id,
+          id: String(created.id),
           chapterId: created.chapter_id,
           parentParagraphIndex: paragraphIndex,
           text: "",
+          name: created.branch_name ?? null,
+          language: created.language ?? story?.language ?? "en",
+          metadata: created.metadata ?? null,
+          userId: created.user_id ?? user.id,
+          parentParagraphText: created.parent_paragraph_text ?? paragraphText ?? "",
         },
       ]);
       // Immediately focus this new branch for inline editing
-      setEditingBranchId(created.id);
+      setEditingBranchId(String(created.id));
     } catch (e) {
       console.error("Failed to create branch", e);
       toast({
@@ -1633,11 +1659,11 @@ const Story = () => {
     }
   };
 
-  const handleInlineBranchTextChange = (branchId: number, text: string) => {
+  const handleInlineBranchTextChange = (branchId: string, text: string) => {
     setInlineBranches((prev) => prev.map((b) => (b.id === branchId ? { ...b, text } : b)));
   };
 
-  const handleInlineBranchBlur = async (branchId: number) => {
+  const handleInlineBranchBlur = async (branchId: string) => {
     const branch = inlineBranches.find((b) => b.id === branchId);
     if (!branch) return;
 
@@ -1651,8 +1677,8 @@ const Story = () => {
     }
 
     try {
-      if (isOwner) {
-        // Story initiator: write directly to canonical branch text
+      if (canEditBranchDirectly(branch)) {
+        // Story owner or the branch's author: write directly to the branch
         const res = await fetch(`${API_BASE}/paragraph-branches/${branchId}`, {
           method: "PATCH",
           credentials: "include",
@@ -1733,7 +1759,7 @@ const Story = () => {
   async function createProposal(args: {
     targetType: ProposalTargetType;
     targetChapterId?: string;
-    targetBranchId?: number;
+    targetBranchId?: string;
     targetPath?: string | null;
     proposedText: string;
   }) {
@@ -3199,7 +3225,10 @@ const Story = () => {
                         onBranchTextChange={handleInlineBranchTextChange}
                         onBranchBlur={handleInlineBranchBlur}
                         onQuickCreateBranch={handleQuickCreateBranch}
-                        onConfigureBranch={handleConfigureExistingBranch}
+                        onSaveBranchSettings={saveBranchSettings}
+                        onDeleteBranch={deleteBranch}
+                        canEditBranch={canEditBranchDirectly}
+                        storyLanguage={story.language || "en"}
                         illustrations={galleryImages}
                         illustrationTarget={illustrationTarget}
                         onToggleIllustrationTarget={(chapterId, anchorIndex) =>

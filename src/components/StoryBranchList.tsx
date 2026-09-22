@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Pencil, Trash2, Save, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import EditableText from "@/components/EditableText";
 
 // Use same-origin API base in development; dev server proxies to backend.
 // In production, VITE_API_BASE_URL can point at the deployed API.
@@ -13,10 +14,12 @@ const API_BASE = import.meta.env.PROD
   : "";
 
 type Branch = {
-  id: number;
+  /** paragraph_branches.id — a uuid, so a string */
+  id: string;
   chapter_id: string;
   parent_paragraph_index: number;
   parent_paragraph_text: string | null;
+  branch_name?: string | null;
   branch_text: string;
   created_at: string;
   user_id: string | null;
@@ -86,7 +89,7 @@ const StoryBranchList: React.FC<StoryBranchListProps> = ({ storyId }) => {
   const handleEdit = (branch: Branch) => {
     setEditId(branch.id);
     setEditBranchText(branch.branch_text);
-    setEditBranchName(branch.parent_paragraph_text);
+    setEditBranchName(branch.branch_name ?? "");
   };
 
   const handleCancel = () => {
@@ -103,7 +106,7 @@ const StoryBranchList: React.FC<StoryBranchListProps> = ({ storyId }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           branchText: editBranchText,
-          parentParagraphText: editBranchName,
+          branchName: editBranchName,
         }),
       });
       if (!res.ok) {
@@ -117,7 +120,7 @@ const StoryBranchList: React.FC<StoryBranchListProps> = ({ storyId }) => {
       setBranches(b =>
         b.map(item =>
           item.id === branch.id
-            ? { ...item, branch_text: updated.branch_text, parent_paragraph_text: updated.parent_paragraph_text }
+            ? { ...item, branch_text: updated.branch_text, branch_name: updated.branch_name }
             : item
         )
       );
@@ -133,7 +136,7 @@ const StoryBranchList: React.FC<StoryBranchListProps> = ({ storyId }) => {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     try {
       const res = await fetch(`${API_BASE}/paragraph-branches/${id}`, {
         method: 'DELETE',
@@ -210,11 +213,16 @@ const StoryBranchList: React.FC<StoryBranchListProps> = ({ storyId }) => {
                 ) : (
                   <div className="flex-1">
                     <div className="font-semibold text-sm mb-1 truncate">
-                      {branch.parent_paragraph_text || <span className="italic text-gray-400">Unnamed branch</span>}
+                      {branch.branch_name || <span className="italic text-gray-400">Unnamed branch</span>}
                     </div>
                     <div className="text-xs text-gray-700 dark:text-gray-300 mb-1 truncate">
                       {branch.branch_text}
                     </div>
+                    {branch.parent_paragraph_text && (
+                      <div className="text-[11px] text-gray-500 mb-1 truncate">
+                        <EditableText id="story-branch-replaces">Replaces:</EditableText> {branch.parent_paragraph_text}
+                      </div>
+                    )}
                     <div className="text-[10px] text-gray-400">
                       {new Date(branch.created_at).toLocaleString()}
                     </div>
