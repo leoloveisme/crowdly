@@ -933,7 +933,8 @@ const Story = () => {
       const res = await fetch(`${API_BASE}/stories/${story.story_title_id}/transfer-ownership`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ newOwnerId: transferTarget.id, requestingUserId: user.id }),
+        credentials: "include",
+        body: JSON.stringify({ newOwnerId: transferTarget.id }),
       });
       if (res.ok) {
         const updated = await res.json();
@@ -959,7 +960,8 @@ const Story = () => {
       const res = await fetch(`${API_BASE}/stories/${story.story_title_id}/authors`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: targetUser.id, requestingUserId: user.id }),
+        credentials: "include",
+        body: JSON.stringify({ userId: targetUser.id }),
       });
       if (res.ok) {
         const newCollab: StoryCollaborator = await res.json();
@@ -981,8 +983,10 @@ const Story = () => {
   const handleRemoveAuthor = async (userId: string) => {
     if (!story || !user) return;
     try {
-      const params = new URLSearchParams({ requestingUserId: user.id });
-      const res = await fetch(`${API_BASE}/stories/${story.story_title_id}/authors/${userId}?${params}`, { method: "DELETE" });
+      const res = await fetch(`${API_BASE}/stories/${story.story_title_id}/authors/${userId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
       if (res.ok) {
         setCollaborators(prev => prev.filter(c => !(c.user_id === userId && c.role === "author")));
       } else {
@@ -1002,7 +1006,8 @@ const Story = () => {
       const res = await fetch(`${API_BASE}/stories/${story.story_title_id}/coauthors`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: targetUser.id, requestingUserId: user.id }),
+        credentials: "include",
+        body: JSON.stringify({ userId: targetUser.id }),
       });
       if (res.ok) {
         const newCollab: StoryCollaborator = await res.json();
@@ -1024,8 +1029,10 @@ const Story = () => {
   const handleRemoveCoauthor = async (userId: string) => {
     if (!story || !user) return;
     try {
-      const params = new URLSearchParams({ requestingUserId: user.id });
-      const res = await fetch(`${API_BASE}/stories/${story.story_title_id}/coauthors/${userId}?${params}`, { method: "DELETE" });
+      const res = await fetch(`${API_BASE}/stories/${story.story_title_id}/coauthors/${userId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
       if (res.ok) {
         setCollaborators(prev => prev.filter(c => !(c.user_id === userId && c.role === "coauthor")));
       } else {
