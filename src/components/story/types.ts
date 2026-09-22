@@ -1,0 +1,58 @@
+// Shapes shared between the Story page and its presentational components.
+
+export interface StoryChapter {
+  chapter_id: string;
+  chapter_title: string;
+  chapter_index?: number;
+  paragraphs: string[];
+  tags?: string[];
+  paragraphTags?: Record<string, string[]>;
+  published?: boolean;
+  /** Set on chapters of a translation: the chapter this one translates. */
+  source_chapter_id?: string | null;
+  /** The source chapter changed since the translation was last marked up to date. */
+  source_stale?: boolean | null;
+  /** Machine-translated and not yet edited by a person. */
+  ai_draft?: boolean;
+}
+
+export interface StoryProposal {
+  id: string;
+  target_type: "story_title" | "chapter" | "paragraph" | "branch";
+  target_chapter_id: string | null;
+  target_path: string | null;
+  proposed_text: string;
+  created_at: string;
+  author_email?: string;
+}
+
+/** A paragraph branch: an alternative version of one paragraph of a chapter. */
+export interface InlineBranch {
+  /** paragraph_branches.id — a uuid in real databases, so always a string here. */
+  id: string;
+  chapterId: string;
+  parentParagraphIndex: number;
+  text: string;
+  name: string | null;
+  language: string;
+  metadata: Record<string, unknown> | null;
+  userId: string | null;
+  /** Copy of the original paragraph this branch replaces. */
+  parentParagraphText: string;
+}
+
+/** Changes saved from the Branch settings dialog. */
+export interface BranchSettingsPatch {
+  text: string;
+  name: string | null;
+  language: string;
+  metadata: Record<string, unknown> | null;
+}
+
+// Chapters that were never given a custom title (including the old
+// "New chapter" default before this fell back to "Untitled chapter")
+// get a visual hint instead of looking like a finished title.
+export const isChapterUntitled = (chapter: StoryChapter) =>
+  !chapter.chapter_title ||
+  chapter.chapter_title === "Untitled chapter" ||
+  chapter.chapter_title === "New chapter";

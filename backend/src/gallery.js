@@ -6,6 +6,7 @@ import { randomUUID } from 'crypto';
 import { fileURLToPath } from 'url';
 import { pool } from './db.js';
 import { requireAuth, getSessionUser, SESSION_COOKIE_NAME } from './sessions.js';
+import { adoptLocalFile, removeStoredFile } from './storage.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export const UPLOADS_ROOT = path.join(__dirname, '..', 'uploads');
@@ -175,7 +176,8 @@ router.post(
 
       const inserted = [];
       for (const file of files) {
-        const imageUrl = `/uploads/gallery/${storyTitleId}/${file.filename}`;
+        // Moved to object storage when configured; otherwise stays on disk.
+        const imageUrl = await adoptLocalFile(file.path, file.mimetype);
         const { rows } = await pool.query(
           `INSERT INTO story_gallery_images
             (story_title_id, uploaded_by, image_url, chapter_id, anchor_index, caption, tags, kind, status)
@@ -309,14 +311,9 @@ router.delete('/gallery-images/:id', requireAuth, async (req, res) => {
 
     // Best-effort file cleanup — a stray file on disk is harmless, so this
     // never fails the request.
-    if (image.image_url && image.image_url.startsWith('/uploads/')) {
-      const filePath = path.join(UPLOADS_ROOT, image.image_url.slice('/uploads/'.length));
-      fs.unlink(filePath, (err) => {
-        if (err && err.code !== 'ENOENT') {
-          console.error('[DELETE /gallery-images/:id] failed to remove file:', err);
-        }
-      });
-    }
+    removeStoredFile(image.image_url).catch((err) => {
+      console.error('[DELETE /gallery-images/:id] failed to remove file:', err);
+    });
 
     res.status(204).end();
   } catch (err) {

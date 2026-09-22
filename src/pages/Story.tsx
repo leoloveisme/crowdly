@@ -1,29 +1,49 @@
 import React, { useCallback, useEffect, useState, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { Loader2, Users, Clock, GitBranch, BookOpen, FileText, Heart, Download, Search, User, X } from "lucide-react";
+import { useParams, useNavigate, useSearchParams, useLocation } from "react-router-dom";
+import { Loader2, Users, Clock, GitBranch, BookOpen, FileText, Heart, Download, Search, User, X, Eye, Pencil, Settings, ListOrdered } from "lucide-react";
 import CrowdlyHeader from "@/components/CrowdlyHeader";
 import CrowdlyFooter from "@/components/CrowdlyFooter";
 import EditableText from "@/components/EditableText";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import ParagraphBranchPopover from "@/components/ParagraphBranchPopover";
-import StoryContentTypeSelector from "@/components/StoryContentTypeSelector";
+import StoryContentTypeSelector, {
+  DEFAULT_STORY_CONTENT_TYPES,
+  type StoryContentTypes,
+} from "@/components/StoryContentTypeSelector";
 import StoryBranchList from "@/components/StoryBranchList";
 import ContributionsModule, { ContributionRow } from "@/modules/contributions";
 import InteractionsWidget from "@/modules/InteractionsWidget";
 import { ExportDialog } from "@/modules/import-export";
 import UserGroupPicker from "@/modules/user-group-picker";
 import CompareRevisionsContainer from "@/modules/compare revisions";
-import StoryLanguageSelect from "@/components/StoryLanguageSelect";
 import CoverImageUpload from "@/components/CoverImageUpload";
-import DescriptionEditor from "@/components/DescriptionEditor";
 import TagBadge from "@/components/TagBadge";
-import TagInput from "@/components/TagInput";
 import ImageGallery from "@/components/ImageGallery";
 import GalleryUpload from "@/components/GalleryUpload";
 import { listGalleryImages, type GalleryImage } from "@/lib/galleryApi";
-import { ImagePlus, ChevronsUp, ChevronUp, ChevronDown, ChevronsDown, GripVertical } from "lucide-react";
+import { ToastAction } from "@/components/ui/toast";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import ChapterSidebar, { type ChapterSidebarMode } from "@/components/story/ChapterSidebar";
+import ChapterReader from "@/components/story/ChapterReader";
+import ChapterEditor from "@/components/story/ChapterEditor";
+import StorySettingsSheet, { type StoryPolicy, type StoryVisibility } from "@/components/story/StorySettingsSheet";
+import LanguageSwitcher, { localeName, useLocales } from "@/components/story/LanguageSwitcher";
+import TranslateStoryDialog from "@/components/story/TranslateStoryDialog";
+import EditionPicker from "@/components/story/EditionPicker";
+import type { EditorTab } from "@/components/story/ChapterEditor";
+import { useChapterMedia } from "@/components/story/media/useChapterMedia";
+import { getMediaSummary, type Edition, type MediaSummary } from "@/lib/mediaApi";
+import type { BranchSettingsPatch, InlineBranch } from "@/components/story/types";
+import AiJobsStrip, { useAiJobs } from "@/components/story/AiJobsStrip";
+import { aiTranslateChapter, aiTranslateStory, connectionsFor, useAiConnections, type AiJob } from "@/lib/aiApi";
+import { useEditableContent } from "@/contexts/EditableContentContext";
+import {
+  createStoryTranslation,
+  fetchStoryTranslations,
+  setOfficialTranslation,
+  type StoryTranslations,
+} from "@/lib/translationsApi";
 
 // Use same-origin API base in development; dev server proxies to backend.
 // In production, VITE_API_BASE_URL can point at the deployed API.
@@ -77,6 +97,8 @@ interface Chapter {
   tags?: string[];
   paragraphTags?: Record<string, string[]>;
   published?: boolean;
+  source_chapter_id?: string | null;
+  source_stale?: boolean | null;
 }
 
 interface StoryTitleRevision {
@@ -105,6 +127,7 @@ interface RawContributionRow {
   chapter_title?: string;
   new_paragraph?: string;
   user_email?: string;
+  user_name?: string | null;
   created_at?: string;
   likes?: number;
   dislikes?: number;
@@ -273,6 +296,11 @@ const Story = () => {
     completion_status?: string;
     clone_policy?: string;
     export_policy?: string;
+    translation_policy?: string;
+    narration_policy?: string;
+    translation_group_id?: string | null;
+    source_story_title_id?: string | null;
+    is_official_translation?: boolean;
     can_clone?: boolean;
     can_export?: boolean;
     language?: string;
@@ -322,11 +350,57 @@ const Story = () => {
   const [proposalsLoading, setProposalsLoading] = useState(false);
   // UI tab state
   const [activeTab, setActiveTab] = useState<"story" | "contributions" | "contributors" | "revisions" | "branches">("story");
-  // Experience vs contribute modes for the story page
-  const [mode, setMode] = useState<"experience" | "contribute">("experience");
-  // Inline chapter title editing in contribute mode
-  const [editingChapterId, setEditingChapterId] = useState<string | null>(null);
-  const [editingChapterTitle, setEditingChapterTitle] = useState("");
+  // Viewing vs Editing for the whole page, mirrored to ?mode=edit so a
+  // refresh (or a shared link) keeps it. Only honoured for users who may
+  // edit chapters — see `isEditing` below.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
+  const pageMode: "view" | "edit" = searchParams.get("mode") === "edit" ? "edit" : "view";
+  const setPageMode = (next: "view" | "edit") => {
+    const params = new URLSearchParams(searchParams);
+    if (next === "edit") params.set("mode", "edit");
+    else params.delete("mode");
+    setSearchParams(params, { replace: true });
+    // Cover editor is Editing-only; don't let it reopen on the next switch.
+    setCoverEditorOpen(false);
+  };
+  // The chapters sidebar follows the page mode (it can still be toggled on
+  // its own). Synced from the URL so it also holds when navigating straight
+  // into ?mode=edit, e.g. right after creating a translation.
+  const [sidebarMode, setSidebarMode] = useState<ChapterSidebarMode>(pageMode);
+  useEffect(() => {
+    setSidebarMode(pageMode);
+  }, [pageMode]);
+  // Reader's format choice, remembered per browser.
+  const [contentTypes, setContentTypesState] = useState<StoryContentTypes>(() => {
+    try {
+      const saved = localStorage.getItem("crowdly_story_content_types");
+      return saved ? { ...DEFAULT_STORY_CONTENT_TYPES, ...JSON.parse(saved) } : DEFAULT_STORY_CONTENT_TYPES;
+    } catch {
+      return DEFAULT_STORY_CONTENT_TYPES;
+    }
+  });
+  const setContentTypes = (next: StoryContentTypes) => {
+    setContentTypesState(next);
+    try {
+      localStorage.setItem("crowdly_story_content_types", JSON.stringify(next));
+    } catch {
+      // storage unavailable (private mode) — the choice just isn't remembered
+    }
+  };
+  // Edition being read (null = the story's current text) and the editor's format tab
+  const [readingEdition, setReadingEdition] = useState<Edition | null>(null);
+  const [editorTab, setEditorTab] = useState<EditorTab>("text");
+  // Media of the active chapter + per-chapter availability for the checkboxes
+  const chapterMedia = useChapterMedia(currentChapterId);
+  const [mediaSummary, setMediaSummary] = useState<MediaSummary>({});
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  // Language versions of this story (original + translations)
+  const [translations, setTranslations] = useState<StoryTranslations | null>(null);
+  const [translateDialogOpen, setTranslateDialogOpen] = useState(false);
+  const locales = useLocales();
+  const { currentLanguage } = useEditableContent();
+  const [mobileChaptersOpen, setMobileChaptersOpen] = useState(false);
   // When adding a chapter, optionally remember the chapter after which
   // the new one should appear. If null, the new chapter is appended at
   // the end (existing behavior).
@@ -342,13 +416,8 @@ const Story = () => {
   // Each entry represents a branch positioned under a specific base
   // paragraph. Only the active branch is rendered as a textarea; all
   // others are shown as inline text, like regular paragraphs.
-  const [inlineBranches, setInlineBranches] = useState<{
-    id: number;
-    chapterId: string;
-    parentParagraphIndex: number;
-    text: string;
-  }[]>([]);
-  const [editingBranchId, setEditingBranchId] = useState<number | null>(null);
+  const [inlineBranches, setInlineBranches] = useState<InlineBranch[]>([]);
+  const [editingBranchId, setEditingBranchId] = useState<string | null>(null);
 
   // Story-level favorite state (for Index favorites container)
   const [isFavorite, setIsFavorite] = useState(false);
@@ -359,7 +428,7 @@ const Story = () => {
 
   // Access rules picker state
   const [accessPickerOpen, setAccessPickerOpen] = useState(false);
-  const [accessPickerRuleType, setAccessPickerRuleType] = useState<"view" | "clone" | "export">("view");
+  const [accessPickerRuleType, setAccessPickerRuleType] = useState<"view" | "clone" | "export" | "translate" | "narrate">("view");
 
   // Collaborators state
   const [collaborators, setCollaborators] = useState<StoryCollaborator[]>([]);
@@ -580,6 +649,88 @@ const Story = () => {
     // eslint-disable-next-line
   }, [story_id, user?.id]);
 
+  const reloadMediaSummary = useCallback(() => {
+    if (!story_id) return;
+    getMediaSummary(story_id)
+      .then(setMediaSummary)
+      .catch(() => setMediaSummary({}));
+  }, [story_id]);
+
+  useEffect(() => {
+    reloadMediaSummary();
+    setReadingEdition(null);
+  }, [reloadMediaSummary, user?.id]);
+
+  const handleMediaChanged = () => {
+    chapterMedia.reload();
+    reloadMediaSummary();
+  };
+
+  // Reload just the chapter list (no full-page loading state) — used when a
+  // background AI job has written new chapter text.
+  const reloadChaptersQuietly = async () => {
+    if (!story_id) return;
+    const params = new URLSearchParams({ storyTitleId: story_id });
+    if (user?.id) params.set('userId', user.id);
+    try {
+      const res = await fetch(`${API_BASE}/chapters?${params.toString()}`);
+      if (res.ok) {
+        const rows = await res.json();
+        if (Array.isArray(rows)) setChapters(rows);
+      }
+    } catch {
+      // keep what's on screen
+    }
+  };
+
+  // The user's own AI connections and the story's background AI jobs.
+  const aiConnections = useAiConnections(!!user);
+  const aiJobs = useAiJobs(story_id, !!user, (job: AiJob) => {
+    if (job.kind === "translate_chapter") {
+      reloadChaptersQuietly();
+      reloadTranslations();
+    } else {
+      handleMediaChanged();
+    }
+    if (job.status === "failed") {
+      toast({ title: "AI job failed", description: job.error || undefined, variant: "destructive" });
+    }
+  });
+
+  const handleAiTranslateChapter = async (chapterId: string, connectionId: string) => {
+    try {
+      await aiTranslateChapter(chapterId, connectionId);
+      aiJobs.refresh();
+    } catch (err) {
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Could not start", variant: "destructive" });
+    }
+  };
+
+  const handleAiTranslateAll = async (connectionId: string) => {
+    if (!story_id) return;
+    try {
+      const { queued } = await aiTranslateStory(story_id, connectionId);
+      toast({
+        title: queued ? `Drafting ${queued} chapter(s) with AI` : "Nothing to draft",
+        description: queued ? "They fill in as each one finishes." : "Every chapter already has text.",
+      });
+      aiJobs.refresh();
+    } catch (err) {
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Could not start", variant: "destructive" });
+    }
+  };
+
+  const reloadTranslations = useCallback(() => {
+    if (!story_id) return;
+    fetchStoryTranslations(story_id)
+      .then(setTranslations)
+      .catch(() => setTranslations(null));
+  }, [story_id]);
+
+  useEffect(() => {
+    reloadTranslations();
+  }, [reloadTranslations, user?.id]);
+
   const reloadInlineIllustrations = useCallback(() => {
     if (!story_id) return;
     listGalleryImages(story_id)
@@ -613,27 +764,6 @@ const Story = () => {
       setCurrentChapterId(chapters[0].chapter_id);
     }
   }, [chapters, chapter_id, currentChapterId]);
-
-  // If a chapter_id is in the URL, default to contribute mode so the chapter area is visible
-  useEffect(() => {
-    if (chapter_id) {
-      setMode("contribute");
-    }
-  }, [chapter_id]);
-
-  // When a specific chapter_id is present in the URL, scroll to and briefly highlight it
-  useEffect(() => {
-    if (!chapter_id) return;
-    if (!chapters || chapters.length === 0) return;
-    const el = document.getElementById("chapter-" + chapter_id);
-    if (!el) return;
-    el.scrollIntoView({ behavior: "smooth", block: "start" });
-    el.classList.add("ring-2", "ring-blue-300", "ring-offset-2");
-    const timeout = window.setTimeout(() => {
-      el.classList.remove("ring-2", "ring-blue-300", "ring-offset-2");
-    }, 2000);
-    return () => window.clearTimeout(timeout);
-  }, [chapter_id, chapters]);
 
   // Debounced user search for transfer-ownership
   useEffect(() => {
@@ -715,13 +845,20 @@ const Story = () => {
   // permissions match what the server actually enforces, instead of the old
   // "any logged-in user" client-side assumption.
   const [accessRole, setAccessRole] = useState<"owner" | "contributor" | null>(null);
+  // True for the story's own team (owner or an explicit story_access row),
+  // false for the implicit contributor role every signed-in user has on a
+  // public story. The team gets the Viewing/Editing toggle; everyone else
+  // keeps the "I want to contribute" entry point.
+  const [accessExplicit, setAccessExplicit] = useState(false);
   useEffect(() => {
     if (!story_id || !user?.id) {
       setAccessRole(null);
+      setAccessExplicit(false);
       return;
     }
     if (isOwner) {
       setAccessRole("owner");
+      setAccessExplicit(true);
       return;
     }
     let cancelled = false;
@@ -731,13 +868,22 @@ const Story = () => {
           credentials: "include",
         });
         if (!res.ok) {
-          if (!cancelled) setAccessRole(null);
+          if (!cancelled) {
+            setAccessRole(null);
+            setAccessExplicit(false);
+          }
           return;
         }
         const data = await res.json();
-        if (!cancelled) setAccessRole(data.role ?? null);
+        if (!cancelled) {
+          setAccessRole(data.role ?? null);
+          setAccessExplicit(Boolean(data.explicit));
+        }
       } catch {
-        if (!cancelled) setAccessRole(null);
+        if (!cancelled) {
+          setAccessRole(null);
+          setAccessExplicit(false);
+        }
       }
     })();
     return () => {
@@ -759,7 +905,6 @@ const Story = () => {
     if (!canDeleteStory) {
       return toast({ title: "Unauthorized", description: "You are not allowed to delete this story.", variant: "destructive" });
     }
-    if (!window.confirm("Are you sure you want to permanently delete this story? This cannot be undone.")) return;
 
     try {
       const res = await fetch(`${API_BASE}/story-titles/${story.story_title_id}`, {
@@ -956,50 +1101,22 @@ const Story = () => {
     }
   };
 
-  // Chapters that were never given a custom title (including the old
-  // "New chapter" default before this fell back to "Untitled chapter")
-  // get a visual hint instead of looking like a finished title.
-  const isChapterUntitled = (chapter: Chapter) =>
-    !chapter.chapter_title ||
-    chapter.chapter_title === "Untitled chapter" ||
-    chapter.chapter_title === "New chapter";
-
-  // Chapter title inline-edit handlers (contribute mode)
-  const startEditChapterTitle = (chapter: Chapter) => {
-    setEditingChapterId(chapter.chapter_id);
-    setEditingChapterTitle(chapter.chapter_title || "");
-  };
-
-  const cancelEditChapterTitle = () => {
-    setEditingChapterId(null);
-    setEditingChapterTitle("");
-  };
-
-  const handleChapterTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEditingChapterTitle(e.target.value);
-  };
-
-  const saveChapterTitle = async (chapter: Chapter) => {
-    const newTitle = editingChapterTitle.trim();
-    setEditingChapterId(null);
-    if (!newTitle || newTitle === chapter.chapter_title) {
-      setEditingChapterTitle("");
-      return;
-    }
-    setEditingChapterTitle("");
+  // Chapter rename: the owner writes the title directly; contributors
+  // propose the change for owner review, same as paragraph edits.
+  const renameChapter = async (chapter: Chapter, newTitle: string) => {
+    const title = newTitle.trim();
+    if (!title || title === chapter.chapter_title) return;
 
     if (isOwner) {
-      await handleUpdateChapter(chapter.chapter_id, { chapter_title: newTitle });
+      await handleUpdateChapter(chapter.chapter_id, { chapter_title: title });
       return;
     }
 
-    // Contributors propose chapter-title changes for owner review, same as
-    // paragraph edits.
     try {
       await createProposal({
         targetType: "chapter_title",
         targetChapterId: chapter.chapter_id,
-        proposedText: newTitle,
+        proposedText: title,
       });
       toast({
         title: "Change proposed",
@@ -1012,19 +1129,6 @@ const Story = () => {
         description: "Failed to submit proposal.",
         variant: "destructive",
       });
-    }
-  };
-
-  const handleChapterTitleKeyDown = async (
-    e: React.KeyboardEvent<HTMLInputElement>,
-    chapter: Chapter,
-  ) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      await saveChapterTitle(chapter);
-    } else if (e.key === "Escape") {
-      e.preventDefault();
-      cancelEditChapterTitle();
     }
   };
 
@@ -1177,6 +1281,19 @@ const Story = () => {
     };
   }, [addChapterMode, newChapterTitle, newChapterBody]);
 
+  // Selecting a chapter goes through the URL (/story/:id/chapter/:chapter_id)
+  // so every chapter is deep-linkable; the effect that syncs currentChapterId
+  // from the chapter_id param does the rest. Keeps ?mode=edit intact.
+  const selectChapter = (chapterId: string, { scroll = true }: { scroll?: boolean } = {}) => {
+    if (!story_id) return;
+    setCurrentChapterId(chapterId);
+    navigate(`/story/${story_id}/chapter/${chapterId}${location.search}`, { replace: true });
+    setMobileChaptersOpen(false);
+    if (scroll) {
+      document.getElementById("chapter-top")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   // CRUD Handlers for chapters (via backend)
   // CREATE
   const handleCreateChapter = async ({ chapter_title, paragraphs }: { chapter_title: string; paragraphs: string[] }) => {
@@ -1222,6 +1339,7 @@ const Story = () => {
       }
 
       setChapters(newChapters);
+      selectChapter(created.chapter_id);
 
       // Persist the ordering in the backend so that future loads show
       // the same chapter order.
@@ -1244,8 +1362,8 @@ const Story = () => {
   };
 
   // Manual chapter reordering (owner only — matches the backend's
-  // owner-only check on this same endpoint). Shared by the move
-  // top/up/down/bottom buttons and drag-and-drop below.
+  // owner-only check on this same endpoint). Saves immediately; returns
+  // whether the server accepted the new order.
   const applyChapterOrder = async (newOrder: Chapter[]) => {
     setChapters(newOrder);
     try {
@@ -1259,64 +1377,39 @@ const Story = () => {
         const body = await res.json().catch(() => ({}));
         toast({ title: "Error", description: body.error || "Failed to reorder chapters", variant: "destructive" });
         fetchStoryAndChapters();
+        return false;
       }
+      return true;
     } catch (err) {
       console.error("Failed to reorder chapters", err);
       toast({ title: "Error", description: "Failed to reorder chapters", variant: "destructive" });
       fetchStoryAndChapters();
+      return false;
     }
   };
 
-  const handleMoveChapterToTop = (idx: number) => {
-    if (idx <= 0) return;
+  // Shared by the sidebar's drag handle, ⋯ move actions and Alt+↑/↓.
+  // Each move saves instantly and offers a one-click Undo.
+  const moveChapter = async (fromIndex: number, toIndex: number) => {
+    if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0) return;
+    if (fromIndex >= chapters.length || toIndex >= chapters.length) return;
+    const previous = chapters;
     const next = [...chapters];
-    const [moved] = next.splice(idx, 1);
-    next.unshift(moved);
-    applyChapterOrder(next);
+    const [moved] = next.splice(fromIndex, 1);
+    next.splice(toIndex, 0, moved);
+    const ok = await applyChapterOrder(next);
+    if (!ok) return;
+    toast({
+      title: "Chapter moved",
+      description: `“${moved.chapter_title || "Untitled chapter"}” is now chapter ${toIndex + 1}.`,
+      action: (
+        <ToastAction altText="Undo chapter move" onClick={() => applyChapterOrder(previous)}>
+          Undo
+        </ToastAction>
+      ),
+    });
   };
 
-  const handleMoveChapterUp = (idx: number) => {
-    if (idx <= 0) return;
-    const next = [...chapters];
-    [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
-    applyChapterOrder(next);
-  };
-
-  const handleMoveChapterDown = (idx: number) => {
-    if (idx >= chapters.length - 1) return;
-    const next = [...chapters];
-    [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
-    applyChapterOrder(next);
-  };
-
-  const handleMoveChapterToBottom = (idx: number) => {
-    if (idx >= chapters.length - 1) return;
-    const next = [...chapters];
-    const [moved] = next.splice(idx, 1);
-    next.push(moved);
-    applyChapterOrder(next);
-  };
-
-  // Native HTML5 drag-and-drop (no new dependency — see plan notes for why
-  // not a sortable-hooks library). Dragging is initiated only from the grip
-  // handle; dropping anywhere on another chapter's row moves the dragged
-  // chapter to that row's position.
-  const [draggedChapterId, setDraggedChapterId] = useState<string | null>(null);
-
-  const handleDropChapter = (targetChapterId: string) => {
-    if (!draggedChapterId || draggedChapterId === targetChapterId) {
-      setDraggedChapterId(null);
-      return;
-    }
-    const fromIdx = chapters.findIndex((c) => c.chapter_id === draggedChapterId);
-    const toIdx = chapters.findIndex((c) => c.chapter_id === targetChapterId);
-    setDraggedChapterId(null);
-    if (fromIdx === -1 || toIdx === -1) return;
-    const next = [...chapters];
-    const [moved] = next.splice(fromIdx, 1);
-    next.splice(toIdx, 0, moved);
-    applyChapterOrder(next);
-  };
   // UPDATE
   const handleUpdateChapter = async (
     chapter_id: string,
@@ -1389,91 +1482,119 @@ const Story = () => {
     }
   };
 
-  // Legacy branch creation logic used by the configuration popover.
-  // This now updates an existing branch instead of creating a new one.
-  const handleConfigureExistingBranch = async (
-    branchId: number,
-    {
-      branchName,
-      paragraphs,
-    }: {
-      branchName: string;
-      paragraphs: string[];
-      language: string;
-      metadata: Record<string, unknown> | null;
-    },
-  ) => {
-    // Compose branch_text as joined array
-    const branch_text = paragraphs.join("\n\n");
-
-    if (!user) {
-      toast({
-        title: "Login required",
-        description: "You must be logged in to edit a branch.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  // Load a story's saved paragraph branches so they appear under their
+  // paragraphs in the editor (not only the ones created this session).
+  const reloadBranches = useCallback(async () => {
+    if (!story_id) return;
     try {
-      if (isOwner) {
+      const res = await fetch(`${API_BASE}/stories/${story_id}/branches`);
+      if (!res.ok) return;
+      const rows: Array<Record<string, unknown>> = await res.json();
+      setInlineBranches(
+        rows
+          .map((row) => ({
+            id: String(row.id),
+            chapterId: String(row.chapter_id),
+            parentParagraphIndex: Number(row.parent_paragraph_index),
+            text: String(row.branch_text ?? ""),
+            name: (row.branch_name as string | null) ?? null,
+            language: String(row.language ?? "en"),
+            metadata: (row.metadata as Record<string, unknown> | null) ?? null,
+            userId: (row.user_id as string | null) ?? null,
+            parentParagraphText: String(row.parent_paragraph_text ?? ""),
+          }))
+          // oldest first, so branches keep a stable order under their paragraph
+          .reverse(),
+      );
+    } catch (err) {
+      console.error("Failed to load branches", err);
+    }
+  }, [story_id]);
+
+  useEffect(() => {
+    reloadBranches();
+  }, [reloadBranches]);
+
+  /** The story owner and the branch's author change a branch directly; others propose. */
+  const canEditBranchDirectly = (branch: InlineBranch) => Boolean(isOwner || (user && branch.userId === user.id));
+
+  // Save the Branch settings dialog: text, name, language, note/metadata.
+  const saveBranchSettings = async (branchId: string, patch: BranchSettingsPatch): Promise<boolean> => {
+    const branch = inlineBranches.find((b) => b.id === branchId);
+    if (!branch) return false;
+    if (!user) {
+      toast({ title: "Login required", description: "You must be logged in to edit a branch.", variant: "destructive" });
+      return false;
+    }
+    try {
+      if (canEditBranchDirectly(branch)) {
         const res = await fetch(`${API_BASE}/paragraph-branches/${branchId}`, {
           method: "PATCH",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            branchText: branch_text,
-            parentParagraphText: branchName || undefined,
+            branchText: patch.text,
+            branchName: patch.name,
+            language: patch.language,
+            metadata: patch.metadata,
           }),
         });
-
+        const body = await res.json().catch(() => ({}));
         if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          toast({
-            title: "Error",
-            description: body.error || "Failed to update branch.",
-            variant: "destructive",
-          });
-          return;
+          toast({ title: "Error", description: body.error || "Failed to update branch.", variant: "destructive" });
+          return false;
         }
-
-        // Update local inline branch cache so the textarea reflects changes
-        const updated = await res.json();
         setInlineBranches((prev) =>
-          prev.map((b) => (b.id === branchId ? { ...b, text: updated.branch_text ?? branch_text } : b)),
+          prev.map((b) =>
+            b.id === branchId
+              ? {
+                  ...b,
+                  text: body.branch_text ?? patch.text,
+                  name: body.branch_name ?? null,
+                  language: body.language ?? patch.language,
+                  metadata: body.metadata ?? null,
+                }
+              : b,
+          ),
         );
-
-        toast({
-          title: "Branch updated",
-          description: "Your branch has been updated.",
-        });
-      } else {
-        await createProposal({
-          targetType: "branch",
-          targetBranchId: branchId,
-          proposedText: branch_text,
-          targetPath: null,
-        });
-        // Keep local inline state so the contributor still sees their text
-        setInlineBranches((prev) =>
-          prev.map((b) => (b.id === branchId ? { ...b, text: branch_text } : b)),
-        );
-        toast({
-          title: "Branch proposal submitted",
-          description: "Your branch changes are pending review.",
-        });
+        toast({ title: "Branch saved" });
+        return true;
       }
+      // Contributors can only propose a text change; the owner reviews it.
+      if (patch.text !== branch.text) {
+        await createProposal({ targetType: "branch", targetBranchId: branchId, proposedText: patch.text, targetPath: null });
+        setInlineBranches((prev) => prev.map((b) => (b.id === branchId ? { ...b, text: patch.text } : b)));
+        toast({ title: "Branch proposal submitted", description: "Your branch changes are pending review." });
+      }
+      return true;
     } catch (e) {
       console.error("Failed to update branch", e);
-      toast({
-        title: "Error",
-        description: "Something went wrong updating the branch.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to update branch.", variant: "destructive" });
+      return false;
     }
   };
 
-  // Quick inline branch creation: create an empty branch row and show a
-  // new editable paragraph directly under the source paragraph.
+  const deleteBranch = async (branchId: string): Promise<boolean> => {
+    try {
+      const res = await fetch(`${API_BASE}/paragraph-branches/${branchId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok && res.status !== 204) {
+        const body = await res.json().catch(() => ({}));
+        toast({ title: "Error", description: body.error || "Could not delete the branch.", variant: "destructive" });
+        return false;
+      }
+      setInlineBranches((prev) => prev.filter((b) => b.id !== branchId));
+      toast({ title: "Branch deleted" });
+      return true;
+    } catch (e) {
+      console.error("Failed to delete branch", e);
+      toast({ title: "Error", description: "Could not delete the branch.", variant: "destructive" });
+      return false;
+    }
+  };
+
   const handleQuickCreateBranch = async (
     chapter: Chapter,
     paragraphIndex: number,
@@ -1491,15 +1612,14 @@ const Story = () => {
     try {
       const res = await fetch(`${API_BASE}/paragraph-branches`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           chapterId: chapter.chapter_id,
           parentParagraphIndex: paragraphIndex,
           parentParagraphText: paragraphText || "",
           branchText: "", // start empty; user will type into inline editor
-          userId: user.id,
-          language: "en",
-          metadata: null,
+          // language defaults to the story's language server-side
         }),
       });
 
@@ -1517,14 +1637,19 @@ const Story = () => {
       setInlineBranches((prev) => [
         ...prev,
         {
-          id: created.id,
+          id: String(created.id),
           chapterId: created.chapter_id,
           parentParagraphIndex: paragraphIndex,
           text: "",
+          name: created.branch_name ?? null,
+          language: created.language ?? story?.language ?? "en",
+          metadata: created.metadata ?? null,
+          userId: created.user_id ?? user.id,
+          parentParagraphText: created.parent_paragraph_text ?? paragraphText ?? "",
         },
       ]);
       // Immediately focus this new branch for inline editing
-      setEditingBranchId(created.id);
+      setEditingBranchId(String(created.id));
     } catch (e) {
       console.error("Failed to create branch", e);
       toast({
@@ -1535,11 +1660,11 @@ const Story = () => {
     }
   };
 
-  const handleInlineBranchTextChange = (branchId: number, text: string) => {
+  const handleInlineBranchTextChange = (branchId: string, text: string) => {
     setInlineBranches((prev) => prev.map((b) => (b.id === branchId ? { ...b, text } : b)));
   };
 
-  const handleInlineBranchBlur = async (branchId: number) => {
+  const handleInlineBranchBlur = async (branchId: string) => {
     const branch = inlineBranches.find((b) => b.id === branchId);
     if (!branch) return;
 
@@ -1553,10 +1678,11 @@ const Story = () => {
     }
 
     try {
-      if (isOwner) {
-        // Story initiator: write directly to canonical branch text
+      if (canEditBranchDirectly(branch)) {
+        // Story owner or the branch's author: write directly to the branch
         const res = await fetch(`${API_BASE}/paragraph-branches/${branchId}`, {
           method: "PATCH",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ branchText: branch.text ?? "" }),
         });
@@ -1634,7 +1760,7 @@ const Story = () => {
   async function createProposal(args: {
     targetType: ProposalTargetType;
     targetChapterId?: string;
-    targetBranchId?: number;
+    targetBranchId?: string;
     targetPath?: string | null;
     proposedText: string;
   }) {
@@ -1739,7 +1865,7 @@ const Story = () => {
             story_title: row.story_title ?? '',
             chapter_title: row.chapter_title ?? '',
             paragraph: row.new_paragraph ?? '',
-            user: row.user_email ?? 'Unknown',
+            user: row.user_name || row.user_email || 'Unknown',
             date: row.created_at ? new Date(row.created_at).toLocaleString() : '',
             // Always compute word count on the frontend using the same
             // logic so results are stable and not tied to DB
@@ -2045,11 +2171,67 @@ const Story = () => {
     }
   };
 
-  const cycleVisibility = async () => {
+  const setNarrationPolicy = (next: StoryPolicy) => {
     if (!story) return;
-    const current = story.visibility ?? 'public';
-    const nextMap: Record<string, string> = { public: 'unlisted', unlisted: 'private', private: 'public' };
-    const nextVisibility = nextMap[current] ?? 'public';
+    updateStorySetting('narration_policy', next);
+    if (next === 'restricted') openAccessPicker("narrate");
+  };
+
+  const setTranslationPolicy = (next: StoryPolicy) => {
+    if (!story) return;
+    updateStorySetting('translation_policy', next);
+    if (next === 'restricted') openAccessPicker("translate");
+  };
+
+  const handleCreateTranslation = async (language: string, start: "blank" | "copy" | "ai", connectionId?: string) => {
+    if (!story) return;
+    try {
+      const created = await createStoryTranslation(story.story_title_id, language, start, connectionId);
+      if (created.ai_error) {
+        toast({ title: "Translation created, but AI drafting didn't start", description: created.ai_error, variant: "destructive" });
+      } else {
+        toast({
+          title: "Translation created",
+          description:
+            start === "ai"
+              ? "Your AI is drafting the chapters in the background. It's a draft until you publish it."
+              : "It's a draft until you publish it.",
+        });
+      }
+      navigate(`/story/${created.story_title_id}?mode=edit`);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to create translation",
+        variant: "destructive",
+      });
+      throw err;
+    }
+  };
+
+  const handleToggleOfficialTranslation = async (translationId: string, official: boolean) => {
+    try {
+      await setOfficialTranslation(translationId, official);
+      reloadTranslations();
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to update official translation",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const openAccessPicker = (rule: "view" | "clone" | "export" | "translate" | "narrate") => {
+    // The picker is its own modal — close the settings sheet so the two
+    // dialogs don't fight over focus.
+    setSettingsOpen(false);
+    setAccessPickerRuleType(rule);
+    setAccessPickerOpen(true);
+  };
+
+  const setVisibility = async (nextVisibility: StoryVisibility) => {
+    if (!story || nextVisibility === (story.visibility ?? 'public')) return;
     try {
       const res = await fetch(`${API_BASE}/story-titles/${story.story_title_id}/settings`, {
         method: "PATCH",
@@ -2065,8 +2247,7 @@ const Story = () => {
       toast({ title: "Visibility updated", description: `Story is now ${nextVisibility}.` });
       // If set to unlisted, open user/group picker for view rules
       if (nextVisibility === 'unlisted') {
-        setAccessPickerRuleType("view");
-        setAccessPickerOpen(true);
+        openAccessPicker("view");
       }
     } catch (err) {
       console.error('Failed to toggle visibility', err);
@@ -2094,35 +2275,22 @@ const Story = () => {
     }
   };
 
-  const toggleCompletionStatus = () => {
+  const setCompletionStatus = (next: "draft" | "completed") => {
     if (!story) return;
-    const next = (story.completion_status ?? 'draft') === 'draft' ? 'completed' : 'draft';
     updateStorySetting('completion_status', next);
     toast({ title: next === 'completed' ? "Marked as completed" : "Marked as draft" });
   };
 
-  const cycleClonePolicy = () => {
+  const setClonePolicy = (next: StoryPolicy) => {
     if (!story) return;
-    const current = story.clone_policy ?? 'anyone';
-    const nextMap: Record<string, string> = { anyone: 'restricted', restricted: 'none', none: 'anyone' };
-    const next = nextMap[current] ?? 'anyone';
     updateStorySetting('clone_policy', next);
-    if (next === 'restricted') {
-      setAccessPickerRuleType("clone");
-      setAccessPickerOpen(true);
-    }
+    if (next === 'restricted') openAccessPicker("clone");
   };
 
-  const cycleExportPolicy = () => {
+  const setExportPolicy = (next: StoryPolicy) => {
     if (!story) return;
-    const current = story.export_policy ?? 'anyone';
-    const nextMap: Record<string, string> = { anyone: 'restricted', restricted: 'none', none: 'anyone' };
-    const next = nextMap[current] ?? 'anyone';
     updateStorySetting('export_policy', next);
-    if (next === 'restricted') {
-      setAccessPickerRuleType("export");
-      setAccessPickerOpen(true);
-    }
+    if (next === 'restricted') openAccessPicker("export");
   };
 
   const togglePublished = async () => {
@@ -2262,7 +2430,7 @@ const Story = () => {
   }
 
 
-  // Derive helpers for the active chapter in experience mode
+  // Derive helpers for the active chapter
   const currentChapterIndex =
     currentChapterId && Array.isArray(chapters)
       ? chapters.findIndex((ch) => ch.chapter_id === currentChapterId)
@@ -2278,12 +2446,7 @@ const Story = () => {
     if (!Array.isArray(chapters) || chapters.length === 0) return;
     const clamped = Math.max(0, Math.min(index, chapters.length - 1));
     const target = chapters[clamped];
-    if (!target) return;
-    setCurrentChapterId(target.chapter_id);
-    const el = document.getElementById("experience-top");
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
+    if (target) selectChapter(target.chapter_id);
   };
 
   const handlePreviousChapter = () => {
@@ -2298,583 +2461,184 @@ const Story = () => {
     }
   };
 
-  return (
-    <div className="flex flex-col min-h-screen">
-      <CrowdlyHeader />
+  // The story's own team (owner / explicitly granted contributors) gets the
+  // Viewing ↔ Editing toggle. Everyone else reads, and — where the backend
+  // lets them contribute (e.g. any signed-in user on a public story) —
+  // reaches the same editor through "I want to contribute".
+  const isCreator = canCRUDChapters && accessExplicit;
+  const isEditing = canCRUDChapters && pageMode === "edit";
 
-      {/* --- STORY CONTENT TYPE SELECTOR --- */}
-      <main className="flex-grow container mx-auto px-4 py-8 max-w-3xl">
-        <StoryContentTypeSelector
-          chapters={chapters}
-          currentChapterIndex={currentChapterIndex}
-          onSelectChapter={goToChapterIndex}
-        />
-        {/* --- TABS & NAVIGATION HEADER --- */}
-        <nav className="container mx-auto max-w-3xl px-4 pt-8">
-          <div className="flex flex-row items-center gap-2 border rounded-lg bg-gray-50 overflow-x-auto">
+  const handleWantToContribute = () => {
+    if (!user) {
+      toast({
+        title: "Login required",
+        description: "You must be logged in to contribute to the story.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!canCRUDChapters) {
+      toast({
+        title: "Contribution not open",
+        description: "The story owner hasn't given you contributor access to this story.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setPageMode("edit");
+    document.getElementById("chapter-top")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const openAddChapterForm = (afterChapterId: string | null) => {
+    setInsertAfterChapterId(afterChapterId);
+    setAddChapterMode(true);
+    setMobileChaptersOpen(false);
+    window.setTimeout(() => {
+      addChapterContainerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      addChapterContainerRef.current?.querySelector("input")?.focus();
+    }, 50);
+  };
+
+  const deleteChapter = async (chapterId: string) => {
+    if (chapterId === currentChapterId && story_id) {
+      navigate(`/story/${story_id}${location.search}`, { replace: true });
+    }
+    await handleDeleteChapter(chapterId);
+  };
+
+  // "Translated from …" for translations, and a nudge towards the version in
+  // the reader's interface language when one is available.
+  const versions = translations?.versions ?? [];
+  const originalVersion = versions.find((v) => v.is_original);
+  const interfaceLocale = locales.find((l) => l.english_name === currentLanguage);
+  const preferredVersion =
+    interfaceLocale && interfaceLocale.code !== (story.language || "en")
+      ? versions.find(
+          (v) =>
+            v.language === interfaceLocale.code &&
+            v.published &&
+            (v.is_original || v.is_official) &&
+            v.story_title_id !== story.story_title_id,
+        )
+      : undefined;
+  const translationNotice =
+    (story.source_story_title_id && originalVersion && originalVersion.story_title_id !== story.story_title_id) ||
+    (preferredVersion && !(story.source_story_title_id && preferredVersion.is_original)) ? (
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">
+        {story.source_story_title_id && originalVersion && originalVersion.story_title_id !== story.story_title_id && (
+          <span>
+            <EditableText id="story-translated-from">Translated from</EditableText>{" "}
+            {localeName(locales, originalVersion.language)} ·{" "}
             <button
-              aria-label="Story"
-              onClick={() => setActiveTab("story")}
-              className={`flex items-center px-3 py-2 rounded transition font-medium text-sm gap-2 ${
-                activeTab === "story"
-                  ? "bg-white border border-blue-300 text-blue-600 shadow-sm"
-                  : "text-gray-600 hover:bg-gray-100"
-              }`}
+              type="button"
+              onClick={() => navigate(`/story/${originalVersion.story_title_id}`)}
+              className="text-blue-700 hover:underline"
             >
-              <BookOpen size={18} /> <span className="hidden sm:inline">Story</span>
+              {originalVersion.title}
             </button>
+          </span>
+        )}
+        {preferredVersion && !(story.source_story_title_id && preferredVersion.is_original) && (
+          <span className="text-purple-800">
+            <EditableText id="story-available-in">This story is available in</EditableText>{" "}
             <button
-              aria-label="Contributions"
-              onClick={() => setActiveTab("contributions")}
-              className={`flex items-center px-3 py-2 rounded transition font-medium text-sm gap-2 ${
-                activeTab === "contributions"
-                  ? "bg-white border border-blue-300 text-blue-600 shadow-sm"
-                  : "text-gray-600 hover:bg-gray-100"
-              }`}
+              type="button"
+              onClick={() => navigate(`/story/${preferredVersion.story_title_id}`)}
+              className="font-medium hover:underline"
             >
-              <FileText size={18} /> <span className="hidden sm:inline">Contributions</span>
+              {localeName(locales, preferredVersion.language)}
             </button>
-            <button
-              aria-label="Contributors"
-              onClick={() => setActiveTab("contributors")}
-              className={`flex items-center px-3 py-2 rounded transition font-medium text-sm gap-2 ${
-                activeTab === "contributors"
-                  ? "bg-white border border-blue-300 text-blue-600 shadow-sm"
-                  : "text-gray-600 hover:bg-gray-100"
-              }`}
-            >
-              <Users size={18} /> <span className="hidden sm:inline">Contributors</span>
-            </button>
-            <button
-              aria-label="Revisions"
-              onClick={() => setActiveTab("revisions")}
-              className={`flex items-center px-3 py-2 rounded transition font-medium text-sm gap-2 ${
-                activeTab === "revisions"
-                  ? "bg-white border border-blue-300 text-blue-600 shadow-sm"
-                  : "text-gray-600 hover:bg-gray-100"
-              }`}
-            >
-              <Clock size={18} /> <span className="hidden sm:inline">Revisions</span>
-            </button>
-            <button
-              aria-label="Branches"
-              onClick={() => setActiveTab("branches")}
-              className={`flex items-center px-3 py-2 rounded transition font-medium text-sm gap-2 ${
-                activeTab === "branches"
-                  ? "bg-white border border-blue-300 text-blue-600 shadow-sm"
-                  : "text-gray-600 hover:bg-gray-100"
-              }`}
-            >
-              <GitBranch size={18} /> <span className="hidden sm:inline">Branches</span>
-            </button>
-          </div>
-        </nav>
+          </span>
+        )}
+      </div>
+    ) : null;
 
-        {/* Only render the tab section the user chose */}
-        {activeTab === "story" && (
-          <div className="space-y-10">
-            {/* EXPERIENCE SECTION */}
-            <section>
-              <div className="mb-2 flex items-center flex-wrap gap-2">
-                {/* Read-only story title for experience mode */}
-                <h1 className="text-3xl font-bold" style={{ wordBreak: "break-word" }}>
-                  {story.title}
-                </h1>
-                <button
-                  type="button"
-                  onClick={toggleFavorite}
-                  disabled={favoriteLoading}
-                  title={isFavorite ? "Remove from favorites" : "Add to favorites"}
-                  className="inline-flex items-center justify-center p-1 rounded-full border border-transparent hover:bg-pink-50 disabled:opacity-60"
-                >
-                  <Heart
-                    className={
-                      isFavorite
-                        ? "h-5 w-5 text-pink-500 fill-pink-500"
-                        : "h-5 w-5 text-gray-400"
-                    }
-                  />
-                </button>
-                {story.visibility && (
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs ${
-                      story.visibility === 'private'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : story.visibility === 'unlisted'
-                        ? 'bg-blue-100 text-blue-800'
-                        : 'bg-green-100 text-green-800'
-                    }`}
-                  >
-                    {story.visibility === 'private' ? 'Private' : story.visibility === 'unlisted' ? 'Unlisted' : 'Public'}
-                  </span>
-                )}
-                {story.published === false && (
-                  <span className="px-2 py-1 rounded-full text-xs bg-gray-200 text-gray-700">
-                    Unpublished
-                  </span>
-                )}
-                <span
-                  className={`px-2 py-1 rounded-full text-xs ${
-                    (story.completion_status ?? 'draft') === 'completed'
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-orange-100 text-orange-800'
-                  }`}
-                >
-                  {(story.completion_status ?? 'draft') === 'completed' ? 'Completed' : 'Draft'}
-                </span>
-                {story.language && (
-                  <span className="px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
-                    {story.language.toUpperCase()}
-                  </span>
-                )}
-                {user && (
-                  <button
-                    type="button"
-                    onClick={markAsLived}
-                    className="ml-2 inline-flex items-center px-2 py-1 rounded-full border border-dashed border-teal-300 text-[11px] text-teal-700 hover:bg-teal-50"
-                  >
-                    Mark as finished
-                  </button>
-                )}
-                {user && (story.can_clone !== false) && (
-                  <button
-                    type="button"
-                    onClick={handleCloneStory}
-                    title="Clone this story"
-                    className="ml-2 inline-flex items-center px-2 py-1 rounded-full border border-dashed border-gray-300 text-[11px] text-gray-700 hover:bg-gray-50"
-                  >
-                    Clone
-                  </button>
-                )}
-                {user && (story.can_export !== false) && (
-                  <button
-                    type="button"
-                    onClick={() => setExportDialogOpen(true)}
-                    title="Export this story"
-                    className="ml-2 inline-flex items-center px-2 py-1 rounded-full border border-dashed border-indigo-300 text-[11px] text-indigo-700 hover:bg-indigo-50"
-                  >
-                    <Download className="h-3 w-3 mr-1" />
-                    Export
-                  </button>
-                )}
-              </div>
+  // Formats the current chapter actually has (approved media). Missing ones
+  // are shown disabled in the checkbox row and not rendered in the reader.
+  const currentSummary = (currentChapter && mediaSummary[currentChapter.chapter_id]) || null;
+  const chapterAvailability = {
+    text: true,
+    audio: (currentSummary?.audio ?? 0) > 0,
+    cartoon: (currentSummary?.visual ?? 0) > 0,
+    video: (currentSummary?.video ?? 0) > 0,
+  };
+  const effectiveContentTypes: StoryContentTypes = {
+    text: contentTypes.text,
+    audio: contentTypes.audio && chapterAvailability.audio,
+    cartoon: contentTypes.cartoon && chapterAvailability.cartoon,
+    video: contentTypes.video && chapterAvailability.video,
+  };
 
-              {/* Cover art — always visible (placeholder when absent), with a
-                  direct click-to-change affordance for the owner. This is the
-                  primary, discoverable way to set/replace a story's cover;
-                  the CoverImageUpload further down in the settings row still
-                  works too. */}
-              <div className="mt-3 mb-3 flex items-start gap-3">
-                <div className="relative w-28 h-40 shrink-0 rounded-md overflow-hidden bg-gradient-to-br from-blue-200 via-sky-200 to-purple-200 dark:from-slate-700 dark:via-slate-800 dark:to-slate-900 group/cover">
-                  {story.cover_image_url ? (
-                    <img
-                      src={story.cover_image_url}
-                      alt="Story cover"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <BookOpen className="h-8 w-8 text-white/80" />
-                    </div>
-                  )}
-                  {isOwner && (
-                    <button
-                      type="button"
-                      onClick={() => setCoverEditorOpen((v) => !v)}
-                      className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover/cover:bg-black/50 opacity-0 group-hover/cover:opacity-100 transition-all text-white text-xs font-medium"
-                    >
-                      {story.cover_image_url ? (
-                        <EditableText id="story-cover-change-btn">Change cover</EditableText>
-                      ) : (
-                        <EditableText id="story-cover-add-btn">Add cover</EditableText>
-                      )}
-                    </button>
-                  )}
-                </div>
-                {isOwner && coverEditorOpen && (
-                  <div className="max-w-xs">
-                    <CoverImageUpload
-                      value={story.cover_image_url || null}
-                      onChange={(url) => {
-                        updateStorySetting("cover_image_url", url || "");
-                        setCoverEditorOpen(false);
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
+  const chapterSidebar = (
+    <ChapterSidebar
+      chapters={chapters}
+      currentChapterId={currentChapter?.chapter_id ?? null}
+      onSelect={(id) => selectChapter(id)}
+      canEdit={canCRUDChapters && (isCreator || isEditing)}
+      isOwner={!!isOwner}
+      mode={sidebarMode}
+      onModeChange={setSidebarMode}
+      onMove={moveChapter}
+      onRename={renameChapter}
+      onTogglePublish={handleToggleChapterPublish}
+      onDelete={deleteChapter}
+      onInsertAfter={openAddChapterForm}
+    />
+  );
 
-              {story.description && (
-                <p className="text-sm text-gray-600 whitespace-pre-wrap mt-2 mb-2">
-                  {story.description}
-                </p>
-              )}
-              {story.tags && story.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mt-2 mb-2">
-                  {story.tags.map((tag) => (
-                    <TagBadge key={tag} tag={tag} />
-                  ))}
-                </div>
-              )}
+  const mobileChaptersButton = chapters.length > 0 && (
+    <button
+      type="button"
+      onClick={() => setMobileChaptersOpen(true)}
+      className="lg:hidden inline-flex items-center gap-1 px-2 py-1 rounded border text-xs text-gray-600 bg-white hover:bg-gray-50 shrink-0"
+    >
+      <ListOrdered className="h-3.5 w-3.5" />
+      <EditableText id="story-sidebar-heading">Chapters</EditableText>
+      <span>({chapters.length})</span>
+    </button>
+  );
 
-              {/* Gallery — cover variants, chapter illustrations submitted as
-                  fan art, and community photos. Open to every visitor (not
-                  just the owner), matching the backend's moderation rules:
-                  the owner/contributors publish directly, everyone else's
-                  uploads go to a pending queue for review. */}
-              <div className="mt-4 mb-4 border rounded-lg p-4 bg-white dark:bg-gray-900">
-                <h2 className="text-sm font-semibold mb-2">
-                  <EditableText id="story-gallery-heading">Gallery</EditableText>
-                </h2>
-                <ImageGallery
-                  storyTitleId={story.story_title_id}
-                  kindFilter={["fan_art", "gallery"]}
-                  currentUserId={user?.id ?? null}
-                  canModerate={!!isOwner}
-                  idPrefix="story-page-gallery"
-                  refreshToken={galleryRefreshToken}
-                />
-                {user && (
-                  <div className="mt-3 pt-3 border-t max-w-sm">
-                    <h3 className="text-xs font-semibold mb-1">
-                      {isOwner ? (
-                        <EditableText id="story-gallery-upload-label-owner">Add to gallery</EditableText>
-                      ) : (
-                        <EditableText id="story-gallery-upload-label-fan">
-                          Submit fan art (reviewed by the story owner)
-                        </EditableText>
-                      )}
-                    </h3>
-                    <GalleryUpload
-                      storyTitleId={story.story_title_id}
-                      kind={isOwner ? "gallery" : "fan_art"}
-                      idPrefix="story-page-gallery-upload"
-                      onUploaded={() => setGalleryRefreshToken((t) => t + 1)}
-                    />
-                  </div>
-                )}
-              </div>
+  const pageModeToggle = (
+    <div className="inline-flex rounded-lg border bg-gray-50 p-0.5 text-sm" role="group">
+      <button
+        type="button"
+        aria-pressed={pageMode === "view"}
+        onClick={() => setPageMode("view")}
+        className={cn(
+          "inline-flex items-center gap-1.5 px-3 py-1 rounded-md transition",
+          pageMode === "view" ? "bg-white shadow-sm text-blue-700 font-medium" : "text-gray-600 hover:text-gray-900",
+        )}
+      >
+        <Eye className="h-4 w-4" />
+        <EditableText id="story-mode-viewing">Viewing</EditableText>
+      </button>
+      <button
+        type="button"
+        aria-pressed={pageMode === "edit"}
+        onClick={() => setPageMode("edit")}
+        className={cn(
+          "inline-flex items-center gap-1.5 px-3 py-1 rounded-md transition",
+          pageMode === "edit" ? "bg-white shadow-sm text-blue-700 font-medium" : "text-gray-600 hover:text-gray-900",
+        )}
+      >
+        <Pencil className="h-4 w-4" />
+        <EditableText id="story-mode-editing">Editing</EditableText>
+      </button>
+    </div>
+  );
 
-              {/* Unified reactions + comments for this story */}
-              <InteractionsWidget kind="story" storyTitleId={story.story_title_id} />
+  const backToExperiencingButton = (
+    <button
+      type="button"
+      onClick={() => setPageMode("view")}
+      className="px-4 py-2 text-xs md:text-sm rounded-full border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 shadow-sm"
+    >
+      <EditableText id="story-contribute-back-btn">Back to experiencing the story</EditableText>
+    </button>
+  );
 
-              {/* Read-only story text (experience mode content) */}
-              <div id="experience-top" className="space-y-6">
-                {currentChapter && (
-                  <div key={currentChapter.chapter_id} className="mb-8">
-                    <div className="mb-4">
-                      <h2 className="text-xl font-semibold">{currentChapter.chapter_title}</h2>
-                    </div>
-
-                    {Array.isArray(currentChapter.paragraphs)
-                      ? currentChapter.paragraphs.map((paragraph: string, idx: number) => {
-                          // Support legacy data where a single string may contain newlines
-                          const lines = paragraph
-                            .split(/\n+/)
-                            .filter((line) => line.trim().length > 0);
-
-                          const paragraphProposals = proposals.filter(
-                            (p) =>
-                              p.target_type === "paragraph" &&
-                              p.target_chapter_id === currentChapter.chapter_id &&
-                              (p.target_path ?? "") === String(idx),
-                          );
-
-                          // Illustrations anchor to a paragraph index at insertion time; there
-                          // are no stable paragraph IDs in this data model, so an illustration
-                          // can drift if paragraphs are later inserted/removed above it.
-                          const illustrationsHere = galleryImages.filter(
-                            (g) => g.chapter_id === currentChapter.chapter_id && g.anchor_index === idx,
-                          );
-
-                          return (
-                            <React.Fragment key={idx}>
-                              <div className="mb-3">
-                                {lines.map((line, lineIdx) => (
-                                  <p key={`${idx}-${lineIdx}`} className="mb-1">
-                                    {line}
-                                  </p>
-                                ))}
-
-                                {paragraphProposals.length > 0 && (
-                                  <div className="mt-1 space-y-1">
-                                    {paragraphProposals.map((p) => (
-                                      <div
-                                        key={p.id}
-                                        className="text-xs text-purple-900 bg-purple-50 border border-dashed border-purple-200 rounded px-2 py-1"
-                                      >
-                                        <div className="whitespace-pre-wrap">
-                                          {p.proposed_text || (
-                                            <span className="italic text-purple-500">
-                                              (Proposed deletion of this paragraph)
-                                            </span>
-                                          )}
-                                        </div>
-                                        <div className="mt-0.5 text-[10px] text-purple-500">
-                                          Proposed by {p.author_email || "Unknown user"} ·{" "}
-                                          {new Date(p.created_at).toLocaleString()}
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-
-                              {illustrationsHere.map((img) => (
-                                <figure key={img.id} className="my-4">
-                                  <img
-                                    src={img.image_url}
-                                    alt={img.caption ?? ""}
-                                    className="max-w-full max-h-[32rem] rounded-md object-contain mx-auto"
-                                  />
-                                  {img.caption && (
-                                    <figcaption className="text-xs text-gray-500 text-center mt-1">
-                                      {img.caption}
-                                    </figcaption>
-                                  )}
-                                </figure>
-                              ))}
-                            </React.Fragment>
-                          );
-                        })
-                      : null}
-                    {(() => {
-                      const paragraphCount = Array.isArray(currentChapter.paragraphs)
-                        ? currentChapter.paragraphs.length
-                        : 0;
-                      const overflowIllustrations = galleryImages.filter(
-                        (g) =>
-                          g.chapter_id === currentChapter.chapter_id &&
-                          (g.anchor_index === null || g.anchor_index >= paragraphCount),
-                      );
-                      return overflowIllustrations.map((img) => (
-                        <figure key={img.id} className="my-4">
-                          <img
-                            src={img.image_url}
-                            alt={img.caption ?? ""}
-                            className="max-w-full max-h-[32rem] rounded-md object-contain mx-auto"
-                          />
-                          {img.caption && (
-                            <figcaption className="text-xs text-gray-500 text-center mt-1">
-                              {img.caption}
-                            </figcaption>
-                          )}
-                        </figure>
-                      ));
-                    })()}
-                  </div>
-                )}
-                {chapters.length === 0 && (
-                  <p className="text-sm text-gray-500">No chapters have been added yet.</p>
-                )}
-
-                {/* Chapter list and navigation live in StoryContentTypeSelector above */}
-              </div>
-            </section>
-
-            {/* CONTRIBUTION SECTION */}
-            <section className="border-t pt-6">
-              <div className="flex justify-center mb-4">
-                {mode === "experience" ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!user) {
-                        toast({
-                          title: "Login required",
-                          description: "You must be logged in to contribute to the story.",
-                          variant: "destructive",
-                        });
-                      }
-                      setMode("contribute");
-                    }}
-                    className="px-4 py-2 text-xs md:text-sm rounded-full border border-blue-300 bg-white text-blue-700 hover:bg-blue-50 shadow-sm"
-                  >
-                    I want to contribute to the story
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setMode("experience")}
-                    className="px-4 py-2 text-xs md:text-sm rounded-full border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 shadow-sm"
-                  >
-                    Back to experiencing the story
-                  </button>
-                )}
-              </div>
-
-              {mode === "contribute" && (
-                <div className="space-y-6">
-                  {/* TITLE CRUD & story-level controls */}
-                  <div className="flex items-center mb-2 gap-1 flex-wrap group">
-                    {/* Title area */}
-                    <div className="flex items-center gap-1">
-                      {isEditingTitle ? (
-                        <div className="flex gap-2 items-center w-full max-w-xl">
-                          <input
-                            type="text"
-                            value={titleInput}
-                            className="border border-blue-400 px-2 py-1 text-2xl font-bold flex-1 rounded focus:outline-none"
-                            placeholder="How shall the story be named? Write the story title here"
-                            onChange={handleChangeTitle}
-                            onKeyDown={handleTitleInputKeyDown}
-                            onBlur={handleSaveTitle}
-                            disabled={savingTitle}
-                          />
-                        </div>
-                      ) : (
-                        <>
-                           <button
-                             type="button"
-                             onClick={handleStartEditTitle}
-                             className={cn(
-                               "text-2xl border border-gray-300 hover:border-blue-400 cursor-text px-2 py-1 rounded hover:bg-blue-50",
-                               story.title ? "font-bold" : "italic text-gray-400 font-medium",
-                             )}
-                           >
-                             {story.title || (
-                               <EditableText id="story-title-empty-hint">
-                                 How shall the story be named? Write the story title here
-                               </EditableText>
-                             )}
-                           </button>
-                         </>
-                       )}
-                    </div>
-
-                    {/* Story-level controls (appear on hover over title row) */}
-                    {(user || isOwner || canDeleteStory) && (
-                      <div className="flex items-center gap-1 text-xs text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {user && (
-                          <button
-                            onClick={handleCloneStory}
-                            className="px-2 py-1 rounded border hover:bg-gray-50 border-gray-300"
-                          >
-                            Clone
-                          </button>
-                        )}
-                        {isOwner && (
-                          <button
-                            onClick={() => navigate(`/story/${story.story_title_id}/details`)}
-                            className="px-2 py-1 rounded border hover:bg-gray-50 border-gray-300"
-                          >
-                            Details & Space
-                          </button>
-                        )}
-                        {isOwner && (
-                          <>
-                            <button
-                              onClick={cycleVisibility}
-                              className="px-2 py-1 rounded border hover:bg-gray-50 border-gray-300"
-                              title="Cycle: Public → Unlisted → Private"
-                            >
-                              {story.visibility === 'private' ? 'Private' : story.visibility === 'unlisted' ? 'Unlisted' : 'Public'}
-                            </button>
-                            {story.visibility === 'unlisted' && (
-                              <button
-                                onClick={() => { setAccessPickerRuleType("view"); setAccessPickerOpen(true); }}
-                                className="px-2 py-1 rounded border hover:bg-gray-50 border-blue-300 text-blue-700"
-                              >
-                                Viewers
-                              </button>
-                            )}
-                            <button
-                              onClick={togglePublished}
-                              className="px-2 py-1 rounded border hover:bg-gray-50 border-gray-300"
-                            >
-                              {story.published === false ? 'Publish' : 'Unpublish'}
-                            </button>
-                            <button
-                              onClick={toggleCompletionStatus}
-                              className="px-2 py-1 rounded border hover:bg-gray-50 border-gray-300"
-                            >
-                              {(story.completion_status ?? 'draft') === 'draft' ? 'Mark completed' : 'Mark draft'}
-                            </button>
-                            <button
-                              onClick={cycleClonePolicy}
-                              className="px-2 py-1 rounded border hover:bg-gray-50 border-gray-300"
-                              title="Cycle: Cloneable → Restricted → Not cloneable"
-                            >
-                              Clone: {story.clone_policy === 'none' ? 'Off' : story.clone_policy === 'restricted' ? 'Restricted' : 'On'}
-                            </button>
-                            {story.clone_policy === 'restricted' && (
-                              <button
-                                onClick={() => { setAccessPickerRuleType("clone"); setAccessPickerOpen(true); }}
-                                className="px-2 py-1 rounded border hover:bg-gray-50 border-blue-300 text-blue-700"
-                              >
-                                Cloners
-                              </button>
-                            )}
-                            <button
-                              onClick={cycleExportPolicy}
-                              className="px-2 py-1 rounded border hover:bg-gray-50 border-gray-300"
-                              title="Cycle: Exportable → Restricted → Not exportable"
-                            >
-                              Export: {story.export_policy === 'none' ? 'Off' : story.export_policy === 'restricted' ? 'Restricted' : 'On'}
-                            </button>
-                            {story.export_policy === 'restricted' && (
-                              <button
-                                onClick={() => { setAccessPickerRuleType("export"); setAccessPickerOpen(true); }}
-                                className="px-2 py-1 rounded border hover:bg-gray-50 border-blue-300 text-blue-700"
-                              >
-                                Exporters
-                              </button>
-                            )}
-                            <div className="flex items-center gap-2">
-                              <StoryLanguageSelect
-                                value={story.language || 'en'}
-                                onChange={(code) => updateStorySetting('language', code)}
-                              />
-                            </div>
-                            <CoverImageUpload
-                              value={story.cover_image_url || null}
-                              onChange={(url) => updateStorySetting('cover_image_url', url || '')}
-                            />
-                          </>
-                        )}
-                        {canDeleteStory && (
-                          <button
-                            onClick={handleDeleteStory}
-                            className="px-2 py-1 rounded bg-red-500 text-white font-semibold hover:bg-red-700 transition"
-                          >
-                            Delete Story
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Description & Tags (contribute mode) */}
-                  {isOwner && (
-                    <div className="mb-4 space-y-2">
-                      <div>
-                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                          <EditableText id="story-description-label">Description</EditableText>
-                        </span>
-                        <DescriptionEditor
-                          description={story.description || null}
-                          onSave={async (desc) => { updateStorySetting('description', desc); }}
-                        />
-                      </div>
-                      <div>
-                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                          <EditableText id="story-tags-label">Tags</EditableText>
-                        </span>
-                        <TagInput
-                          tags={story.tags || []}
-                          onChange={(newTags) => updateStorySetting('tags', newTags)}
-                          className="mt-1 border border-gray-200 rounded-md p-2"
-                        />
-                      </div>
-                    </div>
-                  )}
-                  {/* Collaborators management (owner only) */}
-                  {isOwner && (
-                    <div className="mb-4 space-y-3">
-                      <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                        <EditableText id="story-collaborators-label">Collaborators</EditableText>
-                      </span>
-
+  const peopleSection = (
+    <div className="space-y-3">
                       {/* Transfer Ownership */}
                       <div className="border rounded-md p-3 bg-gray-50 space-y-2">
                         <div className="text-xs font-semibold text-gray-600">
@@ -3057,473 +2821,590 @@ const Story = () => {
                           </div>
                         </div>
                       )}
-                    </div>
-                  )}
+    </div>
+  );
 
-                  {!isOwner && story.description && (
-                    <p className="text-sm text-gray-600 whitespace-pre-wrap mb-2">{story.description}</p>
-                  )}
-                  {!isOwner && story.tags && story.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mb-3">
-                      {story.tags.map((tag) => (
-                        <TagBadge key={tag} tag={tag} />
-                      ))}
-                    </div>
-                  )}
+  return (
+    <div className="flex flex-col min-h-screen">
+      <CrowdlyHeader />
 
-                  {/* CHAPTERS CRUD & branching (web-editor style) */}
-                  {canCRUDChapters ? (
-                    <>
-                      {chapters.map((chapter, idx) => (
-                        <div
-                          key={chapter.chapter_id}
-                          id={"chapter-" + chapter.chapter_id}
-                          className={cn("mb-10", draggedChapterId === chapter.chapter_id && "opacity-40")}
-                          onDragOver={isOwner ? (e) => e.preventDefault() : undefined}
-                          onDrop={isOwner ? () => handleDropChapter(chapter.chapter_id) : undefined}
-                        >
-                          <div className="flex items-center gap-2 mb-2 group/chapter">
-                            {editingChapterId === chapter.chapter_id ? (
-                              <input
-                                type="text"
-                                value={editingChapterTitle}
-                                onChange={handleChapterTitleChange}
-                                onKeyDown={(e) => handleChapterTitleKeyDown(e, chapter)}
-                                onBlur={() => saveChapterTitle(chapter)}
-                                className="border-b border-dashed border-blue-400 px-1 py-0.5 text-lg font-semibold flex-1 focus:outline-none"
-                                autoFocus
-                              />
-                            ) : (
-                              <button
-                                type="button"
-                                className={cn(
-                                  "text-left text-lg cursor-text flex-1 border-b border-dashed border-gray-300 hover:border-blue-400 px-1 py-0.5 rounded-t",
-                                  isChapterUntitled(chapter) ? "italic text-gray-500 font-medium" : "font-semibold",
-                                )}
-                                onClick={() => startEditChapterTitle(chapter)}
-                                onDoubleClick={() =>
-                                  navigate("/story/" + story.story_title_id + "/chapter/" + chapter.chapter_id)
-                                }
-                              >
-                                {chapter.chapter_title || "Untitled chapter"}
-                                {isChapterUntitled(chapter) && (
-                                  <span className="ml-2 text-xs font-normal not-italic text-gray-400">
-                                    <EditableText id="story-chapter-untitled-hint">(click to add a title)</EditableText>
-                                  </span>
-                                )}
-                              </button>
-                            )}
-                            {/* Chapter actions */}
-                            <div className="flex items-center gap-1 text-xs text-gray-500">
-                              <button
-                                type="button"
-                                className="px-1 py-0.5 rounded border hover:bg-gray-100"
-                                onClick={() => startEditChapterTitle(chapter)}
-                              >
-                                <EditableText id="story-chapter-rename-btn">Rename</EditableText>
-                              </button>
-                              <button
-                                type="button"
-                                className="px-1 py-0.5 rounded border hover:bg-gray-100"
-                                onClick={() => {
-                                  // Open the inline add-chapter editor and
-                                  // remember that the new chapter should be
-                                  // inserted directly after this one.
-                                  setInsertAfterChapterId(chapter.chapter_id);
-                                  setAddChapterMode(true);
-                                }}
-                              >
-                                <EditableText id="story-chapter-add-another-btn">Add another chapter</EditableText>
-                              </button>
-                              {isOwner ? (
-                                <>
-                                  <button
-                                    type="button"
-                                    className="px-1 py-0.5 rounded border hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent"
-                                    onClick={() => handleMoveChapterToTop(idx)}
-                                    disabled={idx === 0}
-                                    title="Move to top"
-                                  >
-                                    <ChevronsUp className="h-3.5 w-3.5" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="px-1 py-0.5 rounded border hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent"
-                                    onClick={() => handleMoveChapterUp(idx)}
-                                    disabled={idx === 0}
-                                    title="Move up"
-                                  >
-                                    <ChevronUp className="h-3.5 w-3.5" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="px-1 py-0.5 rounded border hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent"
-                                    onClick={() => handleMoveChapterDown(idx)}
-                                    disabled={idx === chapters.length - 1}
-                                    title="Move down"
-                                  >
-                                    <ChevronDown className="h-3.5 w-3.5" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="px-1 py-0.5 rounded border hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent"
-                                    onClick={() => handleMoveChapterToBottom(idx)}
-                                    disabled={idx === chapters.length - 1}
-                                    title="Move to bottom"
-                                  >
-                                    <ChevronsDown className="h-3.5 w-3.5" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    draggable
-                                    onDragStart={() => setDraggedChapterId(chapter.chapter_id)}
-                                    onDragEnd={() => setDraggedChapterId(null)}
-                                    className="px-1 py-0.5 rounded border hover:bg-gray-100 cursor-grab active:cursor-grabbing"
-                                    title="Drag to reorder"
-                                  >
-                                    <GripVertical className="h-3.5 w-3.5" />
-                                  </button>
-                                </>
-                              ) : null}
-                              {isOwner ? (
-                                <button
-                                  type="button"
-                                  className={cn(
-                                    "px-1 py-0.5 rounded border hover:bg-gray-100",
-                                    chapter.published ? "text-sky-700 border-sky-300" : "text-gray-500",
-                                  )}
-                                  onClick={() => handleToggleChapterPublish(chapter)}
-                                  title={chapter.published ? "Visible in public listings" : "Hidden from public listings"}
-                                >
-                                  <EditableText id="story-chapter-publish-btn">
-                                    {chapter.published ? "Published" : "Publish"}
-                                  </EditableText>
-                                </button>
-                              ) : null}
-                              {isOwner ? (
-                                <button
-                                  type="button"
-                                  className="px-1 py-0.5 rounded border hover:bg-red-50 text-red-600"
-                                  onClick={() => {
-                                    if (window.confirm("Delete this chapter? This cannot be undone.")) {
-                                      handleDeleteChapter(chapter.chapter_id);
-                                    }
-                                  }}
-                                >
-                                  <EditableText id="story-chapter-delete-btn">Delete</EditableText>
-                                </button>
-                              ) : null}
-                            </div>
-                          </div>
-                          {/* Chapter tags */}
-                          {isOwner ? (
-                            <div className="mb-2">
-                              <TagInput
-                                tags={chapter.tags || []}
-                                onChange={(newTags) => handleUpdateChapter(chapter.chapter_id, { tags: newTags })}
-                                placeholder="#chapter-tag"
-                                className="border border-gray-100 rounded p-1.5 text-xs"
-                              />
-                            </div>
-                          ) : (chapter.tags && chapter.tags.length > 0) ? (
-                            <div className="flex flex-wrap gap-1 mb-2">
-                              {chapter.tags.map((t: string) => <TagBadge key={t} tag={t} />)}
-                            </div>
-                          ) : null}
-                          {Array.isArray(chapter.paragraphs) && chapter.paragraphs.length > 0 ? (
-                            chapter.paragraphs.map((paragraph, idx) => (
-                              <div key={idx} className="mb-4">
-                                <div className="relative group/paragraph mb-2">
-                                  <div className="flex items-start gap-2">
-                                    {(() => {
-                                      const isActive =
-                                        editingParagraph?.chapterId === chapter.chapter_id &&
-                                        editingParagraph?.index === idx;
-                                      const value = isActive ? editingParagraphText : paragraph;
-                                      return (
-                                        <textarea
-                                          className="flex-1 border border-gray-300 focus:border-blue-400 px-2 py-1.5 text-sm leading-relaxed focus:outline-none resize-y rounded bg-white shadow-sm"
-                                          value={value}
-                                          placeholder="Type the chapter text here..."
-                                          onFocus={() => startEditParagraph(chapter, idx, paragraph)}
-                                          onChange={(e) => setEditingParagraphText(e.target.value)}
-                                          onBlur={() => saveParagraph(chapter, idx)}
-                                          onKeyDown={(e) => handleParagraphKeyDown(e, chapter, idx)}
-                                          rows={Math.min(20, Math.max(3, Math.ceil(value.length / 90) + 1))}
-                                        />
-                                      );
-                                    })()}
-                                    <button
-                                      className="border rounded px-2 py-1 text-xs font-medium flex items-center gap-1 bg-white hover:bg-gray-100 shadow-sm hover:shadow-md"
-                                      type="button"
-                                      onClick={() => handleQuickCreateBranch(chapter, idx, paragraph)}
-                                    >
-                                      <svg width="16" height="16" stroke="currentColor" fill="none" viewBox="0 0 24 24"><path strokeWidth="2" d="M6 3v6a6 6 0 006 6h6"></path><path strokeWidth="2" d="M18 21v-6a6 6 0 00-6-6H6"></path></svg>
-                                      <EditableText id="story-branch-create-btn">Create Branch</EditableText>
-                                    </button>
-                                    {isOwner && (
-                                      <button
-                                        className="border rounded px-2 py-1 text-xs font-medium flex items-center gap-1 bg-white hover:bg-gray-100 shadow-sm hover:shadow-md"
-                                        type="button"
-                                        onClick={() =>
-                                          setIllustrationTarget((prev) =>
-                                            prev && prev.chapterId === chapter.chapter_id && prev.anchorIndex === idx
-                                              ? null
-                                              : { chapterId: chapter.chapter_id, anchorIndex: idx },
-                                          )
-                                        }
-                                      >
-                                        <ImagePlus className="h-3.5 w-3.5" />
-                                        <EditableText id="story-insert-illustration">Insert illustration</EditableText>
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
+      <main className="flex-grow container mx-auto px-4 py-8 max-w-6xl">
+        {/* --- TABS --- */}
+        <nav className="mb-6">
+          <div className="flex flex-row items-center gap-2 border rounded-lg bg-gray-50 overflow-x-auto">
+            <button
+              aria-label="Story"
+              onClick={() => setActiveTab("story")}
+              className={`flex items-center px-3 py-2 rounded transition font-medium text-sm gap-2 ${
+                activeTab === "story"
+                  ? "bg-white border border-blue-300 text-blue-600 shadow-sm"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              <BookOpen size={18} /> <span className="hidden sm:inline">Story</span>
+            </button>
+            <button
+              aria-label="Contributions"
+              onClick={() => setActiveTab("contributions")}
+              className={`flex items-center px-3 py-2 rounded transition font-medium text-sm gap-2 ${
+                activeTab === "contributions"
+                  ? "bg-white border border-blue-300 text-blue-600 shadow-sm"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              <FileText size={18} /> <span className="hidden sm:inline">Contributions</span>
+            </button>
+            <button
+              aria-label="Contributors"
+              onClick={() => setActiveTab("contributors")}
+              className={`flex items-center px-3 py-2 rounded transition font-medium text-sm gap-2 ${
+                activeTab === "contributors"
+                  ? "bg-white border border-blue-300 text-blue-600 shadow-sm"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              <Users size={18} /> <span className="hidden sm:inline">Contributors</span>
+            </button>
+            <button
+              aria-label="Revisions"
+              onClick={() => setActiveTab("revisions")}
+              className={`flex items-center px-3 py-2 rounded transition font-medium text-sm gap-2 ${
+                activeTab === "revisions"
+                  ? "bg-white border border-blue-300 text-blue-600 shadow-sm"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              <Clock size={18} /> <span className="hidden sm:inline">Revisions</span>
+            </button>
+            <button
+              aria-label="Branches"
+              onClick={() => setActiveTab("branches")}
+              className={`flex items-center px-3 py-2 rounded transition font-medium text-sm gap-2 ${
+                activeTab === "branches"
+                  ? "bg-white border border-blue-300 text-blue-600 shadow-sm"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              <GitBranch size={18} /> <span className="hidden sm:inline">Branches</span>
+            </button>
+          </div>
+        </nav>
 
-                                {/* Illustrations already anchored to this paragraph */}
-                                {galleryImages
-                                  .filter((g) => g.chapter_id === chapter.chapter_id && g.anchor_index === idx)
-                                  .map((img) => (
-                                    <figure key={img.id} className="my-3">
-                                      <img
-                                        src={img.image_url}
-                                        alt={img.caption ?? ""}
-                                        className="max-w-full max-h-96 rounded-md object-contain mx-auto"
-                                      />
-                                    </figure>
-                                  ))}
-
-                                {isOwner &&
-                                  illustrationTarget &&
-                                  illustrationTarget.chapterId === chapter.chapter_id &&
-                                  illustrationTarget.anchorIndex === idx && (
-                                    <div className="my-3 max-w-sm">
-                                      <GalleryUpload
-                                        storyTitleId={story.story_title_id}
-                                        kind="inline_illustration"
-                                        chapterId={chapter.chapter_id}
-                                        anchorIndex={idx}
-                                        idPrefix="story-illustration-upload"
-                                        onUploaded={() => {
-                                          setIllustrationTarget(null);
-                                          reloadInlineIllustrations();
-                                        }}
-                                      />
-                                    </div>
-                                  )}
-
-                                {/* Inline branches created under this base paragraph */}
-                                {inlineBranches
-                                  .filter(
-                                    (b) =>
-                                      b.chapterId === chapter.chapter_id &&
-                                      b.parentParagraphIndex === idx,
-                                  )
-                                  .map((b) => (
-                                    <div
-                                      key={b.id}
-                                      className="relative group/paragraph ml-4 border-l border-dashed border-blue-200 pl-2 mb-2"
-                                    >
-                                      <div className="flex items-start gap-2">
-                                        <textarea
-                                          className="flex-1 border border-blue-200 focus:border-blue-400 px-2 py-1.5 text-sm leading-relaxed focus:outline-none resize-y rounded bg-blue-50/40 shadow-sm"
-                                          placeholder="Type the branch text here..."
-                                          value={b.text}
-                                          autoFocus={editingBranchId === b.id}
-                                          onFocus={() => setEditingBranchId(b.id)}
-                                          onChange={(e) =>
-                                            handleInlineBranchTextChange(b.id, e.target.value)
-                                          }
-                                          onBlur={() => handleInlineBranchBlur(b.id)}
-                                          rows={Math.min(20, Math.max(3, Math.ceil(b.text.length / 90) + 1))}
-                                        />
-                                        <div className="flex flex-col gap-1 text-xs">
-                                          <button
-                                            type="button"
-                                            className="px-2 py-1 rounded border hover:bg-gray-50 border-gray-300"
-                                            onClick={() =>
-                                              handleQuickCreateBranch(
-                                                chapter,
-                                                idx,
-                                                b.text || paragraph,
-                                              )
-                                            }
-                                          >
-                                            <EditableText id="story-branch-create-btn">Create Branch</EditableText>
-                                          </button>
-                                          <ParagraphBranchPopover
-                                            trigger={
-                                              <button
-                                                type="button"
-                                                className="px-2 py-1 rounded border hover:bg-gray-50 border-gray-300"
-                                              >
-                                                <EditableText id="story-branch-configure-btn">Configure branch</EditableText>
-                                              </button>
-                                            }
-                                            onCreateBranch={({ branchName, paragraphs }) =>
-                                              handleConfigureExistingBranch(b.id, {
-                                                branchName,
-                                                paragraphs,
-                                                language: "en",
-                                                metadata: null,
-                                              })
-                                            }
-                                          />
-                                        </div>
-                                      </div>
-                                    </div>
-                                  ))}
-                              </div>
-                            ))
-                          ) : (
-                            // No paragraphs yet: show a single placeholder line so user sees where to type
-                            <div className="mb-4">
-                              <div className="relative group/paragraph mb-2">
-                                <div className="flex items-start gap-2">
-                                  {(() => {
-                                    const isActive =
-                                      editingParagraph?.chapterId === chapter.chapter_id &&
-                                      editingParagraph?.index === 0;
-                                    const value = isActive ? editingParagraphText : "";
-                                    return (
-                                      <textarea
-                                        className="flex-1 border border-gray-300 focus:border-blue-400 px-2 py-1.5 text-sm leading-relaxed focus:outline-none resize-y rounded bg-white shadow-sm"
-                                        value={value}
-                                        placeholder="Type the chapter text here..."
-                                        onFocus={() =>
-                                          startEditParagraph({ ...chapter, paragraphs: [""] }, 0, "")
-                                        }
-                                        onChange={(e) => setEditingParagraphText(e.target.value)}
-                                        onBlur={() => saveParagraph({ ...chapter, paragraphs: [""] }, 0)}
-                                        onKeyDown={(e) =>
-                                          handleParagraphKeyDown(e, { ...chapter, paragraphs: [""] }, 0)
-                                        }
-                                        rows={3}
-                                      />
-                                    );
-                                  })()}
-                                  <button
-                                    className="border rounded px-2 py-1 text-xs font-medium flex items-center gap-1 bg-white hover:bg-gray-100 shadow-sm hover:shadow-md"
-                                    type="button"
-                                    onClick={() => handleQuickCreateBranch(chapter, 0, "")}
-                                  >
-                                    <svg width="16" height="16" stroke="currentColor" fill="none" viewBox="0 0 24 24"><path strokeWidth="2" d="M6 3v6a6 6 0 006 6h6"></path><path strokeWidth="2" d="M18 21v-6a6 6 0 00-6-6H6"></path></svg>
-                                    <EditableText id="story-branch-create-btn">Create Branch</EditableText>
-                                  </button>
-                                </div>
-                              </div>
-
-                              {/* Inline branches under empty chapter placeholder */}
-                              {inlineBranches
-                                .filter(
-                                  (b) =>
-                                    b.chapterId === chapter.chapter_id &&
-                                    b.parentParagraphIndex === 0,
-                                )
-                                .map((b) => (
-                                  <div
-                                    key={b.id}
-                                    className="relative group/paragraph ml-4 border-l border-dashed border-blue-200 pl-2 mb-2"
-                                  >
-                                    <div className="flex items-start gap-2">
-                                      <textarea
-                                        className="flex-1 border border-blue-200 focus:border-blue-400 px-2 py-1.5 text-sm leading-relaxed focus:outline-none resize-y rounded bg-blue-50/40 shadow-sm"
-                                        placeholder="Type the branch text here. You can configure it further below."
-                                        value={b.text}
-                                        autoFocus={editingBranchId === b.id}
-                                        onFocus={() => setEditingBranchId(b.id)}
-                                        onChange={(e) =>
-                                          handleInlineBranchTextChange(b.id, e.target.value)
-                                        }
-                                        onBlur={() => handleInlineBranchBlur(b.id)}
-                                        rows={Math.min(20, Math.max(3, Math.ceil(b.text.length / 90) + 1))}
-                                      />
-                                      <div className="flex flex-col gap-1 text-xs">
-                                        <button
-                                          type="button"
-                                          className="px-2 py-1 rounded border hover:bg-gray-50 border-gray-300"
-                                          onClick={() =>
-                                            handleQuickCreateBranch(
-                                              chapter,
-                                              0,
-                                              b.text || "",
-                                            )
-                                          }
-                                        >
-                                          <EditableText id="story-branch-create-btn">Create Branch</EditableText>
-                                        </button>
-                                        <ParagraphBranchPopover
-                                          trigger={
-                                            <button
-                                              type="button"
-                                              className="px-2 py-1 rounded border hover:bg-gray-50 border-gray-300"
-                                            >
-                                              <EditableText id="story-branch-configure-btn">Configure branch</EditableText>
-                                            </button>
-                                          }
-                                          onCreateBranch={({ branchName, paragraphs }) =>
-                                            handleConfigureExistingBranch(b.id, {
-                                              branchName,
-                                              paragraphs,
-                                              language: "en",
-                                              metadata: null,
-                                            })
-                                          }
-                                        />
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-
-                      {/* Minimal inline add-chapter control */}
-                      <div className="mt-6">
-                        {addChapterMode ? (
-                          <div
-                            className="border rounded p-3 bg-gray-50 space-y-2 max-w-xl"
-                            ref={addChapterContainerRef}
-                            tabIndex={-1}
-                          >
-                            <input
-                              type="text"
-                              className="w-full border rounded px-2 py-1 text-sm"
-                              placeholder="New chapter title"
-                              value={newChapterTitle}
-                              onChange={(e) => setNewChapterTitle(e.target.value)}
-                            />
-                            <textarea
-                              className="w-full border rounded px-2 py-1 text-sm resize-vertical min-h-[4rem]"
-                              placeholder="Chapter text (use blank lines to separate paragraphs)"
-                              value={newChapterBody}
-                              onChange={(e) => setNewChapterBody(e.target.value)}
-                              rows={6}
-                            />
-                          </div>
-                        ) : (
-                          <button
-                            type="button"
-                            className="px-4 py-2 text-xs rounded-full border border-dashed border-blue-300 text-blue-700 hover:bg-blue-50"
-                            onClick={() => {
-                              setInsertAfterChapterId(null);
-                              setAddChapterMode(true);
-                            }}
-                          >
-                            <EditableText id="story-chapter-add-btn">+ Add chapter</EditableText>
-                          </button>
+        {/* Only render the tab section the user chose */}
+        {activeTab === "story" && (
+          <div className="space-y-6">
+            {/* STORY HEADER */}
+            <section className="space-y-3">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="flex items-center flex-wrap gap-2 min-w-0">
+                  {isEditing ? (
+                    isEditingTitle ? (
+                      <input
+                        type="text"
+                        value={titleInput}
+                        autoFocus
+                        className="border border-blue-400 px-2 py-1 text-3xl font-bold rounded focus:outline-none min-w-0 w-full sm:w-[32rem]"
+                        placeholder="How shall the story be named? Write the story title here"
+                        onChange={handleChangeTitle}
+                        onKeyDown={handleTitleInputKeyDown}
+                        onBlur={handleSaveTitle}
+                        disabled={savingTitle}
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleStartEditTitle}
+                        title="Click to edit the title"
+                        className={cn(
+                          "text-3xl text-left border-b border-dashed border-gray-300 hover:border-blue-400 cursor-text px-1 rounded-t hover:bg-blue-50",
+                          story.title ? "font-bold" : "italic text-gray-400 font-medium",
                         )}
-                      </div>
-                    </>
+                        style={{ wordBreak: "break-word" }}
+                      >
+                        {story.title || (
+                          <EditableText id="story-title-empty-hint">
+                            How shall the story be named? Write the story title here
+                          </EditableText>
+                        )}
+                      </button>
+                    )
                   ) : (
-                    <div className="my-6 p-4 rounded bg-gray-50 text-center text-gray-500">
-                      <EditableText id="story-chapters-login-required">Please log in to add or edit chapters.</EditableText>
-                    </div>
+                    <h1 className="text-3xl font-bold" style={{ wordBreak: "break-word" }}>
+                      {story.title}
+                    </h1>
+                  )}
+                  <button
+                    type="button"
+                    onClick={toggleFavorite}
+                    disabled={favoriteLoading}
+                    title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                    className="inline-flex items-center justify-center p-1 rounded-full border border-transparent hover:bg-pink-50 disabled:opacity-60"
+                  >
+                    <Heart
+                      className={isFavorite ? "h-5 w-5 text-pink-500 fill-pink-500" : "h-5 w-5 text-gray-400"}
+                    />
+                  </button>
+                  {story.visibility && (
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs ${
+                        story.visibility === 'private'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : story.visibility === 'unlisted'
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-green-100 text-green-800'
+                      }`}
+                    >
+                      {story.visibility === 'private' ? (
+                        <EditableText id="story-badge-private">Private</EditableText>
+                      ) : story.visibility === 'unlisted' ? (
+                        <EditableText id="story-badge-unlisted">Unlisted</EditableText>
+                      ) : (
+                        <EditableText id="story-badge-public">Public</EditableText>
+                      )}
+                    </span>
+                  )}
+                  {story.published === false && (
+                    <span className="px-2 py-1 rounded-full text-xs bg-gray-200 text-gray-700">
+                      <EditableText id="story-badge-unpublished">Unpublished</EditableText>
+                    </span>
+                  )}
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs ${
+                      (story.completion_status ?? 'draft') === 'completed'
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-orange-100 text-orange-800'
+                    }`}
+                  >
+                    {(story.completion_status ?? 'draft') === 'completed' ? (
+                      <EditableText id="story-badge-completed">Completed</EditableText>
+                    ) : (
+                      <EditableText id="story-badge-draft">Draft</EditableText>
+                    )}
+                  </span>
+                  <LanguageSwitcher
+                    storyTitleId={story.story_title_id}
+                    language={story.language || "en"}
+                    translations={translations}
+                    onTranslate={() => setTranslateDialogOpen(true)}
+                    onToggleOfficial={handleToggleOfficialTranslation}
+                  />
+                </div>
+
+                {isCreator ? (
+                  <div className="flex items-center gap-2 shrink-0">
+                    {pageModeToggle}
+                    {isOwner && (
+                      <button
+                        type="button"
+                        onClick={() => setSettingsOpen(true)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-sm text-gray-700 bg-white hover:bg-gray-50"
+                      >
+                        <Settings className="h-4 w-4" />
+                        <span className="hidden sm:inline">
+                          <EditableText id="story-settings-btn">Settings</EditableText>
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  isEditing && <div className="shrink-0">{backToExperiencingButton}</div>
+                )}
+              </div>
+
+              {user && (
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={markAsLived}
+                    className="inline-flex items-center px-2 py-1 rounded-full border border-dashed border-teal-300 text-[11px] text-teal-700 hover:bg-teal-50"
+                  >
+                    <EditableText id="story-mark-finished-btn">Mark as finished</EditableText>
+                  </button>
+                  {story.can_clone !== false && (
+                    <button
+                      type="button"
+                      onClick={handleCloneStory}
+                      title="Clone this story"
+                      className="inline-flex items-center px-2 py-1 rounded-full border border-dashed border-gray-300 text-[11px] text-gray-700 hover:bg-gray-50"
+                    >
+                      <EditableText id="story-clone-btn">Clone</EditableText>
+                    </button>
+                  )}
+                  {story.can_export !== false && (
+                    <button
+                      type="button"
+                      onClick={() => setExportDialogOpen(true)}
+                      title="Export this story"
+                      className="inline-flex items-center px-2 py-1 rounded-full border border-dashed border-indigo-300 text-[11px] text-indigo-700 hover:bg-indigo-50"
+                    >
+                      <Download className="h-3 w-3 mr-1" />
+                      <EditableText id="story-export-btn">Export</EditableText>
+                    </button>
+                  )}
+                  {/* Platform admins/editors can moderate stories they don't
+                      own; the owner deletes from the settings sheet instead. */}
+                  {!isOwner && canDeleteStory && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm("Are you sure you want to permanently delete this story? This cannot be undone.")) {
+                          handleDeleteStory();
+                        }
+                      }}
+                      className="inline-flex items-center px-2 py-1 rounded-full border border-dashed border-red-300 text-[11px] text-red-700 hover:bg-red-50"
+                    >
+                      <EditableText id="story-delete-btn">Delete Story</EditableText>
+                    </button>
                   )}
                 </div>
               )}
+              {translationNotice}
             </section>
+
+            <TranslateStoryDialog
+              open={translateDialogOpen}
+              onOpenChange={setTranslateDialogOpen}
+              sourceLanguage={story.language || "en"}
+              aiConnections={connectionsFor(aiConnections.connections, "translate")}
+              onCreate={handleCreateTranslation}
+            />
+
+            <div className="lg:grid lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-8">
+              {/* CHAPTERS SIDEBAR (desktop) — mobile uses the sheet below */}
+              <aside className="hidden lg:block">
+                <div className="sticky top-4 max-h-[calc(100vh-2rem)] overflow-y-auto pr-1 pb-4">
+                  {chapterSidebar}
+                </div>
+              </aside>
+
+              <div className="min-w-0 max-w-3xl">
+              {/* Cover art — always visible (placeholder when absent), with a
+                  direct click-to-change affordance for the owner. This is the
+                  primary, discoverable way to set/replace a story's cover;
+                  the CoverImageUpload further down in the settings row still
+                  works too. */}
+              <div className="mt-3 mb-3 flex items-start gap-3">
+                <div className="relative w-28 h-40 shrink-0 rounded-md overflow-hidden bg-gradient-to-br from-blue-200 via-sky-200 to-purple-200 dark:from-slate-700 dark:via-slate-800 dark:to-slate-900 group/cover">
+                  {story.cover_image_url ? (
+                    <img
+                      src={story.cover_image_url}
+                      alt="Story cover"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <BookOpen className="h-8 w-8 text-white/80" />
+                    </div>
+                  )}
+                  {isOwner && isEditing && (
+                    <button
+                      type="button"
+                      onClick={() => setCoverEditorOpen((v) => !v)}
+                      className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover/cover:bg-black/50 opacity-0 group-hover/cover:opacity-100 transition-all text-white text-xs font-medium"
+                    >
+                      {story.cover_image_url ? (
+                        <EditableText id="story-cover-change-btn">Change cover</EditableText>
+                      ) : (
+                        <EditableText id="story-cover-add-btn">Add cover</EditableText>
+                      )}
+                    </button>
+                  )}
+                </div>
+                {isOwner && isEditing && coverEditorOpen && (
+                  <div className="max-w-xs">
+                    <CoverImageUpload
+                      value={story.cover_image_url || null}
+                      onChange={(url) => {
+                        updateStorySetting("cover_image_url", url || "");
+                        setCoverEditorOpen(false);
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {story.description && (
+                <p className="text-sm text-gray-600 whitespace-pre-wrap mt-2 mb-2">
+                  {story.description}
+                </p>
+              )}
+              {story.tags && story.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2 mb-2">
+                  {story.tags.map((tag) => (
+                    <TagBadge key={tag} tag={tag} />
+                  ))}
+                </div>
+              )}
+
+              {/* Gallery — cover variants, chapter illustrations submitted as
+                  fan art, and community photos. Open to every visitor (not
+                  just the owner), matching the backend's moderation rules:
+                  the owner/contributors publish directly, everyone else's
+                  uploads go to a pending queue for review. */}
+              <div className="mt-4 mb-4 border rounded-lg p-4 bg-white dark:bg-gray-900">
+                <h2 className="text-sm font-semibold mb-2">
+                  <EditableText id="story-gallery-heading">Gallery</EditableText>
+                </h2>
+                <ImageGallery
+                  storyTitleId={story.story_title_id}
+                  kindFilter={["fan_art", "gallery"]}
+                  currentUserId={user?.id ?? null}
+                  canModerate={!!isOwner}
+                  idPrefix="story-page-gallery"
+                  refreshToken={galleryRefreshToken}
+                />
+                {/* Owners/co-authors upload from Editing mode; readers who
+                    can't enter Editing submit fan art from Viewing. */}
+                {user && (isEditing || !canCRUDChapters) && (
+                  <div className="mt-3 pt-3 border-t max-w-sm">
+                    <h3 className="text-xs font-semibold mb-1">
+                      {isOwner ? (
+                        <EditableText id="story-gallery-upload-label-owner">Add to gallery</EditableText>
+                      ) : (
+                        <EditableText id="story-gallery-upload-label-fan">
+                          Submit fan art (reviewed by the story owner)
+                        </EditableText>
+                      )}
+                    </h3>
+                    <GalleryUpload
+                      storyTitleId={story.story_title_id}
+                      kind={isOwner ? "gallery" : "fan_art"}
+                      idPrefix="story-page-gallery-upload"
+                      onUploaded={() => setGalleryRefreshToken((t) => t + 1)}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Unified reactions + comments for this story — reader-facing,
+                  so hidden in Editing mode */}
+              {!isEditing && <InteractionsWidget kind="story" storyTitleId={story.story_title_id} />}
+
+                {/* CHAPTER — reader for everyone in Viewing mode, editor in Editing mode */}
+                <div id="chapter-top" className="scroll-mt-4 mt-8 pt-6 border-t">
+                  <AiJobsStrip jobs={aiJobs.jobs} onChanged={aiJobs.refresh} />
+                  {!isEditing && chapters.length > 0 && (
+                    <>
+                      <EditionPicker
+                        storyTitleId={story.story_title_id}
+                        chapters={chapters}
+                        canCreate={!!user}
+                        value={readingEdition}
+                        onChange={setReadingEdition}
+                      />
+                      <StoryContentTypeSelector
+                        value={contentTypes}
+                        onChange={setContentTypes}
+                        available={chapterAvailability}
+                      />
+                    </>
+                  )}
+
+                  {currentChapter ? (
+                    isEditing ? (
+                      <ChapterEditor
+                        key={currentChapter.chapter_id}
+                        storyTitleId={story.story_title_id}
+                        chapter={currentChapter}
+                        index={currentChapterIndex}
+                        total={chapters.length}
+                        onPrevious={handlePreviousChapter}
+                        onNext={handleNextChapter}
+                        headerExtra={mobileChaptersButton}
+                        isOwner={!!isOwner}
+                        onRename={renameChapter}
+                        onUpdateTags={(chapterId, tags) => handleUpdateChapter(chapterId, { tags })}
+                        editingParagraph={editingParagraph}
+                        editingParagraphText={editingParagraphText}
+                        onStartEditParagraph={startEditParagraph}
+                        onParagraphTextChange={setEditingParagraphText}
+                        onSaveParagraph={saveParagraph}
+                        onParagraphKeyDown={handleParagraphKeyDown}
+                        inlineBranches={inlineBranches}
+                        editingBranchId={editingBranchId}
+                        onBranchFocus={setEditingBranchId}
+                        onBranchTextChange={handleInlineBranchTextChange}
+                        onBranchBlur={handleInlineBranchBlur}
+                        onQuickCreateBranch={handleQuickCreateBranch}
+                        onSaveBranchSettings={saveBranchSettings}
+                        onDeleteBranch={deleteBranch}
+                        canEditBranch={canEditBranchDirectly}
+                        storyLanguage={story.language || "en"}
+                        illustrations={galleryImages}
+                        illustrationTarget={illustrationTarget}
+                        onToggleIllustrationTarget={(chapterId, anchorIndex) =>
+                          setIllustrationTarget((prev) =>
+                            prev && prev.chapterId === chapterId && prev.anchorIndex === anchorIndex
+                              ? null
+                              : { chapterId, anchorIndex },
+                          )
+                        }
+                        onIllustrationUploaded={() => {
+                          setIllustrationTarget(null);
+                          reloadInlineIllustrations();
+                        }}
+                        canMarkSynced={isCreator}
+                        onSourceSynced={() => {
+                          const syncedId = currentChapter.chapter_id;
+                          setChapters((prev) =>
+                            prev.map((c) => (c.chapter_id === syncedId ? { ...c, source_stale: false } : c)),
+                          );
+                          reloadTranslations();
+                        }}
+                        chapters={chapters}
+                        media={chapterMedia.list}
+                        onMediaChanged={handleMediaChanged}
+                        tab={editorTab}
+                        onTabChange={setEditorTab}
+                        aiTranslateConnections={connectionsFor(aiConnections.connections, "translate")}
+                        aiJob={
+                          aiJobs.jobs.find(
+                            (j) => j.chapter_id === currentChapter.chapter_id && j.kind === "translate_chapter",
+                          ) ?? null
+                        }
+                        onAiTranslateChapter={(connectionId) =>
+                          handleAiTranslateChapter(currentChapter.chapter_id, connectionId)
+                        }
+                        onAiTranslateAll={handleAiTranslateAll}
+                        onAiJobQueued={aiJobs.refresh}
+                      />
+                    ) : (
+                      <ChapterReader
+                        storyTitleId={story.story_title_id}
+                        chapter={currentChapter}
+                        chapters={chapters}
+                        index={currentChapterIndex}
+                        total={chapters.length}
+                        onPrevious={handlePreviousChapter}
+                        onNext={handleNextChapter}
+                        contentTypes={effectiveContentTypes}
+                        proposals={proposals}
+                        illustrations={galleryImages}
+                        edition={readingEdition}
+                        media={chapterMedia.list}
+                        onMediaChanged={handleMediaChanged}
+                        canContributeMedia={!!user}
+                        onAiJobQueued={aiJobs.refresh}
+                        headerExtra={mobileChaptersButton}
+                      />
+                    )
+                  ) : (
+                    <p className="text-sm text-gray-500 mb-6">
+                      <EditableText id="story-no-chapters">No chapters have been added yet.</EditableText>
+                    </p>
+                  )}
+
+                  {/* Inline add-chapter form, opened from the sidebar's
+                      "+ Add chapter" / "Insert chapter after" actions. Saves
+                      on click-outside (see the addChapterMode effect). */}
+                  {canCRUDChapters && (isEditing || addChapterMode) && (
+                    <div className="mt-6">
+                      {addChapterMode ? (
+                        <div
+                          className="border rounded p-3 bg-gray-50 space-y-2"
+                          ref={addChapterContainerRef}
+                          tabIndex={-1}
+                        >
+                          <div className="text-xs font-semibold text-gray-600">
+                            {insertAfterChapterId ? (
+                              <EditableText id="story-add-chapter-after-heading">New chapter (inserted after the selected one)</EditableText>
+                            ) : (
+                              <EditableText id="story-add-chapter-heading">New chapter</EditableText>
+                            )}
+                          </div>
+                          <input
+                            type="text"
+                            className="w-full border rounded px-2 py-1 text-sm"
+                            placeholder="New chapter title"
+                            value={newChapterTitle}
+                            onChange={(e) => setNewChapterTitle(e.target.value)}
+                          />
+                          <textarea
+                            className="w-full border rounded px-2 py-1 text-sm resize-vertical min-h-[4rem]"
+                            placeholder="Chapter text (use blank lines to separate paragraphs)"
+                            value={newChapterBody}
+                            onChange={(e) => setNewChapterBody(e.target.value)}
+                            rows={6}
+                          />
+                          <div className="flex gap-2 justify-end">
+                            <button
+                              type="button"
+                              onClick={resetNewChapterForm}
+                              className="px-3 py-1 text-xs rounded border bg-white hover:bg-gray-100"
+                            >
+                              <EditableText id="story-dialog-cancel">Cancel</EditableText>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleSaveNewChapter}
+                              className="px-3 py-1 text-xs rounded bg-blue-600 text-white hover:bg-blue-700"
+                            >
+                              <EditableText id="story-add-chapter-save">Add chapter</EditableText>
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          className="px-4 py-2 text-xs rounded-full border border-dashed border-blue-300 text-blue-700 hover:bg-blue-50"
+                          onClick={() => openAddChapterForm(null)}
+                        >
+                          <EditableText id="story-chapter-add-btn">+ Add chapter</EditableText>
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Consumers keep the "I want to contribute" entry point */}
+                  {!isCreator && (
+                    <div className="flex justify-center mt-10 pt-6 border-t">
+                      {isEditing ? (
+                        backToExperiencingButton
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleWantToContribute}
+                          className="px-4 py-2 text-xs md:text-sm rounded-full border border-blue-300 bg-white text-blue-700 hover:bg-blue-50 shadow-sm"
+                        >
+                          <EditableText id="story-contribute-btn">I want to contribute to the story</EditableText>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile chapters drawer */}
+            <Sheet open={mobileChaptersOpen} onOpenChange={setMobileChaptersOpen}>
+              <SheetContent side="left" className="w-[85vw] max-w-sm overflow-y-auto">
+                <SheetHeader className="sr-only">
+                  <SheetTitle>Chapters</SheetTitle>
+                </SheetHeader>
+                <div className="pt-6">{chapterSidebar}</div>
+              </SheetContent>
+            </Sheet>
+
+            {isOwner && (
+              <StorySettingsSheet
+                open={settingsOpen}
+                onOpenChange={setSettingsOpen}
+                story={story}
+                onSetVisibility={setVisibility}
+                onTogglePublished={togglePublished}
+                onSetCompletion={setCompletionStatus}
+                onSetClonePolicy={setClonePolicy}
+                onSetExportPolicy={setExportPolicy}
+                onSetTranslationPolicy={setTranslationPolicy}
+                onSetNarrationPolicy={setNarrationPolicy}
+                onOpenAccessPicker={openAccessPicker}
+                onUpdateSetting={updateStorySetting}
+                onOpenDetails={() => navigate(`/story/${story.story_title_id}/details`)}
+                peopleSection={peopleSection}
+                canDelete={!!canDeleteStory}
+                onDelete={handleDeleteStory}
+              />
+            )}
           </div>
         )}
         {activeTab === "contributions" && (

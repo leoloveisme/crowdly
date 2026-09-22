@@ -75,6 +75,7 @@ import LivingExperiencingStories from "@/modules/living-experiencing stories";
 import LivedExperiencedStories from "@/modules/lived-experienced stories";
 import UserInteractionsWidget from "@/modules/UserInteractionsWidget";
 import GroupsManager from "@/modules/groups";
+import AiConnectionsSection from "@/components/settings/AiConnectionsSection";
 
 // Use same-origin API base in development; dev server proxies to backend.
 // In production, VITE_API_BASE_URL can point at the deployed API.
@@ -1832,6 +1833,9 @@ const Profile = () => {
             </p>           
           </div>
         </div>
+
+        {/* Your own AI providers (translation drafts, narration) */}
+        <AiConnectionsSection />
 
         {/* Original Tabs Section for detailed stats */}
         <div className="mb-8">

@@ -27,6 +27,11 @@ import messagingRouter, {
 } from './messaging.js';
 import galleryRouter, { ensureStoryGalleryImagesTable, UPLOADS_ROOT } from './gallery.js';
 import comicsRouter, { ensureComicTables } from './comics.js';
+import translationsRouter from './translations.js';
+import editionsRouter from './editions.js';
+import chapterMediaRouter from './chapterMedia.js';
+import aiRouter from './ai/router.js';
+import { startAiWorker } from './ai/jobs.js';
 import creativeSpaceFilesRouter, { CREATIVE_SPACE_FILES_ROOT, guessMimeType } from './creativeSpaceFiles.js';
 import { eventsHandler } from './events.js';
 import {
@@ -142,6 +147,10 @@ app.get('/api/events', requireAuth, eventsHandler);
 // same as the rest of the story routes below — not under /api.
 app.use(galleryRouter);
 app.use(comicsRouter);
+app.use(translationsRouter);
+app.use(editionsRouter);
+app.use(chapterMediaRouter);
+app.use(aiRouter);
 // Not statically served (unlike /uploads below) — Space items can be
 // private, so content is only ever handed out through the authenticated
 // routes in creativeSpaceFiles.js.
@@ -4274,7 +4283,14 @@ app.get('/chapters', async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      'SELECT * FROM stories WHERE story_title_id = $1 ORDER BY episode_number NULLS FIRST, part_number NULLS FIRST, chapter_index ASC, created_at ASC',
+      // source_stale: for a translated chapter, the chapter it translates has
+      // changed since the translator last marked it up to date.
+      `SELECT s.*,
+              (src.content_updated_at > COALESCE(s.source_synced_at, s.created_at)) AS source_stale
+         FROM stories s
+         LEFT JOIN stories src ON src.chapter_id = s.source_chapter_id
+        WHERE s.story_title_id = $1
+        ORDER BY s.episode_number NULLS FIRST, s.part_number NULLS FIRST, s.chapter_index ASC, s.created_at ASC`,
       [storyTitleId],
     );
 
@@ -7107,6 +7123,26 @@ app.get('/stories/:storyTitleId/contributions', async (req, res) => {
       }
     }
 
+    // Attach who made each contribution. Both the contributions table and the
+    // legacy fallback above only carry author_user_id; resolve it to the
+    // email/name the Contributions tab shows (was always "Unknown").
+    const authorIds = [...new Set(rows.map((r) => r.author_user_id).filter(Boolean))];
+    if (authorIds.length > 0) {
+      const { rows: authors } = await pool.query(
+        `SELECT u.id, u.email,
+                NULLIF(TRIM(CONCAT_WS(' ', p.first_name, p.last_name)), '') AS full_name
+           FROM local_users u
+           LEFT JOIN profiles p ON p.id = u.id
+          WHERE u.id = ANY($1::uuid[])`,
+        [authorIds],
+      );
+      const byId = new Map(authors.map((a) => [a.id, a]));
+      rows = rows.map((r) => {
+        const author = byId.get(r.author_user_id);
+        return author ? { ...r, user_email: author.email, user_name: author.full_name } : r;
+      });
+    }
+
     // Attach reactions and comment counts
     const { rows: reactions } = await pool.query(
       `SELECT chapter_id, paragraph_index,
@@ -7297,7 +7333,18 @@ app.get('/story-titles/:storyTitleId/my-access', requireAuth, async (req, res) =
   const { storyTitleId } = req.params;
   try {
     const role = await getStoryAccessRole(storyTitleId, req.user.id);
-    res.json({ role });
+    // `explicit` separates the story's own team (owner or a story_access
+    // row) from the implicit "any signed-in user" contributor role on public
+    // stories, so the frontend can show creator-only UI to the team alone.
+    let explicit = role === 'owner';
+    if (role === 'contributor') {
+      const accessRes = await pool.query(
+        'SELECT 1 FROM story_access WHERE story_title_id = $1 AND user_id = $2',
+        [storyTitleId, req.user.id],
+      );
+      explicit = accessRes.rows.length > 0;
+    }
+    res.json({ role, explicit });
   } catch (err) {
     console.error('[GET /story-titles/:storyTitleId/my-access] failed:', err);
     res.status(500).json({ error: 'Failed to resolve access role' });
@@ -8166,17 +8213,66 @@ app.get('/comments', async (req, res) => {
   }
 });
 
-// Paragraph branches: create
-app.post('/paragraph-branches', async (req, res) => {
+// Who may edit/delete an existing paragraph branch: the story owner, the
+// branch's own author, or platform staff. Resolves the branch's story via its
+// chapter. Returns { status, error } on refusal, or { branch } when allowed.
+async function authorizeParagraphBranchWrite(branchId, userId) {
+  const { rows } = await pool.query(
+    `SELECT pb.id, pb.user_id, s.story_title_id
+       FROM paragraph_branches pb
+       JOIN stories s ON s.chapter_id = pb.chapter_id
+      WHERE pb.id = $1`,
+    [branchId],
+  );
+  if (rows.length === 0) return { status: 404, error: 'Branch not found' };
+  const branch = rows[0];
+  if (branch.user_id && branch.user_id === userId) return { branch };
+  const role = await getStoryAccessRole(branch.story_title_id, userId);
+  if (role === 'owner') return { branch };
+  if (await isPlatformAdminOrEditor(userId)) return { branch };
+  return { status: 403, error: 'Not authorized to change this branch' };
+}
+
+// Paragraph-branch field validation shared by create and update.
+// parent_paragraph_text is a copy of the ORIGINAL paragraph the branch
+// replaces; the branch's own name lives in branch_name (migration 0008).
+const MAX_BRANCH_METADATA_BYTES = 10 * 1024;
+
+async function cleanBranchLanguage(language) {
+  if (language === undefined || language === null || language === '') return undefined;
+  const { rows } = await pool.query('SELECT 1 FROM locales WHERE code = $1', [String(language)]);
+  if (rows.length === 0) throw Object.assign(new Error('Unsupported language'), { status: 400 });
+  return String(language);
+}
+
+function cleanBranchMetadata(metadata) {
+  if (metadata === undefined) return undefined;
+  if (metadata === null) return null;
+  if (typeof metadata !== 'object' || Array.isArray(metadata)) {
+    throw Object.assign(new Error('metadata must be a JSON object'), { status: 400 });
+  }
+  const json = JSON.stringify(metadata);
+  if (Buffer.byteLength(json, 'utf8') > MAX_BRANCH_METADATA_BYTES) {
+    throw Object.assign(new Error('metadata is too large'), { status: 400 });
+  }
+  return json;
+}
+
+const cleanBranchName = (name) =>
+  name === undefined ? undefined : name === null ? null : String(name).trim().slice(0, 200) || null;
+
+// Paragraph branches: create (story owner or contributor)
+app.post('/paragraph-branches', requireAuth, async (req, res) => {
   const {
     chapterId,
     parentParagraphIndex,
     parentParagraphText,
     branchText,
-    userId,
+    branchName,
     language,
     metadata,
   } = req.body ?? {};
+  const userId = req.user.id;
 
   // Allow empty string for branchText so that a "quick branch" can be
   // created before the user has typed any content. We only reject if the
@@ -8188,23 +8284,40 @@ app.post('/paragraph-branches', async (req, res) => {
   }
 
   try {
+    const chapterRes = await pool.query('SELECT story_title_id FROM stories WHERE chapter_id = $1', [chapterId]);
+    if (chapterRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Chapter not found' });
+    }
+    const role = await getStoryAccessRole(chapterRes.rows[0].story_title_id, userId);
+    if (role !== 'owner' && role !== 'contributor') {
+      return res.status(403).json({ error: 'Not authorized to add branches to this story' });
+    }
+
+    // A branch is written in the story's language unless told otherwise.
+    const storyLang = await pool.query('SELECT language FROM story_title WHERE story_title_id = $1', [
+      chapterRes.rows[0].story_title_id,
+    ]);
+    const cleanLanguage = (await cleanBranchLanguage(language)) ?? storyLang.rows[0]?.language ?? 'en';
+
     const { rows } = await pool.query(
       `INSERT INTO paragraph_branches
-         (chapter_id, parent_paragraph_index, parent_paragraph_text, branch_text, user_id, language, metadata)
-       VALUES ($1, $2, $3, $4, $5, COALESCE($6, 'en'), $7)
+         (chapter_id, parent_paragraph_index, parent_paragraph_text, branch_text, user_id, language, metadata, branch_name)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
       [
         chapterId,
         parentParagraphIndex,
-        parentParagraphText || null,
+        parentParagraphText || '',
         branchText,
-        userId || null,
-        language || 'en',
-        metadata ?? null,
+        userId,
+        cleanLanguage,
+        cleanBranchMetadata(metadata) ?? null,
+        cleanBranchName(branchName) ?? null,
       ],
     );
     res.status(201).json(rows[0]);
   } catch (err) {
+    if (err.status === 400) return res.status(400).json({ error: err.message });
     console.error('[POST /paragraph-branches] failed:', err);
     res.status(500).json({ error: 'Failed to create paragraph branch' });
   }
@@ -8245,47 +8358,77 @@ app.get('/stories/:storyTitleId/branches', async (req, res) => {
   }
 });
 
-// Paragraph branches: update
-app.patch('/paragraph-branches/:id', async (req, res) => {
+// Paragraph branches: update (story owner, branch author, or platform staff)
+// { branchText?, branchName?, language?, metadata? }. The original paragraph
+// copy (parent_paragraph_text) is not editable here.
+app.patch('/paragraph-branches/:id', requireAuth, async (req, res) => {
   const { id } = req.params;
-  const { branchText, parentParagraphText } = req.body ?? {};
+  const { branchText, branchName, language, metadata } = req.body ?? {};
 
-  if (!branchText && !parentParagraphText) {
-    return res.status(400).json({ error: 'branchText or parentParagraphText must be provided' });
+  if ([branchText, branchName, language, metadata].every((v) => v === undefined)) {
+    return res.status(400).json({ error: 'Nothing to update' });
+  }
+  if (branchText !== undefined && typeof branchText !== 'string') {
+    return res.status(400).json({ error: 'branchText must be a string' });
+  }
+
+  try {
+    const auth = await authorizeParagraphBranchWrite(id, req.user.id);
+    if (auth.error) return res.status(auth.status).json({ error: auth.error });
+  } catch (err) {
+    console.error('[PATCH /paragraph-branches/:id] authorization failed:', err);
+    return res.status(500).json({ error: 'Failed to update paragraph branch' });
   }
 
   const fields = [];
   const values = [];
   let idx = 1;
 
-  if (branchText !== undefined) {
-    fields.push(`branch_text = $${idx++}`);
-    values.push(branchText);
-  }
-  if (parentParagraphText !== undefined) {
-    fields.push(`parent_paragraph_text = $${idx++}`);
-    values.push(parentParagraphText);
-  }
-  values.push(id);
-
-  const sql = `UPDATE paragraph_branches SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`;
-
   try {
-    const { rows } = await pool.query(sql, values);
+    const cleanLanguage = await cleanBranchLanguage(language);
+    const cleanMetadata = cleanBranchMetadata(metadata);
+    const cleanName = cleanBranchName(branchName);
+
+    if (branchText !== undefined) {
+      fields.push(`branch_text = $${idx++}`);
+      values.push(branchText);
+    }
+    if (cleanName !== undefined) {
+      fields.push(`branch_name = $${idx++}`);
+      values.push(cleanName);
+    }
+    if (cleanLanguage !== undefined) {
+      fields.push(`language = $${idx++}`);
+      values.push(cleanLanguage);
+    }
+    if (cleanMetadata !== undefined) {
+      fields.push(`metadata = $${idx++}`);
+      values.push(cleanMetadata);
+    }
+    if (fields.length === 0) return res.status(400).json({ error: 'Nothing to update' });
+    values.push(id);
+
+    const { rows } = await pool.query(
+      `UPDATE paragraph_branches SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+      values,
+    );
     if (!rows.length) {
       return res.status(404).json({ error: 'Branch not found' });
     }
     res.json(rows[0]);
   } catch (err) {
+    if (err.status === 400) return res.status(400).json({ error: err.message });
     console.error('[PATCH /paragraph-branches/:id] failed:', err);
     res.status(500).json({ error: 'Failed to update paragraph branch' });
   }
 });
 
-// Paragraph branches: delete
-app.delete('/paragraph-branches/:id', async (req, res) => {
+// Paragraph branches: delete (story owner, branch author, or platform staff)
+app.delete('/paragraph-branches/:id', requireAuth, async (req, res) => {
   const { id } = req.params;
   try {
+    const auth = await authorizeParagraphBranchWrite(id, req.user.id);
+    if (auth.error) return res.status(auth.status).json({ error: auth.error });
     const { rowCount } = await pool.query('DELETE FROM paragraph_branches WHERE id = $1', [id]);
     if (!rowCount) {
       return res.status(404).json({ error: 'Branch not found' });
@@ -8445,7 +8588,7 @@ app.patch('/story-titles/:storyTitleId', async (req, res) => {
 // Update story visibility / published flags (no revision)
 app.patch('/story-titles/:storyTitleId/settings', async (req, res) => {
   const { storyTitleId } = req.params;
-  const { visibility, published, genre, tags, completion_status, clone_policy, export_policy, language, cover_image_url, description } = req.body ?? {};
+  const { visibility, published, genre, tags, completion_status, clone_policy, export_policy, translation_policy, narration_policy, language, cover_image_url, description } = req.body ?? {};
 
   if (
     visibility === undefined &&
@@ -8455,12 +8598,14 @@ app.patch('/story-titles/:storyTitleId/settings', async (req, res) => {
     completion_status === undefined &&
     clone_policy === undefined &&
     export_policy === undefined &&
+    translation_policy === undefined &&
+    narration_policy === undefined &&
     language === undefined &&
     cover_image_url === undefined &&
     description === undefined
   ) {
     return res.status(400).json({
-      error: 'At least one of visibility, published, genre, tags, completion_status, clone_policy, export_policy, language, cover_image_url, or description must be provided',
+      error: 'At least one of visibility, published, genre, tags, completion_status, clone_policy, export_policy, translation_policy, narration_policy, language, cover_image_url, or description must be provided',
     });
   }
 
@@ -8495,6 +8640,20 @@ app.patch('/story-titles/:storyTitleId/settings', async (req, res) => {
   if (export_policy !== undefined) {
     fields.push(`export_policy = $${idx++}`);
     values.push(export_policy);
+  }
+  if (translation_policy !== undefined) {
+    if (!['anyone', 'restricted', 'none'].includes(translation_policy)) {
+      return res.status(400).json({ error: "translation_policy must be 'anyone', 'restricted' or 'none'" });
+    }
+    fields.push(`translation_policy = $${idx++}`);
+    values.push(translation_policy);
+  }
+  if (narration_policy !== undefined) {
+    if (!['anyone', 'restricted', 'none'].includes(narration_policy)) {
+      return res.status(400).json({ error: "narration_policy must be 'anyone', 'restricted' or 'none'" });
+    }
+    fields.push(`narration_policy = $${idx++}`);
+    values.push(narration_policy);
   }
   if (language !== undefined) {
     fields.push(`language = $${idx++}`);
@@ -10019,6 +10178,9 @@ httpServer.listen(port, host, () => {
   console.log(`Crowdly backend listening on http://${host === '0.0.0.0' ? 'localhost' : host}:${port}`);
   console.log(`Crowdly real-time CRDT sync listening on ws://${host === '0.0.0.0' ? 'localhost' : host}:${port}${CRDT_WS_PATH}`);
 });
+
+// Background AI jobs (users' own AI providers): translation drafts, narration
+startAiWorker();
 
 if (isGithubAppConfigured()) {
   startGithubPollingLoop();
