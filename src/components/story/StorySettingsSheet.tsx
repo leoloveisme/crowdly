@@ -28,6 +28,10 @@ export interface StorySettingsValues {
   completion_status?: string | null;
   clone_policy?: string | null;
   export_policy?: string | null;
+  translation_policy?: string | null;
+  narration_policy?: string | null;
+  /** Set on translations — who may translate is decided by the original story. */
+  source_story_title_id?: string | null;
   language?: string | null;
   cover_image_url?: string | null;
   description?: string | null;
@@ -43,7 +47,9 @@ interface StorySettingsSheetProps {
   onSetCompletion: (v: "draft" | "completed") => void;
   onSetClonePolicy: (v: StoryPolicy) => void;
   onSetExportPolicy: (v: StoryPolicy) => void;
-  onOpenAccessPicker: (rule: "view" | "clone" | "export") => void;
+  onSetTranslationPolicy: (v: StoryPolicy) => void;
+  onSetNarrationPolicy: (v: StoryPolicy) => void;
+  onOpenAccessPicker: (rule: "view" | "clone" | "export" | "translate" | "narrate") => void;
   onUpdateSetting: (field: string, value: string | boolean | string[]) => void;
   onOpenDetails: () => void;
   /** Transfer ownership / authors / co-authors / contributors UI. */
@@ -89,6 +95,8 @@ const StorySettingsSheet: React.FC<StorySettingsSheetProps> = ({
   onSetCompletion,
   onSetClonePolicy,
   onSetExportPolicy,
+  onSetTranslationPolicy,
+  onSetNarrationPolicy,
   onOpenAccessPicker,
   onUpdateSetting,
   onOpenDetails,
@@ -100,6 +108,8 @@ const StorySettingsSheet: React.FC<StorySettingsSheetProps> = ({
   const visibility = (story.visibility ?? "public") as StoryVisibility;
   const clonePolicy = (story.clone_policy ?? "anyone") as StoryPolicy;
   const exportPolicy = (story.export_policy ?? "anyone") as StoryPolicy;
+  const translationPolicy = (story.translation_policy ?? "anyone") as StoryPolicy;
+  const narrationPolicy = (story.narration_policy ?? "anyone") as StoryPolicy;
 
   return (
     <>
@@ -173,6 +183,46 @@ const StorySettingsSheet: React.FC<StorySettingsSheetProps> = ({
                   </RulesButton>
                 )}
                 <Select value={exportPolicy} onValueChange={(v) => onSetExportPolicy(v as StoryPolicy)}>
+                  <SelectTrigger className="w-32 h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="anyone">Anyone</SelectItem>
+                    <SelectItem value="restricted">Restricted</SelectItem>
+                    <SelectItem value="none">Nobody</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </Row>
+            {!story.source_story_title_id && (
+            <Row label={<EditableText id="story-settings-translate">Who can translate</EditableText>}>
+              <div className="flex items-center gap-2">
+                {translationPolicy === "restricted" && (
+                  <RulesButton onClick={() => onOpenAccessPicker("translate")}>
+                    <EditableText id="story-settings-translators">Translators</EditableText>
+                  </RulesButton>
+                )}
+                <Select value={translationPolicy} onValueChange={(v) => onSetTranslationPolicy(v as StoryPolicy)}>
+                  <SelectTrigger className="w-32 h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="anyone">Anyone</SelectItem>
+                    <SelectItem value="restricted">Restricted</SelectItem>
+                    <SelectItem value="none">Nobody</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </Row>
+            )}
+            <Row label={<EditableText id="story-settings-narrate">Who can narrate</EditableText>}>
+              <div className="flex items-center gap-2">
+                {narrationPolicy === "restricted" && (
+                  <RulesButton onClick={() => onOpenAccessPicker("narrate")}>
+                    <EditableText id="story-settings-narrators">Narrators</EditableText>
+                  </RulesButton>
+                )}
+                <Select value={narrationPolicy} onValueChange={(v) => onSetNarrationPolicy(v as StoryPolicy)}>
                   <SelectTrigger className="w-32 h-8 text-xs">
                     <SelectValue />
                   </SelectTrigger>

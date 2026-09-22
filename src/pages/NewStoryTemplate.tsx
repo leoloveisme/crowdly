@@ -899,11 +899,13 @@ const NewStoryTemplate = () => {
     try {
       const res = await fetch(`${API_BASE}/paragraph-branches`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           chapterId,
           parentParagraphIndex: paragraphIndex,
-          parentParagraphText: branchName || paragraphText || "",
+          parentParagraphText: paragraphText || "",
+          branchName: branchName || undefined,
           branchText,
           userId: user.id,
           language,

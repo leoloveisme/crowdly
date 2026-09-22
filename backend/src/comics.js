@@ -6,6 +6,7 @@ import { randomUUID } from 'crypto';
 import { pool } from './db.js';
 import { requireAuth } from './sessions.js';
 import { UPLOADS_ROOT } from './gallery.js';
+import { adoptLocalFile, removeStoredFile } from './storage.js';
 
 const COMIC_UPLOADS_DIR = path.join(UPLOADS_ROOT, 'comics');
 
@@ -208,7 +209,8 @@ router.post(
 
       const inserted = [];
       for (const file of files) {
-        const imageUrl = `/uploads/comics/${comicId}/${file.filename}`;
+        // Moved to object storage when configured; otherwise stays on disk.
+        const imageUrl = await adoptLocalFile(file.path, file.mimetype);
         const { rows } = await pool.query(
           `INSERT INTO comic_page (comic_id, page_index, image_url)
            VALUES ($1, $2, $3)
@@ -318,14 +320,9 @@ router.delete('/comic-pages/:pageId', requireAuth, async (req, res) => {
 
     await pool.query('DELETE FROM comic_page WHERE page_id = $1', [pageId]);
 
-    if (page.image_url && page.image_url.startsWith('/uploads/')) {
-      const filePath = path.join(UPLOADS_ROOT, page.image_url.slice('/uploads/'.length));
-      fs.unlink(filePath, (err) => {
-        if (err && err.code !== 'ENOENT') {
-          console.error('[DELETE /comic-pages/:pageId] failed to remove file:', err);
-        }
-      });
-    }
+    removeStoredFile(page.image_url).catch((err) => {
+      console.error('[DELETE /comic-pages/:pageId] failed to remove file:', err);
+    });
 
     res.status(204).end();
   } catch (err) {

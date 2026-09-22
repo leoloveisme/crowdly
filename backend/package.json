@@ -11,12 +11,16 @@
     "backfill-crdt-docs": "node scripts/backfill-crdt-docs.js",
     "audit-happybeings": "node scripts/audit-happybeings-space.js",
     "import-happybeings": "node scripts/import-happybeings.js",
-    "review-happybeings": "node scripts/review-happybeings-import.js"
+    "review-happybeings": "node scripts/review-happybeings-import.js",
+    "migrate-media-to-storage": "node scripts/migrate-media-to-storage.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
     "@automerge/automerge": "^3.4.1",
     "@automerge/automerge-repo": "^2.6.0-alpha.3",
     "@automerge/automerge-repo-network-websocket": "^2.6.0-alpha.3",
+    "@aws-sdk/client-s3": "^3.1138.0",
+    "@aws-sdk/s3-request-presigner": "^3.1138.0",
     "bcryptjs": "^2.4.3",
     "cookie": "^0.7.2",
     "cookie-parser": "^1.4.6",

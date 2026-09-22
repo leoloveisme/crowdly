@@ -236,6 +236,20 @@ const ChapterSidebar: React.FC<ChapterSidebarProps> = ({
                       chapter.chapter_title
                     )}
                   </span>
+                  {canEdit && chapter.ai_draft && (
+                    <span
+                      className="shrink-0 rounded bg-purple-100 px-1 text-[9px] font-semibold uppercase text-purple-700"
+                      title="AI draft — not yet reviewed"
+                    >
+                      AI
+                    </span>
+                  )}
+                  {canEdit && chapter.source_stale && (
+                    <span
+                      className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500"
+                      title="Out of date — the original chapter changed"
+                    />
+                  )}
                   {canEdit && chapter.published === false && (
                     <span
                       className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-gray-400"

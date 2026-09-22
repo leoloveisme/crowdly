@@ -8,6 +8,12 @@ export interface StoryChapter {
   tags?: string[];
   paragraphTags?: Record<string, string[]>;
   published?: boolean;
+  /** Set on chapters of a translation: the chapter this one translates. */
+  source_chapter_id?: string | null;
+  /** The source chapter changed since the translation was last marked up to date. */
+  source_stale?: boolean | null;
+  /** Machine-translated and not yet edited by a person. */
+  ai_draft?: boolean;
 }
 
 export interface StoryProposal {
@@ -20,11 +26,27 @@ export interface StoryProposal {
   author_email?: string;
 }
 
+/** A paragraph branch: an alternative version of one paragraph of a chapter. */
 export interface InlineBranch {
-  id: number;
+  /** paragraph_branches.id — a uuid in real databases, so always a string here. */
+  id: string;
   chapterId: string;
   parentParagraphIndex: number;
   text: string;
+  name: string | null;
+  language: string;
+  metadata: Record<string, unknown> | null;
+  userId: string | null;
+  /** Copy of the original paragraph this branch replaces. */
+  parentParagraphText: string;
+}
+
+/** Changes saved from the Branch settings dialog. */
+export interface BranchSettingsPatch {
+  text: string;
+  name: string | null;
+  language: string;
+  metadata: Record<string, unknown> | null;
 }
 
 // Chapters that were never given a custom title (including the old

@@ -28,6 +28,22 @@ import ChapterSidebar, { type ChapterSidebarMode } from "@/components/story/Chap
 import ChapterReader from "@/components/story/ChapterReader";
 import ChapterEditor from "@/components/story/ChapterEditor";
 import StorySettingsSheet, { type StoryPolicy, type StoryVisibility } from "@/components/story/StorySettingsSheet";
+import LanguageSwitcher, { localeName, useLocales } from "@/components/story/LanguageSwitcher";
+import TranslateStoryDialog from "@/components/story/TranslateStoryDialog";
+import EditionPicker from "@/components/story/EditionPicker";
+import type { EditorTab } from "@/components/story/ChapterEditor";
+import { useChapterMedia } from "@/components/story/media/useChapterMedia";
+import { getMediaSummary, type Edition, type MediaSummary } from "@/lib/mediaApi";
+import type { BranchSettingsPatch, InlineBranch } from "@/components/story/types";
+import AiJobsStrip, { useAiJobs } from "@/components/story/AiJobsStrip";
+import { aiTranslateChapter, aiTranslateStory, connectionsFor, useAiConnections, type AiJob } from "@/lib/aiApi";
+import { useEditableContent } from "@/contexts/EditableContentContext";
+import {
+  createStoryTranslation,
+  fetchStoryTranslations,
+  setOfficialTranslation,
+  type StoryTranslations,
+} from "@/lib/translationsApi";
 
 // Use same-origin API base in development; dev server proxies to backend.
 // In production, VITE_API_BASE_URL can point at the deployed API.
@@ -81,6 +97,8 @@ interface Chapter {
   tags?: string[];
   paragraphTags?: Record<string, string[]>;
   published?: boolean;
+  source_chapter_id?: string | null;
+  source_stale?: boolean | null;
 }
 
 interface StoryTitleRevision {
@@ -109,6 +127,7 @@ interface RawContributionRow {
   chapter_title?: string;
   new_paragraph?: string;
   user_email?: string;
+  user_name?: string | null;
   created_at?: string;
   likes?: number;
   dislikes?: number;
@@ -277,6 +296,11 @@ const Story = () => {
     completion_status?: string;
     clone_policy?: string;
     export_policy?: string;
+    translation_policy?: string;
+    narration_policy?: string;
+    translation_group_id?: string | null;
+    source_story_title_id?: string | null;
+    is_official_translation?: boolean;
     can_clone?: boolean;
     can_export?: boolean;
     language?: string;
@@ -337,13 +361,45 @@ const Story = () => {
     if (next === "edit") params.set("mode", "edit");
     else params.delete("mode");
     setSearchParams(params, { replace: true });
-    setSidebarMode(next);
     // Cover editor is Editing-only; don't let it reopen on the next switch.
     setCoverEditorOpen(false);
   };
+  // The chapters sidebar follows the page mode (it can still be toggled on
+  // its own). Synced from the URL so it also holds when navigating straight
+  // into ?mode=edit, e.g. right after creating a translation.
   const [sidebarMode, setSidebarMode] = useState<ChapterSidebarMode>(pageMode);
-  const [contentTypes, setContentTypes] = useState<StoryContentTypes>(DEFAULT_STORY_CONTENT_TYPES);
+  useEffect(() => {
+    setSidebarMode(pageMode);
+  }, [pageMode]);
+  // Reader's format choice, remembered per browser.
+  const [contentTypes, setContentTypesState] = useState<StoryContentTypes>(() => {
+    try {
+      const saved = localStorage.getItem("crowdly_story_content_types");
+      return saved ? { ...DEFAULT_STORY_CONTENT_TYPES, ...JSON.parse(saved) } : DEFAULT_STORY_CONTENT_TYPES;
+    } catch {
+      return DEFAULT_STORY_CONTENT_TYPES;
+    }
+  });
+  const setContentTypes = (next: StoryContentTypes) => {
+    setContentTypesState(next);
+    try {
+      localStorage.setItem("crowdly_story_content_types", JSON.stringify(next));
+    } catch {
+      // storage unavailable (private mode) — the choice just isn't remembered
+    }
+  };
+  // Edition being read (null = the story's current text) and the editor's format tab
+  const [readingEdition, setReadingEdition] = useState<Edition | null>(null);
+  const [editorTab, setEditorTab] = useState<EditorTab>("text");
+  // Media of the active chapter + per-chapter availability for the checkboxes
+  const chapterMedia = useChapterMedia(currentChapterId);
+  const [mediaSummary, setMediaSummary] = useState<MediaSummary>({});
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // Language versions of this story (original + translations)
+  const [translations, setTranslations] = useState<StoryTranslations | null>(null);
+  const [translateDialogOpen, setTranslateDialogOpen] = useState(false);
+  const locales = useLocales();
+  const { currentLanguage } = useEditableContent();
   const [mobileChaptersOpen, setMobileChaptersOpen] = useState(false);
   // When adding a chapter, optionally remember the chapter after which
   // the new one should appear. If null, the new chapter is appended at
@@ -360,13 +416,8 @@ const Story = () => {
   // Each entry represents a branch positioned under a specific base
   // paragraph. Only the active branch is rendered as a textarea; all
   // others are shown as inline text, like regular paragraphs.
-  const [inlineBranches, setInlineBranches] = useState<{
-    id: number;
-    chapterId: string;
-    parentParagraphIndex: number;
-    text: string;
-  }[]>([]);
-  const [editingBranchId, setEditingBranchId] = useState<number | null>(null);
+  const [inlineBranches, setInlineBranches] = useState<InlineBranch[]>([]);
+  const [editingBranchId, setEditingBranchId] = useState<string | null>(null);
 
   // Story-level favorite state (for Index favorites container)
   const [isFavorite, setIsFavorite] = useState(false);
@@ -377,7 +428,7 @@ const Story = () => {
 
   // Access rules picker state
   const [accessPickerOpen, setAccessPickerOpen] = useState(false);
-  const [accessPickerRuleType, setAccessPickerRuleType] = useState<"view" | "clone" | "export">("view");
+  const [accessPickerRuleType, setAccessPickerRuleType] = useState<"view" | "clone" | "export" | "translate" | "narrate">("view");
 
   // Collaborators state
   const [collaborators, setCollaborators] = useState<StoryCollaborator[]>([]);
@@ -597,6 +648,88 @@ const Story = () => {
     }
     // eslint-disable-next-line
   }, [story_id, user?.id]);
+
+  const reloadMediaSummary = useCallback(() => {
+    if (!story_id) return;
+    getMediaSummary(story_id)
+      .then(setMediaSummary)
+      .catch(() => setMediaSummary({}));
+  }, [story_id]);
+
+  useEffect(() => {
+    reloadMediaSummary();
+    setReadingEdition(null);
+  }, [reloadMediaSummary, user?.id]);
+
+  const handleMediaChanged = () => {
+    chapterMedia.reload();
+    reloadMediaSummary();
+  };
+
+  // Reload just the chapter list (no full-page loading state) — used when a
+  // background AI job has written new chapter text.
+  const reloadChaptersQuietly = async () => {
+    if (!story_id) return;
+    const params = new URLSearchParams({ storyTitleId: story_id });
+    if (user?.id) params.set('userId', user.id);
+    try {
+      const res = await fetch(`${API_BASE}/chapters?${params.toString()}`);
+      if (res.ok) {
+        const rows = await res.json();
+        if (Array.isArray(rows)) setChapters(rows);
+      }
+    } catch {
+      // keep what's on screen
+    }
+  };
+
+  // The user's own AI connections and the story's background AI jobs.
+  const aiConnections = useAiConnections(!!user);
+  const aiJobs = useAiJobs(story_id, !!user, (job: AiJob) => {
+    if (job.kind === "translate_chapter") {
+      reloadChaptersQuietly();
+      reloadTranslations();
+    } else {
+      handleMediaChanged();
+    }
+    if (job.status === "failed") {
+      toast({ title: "AI job failed", description: job.error || undefined, variant: "destructive" });
+    }
+  });
+
+  const handleAiTranslateChapter = async (chapterId: string, connectionId: string) => {
+    try {
+      await aiTranslateChapter(chapterId, connectionId);
+      aiJobs.refresh();
+    } catch (err) {
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Could not start", variant: "destructive" });
+    }
+  };
+
+  const handleAiTranslateAll = async (connectionId: string) => {
+    if (!story_id) return;
+    try {
+      const { queued } = await aiTranslateStory(story_id, connectionId);
+      toast({
+        title: queued ? `Drafting ${queued} chapter(s) with AI` : "Nothing to draft",
+        description: queued ? "They fill in as each one finishes." : "Every chapter already has text.",
+      });
+      aiJobs.refresh();
+    } catch (err) {
+      toast({ title: "Error", description: err instanceof Error ? err.message : "Could not start", variant: "destructive" });
+    }
+  };
+
+  const reloadTranslations = useCallback(() => {
+    if (!story_id) return;
+    fetchStoryTranslations(story_id)
+      .then(setTranslations)
+      .catch(() => setTranslations(null));
+  }, [story_id]);
+
+  useEffect(() => {
+    reloadTranslations();
+  }, [reloadTranslations, user?.id]);
 
   const reloadInlineIllustrations = useCallback(() => {
     if (!story_id) return;
@@ -1349,91 +1482,119 @@ const Story = () => {
     }
   };
 
-  // Legacy branch creation logic used by the configuration popover.
-  // This now updates an existing branch instead of creating a new one.
-  const handleConfigureExistingBranch = async (
-    branchId: number,
-    {
-      branchName,
-      paragraphs,
-    }: {
-      branchName: string;
-      paragraphs: string[];
-      language: string;
-      metadata: Record<string, unknown> | null;
-    },
-  ) => {
-    // Compose branch_text as joined array
-    const branch_text = paragraphs.join("\n\n");
-
-    if (!user) {
-      toast({
-        title: "Login required",
-        description: "You must be logged in to edit a branch.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  // Load a story's saved paragraph branches so they appear under their
+  // paragraphs in the editor (not only the ones created this session).
+  const reloadBranches = useCallback(async () => {
+    if (!story_id) return;
     try {
-      if (isOwner) {
+      const res = await fetch(`${API_BASE}/stories/${story_id}/branches`);
+      if (!res.ok) return;
+      const rows: Array<Record<string, unknown>> = await res.json();
+      setInlineBranches(
+        rows
+          .map((row) => ({
+            id: String(row.id),
+            chapterId: String(row.chapter_id),
+            parentParagraphIndex: Number(row.parent_paragraph_index),
+            text: String(row.branch_text ?? ""),
+            name: (row.branch_name as string | null) ?? null,
+            language: String(row.language ?? "en"),
+            metadata: (row.metadata as Record<string, unknown> | null) ?? null,
+            userId: (row.user_id as string | null) ?? null,
+            parentParagraphText: String(row.parent_paragraph_text ?? ""),
+          }))
+          // oldest first, so branches keep a stable order under their paragraph
+          .reverse(),
+      );
+    } catch (err) {
+      console.error("Failed to load branches", err);
+    }
+  }, [story_id]);
+
+  useEffect(() => {
+    reloadBranches();
+  }, [reloadBranches]);
+
+  /** The story owner and the branch's author change a branch directly; others propose. */
+  const canEditBranchDirectly = (branch: InlineBranch) => Boolean(isOwner || (user && branch.userId === user.id));
+
+  // Save the Branch settings dialog: text, name, language, note/metadata.
+  const saveBranchSettings = async (branchId: string, patch: BranchSettingsPatch): Promise<boolean> => {
+    const branch = inlineBranches.find((b) => b.id === branchId);
+    if (!branch) return false;
+    if (!user) {
+      toast({ title: "Login required", description: "You must be logged in to edit a branch.", variant: "destructive" });
+      return false;
+    }
+    try {
+      if (canEditBranchDirectly(branch)) {
         const res = await fetch(`${API_BASE}/paragraph-branches/${branchId}`, {
           method: "PATCH",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            branchText: branch_text,
-            parentParagraphText: branchName || undefined,
+            branchText: patch.text,
+            branchName: patch.name,
+            language: patch.language,
+            metadata: patch.metadata,
           }),
         });
-
+        const body = await res.json().catch(() => ({}));
         if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          toast({
-            title: "Error",
-            description: body.error || "Failed to update branch.",
-            variant: "destructive",
-          });
-          return;
+          toast({ title: "Error", description: body.error || "Failed to update branch.", variant: "destructive" });
+          return false;
         }
-
-        // Update local inline branch cache so the textarea reflects changes
-        const updated = await res.json();
         setInlineBranches((prev) =>
-          prev.map((b) => (b.id === branchId ? { ...b, text: updated.branch_text ?? branch_text } : b)),
+          prev.map((b) =>
+            b.id === branchId
+              ? {
+                  ...b,
+                  text: body.branch_text ?? patch.text,
+                  name: body.branch_name ?? null,
+                  language: body.language ?? patch.language,
+                  metadata: body.metadata ?? null,
+                }
+              : b,
+          ),
         );
-
-        toast({
-          title: "Branch updated",
-          description: "Your branch has been updated.",
-        });
-      } else {
-        await createProposal({
-          targetType: "branch",
-          targetBranchId: branchId,
-          proposedText: branch_text,
-          targetPath: null,
-        });
-        // Keep local inline state so the contributor still sees their text
-        setInlineBranches((prev) =>
-          prev.map((b) => (b.id === branchId ? { ...b, text: branch_text } : b)),
-        );
-        toast({
-          title: "Branch proposal submitted",
-          description: "Your branch changes are pending review.",
-        });
+        toast({ title: "Branch saved" });
+        return true;
       }
+      // Contributors can only propose a text change; the owner reviews it.
+      if (patch.text !== branch.text) {
+        await createProposal({ targetType: "branch", targetBranchId: branchId, proposedText: patch.text, targetPath: null });
+        setInlineBranches((prev) => prev.map((b) => (b.id === branchId ? { ...b, text: patch.text } : b)));
+        toast({ title: "Branch proposal submitted", description: "Your branch changes are pending review." });
+      }
+      return true;
     } catch (e) {
       console.error("Failed to update branch", e);
-      toast({
-        title: "Error",
-        description: "Something went wrong updating the branch.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to update branch.", variant: "destructive" });
+      return false;
     }
   };
 
-  // Quick inline branch creation: create an empty branch row and show a
-  // new editable paragraph directly under the source paragraph.
+  const deleteBranch = async (branchId: string): Promise<boolean> => {
+    try {
+      const res = await fetch(`${API_BASE}/paragraph-branches/${branchId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok && res.status !== 204) {
+        const body = await res.json().catch(() => ({}));
+        toast({ title: "Error", description: body.error || "Could not delete the branch.", variant: "destructive" });
+        return false;
+      }
+      setInlineBranches((prev) => prev.filter((b) => b.id !== branchId));
+      toast({ title: "Branch deleted" });
+      return true;
+    } catch (e) {
+      console.error("Failed to delete branch", e);
+      toast({ title: "Error", description: "Could not delete the branch.", variant: "destructive" });
+      return false;
+    }
+  };
+
   const handleQuickCreateBranch = async (
     chapter: Chapter,
     paragraphIndex: number,
@@ -1451,15 +1612,14 @@ const Story = () => {
     try {
       const res = await fetch(`${API_BASE}/paragraph-branches`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           chapterId: chapter.chapter_id,
           parentParagraphIndex: paragraphIndex,
           parentParagraphText: paragraphText || "",
           branchText: "", // start empty; user will type into inline editor
-          userId: user.id,
-          language: "en",
-          metadata: null,
+          // language defaults to the story's language server-side
         }),
       });
 
@@ -1477,14 +1637,19 @@ const Story = () => {
       setInlineBranches((prev) => [
         ...prev,
         {
-          id: created.id,
+          id: String(created.id),
           chapterId: created.chapter_id,
           parentParagraphIndex: paragraphIndex,
           text: "",
+          name: created.branch_name ?? null,
+          language: created.language ?? story?.language ?? "en",
+          metadata: created.metadata ?? null,
+          userId: created.user_id ?? user.id,
+          parentParagraphText: created.parent_paragraph_text ?? paragraphText ?? "",
         },
       ]);
       // Immediately focus this new branch for inline editing
-      setEditingBranchId(created.id);
+      setEditingBranchId(String(created.id));
     } catch (e) {
       console.error("Failed to create branch", e);
       toast({
@@ -1495,11 +1660,11 @@ const Story = () => {
     }
   };
 
-  const handleInlineBranchTextChange = (branchId: number, text: string) => {
+  const handleInlineBranchTextChange = (branchId: string, text: string) => {
     setInlineBranches((prev) => prev.map((b) => (b.id === branchId ? { ...b, text } : b)));
   };
 
-  const handleInlineBranchBlur = async (branchId: number) => {
+  const handleInlineBranchBlur = async (branchId: string) => {
     const branch = inlineBranches.find((b) => b.id === branchId);
     if (!branch) return;
 
@@ -1513,10 +1678,11 @@ const Story = () => {
     }
 
     try {
-      if (isOwner) {
-        // Story initiator: write directly to canonical branch text
+      if (canEditBranchDirectly(branch)) {
+        // Story owner or the branch's author: write directly to the branch
         const res = await fetch(`${API_BASE}/paragraph-branches/${branchId}`, {
           method: "PATCH",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ branchText: branch.text ?? "" }),
         });
@@ -1594,7 +1760,7 @@ const Story = () => {
   async function createProposal(args: {
     targetType: ProposalTargetType;
     targetChapterId?: string;
-    targetBranchId?: number;
+    targetBranchId?: string;
     targetPath?: string | null;
     proposedText: string;
   }) {
@@ -1699,7 +1865,7 @@ const Story = () => {
             story_title: row.story_title ?? '',
             chapter_title: row.chapter_title ?? '',
             paragraph: row.new_paragraph ?? '',
-            user: row.user_email ?? 'Unknown',
+            user: row.user_name || row.user_email || 'Unknown',
             date: row.created_at ? new Date(row.created_at).toLocaleString() : '',
             // Always compute word count on the frontend using the same
             // logic so results are stable and not tied to DB
@@ -2005,7 +2171,58 @@ const Story = () => {
     }
   };
 
-  const openAccessPicker = (rule: "view" | "clone" | "export") => {
+  const setNarrationPolicy = (next: StoryPolicy) => {
+    if (!story) return;
+    updateStorySetting('narration_policy', next);
+    if (next === 'restricted') openAccessPicker("narrate");
+  };
+
+  const setTranslationPolicy = (next: StoryPolicy) => {
+    if (!story) return;
+    updateStorySetting('translation_policy', next);
+    if (next === 'restricted') openAccessPicker("translate");
+  };
+
+  const handleCreateTranslation = async (language: string, start: "blank" | "copy" | "ai", connectionId?: string) => {
+    if (!story) return;
+    try {
+      const created = await createStoryTranslation(story.story_title_id, language, start, connectionId);
+      if (created.ai_error) {
+        toast({ title: "Translation created, but AI drafting didn't start", description: created.ai_error, variant: "destructive" });
+      } else {
+        toast({
+          title: "Translation created",
+          description:
+            start === "ai"
+              ? "Your AI is drafting the chapters in the background. It's a draft until you publish it."
+              : "It's a draft until you publish it.",
+        });
+      }
+      navigate(`/story/${created.story_title_id}?mode=edit`);
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to create translation",
+        variant: "destructive",
+      });
+      throw err;
+    }
+  };
+
+  const handleToggleOfficialTranslation = async (translationId: string, official: boolean) => {
+    try {
+      await setOfficialTranslation(translationId, official);
+      reloadTranslations();
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to update official translation",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const openAccessPicker = (rule: "view" | "clone" | "export" | "translate" | "narrate") => {
     // The picker is its own modal — close the settings sheet so the two
     // dialogs don't fight over focus.
     setSettingsOpen(false);
@@ -2287,6 +2504,69 @@ const Story = () => {
       navigate(`/story/${story_id}${location.search}`, { replace: true });
     }
     await handleDeleteChapter(chapterId);
+  };
+
+  // "Translated from …" for translations, and a nudge towards the version in
+  // the reader's interface language when one is available.
+  const versions = translations?.versions ?? [];
+  const originalVersion = versions.find((v) => v.is_original);
+  const interfaceLocale = locales.find((l) => l.english_name === currentLanguage);
+  const preferredVersion =
+    interfaceLocale && interfaceLocale.code !== (story.language || "en")
+      ? versions.find(
+          (v) =>
+            v.language === interfaceLocale.code &&
+            v.published &&
+            (v.is_original || v.is_official) &&
+            v.story_title_id !== story.story_title_id,
+        )
+      : undefined;
+  const translationNotice =
+    (story.source_story_title_id && originalVersion && originalVersion.story_title_id !== story.story_title_id) ||
+    (preferredVersion && !(story.source_story_title_id && preferredVersion.is_original)) ? (
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-600">
+        {story.source_story_title_id && originalVersion && originalVersion.story_title_id !== story.story_title_id && (
+          <span>
+            <EditableText id="story-translated-from">Translated from</EditableText>{" "}
+            {localeName(locales, originalVersion.language)} ·{" "}
+            <button
+              type="button"
+              onClick={() => navigate(`/story/${originalVersion.story_title_id}`)}
+              className="text-blue-700 hover:underline"
+            >
+              {originalVersion.title}
+            </button>
+          </span>
+        )}
+        {preferredVersion && !(story.source_story_title_id && preferredVersion.is_original) && (
+          <span className="text-purple-800">
+            <EditableText id="story-available-in">This story is available in</EditableText>{" "}
+            <button
+              type="button"
+              onClick={() => navigate(`/story/${preferredVersion.story_title_id}`)}
+              className="font-medium hover:underline"
+            >
+              {localeName(locales, preferredVersion.language)}
+            </button>
+          </span>
+        )}
+      </div>
+    ) : null;
+
+  // Formats the current chapter actually has (approved media). Missing ones
+  // are shown disabled in the checkbox row and not rendered in the reader.
+  const currentSummary = (currentChapter && mediaSummary[currentChapter.chapter_id]) || null;
+  const chapterAvailability = {
+    text: true,
+    audio: (currentSummary?.audio ?? 0) > 0,
+    cartoon: (currentSummary?.visual ?? 0) > 0,
+    video: (currentSummary?.video ?? 0) > 0,
+  };
+  const effectiveContentTypes: StoryContentTypes = {
+    text: contentTypes.text,
+    audio: contentTypes.audio && chapterAvailability.audio,
+    cartoon: contentTypes.cartoon && chapterAvailability.cartoon,
+    video: contentTypes.video && chapterAvailability.video,
   };
 
   const chapterSidebar = (
@@ -2701,11 +2981,13 @@ const Story = () => {
                       <EditableText id="story-badge-draft">Draft</EditableText>
                     )}
                   </span>
-                  {story.language && (
-                    <span className="px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
-                      {story.language.toUpperCase()}
-                    </span>
-                  )}
+                  <LanguageSwitcher
+                    storyTitleId={story.story_title_id}
+                    language={story.language || "en"}
+                    translations={translations}
+                    onTranslate={() => setTranslateDialogOpen(true)}
+                    onToggleOfficial={handleToggleOfficialTranslation}
+                  />
                 </div>
 
                 {isCreator ? (
@@ -2776,7 +3058,16 @@ const Story = () => {
                   )}
                 </div>
               )}
+              {translationNotice}
             </section>
+
+            <TranslateStoryDialog
+              open={translateDialogOpen}
+              onOpenChange={setTranslateDialogOpen}
+              sourceLanguage={story.language || "en"}
+              aiConnections={connectionsFor(aiConnections.connections, "translate")}
+              onCreate={handleCreateTranslation}
+            />
 
             <div className="lg:grid lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-8">
               {/* CHAPTERS SIDEBAR (desktop) — mobile uses the sheet below */}
@@ -2891,7 +3182,23 @@ const Story = () => {
 
                 {/* CHAPTER — reader for everyone in Viewing mode, editor in Editing mode */}
                 <div id="chapter-top" className="scroll-mt-4 mt-8 pt-6 border-t">
-                  {!isEditing && <StoryContentTypeSelector value={contentTypes} onChange={setContentTypes} />}
+                  <AiJobsStrip jobs={aiJobs.jobs} onChanged={aiJobs.refresh} />
+                  {!isEditing && chapters.length > 0 && (
+                    <>
+                      <EditionPicker
+                        storyTitleId={story.story_title_id}
+                        chapters={chapters}
+                        canCreate={!!user}
+                        value={readingEdition}
+                        onChange={setReadingEdition}
+                      />
+                      <StoryContentTypeSelector
+                        value={contentTypes}
+                        onChange={setContentTypes}
+                        available={chapterAvailability}
+                      />
+                    </>
+                  )}
 
                   {currentChapter ? (
                     isEditing ? (
@@ -2919,7 +3226,10 @@ const Story = () => {
                         onBranchTextChange={handleInlineBranchTextChange}
                         onBranchBlur={handleInlineBranchBlur}
                         onQuickCreateBranch={handleQuickCreateBranch}
-                        onConfigureBranch={handleConfigureExistingBranch}
+                        onSaveBranchSettings={saveBranchSettings}
+                        onDeleteBranch={deleteBranch}
+                        canEditBranch={canEditBranchDirectly}
+                        storyLanguage={story.language || "en"}
                         illustrations={galleryImages}
                         illustrationTarget={illustrationTarget}
                         onToggleIllustrationTarget={(chapterId, anchorIndex) =>
@@ -2933,17 +3243,48 @@ const Story = () => {
                           setIllustrationTarget(null);
                           reloadInlineIllustrations();
                         }}
+                        canMarkSynced={isCreator}
+                        onSourceSynced={() => {
+                          const syncedId = currentChapter.chapter_id;
+                          setChapters((prev) =>
+                            prev.map((c) => (c.chapter_id === syncedId ? { ...c, source_stale: false } : c)),
+                          );
+                          reloadTranslations();
+                        }}
+                        chapters={chapters}
+                        media={chapterMedia.list}
+                        onMediaChanged={handleMediaChanged}
+                        tab={editorTab}
+                        onTabChange={setEditorTab}
+                        aiTranslateConnections={connectionsFor(aiConnections.connections, "translate")}
+                        aiJob={
+                          aiJobs.jobs.find(
+                            (j) => j.chapter_id === currentChapter.chapter_id && j.kind === "translate_chapter",
+                          ) ?? null
+                        }
+                        onAiTranslateChapter={(connectionId) =>
+                          handleAiTranslateChapter(currentChapter.chapter_id, connectionId)
+                        }
+                        onAiTranslateAll={handleAiTranslateAll}
+                        onAiJobQueued={aiJobs.refresh}
                       />
                     ) : (
                       <ChapterReader
+                        storyTitleId={story.story_title_id}
                         chapter={currentChapter}
+                        chapters={chapters}
                         index={currentChapterIndex}
                         total={chapters.length}
                         onPrevious={handlePreviousChapter}
                         onNext={handleNextChapter}
-                        contentTypes={contentTypes}
+                        contentTypes={effectiveContentTypes}
                         proposals={proposals}
                         illustrations={galleryImages}
+                        edition={readingEdition}
+                        media={chapterMedia.list}
+                        onMediaChanged={handleMediaChanged}
+                        canContributeMedia={!!user}
+                        onAiJobQueued={aiJobs.refresh}
                         headerExtra={mobileChaptersButton}
                       />
                     )
@@ -3054,6 +3395,8 @@ const Story = () => {
                 onSetCompletion={setCompletionStatus}
                 onSetClonePolicy={setClonePolicy}
                 onSetExportPolicy={setExportPolicy}
+                onSetTranslationPolicy={setTranslationPolicy}
+                onSetNarrationPolicy={setNarrationPolicy}
                 onOpenAccessPicker={openAccessPicker}
                 onUpdateSetting={updateStorySetting}
                 onOpenDetails={() => navigate(`/story/${story.story_title_id}/details`)}

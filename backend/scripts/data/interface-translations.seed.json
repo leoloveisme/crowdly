@@ -7072,9 +7072,9 @@
   {
     "page_key": "/story/:story_id",
     "element_id": "story-content-type-cartoon",
-    "en": "Cartoon/Presentation",
-    "ru": "Мультфильм/Презентация",
-    "de": "Cartoon/Präsentation"
+    "en": "Comics | Manga / Presentation",
+    "ru": "Комикс | Манга / Презентация",
+    "de": "Comics | Manga / Präsentation"
   },
   {
     "page_key": "/story/:story_id",
@@ -7362,5 +7362,1216 @@
     "en": "Changes save when you click outside a paragraph (or press Ctrl/⌘+Enter). Esc cancels.",
     "ru": "Изменения сохраняются при щелчке вне абзаца (или Ctrl/⌘+Enter). Esc — отмена.",
     "de": "Änderungen werden gespeichert, wenn du außerhalb eines Absatzes klickst (oder Strg/⌘+Enter drückst). Esc bricht ab."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-lang-heading",
+    "en": "Language versions",
+    "ru": "Языковые версии",
+    "de": "Sprachversionen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-lang-original",
+    "en": "Original",
+    "ru": "Оригинал",
+    "de": "Original"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-lang-official",
+    "en": "Official translation",
+    "ru": "Официальный перевод",
+    "de": "Offizielle Übersetzung"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-lang-community",
+    "en": "Community translation",
+    "ru": "Перевод сообщества",
+    "de": "Community-Übersetzung"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-lang-draft",
+    "en": "draft",
+    "ru": "черновик",
+    "de": "Entwurf"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-lang-stale",
+    "en": "out of date",
+    "ru": "устарело",
+    "de": "veraltet"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-lang-translate",
+    "en": "Translate this story…",
+    "ru": "Перевести эту историю…",
+    "de": "Diese Geschichte übersetzen…"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-translate-title",
+    "en": "Translate this story",
+    "ru": "Перевести эту историю",
+    "de": "Diese Geschichte übersetzen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-translate-desc",
+    "en": "The translation becomes its own story that you own, linked to the original chapter by chapter. It stays a draft until you publish it.",
+    "ru": "Перевод станет отдельной историей, которой владеете вы, связанной с оригиналом глава за главой. Он остаётся черновиком, пока вы его не опубликуете.",
+    "de": "Die Übersetzung wird zu einer eigenen Geschichte, die dir gehört, Kapitel für Kapitel mit dem Original verknüpft. Sie bleibt ein Entwurf, bis du sie veröffentlichst."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-translate-language",
+    "en": "Translate into",
+    "ru": "Перевести на",
+    "de": "Übersetzen in"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-translate-start",
+    "en": "Start from",
+    "ru": "Начать с",
+    "de": "Beginnen mit"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-translate-blank",
+    "en": "Blank chapters",
+    "ru": "Пустых глав",
+    "de": "Leeren Kapiteln"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-translate-blank-desc",
+    "en": "Chapter titles are copied; you write each chapter next to the original.",
+    "ru": "Названия глав копируются; вы пишете каждую главу рядом с оригиналом.",
+    "de": "Kapiteltitel werden übernommen; du schreibst jedes Kapitel neben dem Original."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-translate-copy",
+    "en": "Copy of the original text",
+    "ru": "Копии оригинального текста",
+    "de": "Kopie des Originaltexts"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-translate-copy-desc",
+    "en": "Every chapter starts with the original text for you to overwrite.",
+    "ru": "Каждая глава начинается с оригинального текста, который вы переписываете.",
+    "de": "Jedes Kapitel beginnt mit dem Originaltext, den du überschreibst."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-translate-ai",
+    "en": "AI draft",
+    "ru": "Черновика от ИИ",
+    "de": "KI-Entwurf"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-translate-ai-desc",
+    "en": "Pre-fill a draft using your own AI provider, connected in your settings.",
+    "ru": "Заполнить черновик с помощью вашего ИИ-провайдера, подключённого в настройках.",
+    "de": "Einen Entwurf mit deinem eigenen, in den Einstellungen verbundenen KI-Anbieter vorausfüllen."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-coming-soon",
+    "en": "Coming soon",
+    "ru": "Скоро",
+    "de": "Demnächst"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-translate-create",
+    "en": "Create translation",
+    "ru": "Создать перевод",
+    "de": "Übersetzung erstellen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-translated-from",
+    "en": "Translated from",
+    "ru": "Переведено с",
+    "de": "Übersetzt aus"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-available-in",
+    "en": "This story is available in",
+    "ru": "Эта история доступна на языке:",
+    "de": "Diese Geschichte gibt es auch auf"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-editor-show-original",
+    "en": "Show original",
+    "ru": "Показать оригинал",
+    "de": "Original anzeigen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-editor-translating-from",
+    "en": "Translating from",
+    "ru": "Перевод с",
+    "de": "Übersetzung aus"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-editor-stale",
+    "en": "The original chapter changed since this translation was last marked up to date.",
+    "ru": "Оригинальная глава изменилась с тех пор, как перевод был в последний раз отмечен как актуальный.",
+    "de": "Das Originalkapitel hat sich geändert, seit diese Übersetzung zuletzt als aktuell markiert wurde."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-editor-mark-synced",
+    "en": "Mark as up to date",
+    "ru": "Отметить как актуальный",
+    "de": "Als aktuell markieren"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-settings-translate",
+    "en": "Who can translate",
+    "ru": "Кто может переводить",
+    "de": "Wer darf übersetzen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-settings-translators",
+    "en": "Translators",
+    "ru": "Переводчики",
+    "de": "Übersetzer"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-translate-source-lang",
+    "en": "This story is marked as written in",
+    "ru": "Эта история отмечена как написанная на языке:",
+    "de": "Diese Geschichte ist markiert als geschrieben auf"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-translate-source-lang-hint",
+    "en": "If that's wrong, the owner can change it in Settings → Language.",
+    "ru": "Если это не так, владелец может изменить это в «Настройки → Язык».",
+    "de": "Falls das nicht stimmt, kann der Besitzer es unter Einstellungen → Sprache ändern."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-edition-reading",
+    "en": "Reading:",
+    "ru": "Читаю:",
+    "de": "Lese:"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-edition-new-btn",
+    "en": "New edition",
+    "ru": "Новая редакция",
+    "de": "Neue Ausgabe"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-settings-narrate",
+    "en": "Who can narrate",
+    "ru": "Кто может озвучивать",
+    "de": "Wer darf vorlesen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-settings-narrators",
+    "en": "Narrators",
+    "ru": "Чтецы",
+    "de": "Sprecher"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-edition-edit-title",
+    "en": "Edit edition",
+    "ru": "Изменить редакцию",
+    "de": "Ausgabe bearbeiten"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-edition-new-title",
+    "en": "Build an edition",
+    "ru": "Собрать редакцию",
+    "de": "Eine Ausgabe zusammenstellen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-edition-desc",
+    "en": "Choose which paragraph branches make up your version of the story. The result is frozen when you save, so narrations of it stay in sync even if the story changes.",
+    "ru": "Выберите ветки абзацев, из которых состоит ваша версия истории. При сохранении текст фиксируется, поэтому озвучки остаются синхронными, даже если история изменится.",
+    "de": "Wähle, welche Absatz-Zweige deine Version der Geschichte bilden. Beim Speichern wird der Text eingefroren, damit Lesungen synchron bleiben, auch wenn sich die Geschichte ändert."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-edition-no-branches",
+    "en": "This story has no paragraph branches yet — an edition would be identical to the original.",
+    "ru": "У этой истории пока нет веток абзацев — редакция совпала бы с оригиналом.",
+    "de": "Diese Geschichte hat noch keine Absatz-Zweige — eine Ausgabe wäre mit dem Original identisch."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-edition-paragraph",
+    "en": "Paragraph",
+    "ru": "Абзац",
+    "de": "Absatz"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-edition-original",
+    "en": "Original",
+    "ru": "Оригинал",
+    "de": "Original"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-edition-branch",
+    "en": "Branch",
+    "ru": "Ветка",
+    "de": "Zweig"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-edition-publish",
+    "en": "Visible to readers",
+    "ru": "Видна читателям",
+    "de": "Für Leser sichtbar"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-edition-branches-chosen",
+    "en": "branch(es) chosen",
+    "ru": "веток выбрано",
+    "de": "Zweig(e) gewählt"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-edition-save",
+    "en": "Save edition",
+    "ru": "Сохранить редакцию",
+    "de": "Ausgabe speichern"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-contribute-audio",
+    "en": "narration",
+    "ru": "озвучку",
+    "de": "Lesung"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-contribute-visual",
+    "en": "comics | manga / presentation",
+    "ru": "комикс | мангу / презентацию",
+    "de": "Comics | Manga / Präsentation"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-contribute-video",
+    "en": "video",
+    "ru": "видео",
+    "de": "Video"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-contribute-add-own",
+    "en": "Add your own:",
+    "ru": "Добавьте своё:",
+    "de": "Eigenes hinzufügen:"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-reading-edition",
+    "en": "Reading the edition",
+    "ru": "Читается редакция",
+    "de": "Gelesen wird die Ausgabe"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-edition-missing-chapter",
+    "en": "This chapter isn't part of the selected edition — showing the current text.",
+    "ru": "Этой главы нет в выбранной редакции — показан текущий текст.",
+    "de": "Dieses Kapitel ist nicht Teil der gewählten Ausgabe — es wird der aktuelle Text angezeigt."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-contribute-dialog-title",
+    "en": "Contribute to this chapter",
+    "ru": "Внести вклад в эту главу",
+    "de": "Zu diesem Kapitel beitragen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-contribute-review-note",
+    "en": "The story owner reviews submissions before readers see them.",
+    "ru": "Владелец истории проверяет материалы, прежде чем их увидят читатели.",
+    "de": "Der Besitzer der Geschichte prüft Einsendungen, bevor Leser sie sehen."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audiobook-title",
+    "en": "Upload an audiobook",
+    "ru": "Загрузить аудиокнигу",
+    "de": "Hörbuch hochladen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audiobook-desc",
+    "en": "One audio file per chapter. Drop several files at once to assign them to chapters in filename order.",
+    "ru": "Один аудиофайл на главу. Перетащите сразу несколько файлов — они распределятся по главам в порядке имён файлов.",
+    "de": "Eine Audiodatei pro Kapitel. Ziehe mehrere Dateien auf einmal hierher, um sie in Dateinamen-Reihenfolge den Kapiteln zuzuordnen."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audio-which-text",
+    "en": "Which text did you read?",
+    "ru": "Какой текст вы читали?",
+    "de": "Welchen Text hast du gelesen?"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audiobook-drop",
+    "en": "Drop audio files here, or click to choose several",
+    "ru": "Перетащите аудиофайлы сюда или нажмите, чтобы выбрать несколько",
+    "de": "Audiodateien hierher ziehen oder klicken, um mehrere auszuwählen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-dialog-close",
+    "en": "Close",
+    "ru": "Закрыть",
+    "de": "Schließen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audiobook-upload",
+    "en": "Upload",
+    "ru": "Загрузить",
+    "de": "Hochladen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-frame-click-hint",
+    "en": "Click on the image to add a speech bubble or text box.",
+    "ru": "Нажмите на изображение, чтобы добавить реплику или текстовый блок.",
+    "de": "Klicke auf das Bild, um eine Sprechblase oder ein Textfeld hinzuzufügen."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-frame-caption",
+    "en": "Caption",
+    "ru": "Подпись",
+    "de": "Bildunterschrift"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-frame-anchor",
+    "en": "Shown while reading paragraphs",
+    "ru": "Показывается при чтении абзацев",
+    "de": "Angezeigt beim Lesen der Absätze"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-frame-save",
+    "en": "Save frame",
+    "ru": "Сохранить кадр",
+    "de": "Bild speichern"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-frame-delete",
+    "en": "Delete frame",
+    "ru": "Удалить кадр",
+    "de": "Bild löschen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-frame-add",
+    "en": "Add frames",
+    "ru": "Добавить кадры",
+    "de": "Bilder hinzufügen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-visual-new-heading",
+    "en": "New comics | manga / presentation",
+    "ru": "Новый комикс | манга / презентация",
+    "de": "Neue(r) Comic | Manga / Präsentation"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-visual-choose-images",
+    "en": "Choose images…",
+    "ru": "Выбрать изображения…",
+    "de": "Bilder auswählen…"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-visual-formats",
+    "en": "PNG, JPEG, WEBP or GIF, up to 10 MB each and 20 per upload.",
+    "ru": "PNG, JPEG, WEBP или GIF, до 10 МБ каждый и до 20 за раз.",
+    "de": "PNG, JPEG, WEBP oder GIF, je bis 10 MB und 20 pro Upload."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-video-add-heading",
+    "en": "Add a video",
+    "ru": "Добавить видео",
+    "de": "Video hinzufügen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-video-add-btn",
+    "en": "Add YouTube / Vimeo link",
+    "ru": "Добавить ссылку YouTube / Vimeo",
+    "de": "YouTube-/Vimeo-Link hinzufügen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-video-upload-file",
+    "en": "Upload video file",
+    "ru": "Загрузить видеофайл",
+    "de": "Videodatei hochladen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-video-none",
+    "en": "No video for this chapter yet.",
+    "ru": "Для этой главы пока нет видео.",
+    "de": "Für dieses Kapitel gibt es noch kein Video."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-media-pending",
+    "en": "Pending review",
+    "ru": "На проверке",
+    "de": "Wartet auf Prüfung"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-media-rejected",
+    "en": "Rejected",
+    "ru": "Отклонено",
+    "de": "Abgelehnt"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-media-approve",
+    "en": "Approve",
+    "ru": "Одобрить",
+    "de": "Freigeben"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-media-reject",
+    "en": "Reject",
+    "ru": "Отклонить",
+    "de": "Ablehnen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-media-storage-note",
+    "en": "Stored on Crowdly servers.",
+    "ru": "Хранится на серверах Crowdly.",
+    "de": "Gespeichert auf Crowdly-Servern."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-media-object-storage",
+    "en": "Object storage (S3/R2)",
+    "ru": "Объектное хранилище (S3/R2)",
+    "de": "Objektspeicher (S3/R2)"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-visual-none",
+    "en": "No comics, manga or presentation for this chapter yet.",
+    "ru": "Для этой главы пока нет комикса, манги или презентации.",
+    "de": "Für dieses Kapitel gibt es noch keinen Comic, kein Manga und keine Präsentation."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audio-sync-btn",
+    "en": "Sync to paragraphs",
+    "ru": "Синхронизировать с абзацами",
+    "de": "Mit Absätzen synchronisieren"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audio-closed",
+    "en": "The story owner hasn't opened this story for narration.",
+    "ru": "Владелец истории не открыл её для озвучивания.",
+    "de": "Der Besitzer hat diese Geschichte nicht zum Vorlesen freigegeben."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audio-add-heading",
+    "en": "Add a narration of this chapter",
+    "ru": "Добавить озвучку этой главы",
+    "de": "Lesung dieses Kapitels hinzufügen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audio-upload-btn",
+    "en": "Upload narration",
+    "ru": "Загрузить озвучку",
+    "de": "Lesung hochladen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audio-audiobook-btn",
+    "en": "Upload a whole audiobook…",
+    "ru": "Загрузить всю аудиокнигу…",
+    "de": "Ganzes Hörbuch hochladen…"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audio-formats",
+    "en": "MP3, M4A, OGG, WAV, WEBM or FLAC, up to 200 MB per chapter.",
+    "ru": "MP3, M4A, OGG, WAV, WEBM или FLAC, до 200 МБ на главу.",
+    "de": "MP3, M4A, OGG, WAV, WEBM oder FLAC, bis 200 MB pro Kapitel."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audio-record-hint",
+    "en": "Record with any app you like (e.g. Audacity or your phone), then upload here.",
+    "ru": "Записывайте в любом удобном приложении (например, Audacity или на телефоне), затем загрузите сюда.",
+    "de": "Nimm mit einer beliebigen App auf (z. B. Audacity oder dem Handy) und lade es dann hier hoch."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-sync-title",
+    "en": "Sync narration to paragraphs",
+    "ru": "Синхронизация озвучки с абзацами",
+    "de": "Lesung mit Absätzen synchronisieren"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-sync-desc",
+    "en": "Play the narration and press Space (or the button) each time a new paragraph begins.",
+    "ru": "Включите озвучку и нажимайте пробел (или кнопку) в начале каждого нового абзаца.",
+    "de": "Spiele die Lesung ab und drücke die Leertaste (oder den Knopf), sobald ein neuer Absatz beginnt."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-sync-all-marked",
+    "en": "All paragraphs marked",
+    "ru": "Все абзацы отмечены",
+    "de": "Alle Absätze markiert"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-sync-mark",
+    "en": "Paragraph starts now",
+    "ru": "Абзац начинается сейчас",
+    "de": "Absatz beginnt jetzt"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-sync-undo",
+    "en": "Undo last",
+    "ru": "Отменить последнее",
+    "de": "Letzte rückgängig"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-sync-clear",
+    "en": "Start over",
+    "ru": "Начать заново",
+    "de": "Neu beginnen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-sync-save",
+    "en": "Save timings",
+    "ru": "Сохранить разметку",
+    "de": "Zeitmarken speichern"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audio-none",
+    "en": "No narration for this chapter yet.",
+    "ru": "Для этой главы пока нет озвучки.",
+    "de": "Für dieses Kapitel gibt es noch keine Lesung."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audio-narrated-by",
+    "en": "Narrated by",
+    "ru": "Читает",
+    "de": "Gelesen von"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audio-version-of",
+    "en": "Narrated from the version of",
+    "ru": "Озвучено по версии от",
+    "de": "Gelesen nach der Fassung vom"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audio-edition",
+    "en": "Edition:",
+    "ru": "Редакция:",
+    "de": "Ausgabe:"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audio-follow",
+    "en": "Follow along in the text",
+    "ru": "Следить по тексту",
+    "de": "Im Text mitlesen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-ai-job-translate",
+    "en": "Translation draft",
+    "ru": "Черновик перевода",
+    "de": "Übersetzungsentwurf"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-ai-job-tts",
+    "en": "AI narration",
+    "ru": "Озвучка ИИ",
+    "de": "KI-Lesung"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-ai-working",
+    "en": "AI is working:",
+    "ru": "ИИ работает:",
+    "de": "KI arbeitet:"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-ai-jobs-open",
+    "en": "job(s) in progress",
+    "ru": "задач в работе",
+    "de": "Aufgabe(n) in Arbeit"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-ai-jobs-failed",
+    "en": "failed",
+    "ru": "с ошибкой",
+    "de": "fehlgeschlagen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-translate-ai-ready",
+    "en": "Every chapter is drafted in the background with your AI; you review and edit next to the original.",
+    "ru": "Все главы переводятся в фоне вашим ИИ; вы проверяете и правите их рядом с оригиналом.",
+    "de": "Alle Kapitel werden im Hintergrund von deiner KI entworfen; du prüfst und bearbeitest sie neben dem Original."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-translate-ai-connect",
+    "en": "Connect an AI provider in your profile",
+    "ru": "Подключите ИИ-провайдера в профиле",
+    "de": "Verbinde einen KI-Anbieter in deinem Profil"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-editor-ai-drafting",
+    "en": "AI is drafting this chapter…",
+    "ru": "ИИ переводит эту главу…",
+    "de": "KI entwirft dieses Kapitel…"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-editor-ai-connect",
+    "en": "Connect an AI provider to draft translations",
+    "ru": "Подключите ИИ-провайдера для черновиков перевода",
+    "de": "Verbinde einen KI-Anbieter für Übersetzungsentwürfe"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-editor-ai-draft-chapter",
+    "en": "Draft this chapter with AI",
+    "ru": "Перевести главу с помощью ИИ",
+    "de": "Kapitel mit KI entwerfen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-editor-ai-draft-all",
+    "en": "Draft all empty chapters",
+    "ru": "Перевести все пустые главы",
+    "de": "Alle leeren Kapitel entwerfen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-editor-ai-failed",
+    "en": "Last AI draft failed:",
+    "ru": "Последний черновик ИИ не удался:",
+    "de": "Letzter KI-Entwurf fehlgeschlagen:"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-editor-ai-draft-note",
+    "en": "AI draft — review it against the original. This note disappears after your first edit.",
+    "ru": "Черновик ИИ — сверьте его с оригиналом. Эта пометка исчезнет после вашей первой правки.",
+    "de": "KI-Entwurf — prüfe ihn mit dem Original. Dieser Hinweis verschwindet nach deiner ersten Bearbeitung."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audio-ai-heading",
+    "en": "Or generate a narration with your AI",
+    "ru": "Или создайте озвучку с помощью вашего ИИ",
+    "de": "Oder erstelle eine Lesung mit deiner KI"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audio-ai-connect",
+    "en": "Connect a text-to-speech provider (OpenAI or ElevenLabs) in your profile",
+    "ru": "Подключите провайдера синтеза речи (OpenAI или ElevenLabs) в профиле",
+    "de": "Verbinde einen Text-to-Speech-Anbieter (OpenAI oder ElevenLabs) in deinem Profil"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audio-ai-generate",
+    "en": "Generate narration",
+    "ru": "Создать озвучку",
+    "de": "Lesung erzeugen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-audio-ai-note",
+    "en": "Uses the text chosen above and bills your own provider account. Labelled as an AI narration.",
+    "ru": "Используется выбранный выше текст, оплата идёт с вашего аккаунта у провайдера. Помечается как озвучка ИИ.",
+    "de": "Verwendet den oben gewählten Text und wird über dein eigenes Anbieterkonto abgerechnet. Als KI-Lesung gekennzeichnet."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-ai-cap-translate",
+    "en": "Translation drafts",
+    "ru": "Черновики переводов",
+    "de": "Übersetzungsentwürfe"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-ai-cap-tts",
+    "en": "Narration (text-to-speech)",
+    "ru": "Озвучка (синтез речи)",
+    "de": "Lesung (Text-to-Speech)"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-ai-last-used",
+    "en": "Last used",
+    "ru": "Последнее использование",
+    "de": "Zuletzt verwendet"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-ai-save",
+    "en": "Save",
+    "ru": "Сохранить",
+    "de": "Speichern"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-ai-test",
+    "en": "Test connection",
+    "ru": "Проверить подключение",
+    "de": "Verbindung testen"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-ai-add-heading",
+    "en": "Connect an AI provider",
+    "ru": "Подключить ИИ-провайдера",
+    "de": "KI-Anbieter verbinden"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-ai-add-btn",
+    "en": "Check key and connect",
+    "ru": "Проверить ключ и подключить",
+    "de": "Schlüssel prüfen und verbinden"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-ai-heading",
+    "en": "AI connections",
+    "ru": "Подключения ИИ",
+    "de": "KI-Verbindungen"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-ai-desc",
+    "en": "Connect your own AI accounts to draft translations and generate narrations. Crowdly uses your key only for the actions you start, and usage is billed by the provider to your account. Keys are stored encrypted and are never shown again.",
+    "ru": "Подключите свои аккаунты ИИ, чтобы создавать черновики переводов и озвучки. Crowdly использует ваш ключ только для запущенных вами действий, а оплату провайдер списывает с вашего аккаунта. Ключи хранятся в зашифрованном виде и больше не показываются.",
+    "de": "Verbinde deine eigenen KI-Konten, um Übersetzungen zu entwerfen und Lesungen zu erzeugen. Crowdly nutzt deinen Schlüssel nur für Aktionen, die du startest; die Nutzung rechnet der Anbieter über dein Konto ab. Schlüssel werden verschlüsselt gespeichert und nie wieder angezeigt."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-ai-not-configured",
+    "en": "AI connections aren't enabled on this server yet.",
+    "ru": "Подключения ИИ на этом сервере пока не включены.",
+    "de": "KI-Verbindungen sind auf diesem Server noch nicht aktiviert."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-ai-job-comic",
+    "en": "AI comic",
+    "ru": "Комикс ИИ",
+    "de": "KI-Comic"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-ai-job-video",
+    "en": "AI video",
+    "ru": "Видео ИИ",
+    "de": "KI-Video"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-comic-ai-heading",
+    "en": "Generate a comic with your AI",
+    "ru": "Создать комикс с помощью вашего ИИ",
+    "de": "Comic mit deiner KI erstellen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-comic-ai-no-text",
+    "en": "Write the chapter text first.",
+    "ru": "Сначала напишите текст главы.",
+    "de": "Schreibe zuerst den Kapiteltext."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-comic-ai-connect",
+    "en": "Needs a text AI (Claude, OpenAI…) and an image AI (OpenAI) — connect them in your profile",
+    "ru": "Нужны текстовый ИИ (Claude, OpenAI…) и ИИ для изображений (OpenAI) — подключите их в профиле",
+    "de": "Benötigt eine Text-KI (Claude, OpenAI…) und eine Bild-KI (OpenAI) — verbinde sie in deinem Profil"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-comic-ai-from",
+    "en": "From paragraph",
+    "ru": "С абзаца",
+    "de": "Ab Absatz"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-comic-ai-to",
+    "en": "To paragraph",
+    "ru": "По абзац",
+    "de": "Bis Absatz"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-comic-ai-frames",
+    "en": "Frames",
+    "ru": "Кадры",
+    "de": "Bilder"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-comic-ai-text-conn",
+    "en": "Script:",
+    "ru": "Сценарий:",
+    "de": "Skript:"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-comic-ai-image-conn",
+    "en": "Drawing:",
+    "ru": "Рисунки:",
+    "de": "Zeichnung:"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-comic-ai-generate",
+    "en": "Generate comic",
+    "ru": "Создать комикс",
+    "de": "Comic erstellen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-comic-ai-note",
+    "en": "Speech bubbles and captions are added as editable text, not drawn into the images. Uses your own provider accounts; each frame is one image request.",
+    "ru": "Реплики и подписи добавляются редактируемым текстом, а не рисуются на изображениях. Используются ваши аккаунты у провайдеров; каждый кадр — один запрос изображения.",
+    "de": "Sprechblasen und Bildunterschriften werden als bearbeitbarer Text hinzugefügt, nicht ins Bild gezeichnet. Nutzt deine eigenen Anbieterkonten; jedes Bild ist eine Bildanfrage."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-video-ai-heading",
+    "en": "Generate a video with your AI",
+    "ru": "Создать видео с помощью вашего ИИ",
+    "de": "Video mit deiner KI erstellen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-video-ai-experimental",
+    "en": "Experimental",
+    "ru": "Экспериментально",
+    "de": "Experimentell"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-video-ai-connect",
+    "en": "Connect a video AI (OpenAI) in your profile",
+    "ru": "Подключите видео-ИИ (OpenAI) в профиле",
+    "de": "Verbinde eine Video-KI (OpenAI) in deinem Profil"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-video-ai-length",
+    "en": "Length",
+    "ru": "Длительность",
+    "de": "Länge"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-video-ai-conn",
+    "en": "Using:",
+    "ru": "Через:",
+    "de": "Mit:"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-video-ai-generate",
+    "en": "Generate video",
+    "ru": "Создать видео",
+    "de": "Video erstellen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-video-ai-note",
+    "en": "Video generation can be expensive and takes minutes. The finished clip is stored on Crowdly (up to 200 MB).",
+    "ru": "Создание видео может быть дорогим и занимает минуты. Готовый ролик хранится на Crowdly (до 200 МБ).",
+    "de": "Videoerstellung kann teuer sein und dauert Minuten. Der fertige Clip wird auf Crowdly gespeichert (bis 200 MB)."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-ai-cap-text",
+    "en": "Text (translation drafts, comic scripts)",
+    "ru": "Текст (черновики переводов, сценарии комиксов)",
+    "de": "Text (Übersetzungsentwürfe, Comic-Skripte)"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-ai-cap-image",
+    "en": "Images (comic frames)",
+    "ru": "Изображения (кадры комиксов)",
+    "de": "Bilder (Comic-Bilder)"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-ai-cap-video",
+    "en": "Video (experimental)",
+    "ru": "Видео (экспериментально)",
+    "de": "Video (experimentell)"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-recorder-unsupported",
+    "en": "This browser can't record audio — upload a file instead.",
+    "ru": "Этот браузер не умеет записывать звук — загрузите файл.",
+    "de": "Dieser Browser kann kein Audio aufnehmen — lade stattdessen eine Datei hoch."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-recorder-heading",
+    "en": "Or record a quick take here",
+    "ru": "Или запишите дубль прямо здесь",
+    "de": "Oder nimm hier schnell eine Aufnahme auf"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-recorder-start",
+    "en": "Record",
+    "ru": "Записать",
+    "de": "Aufnehmen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-recorder-stop",
+    "en": "Stop",
+    "ru": "Стоп",
+    "de": "Stopp"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-recorder-upload",
+    "en": "Upload this take",
+    "ru": "Загрузить этот дубль",
+    "de": "Diese Aufnahme hochladen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-recorder-download",
+    "en": "Download",
+    "ru": "Скачать",
+    "de": "Herunterladen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-recorder-retake",
+    "en": "Re-take",
+    "ru": "Переписать",
+    "de": "Neu aufnehmen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-recorder-delete",
+    "en": "Delete take",
+    "ru": "Удалить дубль",
+    "de": "Aufnahme löschen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-video-file-formats",
+    "en": "MP4, WEBM or MOV, up to",
+    "ru": "MP4, WEBM или MOV, до",
+    "de": "MP4, WEBM oder MOV, bis"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-media-storage-cloud",
+    "en": "Stored in Crowdly's media storage; large files upload directly.",
+    "ru": "Хранится в медиахранилище Crowdly; большие файлы загружаются напрямую.",
+    "de": "Gespeichert im Medienspeicher von Crowdly; große Dateien werden direkt hochgeladen."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-sync-estimate",
+    "en": "Estimate from length",
+    "ru": "Оценить по длине",
+    "de": "Aus Länge schätzen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-settings-title",
+    "en": "Branch settings",
+    "ru": "Настройки ветки",
+    "de": "Zweig-Einstellungen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-settings-desc",
+    "en": "A branch is an alternative version of one paragraph. Readers can choose it when building an edition.",
+    "ru": "Ветка — это альтернативная версия одного абзаца. Читатели могут выбрать её, собирая редакцию.",
+    "de": "Ein Zweig ist eine alternative Fassung eines Absatzes. Leser können ihn beim Zusammenstellen einer Ausgabe wählen."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-original",
+    "en": "Original paragraph",
+    "ru": "Исходный абзац",
+    "de": "Ursprünglicher Absatz"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-name",
+    "en": "Name (optional)",
+    "ru": "Название (необязательно)",
+    "de": "Name (optional)"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-text",
+    "en": "Branch text",
+    "ru": "Текст ветки",
+    "de": "Text des Zweigs"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-text-hint",
+    "en": "Leave a blank line between paragraphs to split the branch into several paragraphs.",
+    "ru": "Оставьте пустую строку между абзацами, чтобы разделить ветку на несколько абзацев.",
+    "de": "Lass zwischen Absätzen eine Leerzeile, um den Zweig in mehrere Absätze zu teilen."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-language",
+    "en": "Language",
+    "ru": "Язык",
+    "de": "Sprache"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-note",
+    "en": "Note",
+    "ru": "Заметка",
+    "de": "Notiz"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-advanced",
+    "en": "Advanced: metadata (JSON)",
+    "ru": "Дополнительно: метаданные (JSON)",
+    "de": "Erweitert: Metadaten (JSON)"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-json-error",
+    "en": "This isn't a valid JSON object.",
+    "ru": "Это не корректный JSON-объект.",
+    "de": "Das ist kein gültiges JSON-Objekt."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-proposal-note",
+    "en": "Your text change is sent to the story owner as a proposal. Only the owner and the branch's author can change its name, language and note.",
+    "ru": "Ваше изменение текста отправляется владельцу истории как предложение. Название, язык и заметку могут менять только владелец и автор ветки.",
+    "de": "Deine Textänderung wird dem Besitzer der Geschichte als Vorschlag gesendet. Nur der Besitzer und der Autor des Zweigs können Name, Sprache und Notiz ändern."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-delete",
+    "en": "Delete branch",
+    "ru": "Удалить ветку",
+    "de": "Zweig löschen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-save",
+    "en": "Save",
+    "ru": "Сохранить",
+    "de": "Speichern"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-propose",
+    "en": "Propose change",
+    "ru": "Предложить изменение",
+    "de": "Änderung vorschlagen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-unnamed",
+    "en": "Unnamed branch",
+    "ru": "Ветка без названия",
+    "de": "Unbenannter Zweig"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-settings-btn",
+    "en": "Branch settings",
+    "ru": "Настройки ветки",
+    "de": "Zweig-Einstellungen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-branch-replaces",
+    "en": "Replaces:",
+    "ru": "Заменяет:",
+    "de": "Ersetzt:"
   }
 ]
