@@ -1,38 +1,290 @@
 [
   {
     "page_key": "/about-us",
-    "element_id": "admin-message",
-    "en": "You are logged in as platform admin",
-    "ru": "Вы вошли как администратор платформы",
-    "de": "Du bist als Plattform-Administrator angemeldet"
+    "element_id": "about-hero-label",
+    "en": "Every single story has more possibilities",
+    "ru": "У каждой истории есть больше возможностей",
+    "de": "Jede einzelne Geschichte hat mehr Möglichkeiten"
   },
   {
     "page_key": "/about-us",
-    "element_id": "main-title",
-    "en": "Crowd created entertainment",
-    "ru": "Развлечения, созданные сообществом",
-    "de": "Von der Community geschaffene Unterhaltung"
+    "element_id": "about-hero-title",
+    "en": "Entertainment doesn't have to end where its creator ended it.",
+    "ru": "Развлечение не обязано заканчиваться там, где его закончил автор.",
+    "de": "Unterhaltung muss nicht dort enden, wo ihr Schöpfer sie beendet hat."
   },
   {
     "page_key": "/about-us",
-    "element_id": "main-title2",
-    "en": "Entertainment Platform",
-    "ru": "Платформа развлечений",
-    "de": "Unterhaltungsplattform"
+    "element_id": "about-hero-intro",
+    "en": "Another ending. An unexpected perspective. A world you want to spend more time in. Crowdly begins with a simple question: what could a story become if more people could help it grow?",
+    "ru": "Другая концовка. Неожиданный взгляд. Мир, в котором хочется провести больше времени. Crowdly начинается с простого вопроса: чем могла бы стать история, если бы больше людей могли помочь ей расти?",
+    "de": "Ein anderes Ende. Eine unerwartete Perspektive. Eine Welt, in der du mehr Zeit verbringen möchtest. Crowdly beginnt mit einer einfachen Frage: Was könnte aus einer Geschichte werden, wenn mehr Menschen ihr beim Wachsen helfen könnten?"
   },
   {
     "page_key": "/about-us",
-    "element_id": "main-subtitle",
-    "en": "The entertainment platform where YOUR voice matters",
-    "ru": "Платформа развлечений, где важен именно ВАШ голос",
-    "de": "Die Unterhaltungsplattform, auf der DEINE Stimme zählt"
+    "element_id": "about-tagline",
+    "en": "where your entertainment (l)i(ve)s",
+    "ru": "там, где живёт ваше развлечение",
+    "de": "wo deine Unterhaltung (auf)lebt"
   },
   {
     "page_key": "/about-us",
-    "element_id": "feedback-message",
-    "en": "We value your feedback and ideas!",
-    "ru": "Мы ценим ваши отзывы и идеи!",
-    "de": "Wir schätzen dein Feedback und deine Ideen!"
+    "element_id": "about-meaning-1",
+    "en": "Where your entertainment",
+    "ru": "Где ваше развлечение",
+    "de": "Wo deine Unterhaltung"
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-meaning-lives",
+    "en": "lives",
+    "ru": "живёт",
+    "de": "lebt"
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-meaning-2",
+    "en": "Where your entertainment",
+    "ru": "Где ваше развлечение",
+    "de": "Wo deine Unterhaltung"
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-meaning-is",
+    "en": "is",
+    "ru": "находится",
+    "de": "ist"
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-toc-what",
+    "en": "What Crowdly is",
+    "ru": "Что такое Crowdly",
+    "de": "Was Crowdly ist"
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-toc-why",
+    "en": "Why it exists",
+    "ru": "Зачем он существует",
+    "de": "Warum es Crowdly gibt"
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-toc-branches",
+    "en": "More than one version",
+    "ru": "Больше одной версии",
+    "de": "Mehr als eine Version"
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-toc-participation",
+    "en": "Creating and experiencing",
+    "ru": "Создавать и переживать",
+    "de": "Erschaffen und erleben"
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-toc-ai",
+    "en": "AI as an assistant",
+    "ru": "ИИ как помощник",
+    "de": "KI als Assistent"
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-toc-future",
+    "en": "Today and tomorrow",
+    "ru": "Сегодня и завтра",
+    "de": "Heute und morgen"
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-what-title",
+    "en": "What Crowdly is",
+    "ru": "Что такое Crowdly",
+    "de": "Was Crowdly ist"
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-what-p1",
+    "en": "Crowdly is a platform for creating, experiencing and evolving stories together. We're bringing storytelling, entertainment and community into one place, with room for both individual voices and shared imagination.",
+    "ru": "Crowdly — это платформа, чтобы вместе создавать, переживать и развивать истории. Мы объединяем повествование, развлечения и сообщество в одном месте, где есть место и для индивидуальных голосов, и для общего воображения.",
+    "de": "Crowdly ist eine Plattform, um Geschichten gemeinsam zu erschaffen, zu erleben und weiterzuentwickeln. Wir bringen Storytelling, Unterhaltung und Community an einem Ort zusammen – mit Raum für einzelne Stimmen ebenso wie für gemeinsame Fantasie."
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-what-p2",
+    "en": "The vision reaches across text, illustrations, audio and video, and eventually into immersive experiences. A written scene might inspire an illustration; an illustration might suggest a new character; a voice might give that character a life of their own. Different forms of expression can become different ways into the same world.",
+    "ru": "Наше видение охватывает текст, иллюстрации, аудио и видео, а в перспективе и иммерсивные форматы. Написанная сцена может вдохновить иллюстрацию; иллюстрация может подсказать нового персонажа; голос может подарить этому персонажу собственную жизнь. Разные формы выражения становятся разными входами в один и тот же мир.",
+    "de": "Die Vision reicht über Text, Illustrationen, Audio und Video bis hin zu immersiven Erlebnissen. Eine geschriebene Szene kann eine Illustration inspirieren; eine Illustration kann eine neue Figur hervorbringen; eine Stimme kann dieser Figur ein eigenes Leben geben. Verschiedene Ausdrucksformen können zu verschiedenen Zugängen in dieselbe Welt werden."
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-what-p3",
+    "en": "Come for something to read, watch or listen to. Stay for the people and possibilities you discover. And if an idea takes hold, there should be a natural path from enjoying a story to creating something yourself.",
+    "ru": "Приходите за тем, что можно почитать, посмотреть или послушать. Оставайтесь ради людей и возможностей, которые откроете. А если вас захватит идея, путь от удовольствия от истории к собственному творчеству должен быть естественным.",
+    "de": "Komm wegen etwas zum Lesen, Ansehen oder Anhören. Bleib wegen der Menschen und Möglichkeiten, die du entdeckst. Und wenn dich eine Idee packt, sollte es einen natürlichen Weg geben – vom Genießen einer Geschichte zum eigenen Erschaffen."
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-why-title",
+    "en": "Why it exists",
+    "ru": "Зачем он существует",
+    "de": "Warum es Crowdly gibt"
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-why-p1",
+    "en": "Stories stay with us after the final page or closing scene. We wonder what happened next, imagine a different choice, or find ourselves more interested in a supporting character than the hero. That curiosity is a starting point for creativity.",
+    "ru": "Истории остаются с нами и после последней страницы или финальной сцены. Мы гадаем, что было дальше, представляем другой выбор или вдруг понимаем, что второстепенный персонаж интересует нас больше, чем главный герой. Это любопытство — отправная точка для творчества.",
+    "de": "Geschichten bleiben bei uns, auch nach der letzten Seite oder der Schlussszene. Wir fragen uns, was als Nächstes geschah, stellen uns eine andere Entscheidung vor oder merken, dass uns eine Nebenfigur mehr interessiert als der Held. Diese Neugier ist ein Ausgangspunkt für Kreativität."
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-why-p2",
+    "en": "Crowdly exists to give it somewhere to go. We want to make it easier to develop an idea, share it and find people who see possibilities in it too. A conversation about a story can become the beginning of another story.",
+    "ru": "Crowdly существует, чтобы дать этому любопытству выход. Мы хотим упростить развитие идеи, возможность ею поделиться и найти людей, которые тоже видят в ней потенциал. Разговор об истории может стать началом новой истории.",
+    "de": "Crowdly gibt es, damit diese Neugier einen Ort findet. Wir möchten es leichter machen, eine Idee zu entwickeln, sie zu teilen und Menschen zu finden, die ebenfalls Möglichkeiten darin sehen. Ein Gespräch über eine Geschichte kann der Anfang einer weiteren Geschichte werden."
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-why-p3",
+    "en": "That means making creative tools approachable. You should be able to begin with a thought and a blank page, then find more depth as your project grows. The ambition is to spend less energy managing the process and more energy making something that matters to you.",
+    "ru": "Это значит — делать творческие инструменты доступными. Вы должны иметь возможность начать с одной мысли и чистого листа, а по мере роста проекта открывать всё больше глубины. Наша цель — чтобы вы тратили меньше сил на управление процессом и больше на создание того, что для вас важно.",
+    "de": "Das bedeutet, kreative Werkzeuge zugänglich zu machen. Du solltest mit einem Gedanken und einer leeren Seite beginnen können und mehr Tiefe finden, wenn dein Projekt wächst. Das Ziel: weniger Energie für die Verwaltung des Prozesses, mehr Energie für etwas, das dir wichtig ist."
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-branches-title",
+    "en": "Stories don't have to have only one version",
+    "ru": "У историй не обязательно должна быть только одна версия",
+    "de": "Geschichten müssen nicht nur eine Version haben"
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-branches-p1",
+    "en": "Imagine a character standing at a crossroads. In one telling, they go home. In another, they open the letter they've been carrying for years. Both choices could lead somewhere worth exploring.",
+    "ru": "Представьте персонажа на распутье. В одной версии он возвращается домой. В другой — открывает письмо, которое носил с собой много лет. Оба выбора могут привести туда, куда стоит заглянуть.",
+    "de": "Stell dir eine Figur an einer Weggabelung vor. In einer Fassung geht sie nach Hause. In einer anderen öffnet sie den Brief, den sie seit Jahren bei sich trägt. Beide Entscheidungen könnten irgendwohin führen, das es wert ist, erkundet zu werden."
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-branches-p2",
+    "en": "Branching is central to Crowdly's vision: a story can take a new direction without erasing the one that came before it. A branch might continue an unfinished adventure, follow another character or ask what would happen if a single decision changed. Someone else might then find a new possibility in that branch.",
+    "ru": "Ветвление — центральная идея Crowdly: история может пойти в новом направлении, не стирая предыдущего. Ветка может продолжить незавершённое приключение, последовать за другим персонажем или задаться вопросом, что было бы, если бы изменилось одно-единственное решение. А кто-то другой может найти в этой ветке новую возможность.",
+    "de": "Verzweigungen stehen im Mittelpunkt von Crowdlys Vision: Eine Geschichte kann eine neue Richtung einschlagen, ohne die vorherige auszulöschen. Ein Zweig kann ein unvollendetes Abenteuer fortsetzen, einer anderen Figur folgen oder fragen, was passiert wäre, wenn sich eine einzige Entscheidung geändert hätte. Jemand anderes findet in diesem Zweig dann vielleicht eine neue Möglichkeit."
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-branches-p3",
+    "en": "Versioning brings another kind of freedom: room to develop a telling over time. Together, versions and branches offer a way to think about stories as living creative work, with a history and more than one possible future.",
+    "ru": "Версионирование даёт свободу иного рода: возможность развивать повествование со временем. Вместе версии и ветки позволяют смотреть на истории как на живое творческое произведение — с историей и не одним возможным будущим.",
+    "de": "Versionierung bringt eine andere Art von Freiheit: Raum, eine Erzählung mit der Zeit weiterzuentwickeln. Zusammen ermöglichen Versionen und Zweige, Geschichten als lebendige kreative Werke zu begreifen – mit einer Vergangenheit und mehr als einer möglichen Zukunft."
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-branches-callout",
+    "en": "An ending can be satisfying. It can also be an invitation.",
+    "ru": "Финал может приносить удовлетворение. А может быть и приглашением.",
+    "de": "Ein Ende kann erfüllend sein. Es kann auch eine Einladung sein."
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-participation-title",
+    "en": "Creating and experiencing are two sides of the same platform",
+    "ru": "Создавать и переживать — две стороны одной платформы",
+    "de": "Erschaffen und Erleben sind zwei Seiten derselben Plattform"
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-participation-p1",
+    "en": "Some days you want to make something. Other days you want to get lost in something someone else has made. Crowdly is being shaped around both experiences, and the connections between them.",
+    "ru": "В какие-то дни хочется что-то создать. В другие — погрузиться в то, что создал кто-то другой. Crowdly строится вокруг обоих этих опытов и связей между ними.",
+    "de": "An manchen Tagen willst du etwas erschaffen. An anderen willst du dich in etwas verlieren, das jemand anderes geschaffen hat. Crowdly wird rund um beide Erfahrungen gestaltet – und um die Verbindungen zwischen ihnen."
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-participation-p2",
+    "en": "For creators, the aim is a welcoming place to develop work, explore alternatives and share it with an audience. For readers, listeners and viewers, it's a place to discover worlds, follow the versions that interest them and join the conversation around them.",
+    "ru": "Для авторов цель — гостеприимное место, где можно развивать работу, исследовать альтернативы и делиться ею с аудиторией. Для читателей, слушателей и зрителей — место, где можно открывать миры, следить за интересными им версиями и участвовать в обсуждении.",
+    "de": "Für Schaffende soll es ein einladender Ort sein, um Werke zu entwickeln, Alternativen zu erkunden und sie mit einem Publikum zu teilen. Für Lesende, Hörende und Zuschauende ist es ein Ort, um Welten zu entdecken, den Versionen zu folgen, die sie interessieren, und sich am Gespräch darüber zu beteiligen."
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-participation-p3",
+    "en": "You don't need to become a creator to belong. Enjoying a story is enough. But a thoughtful response, a question or an unexpected interpretation can mean a great deal to the person making it. We want those encounters to feel like a natural part of the experience.",
+    "ru": "Не нужно становиться автором, чтобы быть частью сообщества. Достаточно наслаждаться историей. Но вдумчивый отклик, вопрос или неожиданная интерпретация могут многое значить для того, кто её создаёт. Мы хотим, чтобы такие встречи были естественной частью опыта.",
+    "de": "Du musst nicht selbst erschaffen, um dazuzugehören. Eine Geschichte zu genießen, reicht völlig. Aber eine durchdachte Rückmeldung, eine Frage oder eine unerwartete Deutung kann der Person, die sie erschafft, viel bedeuten. Wir möchten, dass sich solche Begegnungen wie ein natürlicher Teil des Erlebnisses anfühlen."
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-ai-title",
+    "en": "AI is an assistant, not the point",
+    "ru": "ИИ — помощник, а не суть",
+    "de": "KI ist ein Assistent, nicht der Kern"
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-ai-p1",
+    "en": "The point of Crowdly is what people imagine, create and enjoy together. AI assistance belongs in that picture when it helps someone express an idea, and its use is optional.",
+    "ru": "Суть Crowdly — в том, что люди вместе придумывают, создают и чем наслаждаются. Помощь ИИ уместна в этой картине, когда она помогает кому-то выразить идею, и её использование необязательно.",
+    "de": "Im Kern geht es bei Crowdly um das, was Menschen gemeinsam erträumen, erschaffen und genießen. KI-Unterstützung gehört dann ins Bild, wenn sie jemandem hilft, eine Idee auszudrücken – und ihre Nutzung ist freiwillig."
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-ai-p2",
+    "en": "Our approach is to let you decide whether assistance belongs in your process. You might want help considering alternatives or working through a rough idea. You might prefer to shape every sentence and detail yourself. Both approaches should feel at home here.",
+    "ru": "Наш подход — дать вам решать, нужна ли помощь в вашем процессе. Возможно, вам захочется помощи, чтобы рассмотреть альтернативы или проработать сырую идею. А возможно, вы предпочтёте сами выстраивать каждое предложение и каждую деталь. Здесь должно быть комфортно при любом подходе.",
+    "de": "Unser Ansatz: Du entscheidest, ob Unterstützung in deinen Prozess gehört. Vielleicht möchtest du Hilfe dabei, Alternativen abzuwägen oder eine grobe Idee auszuarbeiten. Vielleicht gestaltest du lieber jeden Satz und jedes Detail selbst. Beide Wege sollen sich hier zu Hause fühlen."
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-ai-p3",
+    "en": "The creative decisions remain yours: what you want to say, what feels right and what deserves to be shared. The value of a story comes from the experience it offers and the connection it makes.",
+    "ru": "Творческие решения остаются за вами: что вы хотите сказать, что ощущается правильным и чем стоит поделиться. Ценность истории — в опыте, который она дарит, и в связи, которую она создаёт.",
+    "de": "Die kreativen Entscheidungen bleiben deine: was du sagen willst, was sich richtig anfühlt und was es verdient, geteilt zu werden. Der Wert einer Geschichte liegt im Erlebnis, das sie bietet, und in der Verbindung, die sie schafft."
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-future-status",
+    "en": "In development · Alpha stage",
+    "ru": "В разработке · Альфа-версия",
+    "de": "In Entwicklung · Alpha-Phase"
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-future-title",
+    "en": "Where Crowdly is today and where it is going",
+    "ru": "Где Crowdly сегодня и куда он движется",
+    "de": "Wo Crowdly heute steht und wohin es geht"
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-future-p1",
+    "en": "Crowdly is still taking shape. The project is in its alpha stage, and the full experience described here is the direction we're building toward. There is meaningful work ahead across the platform and its apps.",
+    "ru": "Crowdly всё ещё обретает форму. Проект находится на стадии альфа-версии, и всё описанное здесь — это направление, в котором мы движемся. Впереди значительная работа над платформой и её приложениями.",
+    "de": "Crowdly nimmt noch Gestalt an. Das Projekt befindet sich in der Alpha-Phase, und das hier beschriebene Gesamterlebnis ist die Richtung, in die wir bauen. Vor uns liegt noch viel wichtige Arbeit an der Plattform und ihren Apps."
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-future-p2",
+    "en": "For the creation experience, we're drawing inspiration from the focus and depth of tools such as Scrivener and Ulysses. Our goal is to make substantial writing projects easier to handle, with less complexity around preparing and bringing the work together.",
+    "ru": "В инструментах для творчества мы вдохновляемся сосредоточенностью и глубиной таких программ, как Scrivener и Ulysses. Наша цель — облегчить работу над крупными литературными проектами, сократив сложности подготовки и сведения материала воедино.",
+    "de": "Für das Schreiberlebnis lassen wir uns vom Fokus und der Tiefe von Werkzeugen wie Scrivener und Ulysses inspirieren. Unser Ziel ist es, umfangreiche Schreibprojekte leichter handhabbar zu machen – mit weniger Aufwand beim Vorbereiten und Zusammenführen der Arbeit."
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-future-p3",
+    "en": "The longer-term vision connects those creation tools with branching stories, community discussion and more ways to experience a world across different media. We want each step to make Crowdly more useful for the people creating and enjoying stories now, while opening possibilities for what comes next.",
+    "ru": "Долгосрочное видение объединяет эти инструменты с ветвящимися историями, обсуждениями в сообществе и новыми способами переживать мир в разных медиа. Мы хотим, чтобы каждый шаг делал Crowdly полезнее для тех, кто создаёт истории и наслаждается ими уже сейчас, и одновременно открывал возможности для будущего.",
+    "de": "Die langfristige Vision verbindet diese Werkzeuge mit verzweigten Geschichten, Community-Diskussionen und weiteren Möglichkeiten, eine Welt über verschiedene Medien hinweg zu erleben. Jeder Schritt soll Crowdly für die Menschen, die heute Geschichten erschaffen und genießen, nützlicher machen – und zugleich Möglichkeiten für das Kommende eröffnen."
+  },
+  {
+    "page_key": "/about-us",
+    "element_id": "about-future-p4",
+    "en": "If that future interests you, explore Crowdly or follow the project as it develops. There is still much to build, and plenty of room for imagination.",
+    "ru": "Если такое будущее вам интересно, исследуйте Crowdly или следите за развитием проекта. Предстоит построить ещё многое, и простора для воображения предостаточно.",
+    "de": "Wenn dich diese Zukunft interessiert, erkunde Crowdly oder verfolge, wie sich das Projekt entwickelt. Es gibt noch viel zu bauen – und reichlich Raum für Fantasie."
   },
   {
     "page_key": "/account-administration",
@@ -6632,7 +6884,7 @@
     "page_key": "/__layout__",
     "element_id": "header-title",
     "en": "Crowdly where YOUR entertainment (l)i(ve)s",
-    "ru": "Crowdly — там, где ЖИВЁТ ВАШЕ развлечение",
+    "ru": "Crowdly — там, где живёт ВАШЕ развлечение",
     "de": "Crowdly — wo DEINE Unterhaltung (auf)lebt"
   },
   {
