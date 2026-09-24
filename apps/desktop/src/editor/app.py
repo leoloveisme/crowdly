@@ -71,6 +71,17 @@ def main(argv: list[str] | None = None) -> None:
         ``.md`` files). If omitted, :data:`sys.argv` is used.
     """
 
+    # Verify HTTPS through the OS trust store (macOS Keychain). The bundled
+    # OpenSSL in the PyInstaller .app has no CA file of its own, so without
+    # this every urllib call (Google OAuth/Drive, web sync) fails with
+    # CERTIFICATE_VERIFY_FAILED.
+    try:
+        import truststore
+
+        truststore.inject_into_ssl()
+    except Exception:
+        pass
+
     if argv is None:
         # Skip the program name; only treat the remaining entries as
         # user-supplied arguments (typically file paths on Linux desktop

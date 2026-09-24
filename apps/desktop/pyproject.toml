@@ -19,6 +19,7 @@ dependencies = [
     "markdownify",
     "keyring",
     "merge3",
+    "truststore",
 ]
 
 [tool.setuptools]
