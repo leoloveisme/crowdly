@@ -673,6 +673,14 @@ Details: {error}</source>
         <source>Recent Google Drive sync activity:</source>
         <translation>Недавняя активность синхронизации с Google Диском:</translation>
     </message>
+    <message>
+        <source>Google Drive access wasn&apos;t granted. Please connect again and, on Google&apos;s permission screen, tick the box &quot;See, edit, create, and delete all of your Google Drive files&quot;.</source>
+        <translation>Доступ к Google Диску не был предоставлен. Подключитесь снова и на экране разрешений Google отметьте пункт «Просмотр, редактирование, создание и удаление всех ваших файлов на Google Диске».</translation>
+    </message>
+    <message>
+        <source>Your Google sign-in doesn&apos;t include Drive access yet. Your browser will open again: on Google&apos;s permission screen, tick the box &quot;See, edit, create, and delete all of your Google Drive files&quot;.</source>
+        <translation>Ваш вход в Google пока не включает доступ к Диску. Браузер откроется снова: на экране разрешений Google отметьте пункт «Просмотр, редактирование, создание и удаление всех ваших файлов на Google Диске».</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>

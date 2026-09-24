@@ -577,6 +577,14 @@ Details: {error}</translation>
         <source>Recent Google Drive sync activity:</source>
         <translation>最近的 Google 云端硬盘同步活动：</translation>
     </message>
+    <message>
+        <source>Google Drive access wasn&apos;t granted. Please connect again and, on Google&apos;s permission screen, tick the box &quot;See, edit, create, and delete all of your Google Drive files&quot;.</source>
+        <translation>未授予 Google 云端硬盘访问权限。请重新连接，并在 Google 权限页面勾选“查看、修改、创建和删除您的所有 Google 云端硬盘文件”。</translation>
+    </message>
+    <message>
+        <source>Your Google sign-in doesn&apos;t include Drive access yet. Your browser will open again: on Google&apos;s permission screen, tick the box &quot;See, edit, create, and delete all of your Google Drive files&quot;.</source>
+        <translation>您的 Google 登录尚未包含云端硬盘访问权限。浏览器将再次打开：请在 Google 权限页面勾选“查看、修改、创建和删除您的所有 Google 云端硬盘文件”。</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>

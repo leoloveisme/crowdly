@@ -6545,6 +6545,11 @@ app.get('/api/google-drive/oauth/callback', async (req, res) => {
     if (!spaceRes.rows[0] || String(spaceRes.rows[0].user_id) !== userId) return backToSpace('error');
 
     const tokens = await exchangeCodeForTokens(code);
+    // Google's consent screen lets users untick individual permissions;
+    // without Drive access every Drive call would fail with 403.
+    if (!String(tokens.scope || '').split(' ').includes('https://www.googleapis.com/auth/drive')) {
+      return backToSpace('missing-scope');
+    }
     const email = await fetchUserEmail(tokens.access_token);
     const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
 

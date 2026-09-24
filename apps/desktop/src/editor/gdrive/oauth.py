@@ -34,7 +34,8 @@ AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
 # Full `drive` scope so an existing folder (and its subfolders) can be picked.
-SCOPES = "https://www.googleapis.com/auth/drive openid email"
+DRIVE_SCOPE = "https://www.googleapis.com/auth/drive"
+SCOPES = f"{DRIVE_SCOPE} openid email"
 
 CLIENT_CONFIG_PATH = Path(__file__).resolve().parent.parent / "google_oauth_client.json"
 
@@ -47,6 +48,10 @@ _SUCCESS_PAGE = """<!doctype html><html><head><meta charset="utf-8"><title>Crowd
 
 class OAuthError(RuntimeError):
     pass
+
+
+class MissingDriveScope(OAuthError):
+    """Signed in, but the Drive permission wasn't granted on Google's consent screen."""
 
 
 @dataclass
@@ -205,6 +210,10 @@ def sign_in(client: ClientConfig, cancelled: Callable[[], bool] = lambda: False)
         },
     )
     access_token = data["access_token"]
+    # Google's consent screen lets the user untick individual permissions;
+    # without the Drive one every Drive call fails with 403, so refuse early.
+    if DRIVE_SCOPE not in (data.get("scope") or "").split():
+        raise MissingDriveScope("missing_drive_scope")
     return TokenSet(
         access_token=access_token,
         refresh_token=data.get("refresh_token"),

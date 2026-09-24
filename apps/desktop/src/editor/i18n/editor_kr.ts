@@ -577,6 +577,14 @@ Details: {error}</translation>
         <source>Recent Google Drive sync activity:</source>
         <translation>최근 Google 드라이브 동기화 활동:</translation>
     </message>
+    <message>
+        <source>Google Drive access wasn&apos;t granted. Please connect again and, on Google&apos;s permission screen, tick the box &quot;See, edit, create, and delete all of your Google Drive files&quot;.</source>
+        <translation>Google 드라이브 접근 권한이 부여되지 않았습니다. 다시 연결하고 Google 권한 화면에서 &quot;모든 Google 드라이브 파일 보기, 수정, 생성, 삭제&quot; 항목을 선택하세요.</translation>
+    </message>
+    <message>
+        <source>Your Google sign-in doesn&apos;t include Drive access yet. Your browser will open again: on Google&apos;s permission screen, tick the box &quot;See, edit, create, and delete all of your Google Drive files&quot;.</source>
+        <translation>Google 로그인에 아직 드라이브 접근 권한이 없습니다. 브라우저가 다시 열리면 Google 권한 화면에서 &quot;모든 Google 드라이브 파일 보기, 수정, 생성, 삭제&quot; 항목을 선택하세요.</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>

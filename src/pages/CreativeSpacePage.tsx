@@ -614,7 +614,7 @@ const CreativeSpacePage: React.FC = () => {
   useEffect(() => {
     if (!spaceId || !isOwner) return;
     const driveParam = searchParams.get("drive");
-    if (driveParam !== "choose-folder" && driveParam !== "error") return;
+    if (driveParam !== "choose-folder" && driveParam !== "error" && driveParam !== "missing-scope") return;
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -623,6 +623,12 @@ const CreativeSpacePage: React.FC = () => {
       },
       { replace: true },
     );
+    if (driveParam === "missing-scope") {
+      setError(
+        "Google Drive access wasn't granted. Please connect again and tick the box \"See, edit, create, and delete all of your Google Drive files\" on Google's permission screen.",
+      );
+      return;
+    }
     if (driveParam === "error") {
       setError("Connecting Google Drive didn't complete. Please try again.");
       return;

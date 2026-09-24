@@ -4384,7 +4384,17 @@ class MainWindow(QMainWindow):
         def _finished_error(message: str) -> None:
             progress.close()
             self._gdrive_signin_thread = None
-            if message != "cancelled":
+            if message == "missing_drive_scope":
+                QMessageBox.warning(
+                    self,
+                    self.tr("Connect Google Drive"),
+                    self.tr(
+                        "Google Drive access wasn't granted. Please connect again and, on Google's "
+                        "permission screen, tick the box \"See, edit, create, and delete all of your "
+                        "Google Drive files\"."
+                    ),
+                )
+            elif message != "cancelled":
                 QMessageBox.warning(
                     self,
                     self.tr("Connect Google Drive"),
@@ -4417,6 +4427,29 @@ class MainWindow(QMainWindow):
 
     def _choose_gdrive_folder(self, project_space: Path) -> None:
         from .gdrive_folder_dialog import GoogleDriveFolderDialog
+        from ..gdrive.api import DriveError
+
+        # A sign-in stored earlier may lack Drive permission (unticked on
+        # Google's consent screen): detect that up front, forget it, and
+        # start a fresh sign-in instead of failing inside the folder picker.
+        try:
+            self._gdrive_client.list_child_folders("root")
+        except DriveError as exc:
+            if exc.missing_scope:
+                self._gdrive_account.sign_out()
+                QMessageBox.information(
+                    self,
+                    self.tr("Connect Google Drive"),
+                    self.tr(
+                        "Your Google sign-in doesn't include Drive access yet. Your browser will open again: "
+                        "on Google's permission screen, tick the box \"See, edit, create, and delete all of "
+                        "your Google Drive files\"."
+                    ),
+                )
+                self._ensure_gdrive_signed_in(lambda: self._choose_gdrive_folder(project_space))
+                return
+        except Exception:
+            pass  # the dialog reports other problems itself
 
         dialog = GoogleDriveFolderDialog(
             self._gdrive_client,

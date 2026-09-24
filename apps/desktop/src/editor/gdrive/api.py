@@ -21,9 +21,16 @@ FOLDER_MIME = "application/vnd.google-apps.folder"
 
 
 class DriveError(RuntimeError):
-    def __init__(self, message: str, status: int | None = None) -> None:
+    def __init__(self, message: str, status: int | None = None, reason: str | None = None) -> None:
         super().__init__(message)
         self.status = status
+        self.reason = reason
+
+    @property
+    def missing_scope(self) -> bool:
+        """The signed-in token lacks Drive permission (e.g. its consent checkbox was left unticked)."""
+
+        return self.status == 403 and self.reason in ("ACCESS_TOKEN_SCOPE_INSUFFICIENT", "insufficientPermissions")
 
 
 @dataclass
@@ -75,8 +82,18 @@ class DriveClient:
             with urlopen(req, timeout=60) as resp:
                 data = resp.read()
         except HTTPError as exc:
-            detail = exc.read().decode("utf-8", "replace")[:500]
-            raise DriveError(f"Google Drive request failed (HTTP {exc.code}): {detail}", exc.code) from exc
+            raw = exc.read().decode("utf-8", "replace")
+            message, reason = raw[:300], None
+            try:
+                err = json.loads(raw).get("error", {})
+                message = err.get("message") or message
+                details = err.get("details") or []
+                reason = next((d.get("reason") for d in details if d.get("reason")), None) or next(
+                    (e.get("reason") for e in err.get("errors") or [] if e.get("reason")), None
+                )
+            except (ValueError, AttributeError):
+                pass
+            raise DriveError(f"Google Drive request failed (HTTP {exc.code}): {message}", exc.code, reason) from exc
         except OSError as exc:
             raise DriveError(f"Could not reach Google Drive: {exc}") from exc
         if raw:
