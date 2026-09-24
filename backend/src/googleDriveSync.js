@@ -11,11 +11,14 @@
 // md5Checksum we last pulled or pushed for that item — same role as
 // github_blob_sha in githubSync.js.
 //
-// Scope: flat, non-recursive. Only items directly at the Space's root
-// (relative_path with no "/") are matched against the connected folder's
-// direct children — a Drive folder's subfolders aren't synced in Phase 1.
-// Same kind of accepted simplification as GitHub Phase 1 not handling giant
-// repos.
+// Scope: recursive. The connected folder and all its subfolders map onto the
+// Space's items by relative path ("Chapter 1/notes.md"); files are paired by
+// Drive file id first (so renames/moves are followed), then by path. When
+// both sides changed a text file since the last sync, it gets a line-based
+// three-way merge against google_drive_base_content (the last agreed
+// version); overlapping edits or binary files keep the Crowdly version and
+// save Drive's as a "(conflict from Google Drive ...)" copy next to it.
+// Deletes propagate only when the other side hadn't changed the file.
 //
 // Account vs. Space scoping: a Google Drive OAuth connection
 // (google_drive_accounts) is per Crowdly user, reusable across all of that
@@ -32,7 +35,11 @@ import {
   encryptToken,
   decryptToken,
   refreshAccessToken,
-  listFilesInFolder,
+  listFolderTree,
+  listChildFolders,
+  createFolder,
+  moveFile,
+  trashFile,
   getStartPageToken,
   listChangesSince,
   getFileMeta,
@@ -40,6 +47,7 @@ import {
   putFileContent,
   watchChanges,
 } from './googleDriveApp.js';
+import { merge as mergeLines } from 'node-diff3';
 import { storeItemContent, guessMimeType, CREATIVE_SPACE_FILES_ROOT } from './creativeSpaceFiles.js';
 
 export async function ensureGoogleDriveSyncTables() {
@@ -136,69 +144,458 @@ export async function getValidDriveAccessToken(accountId) {
   return getValidAccessToken(account);
 }
 
-// --- Pull path (Drive -> Crowdly) -----------------------------------------
+// --- Sync core (shared by full sync and single-item push) ------------------
 
-async function pullFolderContents(space, token) {
-  const itemsRes = await pool.query(
-    "SELECT * FROM creative_space_items WHERE space_id = $1 AND deleted = false AND kind = 'file' AND relative_path NOT LIKE '%/%'",
-    [space.id],
-  );
-  const itemsByName = new Map(itemsRes.rows.map((item) => [item.name, item]));
+const MERGE_MAX_BYTES = 2 * 1024 * 1024;
+const SYNC_ACTOR = 'google-drive-sync';
 
-  const files = await listFilesInFolder({ token, folderId: space.google_drive_folder_id });
-  let pulled = 0;
-
-  for (const file of files) {
-    const item = itemsByName.get(file.name);
-    if (!item) continue; // not a file we track for this Space — same "don't invent items" rule GitHub's pull follows.
-    if (item.google_drive_md5 && file.md5Checksum && item.google_drive_md5 === file.md5Checksum) continue;
-
-    try {
-      const buffer = await getFileContent({ token, fileId: file.id });
-      await storeItemContent({
-        spaceId: space.id,
-        itemId: item.id,
-        buffer,
-        mimeType: item.mime_type || guessMimeType(item.name),
-        updatedBy: 'google-drive-sync',
-      });
-      await pool.query(
-        'UPDATE creative_space_items SET google_drive_file_id = $1, google_drive_md5 = $2 WHERE id = $3',
-        [file.id, file.md5Checksum || null, item.id],
-      );
-      pulled += 1;
-      await logSync(space.id, 'pull', 'info', `Pulled ${file.name} from Google Drive`, file.name);
-    } catch (err) {
-      console.error('[googleDriveSync] pull failed for', file.name, err);
-      await logSync(space.id, 'pull', 'error', `Failed to pull ${file.name}: ${err.message}`, file.name);
-    }
-  }
-
-  await pool.query('UPDATE creative_spaces SET google_drive_last_synced_at = now() WHERE id = $1', [space.id]);
-  return { pulled };
+function md5(buffer) {
+  return crypto.createHash('md5').update(buffer).digest('hex');
 }
 
-/** Entry point for both the poll loop and the webhook handler. */
-export async function runSpaceDriveSync(spaceId) {
-  const { rows } = await pool.query('SELECT * FROM creative_spaces WHERE id = $1', [spaceId]);
-  const space = rows[0];
-  if (!space) return { skipped: true, reason: 'not_found' };
-  if (!space.google_drive_sync_enabled || !space.google_drive_account_id || !space.google_drive_folder_id) {
-    return { skipped: true, reason: 'not_connected' };
-  }
+/** Small, valid-UTF-8, NUL-free content is treated as text and gets a three-way merge; anything else is binary (conflict copy instead). */
+function isMergeableText(buffer) {
+  if (!buffer || buffer.length > MERGE_MAX_BYTES) return false;
+  if (buffer.subarray(0, 8192).includes(0)) return false;
+  return Buffer.from(buffer.toString('utf8'), 'utf8').equals(buffer);
+}
 
+function baseContentFor(buffer) {
+  return isMergeableText(buffer) ? buffer : null;
+}
+
+/** Line-based three-way merge. Returns the merged Buffer, or null when both sides changed the same lines. */
+function threeWayMerge(ours, base, theirs) {
+  const result = mergeLines(ours.toString('utf8').split('\n'), base.toString('utf8').split('\n'), theirs.toString('utf8').split('\n'));
+  if (result.conflict) return null;
+  return Buffer.from(result.result.join('\n'), 'utf8');
+}
+
+function readItemContent(item) {
+  if (!item?.storage_path) return null;
+  try {
+    return fs.readFileSync(path.join(CREATIVE_SPACE_FILES_ROOT, item.storage_path));
+  } catch {
+    return null;
+  }
+}
+
+function splitPath(relPath) {
+  const idx = relPath.lastIndexOf('/');
+  return idx === -1 ? { parent: '', name: relPath } : { parent: relPath.slice(0, idx), name: relPath.slice(idx + 1) };
+}
+
+/** Per-Space serialization so the poll loop, webhook, "Sync now" and edit-triggered pushes never interleave on the same Space. */
+const spaceLocks = new Map();
+function withSpaceLock(spaceId, fn) {
+  const previous = spaceLocks.get(spaceId) || Promise.resolve();
+  const run = previous.catch(() => {}).then(fn);
+  const tail = run.catch(() => {});
+  spaceLocks.set(spaceId, tail);
+  tail.then(() => {
+    if (spaceLocks.get(spaceId) === tail) spaceLocks.delete(spaceId);
+  });
+  return run;
+}
+
+async function loadSyncContext(space) {
   const accountRes = await pool.query('SELECT * FROM google_drive_accounts WHERE id = $1', [space.google_drive_account_id]);
   const account = accountRes.rows[0];
-  if (!account) return { skipped: true, reason: 'account_missing' };
-
-  try {
-    const token = await getValidAccessToken(account);
-    return await pullFolderContents(space, token);
-  } catch (err) {
-    console.error('[googleDriveSync] sync failed for space', spaceId, err);
-    await logSync(spaceId, 'pull', 'error', `Sync failed: ${err.message}`);
-    throw err;
+  if (!account) return null;
+  const token = await getValidAccessToken(account);
+  const folderIdsByPath = new Map([['', space.google_drive_folder_id]]);
+  for (const [id, relPath] of Object.entries(space.google_drive_folder_ids || {})) {
+    if (relPath) folderIdsByPath.set(relPath, id);
   }
+  return {
+    space,
+    token,
+    folderIdsByPath,
+    stats: { pulled: 0, pushed: 0, merged: 0, conflicts: 0, deleted: 0, moved: 0 },
+  };
+}
+
+/** Drive folder id for `relPath` under the Space's root, creating missing folders along the way (reusing an existing same-named folder rather than duplicating it). */
+async function ensureDriveFolder(ctx, relPath) {
+  if (ctx.folderIdsByPath.has(relPath)) return ctx.folderIdsByPath.get(relPath);
+  const { parent, name } = splitPath(relPath);
+  const parentId = await ensureDriveFolder(ctx, parent);
+  const existing = (await listChildFolders({ token: ctx.token, parentId })).find((f) => f.name === name);
+  const folder = existing || (await createFolder({ token: ctx.token, parentId, name }));
+  ctx.folderIdsByPath.set(relPath, folder.id);
+  return folder.id;
+}
+
+/** Crowdly folder item for `relPath` (and its ancestors), creating or undeleting as needed. */
+async function ensureLocalFolder(ctx, relPath, driveFolderId = null) {
+  if (!relPath) return;
+  const { parent, name } = splitPath(relPath);
+  await ensureLocalFolder(ctx, parent);
+  await pool.query(
+    `INSERT INTO creative_space_items (space_id, relative_path, name, kind, visibility, published, updated_by, google_drive_file_id)
+     VALUES ($1, $2, $3, 'folder', $4, false, $5, $6)
+     ON CONFLICT (space_id, relative_path) DO UPDATE
+     SET deleted = false,
+         kind = 'folder',
+         google_drive_file_id = COALESCE(EXCLUDED.google_drive_file_id, creative_space_items.google_drive_file_id),
+         updated_at = CASE WHEN creative_space_items.deleted THEN now() ELSE creative_space_items.updated_at END
+     WHERE creative_space_items.deleted OR creative_space_items.kind = 'folder'`,
+    [ctx.space.id, relPath, name, ctx.space.visibility || 'private', SYNC_ACTOR, driveFolderId],
+  );
+}
+
+/** Creates (or revives a soft-deleted row for) a Crowdly file item at `relPath`. */
+async function createLocalFileItem(ctx, relPath, mimeType) {
+  const { parent, name } = splitPath(relPath);
+  await ensureLocalFolder(ctx, parent);
+  const { rows } = await pool.query(
+    `INSERT INTO creative_space_items (space_id, relative_path, name, kind, mime_type, visibility, published, updated_by)
+     VALUES ($1, $2, $3, 'file', $4, $5, false, $6)
+     ON CONFLICT (space_id, relative_path) DO UPDATE
+     SET deleted = false, kind = 'file', updated_at = now()
+     WHERE creative_space_items.deleted OR creative_space_items.kind = 'file'
+     RETURNING *`,
+    [ctx.space.id, relPath, name, mimeType || guessMimeType(name), ctx.space.visibility || 'private', SYNC_ACTOR],
+  );
+  if (!rows[0]) throw new Error(`A folder already exists at ${relPath}`);
+  return rows[0];
+}
+
+async function markSynced(itemId, { fileId, md5Checksum, content }) {
+  await pool.query(
+    'UPDATE creative_space_items SET google_drive_file_id = $1, google_drive_md5 = $2, google_drive_base_content = $3 WHERE id = $4',
+    [fileId, md5Checksum || null, content ? baseContentFor(content) : null, itemId],
+  );
+}
+
+async function storeLocal(ctx, item, buffer) {
+  return storeItemContent({
+    spaceId: ctx.space.id,
+    itemId: item.id,
+    buffer,
+    mimeType: item.mime_type || guessMimeType(item.name),
+    updatedBy: SYNC_ACTOR,
+  });
+}
+
+async function uploadToDrive(ctx, item, buffer, existingFileId) {
+  const { parent, name } = splitPath(item.relative_path);
+  const folderId = existingFileId ? undefined : await ensureDriveFolder(ctx, parent);
+  return putFileContent({
+    token: ctx.token,
+    fileId: existingFileId || undefined,
+    folderId,
+    name,
+    buffer,
+    mimeType: item.mime_type || guessMimeType(name),
+  });
+}
+
+/** Keeps Crowdly's version at the original path and saves Drive's version next to it, so neither side's edits are lost. */
+async function saveConflictCopy(ctx, item, remoteBuffer) {
+  const { parent, name } = splitPath(item.relative_path);
+  const dot = name.lastIndexOf('.');
+  const stem = dot > 0 ? name.slice(0, dot) : name;
+  const ext = dot > 0 ? name.slice(dot) : '';
+  const day = new Date().toISOString().slice(0, 10);
+  let candidate;
+  for (let n = 1; ; n += 1) {
+    const suffix = n === 1 ? '' : ` ${n}`;
+    const fileName = `${stem} (conflict from Google Drive ${day}${suffix})${ext}`;
+    candidate = parent ? `${parent}/${fileName}` : fileName;
+    const { rows } = await pool.query(
+      'SELECT 1 FROM creative_space_items WHERE space_id = $1 AND relative_path = $2 AND deleted = false',
+      [ctx.space.id, candidate],
+    );
+    if (rows.length === 0) break;
+  }
+  const conflictItem = await createLocalFileItem(ctx, candidate, item.mime_type);
+  await storeLocal(ctx, conflictItem, remoteBuffer);
+  const uploaded = await uploadToDrive(ctx, conflictItem, remoteBuffer, null);
+  await markSynced(conflictItem.id, { fileId: uploaded.fileId, md5Checksum: uploaded.md5Checksum, content: remoteBuffer });
+  return candidate;
+}
+
+/**
+ * Brings one Crowdly file item and its Drive counterpart into agreement.
+ * `item` and/or `remote` may be null. `remote` is `{ id, md5Checksum }`.
+ * `item.google_drive_md5` is the md5 of the content both sides last agreed
+ * on, so it tells us which side(s) changed since the last sync.
+ */
+async function reconcileFile(ctx, item, remote, remotePath = null) {
+  const { space } = ctx;
+
+  if (item && remote) {
+    const local = readItemContent(item);
+    const localMd5 = local ? md5(local) : null;
+    const syncedMd5 = item.google_drive_md5 || null;
+    const driveChanged = remote.md5Checksum !== syncedMd5;
+    const localChanged = local !== null && localMd5 !== syncedMd5;
+
+    if (local !== null && localMd5 === remote.md5Checksum) {
+      if (item.google_drive_file_id !== remote.id || syncedMd5 !== localMd5) {
+        await markSynced(item.id, { fileId: remote.id, md5Checksum: remote.md5Checksum, content: local });
+      }
+      return;
+    }
+    if (!localChanged && driveChanged) {
+      const remoteBuffer = await getFileContent({ token: ctx.token, fileId: remote.id });
+      await storeLocal(ctx, item, remoteBuffer);
+      await markSynced(item.id, { fileId: remote.id, md5Checksum: remote.md5Checksum, content: remoteBuffer });
+      ctx.stats.pulled += 1;
+      await logSync(space.id, 'pull', 'info', `Pulled ${item.relative_path} from Google Drive`, item.relative_path);
+      return;
+    }
+    if (localChanged && !driveChanged) {
+      const uploaded = await uploadToDrive(ctx, item, local, remote.id);
+      await markSynced(item.id, { fileId: uploaded.fileId, md5Checksum: uploaded.md5Checksum, content: local });
+      ctx.stats.pushed += 1;
+      await logSync(space.id, 'push', 'info', `Pushed ${item.relative_path} to Google Drive`, item.relative_path);
+      return;
+    }
+    if (!localChanged && !driveChanged) return;
+
+    // Both sides changed since the last sync.
+    const remoteBuffer = await getFileContent({ token: ctx.token, fileId: remote.id });
+    const base = item.google_drive_base_content;
+    const merged =
+      base && isMergeableText(local) && isMergeableText(remoteBuffer) ? threeWayMerge(local, Buffer.from(base), remoteBuffer) : null;
+
+    if (merged) {
+      if (!merged.equals(local)) await storeLocal(ctx, item, merged);
+      const uploaded = await uploadToDrive(ctx, item, merged, remote.id);
+      await markSynced(item.id, { fileId: uploaded.fileId, md5Checksum: uploaded.md5Checksum, content: merged });
+      ctx.stats.merged += 1;
+      await logSync(space.id, 'merge', 'info', `Merged Crowdly and Google Drive edits to ${item.relative_path}`, item.relative_path);
+      return;
+    }
+
+    const conflictPath = await saveConflictCopy(ctx, item, remoteBuffer);
+    const uploaded = await uploadToDrive(ctx, item, local, remote.id);
+    await markSynced(item.id, { fileId: uploaded.fileId, md5Checksum: uploaded.md5Checksum, content: local });
+    ctx.stats.conflicts += 1;
+    await logSync(
+      space.id,
+      'merge',
+      'warn',
+      `Conflicting edits to ${item.relative_path}: kept the Crowdly version, saved the Google Drive version as ${conflictPath}`,
+      item.relative_path,
+    );
+    return;
+  }
+
+  if (item && !remote) {
+    const local = readItemContent(item);
+    if (item.google_drive_file_id) {
+      // Was synced before, now gone from the Drive folder: deleted (or moved out) on Drive.
+      const localChanged = local !== null && md5(local) !== item.google_drive_md5;
+      if (!localChanged) {
+        await pool.query('UPDATE creative_space_items SET deleted = true, updated_at = now() WHERE id = $1', [item.id]);
+        ctx.stats.deleted += 1;
+        await logSync(space.id, 'pull', 'info', `Removed ${item.relative_path} (deleted on Google Drive)`, item.relative_path);
+        return;
+      }
+      // Edited in Crowdly since — the edit wins, re-upload below as a new Drive file.
+    }
+    if (local === null) return; // metadata-only item (e.g. desktop manifest sync) — nothing to upload yet.
+    const uploaded = await uploadToDrive(ctx, item, local, null);
+    await markSynced(item.id, { fileId: uploaded.fileId, md5Checksum: uploaded.md5Checksum, content: local });
+    ctx.stats.pushed += 1;
+    await logSync(space.id, 'push', 'info', `Pushed ${item.relative_path} to Google Drive`, item.relative_path);
+    return;
+  }
+
+  if (!item && remote) {
+    const deletedRes = await pool.query(
+      "SELECT * FROM creative_space_items WHERE space_id = $1 AND kind = 'file' AND deleted = true AND google_drive_file_id = $2",
+      [space.id, remote.id],
+    );
+    const deletedItem = deletedRes.rows[0];
+    if (deletedItem && deletedItem.google_drive_md5 === remote.md5Checksum) {
+      // Deleted in Crowdly and untouched on Drive since — propagate the delete (to Drive's trash, recoverable).
+      await trashFile({ token: ctx.token, fileId: remote.id });
+      await pool.query('UPDATE creative_space_items SET google_drive_file_id = NULL WHERE id = $1', [deletedItem.id]);
+      ctx.stats.deleted += 1;
+      await logSync(space.id, 'push', 'info', `Moved ${remotePath} to the Google Drive trash (deleted in Crowdly)`, remotePath);
+      return;
+    }
+    const remoteBuffer = await getFileContent({ token: ctx.token, fileId: remote.id });
+    const newItem = await createLocalFileItem(ctx, remotePath, remote.mimeType);
+    await storeLocal(ctx, newItem, remoteBuffer);
+    await markSynced(newItem.id, { fileId: remote.id, md5Checksum: remote.md5Checksum, content: remoteBuffer });
+    ctx.stats.pulled += 1;
+    await logSync(space.id, 'pull', 'info', `Added ${remotePath} from Google Drive`, remotePath);
+  }
+}
+
+/**
+ * The same file (by Drive id) sits at different paths on each side: whichever
+ * side changed since the last sync wins. A Crowdly-side move (item touched
+ * after the last sync) is replayed on Drive; otherwise Drive's path is
+ * adopted in Crowdly.
+ */
+async function reconcileMove(ctx, item, remote) {
+  const lastSynced = ctx.space.google_drive_last_synced_at ? new Date(ctx.space.google_drive_last_synced_at).getTime() : 0;
+  const crowdlyMoved = new Date(item.updated_at).getTime() > lastSynced;
+  if (crowdlyMoved) {
+    const { parent, name } = splitPath(item.relative_path);
+    const toParentId = await ensureDriveFolder(ctx, parent);
+    await moveFile({ token: ctx.token, fileId: remote.id, name, fromParentId: remote.parentId, toParentId });
+    ctx.stats.moved += 1;
+    await logSync(ctx.space.id, 'push', 'info', `Moved ${remote.path} to ${item.relative_path} on Google Drive`, item.relative_path);
+    return item;
+  }
+  const taken = await pool.query(
+    'SELECT 1 FROM creative_space_items WHERE space_id = $1 AND relative_path = $2 AND deleted = false',
+    [ctx.space.id, remote.path],
+  );
+  if (taken.rows.length > 0) return item; // target path occupied in Crowdly — leave both where they are.
+  const { parent, name } = splitPath(remote.path);
+  await ensureLocalFolder(ctx, parent);
+  await pool.query('DELETE FROM creative_space_items WHERE space_id = $1 AND relative_path = $2 AND deleted = true', [
+    ctx.space.id,
+    remote.path,
+  ]);
+  const { rows } = await pool.query(
+    'UPDATE creative_space_items SET relative_path = $1, name = $2, updated_at = now() WHERE id = $3 RETURNING *',
+    [remote.path, name, item.id],
+  );
+  ctx.stats.moved += 1;
+  await logSync(ctx.space.id, 'pull', 'info', `Moved ${item.relative_path} to ${remote.path} (moved on Google Drive)`, remote.path);
+  return rows[0];
+}
+
+async function saveFolderMap(ctx) {
+  const map = {};
+  for (const [relPath, id] of ctx.folderIdsByPath) {
+    if (relPath) map[id] = relPath;
+  }
+  await pool.query(
+    'UPDATE creative_spaces SET google_drive_folder_ids = $1, google_drive_last_synced_at = now() WHERE id = $2',
+    [JSON.stringify(map), ctx.space.id],
+  );
+}
+
+async function withItemErrorLogging(ctx, relPath, fn) {
+  try {
+    await fn();
+  } catch (err) {
+    console.error('[googleDriveSync] sync failed for', relPath, err);
+    await logSync(ctx.space.id, 'sync', 'error', `Failed to sync ${relPath}: ${err.message}`, relPath);
+  }
+}
+
+/** Full two-way reconcile of the connected Drive folder tree with the Space's items. */
+async function syncWholeSpace(ctx) {
+  const { space, token } = ctx;
+  const tree = await listFolderTree({ token, rootId: space.google_drive_folder_id });
+
+  ctx.folderIdsByPath = new Map([['', space.google_drive_folder_id]]);
+  for (const folder of tree.folders) ctx.folderIdsByPath.set(folder.path, folder.id);
+
+  for (const folder of tree.folders) {
+    await withItemErrorLogging(ctx, folder.path, () => ensureLocalFolder(ctx, folder.path, folder.id));
+  }
+
+  const itemsRes = await pool.query(
+    "SELECT * FROM creative_space_items WHERE space_id = $1 AND deleted = false AND kind = 'file' ORDER BY relative_path",
+    [space.id],
+  );
+  const remoteById = new Map(tree.files.map((f) => [f.id, f]));
+  const remoteByPath = new Map(tree.files.map((f) => [f.path, f]));
+  const usedRemote = new Set();
+  const pairs = [];
+
+  for (const item of itemsRes.rows) {
+    const remote = item.google_drive_file_id ? remoteById.get(item.google_drive_file_id) : null;
+    if (remote && !usedRemote.has(remote.id)) {
+      usedRemote.add(remote.id);
+      pairs.push([item, remote]);
+    }
+  }
+  const pairedItemIds = new Set(pairs.map(([item]) => item.id));
+  for (const item of itemsRes.rows) {
+    if (pairedItemIds.has(item.id)) continue;
+    const remote = remoteByPath.get(item.relative_path);
+    if (remote && !usedRemote.has(remote.id)) {
+      usedRemote.add(remote.id);
+      pairs.push([item, remote]);
+    } else {
+      pairs.push([item, null]);
+    }
+  }
+  for (const remote of tree.files) {
+    if (!usedRemote.has(remote.id)) pairs.push([null, remote]);
+  }
+
+  for (const [pairedItem, remote] of pairs) {
+    const relPath = pairedItem?.relative_path || remote.path;
+    await withItemErrorLogging(ctx, relPath, async () => {
+      let item = pairedItem;
+      if (item && remote && item.relative_path !== remote.path) item = await reconcileMove(ctx, item, remote);
+      await reconcileFile(ctx, item, remote, remote?.path);
+    });
+  }
+
+  // Folders that exist only in Crowdly: new ones are created on Drive (so
+  // empty folders round-trip too); previously-synced ones that vanished from
+  // Drive are removed in Crowdly if nothing live remains inside them.
+  const foldersRes = await pool.query(
+    "SELECT * FROM creative_space_items WHERE space_id = $1 AND deleted = false AND kind = 'folder' ORDER BY relative_path DESC",
+    [space.id],
+  );
+  for (const folder of foldersRes.rows) {
+    if (ctx.folderIdsByPath.has(folder.relative_path)) continue;
+    await withItemErrorLogging(ctx, folder.relative_path, async () => {
+      if (folder.google_drive_file_id) {
+        const live = await pool.query(
+          "SELECT 1 FROM creative_space_items WHERE space_id = $1 AND deleted = false AND relative_path LIKE $2 LIMIT 1",
+          [space.id, `${folder.relative_path.replace(/[\\%_]/g, '\\$&')}/%`],
+        );
+        if (live.rows.length === 0) {
+          await pool.query('UPDATE creative_space_items SET deleted = true, updated_at = now() WHERE id = $1', [folder.id]);
+          ctx.stats.deleted += 1;
+          return;
+        }
+      }
+      const driveId = await ensureDriveFolder(ctx, folder.relative_path);
+      await pool.query('UPDATE creative_space_items SET google_drive_file_id = $1 WHERE id = $2', [driveId, folder.id]);
+    });
+  }
+
+  await saveFolderMap(ctx);
+  return ctx.stats;
+}
+
+/** Entry point for the poll loop, the webhook handler and "Sync now". */
+export async function runSpaceDriveSync(spaceId) {
+  return withSpaceLock(spaceId, async () => {
+    const { rows } = await pool.query('SELECT * FROM creative_spaces WHERE id = $1', [spaceId]);
+    const space = rows[0];
+    if (!space) return { skipped: true, reason: 'not_found' };
+    if (!space.google_drive_sync_enabled || !space.google_drive_account_id || !space.google_drive_folder_id) {
+      return { skipped: true, reason: 'not_connected' };
+    }
+    try {
+      const ctx = await loadSyncContext(space);
+      if (!ctx) return { skipped: true, reason: 'account_missing' };
+      const stats = await syncWholeSpace(ctx);
+      const changed = Object.values(stats).some((n) => n > 0);
+      if (changed) {
+        await logSync(
+          spaceId,
+          'sync',
+          'info',
+          `Sync finished: ${stats.pulled} pulled, ${stats.pushed} pushed, ${stats.merged} merged, ${stats.conflicts} conflicts, ${stats.deleted} deleted, ${stats.moved} moved`,
+        );
+      }
+      return stats;
+    } catch (err) {
+      console.error('[googleDriveSync] sync failed for space', spaceId, err);
+      await logSync(spaceId, 'sync', 'error', `Sync failed: ${err.message}`);
+      throw err;
+    }
+  });
 }
 
 // --- Push path (Crowdly -> Drive) ------------------------------------------
@@ -212,7 +609,7 @@ export function scheduleGoogleDrivePush(spaceId, itemId) {
   if (existing) clearTimeout(existing);
   const timer = setTimeout(() => {
     pushTimers.delete(itemId);
-    pushItemToDrive(spaceId, itemId).catch((err) => {
+    withSpaceLock(spaceId, () => pushItemToDrive(spaceId, itemId)).catch((err) => {
       console.error('[googleDriveSync] push failed for item', itemId, err);
     });
   }, PUSH_DEBOUNCE_MS);
@@ -225,65 +622,26 @@ async function pushItemToDrive(spaceId, itemId) {
   if (!space || !space.google_drive_sync_enabled || !space.google_drive_account_id || !space.google_drive_folder_id) return;
 
   const itemRes = await pool.query(
-    "SELECT * FROM creative_space_items WHERE id = $1 AND space_id = $2 AND deleted = false AND kind = 'file' AND relative_path NOT LIKE '%/%'",
+    "SELECT * FROM creative_space_items WHERE id = $1 AND space_id = $2 AND deleted = false AND kind = 'file'",
     [itemId, spaceId],
   );
   const item = itemRes.rows[0];
-  if (!item || !item.storage_path) return; // not a top-level item — out of Phase 1's flat sync scope, see module header.
+  if (!item || !item.storage_path) return;
 
-  const accountRes = await pool.query('SELECT * FROM google_drive_accounts WHERE id = $1', [space.google_drive_account_id]);
-  const account = accountRes.rows[0];
-  if (!account) return;
+  const ctx = await loadSyncContext(space);
+  if (!ctx) return;
 
-  let buffer;
-  try {
-    buffer = fs.readFileSync(path.join(CREATIVE_SPACE_FILES_ROOT, item.storage_path));
-  } catch (err) {
-    console.error('[googleDriveSync] could not read local file for push', item.relative_path, err);
-    await logSync(spaceId, 'push', 'error', `Could not read local content for ${item.relative_path}: ${err.message}`, item.relative_path);
-    return;
-  }
-
-  const token = await getValidAccessToken(account);
-
-  // If Drive already has a version we haven't seen (via a prior pull),
-  // pushing now would silently clobber a Drive-side edit we don't know
-  // about yet — defer to the next pull/poll instead (mirrors GitHub's
-  // pre-push conflict check).
+  let remote = null;
   if (item.google_drive_file_id) {
-    let remote = null;
-    try {
-      remote = await getFileMeta({ token, fileId: item.google_drive_file_id });
-    } catch (err) {
-      console.error('[googleDriveSync] failed to look up remote file before push', item.relative_path, err);
-      await logSync(spaceId, 'push', 'error', `Failed to check Google Drive before push for ${item.relative_path}: ${err.message}`, item.relative_path);
-      return;
-    }
-    if (remote && item.google_drive_md5 && remote.md5Checksum && remote.md5Checksum !== item.google_drive_md5) {
-      await logSync(spaceId, 'push', 'warn', `Skipped push for ${item.relative_path}: Google Drive has changes not yet pulled into Crowdly`, item.relative_path);
-      return;
-    }
+    const meta = await getFileMeta({ token: ctx.token, fileId: item.google_drive_file_id });
+    if (meta && !meta.trashed) remote = { id: meta.id, md5Checksum: meta.md5Checksum || null };
   }
-
-  try {
-    const result = await putFileContent({
-      token,
-      fileId: item.google_drive_file_id || undefined,
-      folderId: space.google_drive_folder_id,
-      name: item.name,
-      buffer,
-      mimeType: item.mime_type || guessMimeType(item.name),
-    });
-    await pool.query(
-      'UPDATE creative_space_items SET google_drive_file_id = $1, google_drive_md5 = $2 WHERE id = $3',
-      [result.fileId, result.md5Checksum || null, itemId],
-    );
-    await pool.query('UPDATE creative_spaces SET google_drive_last_synced_at = now() WHERE id = $1', [spaceId]);
-    await logSync(spaceId, 'push', 'info', `Pushed ${item.relative_path} to Google Drive`, item.relative_path);
-  } catch (err) {
-    console.error('[googleDriveSync] push failed for', item.relative_path, err);
-    await logSync(spaceId, 'push', 'error', `Failed to push ${item.relative_path}: ${err.message}`, item.relative_path);
-  }
+  // A Drive file that disappeared (trashed) is treated as "never synced" here —
+  // this push is a fresh local edit, so it re-creates the file rather than
+  // mirroring the Drive-side delete.
+  const pushable = remote ? item : { ...item, google_drive_file_id: null };
+  await withItemErrorLogging(ctx, item.relative_path, () => reconcileFile(ctx, pushable, remote, item.relative_path));
+  await saveFolderMap(ctx);
 }
 
 // --- Push-notification channel (account-scoped — see module header) -------
@@ -347,13 +705,19 @@ export async function handleGoogleDriveWebhookEvent(channelId, resourceId) {
     const { changes, newStartPageToken } = await listChangesSince({ token, pageToken: account.start_page_token });
 
     const spacesRes = await pool.query(
-      'SELECT id, google_drive_folder_id FROM creative_spaces WHERE google_drive_account_id = $1 AND google_drive_sync_enabled = true',
+      'SELECT id, google_drive_folder_id, google_drive_folder_ids FROM creative_spaces WHERE google_drive_account_id = $1 AND google_drive_sync_enabled = true',
       [account.id],
     );
-    const spacesByFolder = new Map(spacesRes.rows.map((s) => [s.google_drive_folder_id, s.id]));
+    // Any folder under a Space's root (root included) maps back to that Space.
+    const spacesByFolder = new Map();
+    for (const s of spacesRes.rows) {
+      spacesByFolder.set(s.google_drive_folder_id, s.id);
+      for (const folderId of Object.keys(s.google_drive_folder_ids || {})) spacesByFolder.set(folderId, s.id);
+    }
 
     const affectedSpaceIds = new Set();
     for (const change of changes || []) {
+      if (spacesByFolder.has(change.fileId)) affectedSpaceIds.add(spacesByFolder.get(change.fileId)); // a synced folder itself changed
       for (const parentId of change.file?.parents || []) {
         const spaceId = spacesByFolder.get(parentId);
         if (spaceId) affectedSpaceIds.add(spaceId);

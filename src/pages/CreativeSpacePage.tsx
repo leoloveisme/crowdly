@@ -104,14 +104,26 @@ interface GoogleDriveSyncStatus {
   folderId?: string | null;
   folderName?: string | null;
   lastSyncedAt?: string | null;
-  driveAccountId?: string | null;
+  hasGoogleAccount?: boolean;
+  googleEmail?: string | null;
   authUrl?: string | null;
+  recentLog?: GoogleDriveSyncLogEntry[];
+}
+
+interface GoogleDriveSyncLogEntry {
+  direction: string;
+  level: string;
+  message: string;
+  relative_path?: string | null;
+  created_at: string;
 }
 
 interface GoogleDriveFolderOption {
   id: string;
   name: string;
 }
+
+const DRIVE_ROOT: GoogleDriveFolderOption = { id: "root", name: "My Drive" };
 
 const CreativeSpacePage: React.FC = () => {
   const { spaceId } = useParams<{ spaceId: string }>();
@@ -145,13 +157,16 @@ const CreativeSpacePage: React.FC = () => {
 
   const [driveStatus, setDriveStatus] = useState<GoogleDriveSyncStatus | null>(null);
   const [driveFolderDialogOpen, setDriveFolderDialogOpen] = useState(false);
-  const [driveFolderDialogAccountId, setDriveFolderDialogAccountId] = useState<string | null>(null);
+  const [driveFolderTrail, setDriveFolderTrail] = useState<GoogleDriveFolderOption[]>([DRIVE_ROOT]);
   const [driveFolders, setDriveFolders] = useState<GoogleDriveFolderOption[]>([]);
   const [driveFoldersLoading, setDriveFoldersLoading] = useState(false);
   const [driveFoldersError, setDriveFoldersError] = useState<string | null>(null);
-  const [selectedDriveFolder, setSelectedDriveFolder] = useState<string>("");
+  const [newDriveFolderName, setNewDriveFolderName] = useState("");
+  const [creatingDriveFolder, setCreatingDriveFolder] = useState(false);
   const [connectingDriveFolder, setConnectingDriveFolder] = useState(false);
   const [disconnectingDrive, setDisconnectingDrive] = useState(false);
+  const [syncingDrive, setSyncingDrive] = useState(false);
+  const [driveLogOpen, setDriveLogOpen] = useState(false);
 
   const [previewItem, setPreviewItem] = useState<CreativeSpaceItem | null>(null);
   const [previewText, setPreviewText] = useState<string>("");
@@ -541,86 +556,119 @@ const CreativeSpacePage: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    const loadDriveStatus = async () => {
-      if (!spaceId || !space || !authUser?.id || !isOwner) return;
-      try {
-        const params = new URLSearchParams({ userId: authUser.id });
-        const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/drive-sync/status?${params.toString()}`);
-        const body = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          console.error("[CreativeSpacePage] Failed to load Google Drive sync status", { status: res.status, body });
-          return;
-        }
-        setDriveStatus(body as GoogleDriveSyncStatus);
-      } catch (err) {
-        console.error("[CreativeSpacePage] Error loading Google Drive sync status", err);
+  const loadDriveStatus = async () => {
+    if (!spaceId || !authUser?.id || !isOwner) return;
+    try {
+      const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/drive-sync/status`, { credentials: "include" });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        console.error("[CreativeSpacePage] Failed to load Google Drive sync status", { status: res.status, body });
+        return;
       }
-    };
+      setDriveStatus(body as GoogleDriveSyncStatus);
+    } catch (err) {
+      console.error("[CreativeSpacePage] Error loading Google Drive sync status", err);
+    }
+  };
+
+  useEffect(() => {
+    if (!space) return;
     loadDriveStatus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spaceId, space?.id, authUser?.id, isOwner]);
 
-  const openDriveFolderPicker = async (driveAccountId: string) => {
-    if (!spaceId || !authUser?.id) return;
-    setDriveFolderDialogAccountId(driveAccountId);
-    setDriveFolderDialogOpen(true);
+  const loadDriveFolders = async (trail: GoogleDriveFolderOption[]) => {
+    if (!spaceId) return;
+    const current = trail[trail.length - 1];
+    setDriveFolderTrail(trail);
     setDriveFoldersLoading(true);
     setDriveFoldersError(null);
     setDriveFolders([]);
-    setSelectedDriveFolder("");
     try {
-      const params = new URLSearchParams({ driveAccountId, userId: authUser.id });
-      const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/drive-sync/folders?${params.toString()}`);
+      const params = new URLSearchParams({ parentId: current.id });
+      const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/drive-sync/folders?${params.toString()}`, {
+        credentials: "include",
+      });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
         console.error("[CreativeSpacePage] Failed to list Google Drive folders", { status: res.status, body });
-        setDriveFoldersError(body.error || "Failed to list folders for this Google Drive account.");
+        setDriveFoldersError(body.error || "Failed to list Google Drive folders.");
         return;
       }
-      const folders = Array.isArray(body.folders) ? (body.folders as GoogleDriveFolderOption[]) : [];
-      setDriveFolders(folders);
-      if (folders.length > 0) setSelectedDriveFolder(folders[0].id);
+      setDriveFolders(Array.isArray(body.folders) ? (body.folders as GoogleDriveFolderOption[]) : []);
     } catch (err) {
       console.error("[CreativeSpacePage] Error listing Google Drive folders", err);
-      setDriveFoldersError("Failed to list folders for this Google Drive account.");
+      setDriveFoldersError("Failed to list Google Drive folders.");
     } finally {
       setDriveFoldersLoading(false);
     }
   };
 
+  const openDriveFolderPicker = () => {
+    setDriveFolderDialogOpen(true);
+    setNewDriveFolderName(space?.name || "");
+    loadDriveFolders([DRIVE_ROOT]);
+  };
+
+  // Back from Google's consent screen (backend /api/google-drive/oauth/callback).
   useEffect(() => {
     if (!spaceId || !isOwner) return;
-    if (searchParams.get("drive") !== "choose-folder") return;
-    const driveAccountId = searchParams.get("driveAccountId");
-    if (!driveAccountId) return;
+    const driveParam = searchParams.get("drive");
+    if (driveParam !== "choose-folder" && driveParam !== "error") return;
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
         next.delete("drive");
-        next.delete("driveAccountId");
         return next;
       },
       { replace: true },
     );
-    openDriveFolderPicker(driveAccountId);
+    if (driveParam === "error") {
+      setError("Connecting Google Drive didn't complete. Please try again.");
+      return;
+    }
+    loadDriveStatus();
+    openDriveFolderPicker();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spaceId, isOwner, searchParams]);
 
+  const handleCreateDriveFolder = async () => {
+    const name = newDriveFolderName.trim();
+    if (!spaceId || !name) return;
+    const parent = driveFolderTrail[driveFolderTrail.length - 1];
+    setCreatingDriveFolder(true);
+    setDriveFoldersError(null);
+    try {
+      const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/drive-sync/folders`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ parentId: parent.id, name }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setDriveFoldersError(body.error || "Failed to create the folder.");
+        return;
+      }
+      await loadDriveFolders([...driveFolderTrail, body as GoogleDriveFolderOption]);
+    } catch (err) {
+      console.error("[CreativeSpacePage] Error creating Google Drive folder", err);
+      setDriveFoldersError("Failed to create the folder.");
+    } finally {
+      setCreatingDriveFolder(false);
+    }
+  };
+
   const handleConnectDriveFolder = async () => {
-    if (!spaceId || !authUser?.id || !driveFolderDialogAccountId || !selectedDriveFolder) return;
+    const folder = driveFolderTrail[driveFolderTrail.length - 1];
+    if (!spaceId || folder.id === DRIVE_ROOT.id) return;
     setConnectingDriveFolder(true);
     try {
-      const folder = driveFolders.find((f) => f.id === selectedDriveFolder);
       const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/drive-sync/connect`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: authUser.id,
-          driveAccountId: driveFolderDialogAccountId,
-          folderId: selectedDriveFolder,
-          folderName: folder?.name,
-        }),
+        credentials: "include",
+        body: JSON.stringify({ folderId: folder.id }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -638,21 +686,15 @@ const CreativeSpacePage: React.FC = () => {
     }
   };
 
-  const handleOpenChangeDriveFolder = () => {
-    if (!driveStatus?.driveAccountId) return;
-    openDriveFolderPicker(driveStatus.driveAccountId);
-  };
-
   const handleDisconnectDrive = async () => {
-    if (!spaceId || !authUser?.id) return;
+    if (!spaceId) return;
     const ok = window.confirm("Disconnect this Space from Google Drive? File sync will stop until you connect again.");
     if (!ok) return;
     setDisconnectingDrive(true);
     try {
       const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/drive-sync/disconnect`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: authUser.id }),
+        credentials: "include",
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -670,12 +712,13 @@ const CreativeSpacePage: React.FC = () => {
   };
 
   const handleToggleDriveSync = async (checked: boolean) => {
-    if (!spaceId || !authUser?.id) return;
+    if (!spaceId) return;
     try {
       const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/drive-sync`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: authUser.id, enabled: checked }),
+        credentials: "include",
+        body: JSON.stringify({ enabled: checked }),
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -687,6 +730,27 @@ const CreativeSpacePage: React.FC = () => {
     } catch (err) {
       console.error("[CreativeSpacePage] Error toggling Google Drive sync", err);
       setError("Failed to update Google Drive sync.");
+    }
+  };
+
+  const handleSyncDriveNow = async () => {
+    if (!spaceId) return;
+    setSyncingDrive(true);
+    try {
+      const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/drive-sync/run`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(body.error || "Google Drive sync failed.");
+      }
+      await Promise.all([loadDriveStatus(), loadItems(currentPath)]);
+    } catch (err) {
+      console.error("[CreativeSpacePage] Error running Google Drive sync", err);
+      setError("Google Drive sync failed.");
+    } finally {
+      setSyncingDrive(false);
     }
   };
 
@@ -1141,9 +1205,33 @@ const CreativeSpacePage: React.FC = () => {
                         <EditableText id="space-drive-sync-label">Sync with Google Drive</EditableText>
                         {driveStatus.folderName && <span className="text-slate-400">({driveStatus.folderName})</span>}
                       </label>
+                      {driveStatus.enabled && (
+                        <button
+                          type="button"
+                          onClick={handleSyncDriveNow}
+                          disabled={syncingDrive}
+                          className="text-xs text-blue-700 hover:underline px-1 disabled:opacity-50"
+                        >
+                          {syncingDrive ? (
+                            <EditableText id="space-drive-syncing">Syncing…</EditableText>
+                          ) : (
+                            <EditableText id="space-drive-sync-now">Sync now</EditableText>
+                          )}
+                        </button>
+                      )}
                       <button
                         type="button"
-                        onClick={handleOpenChangeDriveFolder}
+                        onClick={() => setDriveLogOpen(true)}
+                        className="text-xs text-slate-500 hover:underline px-1"
+                      >
+                        <EditableText id="space-drive-view-log">Sync log</EditableText>
+                        {driveStatus.lastSyncedAt && (
+                          <span className="text-slate-400"> ({new Date(driveStatus.lastSyncedAt).toLocaleString()})</span>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={openDriveFolderPicker}
                         className="text-xs text-blue-700 hover:underline px-1"
                       >
                         <EditableText id="space-drive-change-folder">Change folder</EditableText>
@@ -1156,6 +1244,22 @@ const CreativeSpacePage: React.FC = () => {
                       >
                         <EditableText id="space-drive-disconnect">Disconnect</EditableText>
                       </button>
+                    </>
+                  ) : driveStatus?.configured && driveStatus?.hasGoogleAccount ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={openDriveFolderPicker}
+                        className="text-xs text-blue-700 hover:underline px-1"
+                      >
+                        <EditableText id="space-drive-use-existing">Use existing Google Drive connection</EditableText>
+                        {driveStatus.googleEmail && <span className="text-slate-400"> ({driveStatus.googleEmail})</span>}
+                      </button>
+                      {driveStatus.authUrl && (
+                        <a href={driveStatus.authUrl} className="text-xs text-slate-500 hover:underline px-1">
+                          <EditableText id="space-drive-connect-different">Connect a different Google account</EditableText>
+                        </a>
+                      )}
                     </>
                   ) : driveStatus?.configured && driveStatus?.authUrl ? (
                     <a href={driveStatus.authUrl} className="text-xs text-blue-700 hover:underline px-1">
@@ -1240,39 +1344,126 @@ const CreativeSpacePage: React.FC = () => {
                         <EditableText id="space-drive-picker-title">Choose a Google Drive folder</EditableText>
                       </DialogTitle>
                     </DialogHeader>
-                    {driveFoldersLoading ? (
-                      <p className="text-sm text-slate-500">
-                        <EditableText id="space-drive-picker-loading">Loading folders…</EditableText>
-                      </p>
-                    ) : driveFoldersError ? (
-                      <p className="text-sm text-red-600">{driveFoldersError}</p>
-                    ) : driveFolders.length === 0 ? (
-                      <p className="text-sm text-slate-500">
-                        <EditableText id="space-drive-picker-empty">
-                          No folders were found in this Google Drive account.
-                        </EditableText>
-                      </p>
-                    ) : (
-                      <Select value={selectedDriveFolder} onValueChange={setSelectedDriveFolder}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a folder" />
-                        </SelectTrigger>
-                        <SelectContent>
+                    <p className="text-xs text-slate-500">
+                      <EditableText id="space-drive-picker-hint">
+                        The folder you open here, including all its subfolders, will be synced with this Space.
+                      </EditableText>
+                    </p>
+                    <nav className="flex flex-wrap items-center gap-1 text-sm">
+                      {driveFolderTrail.map((folder, idx) => (
+                        <React.Fragment key={`${folder.id}-${idx}`}>
+                          {idx > 0 && <span className="text-slate-400">/</span>}
+                          {idx === driveFolderTrail.length - 1 ? (
+                            <span className="font-medium">
+                              {folder.id === DRIVE_ROOT.id ? (
+                                <EditableText id="space-drive-picker-my-drive">My Drive</EditableText>
+                              ) : (
+                                folder.name
+                              )}
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              className="text-blue-700 hover:underline"
+                              onClick={() => loadDriveFolders(driveFolderTrail.slice(0, idx + 1))}
+                            >
+                              {folder.id === DRIVE_ROOT.id ? (
+                                <EditableText id="space-drive-picker-my-drive">My Drive</EditableText>
+                              ) : (
+                                folder.name
+                              )}
+                            </button>
+                          )}
+                        </React.Fragment>
+                      ))}
+                    </nav>
+                    <div className="max-h-64 overflow-y-auto rounded border border-slate-200">
+                      {driveFoldersLoading ? (
+                        <p className="p-3 text-sm text-slate-500">
+                          <EditableText id="space-drive-picker-loading">Loading folders…</EditableText>
+                        </p>
+                      ) : driveFolders.length === 0 ? (
+                        <p className="p-3 text-sm text-slate-500">
+                          <EditableText id="space-drive-picker-no-subfolders">No subfolders here.</EditableText>
+                        </p>
+                      ) : (
+                        <ul>
                           {driveFolders.map((folder) => (
-                            <SelectItem key={folder.id} value={folder.id}>
-                              {folder.name}
-                            </SelectItem>
+                            <li key={folder.id}>
+                              <button
+                                type="button"
+                                className="w-full px-3 py-2 text-left text-sm hover:bg-slate-50"
+                                onClick={() => loadDriveFolders([...driveFolderTrail, folder])}
+                              >
+                                📁 {folder.name}
+                              </button>
+                            </li>
                           ))}
-                        </SelectContent>
-                      </Select>
-                    )}
+                        </ul>
+                      )}
+                    </div>
+                    {driveFoldersError && <p className="text-sm text-red-600">{driveFoldersError}</p>}
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={newDriveFolderName}
+                        onChange={(e) => setNewDriveFolderName(e.target.value)}
+                        className="h-8 text-sm"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={handleCreateDriveFolder}
+                        disabled={creatingDriveFolder || !newDriveFolderName.trim() || driveFoldersLoading}
+                      >
+                        <EditableText id="space-drive-picker-create-folder">Create folder here</EditableText>
+                      </Button>
+                    </div>
                     <Button
                       onClick={handleConnectDriveFolder}
-                      disabled={connectingDriveFolder || !selectedDriveFolder || driveFoldersLoading}
+                      disabled={
+                        connectingDriveFolder ||
+                        driveFoldersLoading ||
+                        driveFolderTrail[driveFolderTrail.length - 1].id === DRIVE_ROOT.id
+                      }
                       className="mt-2"
                     >
-                      <EditableText id="space-drive-picker-connect">Connect</EditableText>
+                      <EditableText id="space-drive-picker-connect-this">Connect this folder</EditableText>
                     </Button>
+                  </DialogContent>
+                </Dialog>
+              )}
+              {isOwner && (
+                <Dialog open={driveLogOpen} onOpenChange={setDriveLogOpen}>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>
+                        <EditableText id="space-drive-log-title">Google Drive sync log</EditableText>
+                      </DialogTitle>
+                    </DialogHeader>
+                    {!driveStatus?.recentLog || driveStatus.recentLog.length === 0 ? (
+                      <p className="text-sm text-slate-500">
+                        <EditableText id="space-drive-log-empty">Nothing has been synced yet.</EditableText>
+                      </p>
+                    ) : (
+                      <ul className="max-h-80 space-y-1 overflow-y-auto text-xs">
+                        {driveStatus.recentLog.map((entry, idx) => (
+                          <li
+                            key={`${entry.created_at}-${idx}`}
+                            className={
+                              entry.level === "error"
+                                ? "text-red-600"
+                                : entry.level === "warn"
+                                  ? "text-amber-700"
+                                  : "text-slate-600"
+                            }
+                          >
+                            <span className="text-slate-400">{new Date(entry.created_at).toLocaleString()}</span>{" "}
+                            {entry.message}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </DialogContent>
                 </Dialog>
               )}

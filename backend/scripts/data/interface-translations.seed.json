@@ -1079,17 +1079,87 @@
   },
   {
     "page_key": "/creative_space/:spaceId",
-    "element_id": "space-drive-picker-empty",
-    "en": "No folders were found in this Google Drive account.",
-    "ru": "В этом аккаунте Google Диска папок не найдено.",
-    "de": "In diesem Google-Drive-Konto wurden keine Ordner gefunden."
+    "element_id": "space-drive-sync-now",
+    "en": "Sync now",
+    "ru": "Синхронизировать сейчас",
+    "de": "Jetzt synchronisieren"
   },
   {
     "page_key": "/creative_space/:spaceId",
-    "element_id": "space-drive-picker-connect",
-    "en": "Connect",
-    "ru": "Подключить",
-    "de": "Verbinden"
+    "element_id": "space-drive-syncing",
+    "en": "Syncing…",
+    "ru": "Синхронизация…",
+    "de": "Synchronisiere…"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-drive-view-log",
+    "en": "Sync log",
+    "ru": "Журнал синхронизации",
+    "de": "Synchronisierungsprotokoll"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-drive-use-existing",
+    "en": "Use existing Google Drive connection",
+    "ru": "Использовать существующее подключение к Google Диску",
+    "de": "Bestehende Google-Drive-Verbindung verwenden"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-drive-connect-different",
+    "en": "Connect a different Google account",
+    "ru": "Подключить другой аккаунт Google",
+    "de": "Ein anderes Google-Konto verbinden"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-drive-picker-hint",
+    "en": "The folder you open here, including all its subfolders, will be synced with this Space.",
+    "ru": "Папка, которую вы здесь откроете, вместе со всеми вложенными папками будет синхронизироваться с этим пространством.",
+    "de": "Der hier geöffnete Ordner wird einschließlich aller Unterordner mit diesem Space synchronisiert."
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-drive-picker-my-drive",
+    "en": "My Drive",
+    "ru": "Мой диск",
+    "de": "Meine Ablage"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-drive-picker-no-subfolders",
+    "en": "No subfolders here.",
+    "ru": "Здесь нет вложенных папок.",
+    "de": "Hier gibt es keine Unterordner."
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-drive-picker-create-folder",
+    "en": "Create folder here",
+    "ru": "Создать папку здесь",
+    "de": "Ordner hier erstellen"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-drive-picker-connect-this",
+    "en": "Connect this folder",
+    "ru": "Подключить эту папку",
+    "de": "Diesen Ordner verbinden"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-drive-log-title",
+    "en": "Google Drive sync log",
+    "ru": "Журнал синхронизации с Google Диском",
+    "de": "Google-Drive-Synchronisierungsprotokoll"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-drive-log-empty",
+    "en": "Nothing has been synced yet.",
+    "ru": "Пока ничего не синхронизировано.",
+    "de": "Bisher wurde nichts synchronisiert."
   },
   {
     "page_key": "/creative_space/:spaceId",

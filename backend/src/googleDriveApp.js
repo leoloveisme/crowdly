@@ -19,7 +19,8 @@
 
 import crypto from 'crypto';
 
-const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive';
+// `openid email` so fetchUserEmail can show which Google account is connected.
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive openid email';
 
 export function isGoogleDriveConfigured() {
   return Boolean(
@@ -65,7 +66,50 @@ export function decryptToken(cipherText) {
   return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString('utf8');
 }
 
-/** Consent URL for the "Connect Google Drive" UI action. `state` round-trips through Google back to /api/google-drive/oauth/callback so it can tell which Space/user initiated the connect. Broad `drive` scope (not the narrower `drive.file`) is required because folder selection is a plain dropdown, not the Google Picker widget — see plan notes. */
+function hmac(payload) {
+  return crypto.createHmac('sha256', getEncryptionKey()).update(payload).digest('base64url');
+}
+
+const STATE_TTL_MS = 10 * 60 * 1000;
+
+/** Signed, short-lived OAuth `state` — binds the consent round-trip to the Space/user that started it, so a forged callback can't attach someone else's Google account to a victim's Crowdly user. */
+export function signState({ spaceId, userId }) {
+  const payload = Buffer.from(
+    JSON.stringify({ spaceId, userId, nonce: crypto.randomBytes(12).toString('base64url'), exp: Date.now() + STATE_TTL_MS }),
+  ).toString('base64url');
+  return `${payload}.${hmac(payload)}`;
+}
+
+/** Returns `{ spaceId, userId }` for a valid, unexpired state, or null. */
+export function verifyState(state) {
+  if (typeof state !== 'string') return null;
+  const [payload, signature] = state.split('.');
+  if (!payload || !signature) return null;
+  const expected = Buffer.from(hmac(payload));
+  const actual = Buffer.from(signature);
+  if (expected.length !== actual.length || !crypto.timingSafeEqual(expected, actual)) return null;
+  try {
+    const data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    if (!data.spaceId || !data.userId || typeof data.exp !== 'number' || data.exp < Date.now()) return null;
+    return { spaceId: String(data.spaceId), userId: String(data.userId) };
+  } catch {
+    return null;
+  }
+}
+
+/** Per-channel secret Drive echoes back in X-Goog-Channel-Token on every push notification. */
+export function channelToken(channelId) {
+  return hmac(`drive-channel:${channelId}`);
+}
+
+export function verifyChannelToken(channelId, token) {
+  if (!channelId || typeof token !== 'string') return false;
+  const expected = Buffer.from(channelToken(channelId));
+  const actual = Buffer.from(token);
+  return expected.length === actual.length && crypto.timingSafeEqual(expected, actual);
+}
+
+/** Consent URL for the "Connect Google Drive" UI action. `state` round-trips through Google back to /api/google-drive/oauth/callback so it can tell which Space/user initiated the connect. Broad `drive` scope (not the narrower `drive.file`) is required so the owner can pick any existing folder (and its subfolders) with Crowdly's own folder browser rather than the Google Picker widget. */
 export function buildAuthUrl(state) {
   const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
   if (!clientId) return null;
@@ -137,30 +181,118 @@ async function driveRequest(token, url, options = {}) {
   });
 }
 
-/** Folders visible to this account, for the "pick a folder" dropdown (one page, up to 100 — same Phase‑1 limit as GitHub's repo picker). */
-export async function listFolders({ token, pageSize = 100 }) {
-  const params = new URLSearchParams({
-    q: "mimeType='application/vnd.google-apps.folder' and trashed=false",
-    fields: 'files(id,name)',
-    pageSize: String(pageSize),
-  });
-  const res = await driveRequest(token, `https://www.googleapis.com/drive/v3/files?${params.toString()}`);
-  if (!res.ok) throw new Error(`Google Drive folder list failed (${res.status} ${res.statusText})`);
-  const data = await res.json();
-  return (data.files || []).map((f) => ({ id: f.id, name: f.name }));
+const FOLDER_MIME = 'application/vnd.google-apps.folder';
+
+/** Escapes a value for use inside a single-quoted Drive `q` string literal. */
+function qLiteral(value) {
+  return String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 }
 
-/** Direct (non-recursive) children of a folder that aren't themselves folders — Phase‑1 sync is flat, matching the "pick one folder" UX; subfolder recursion is a known follow-up, same spirit as GitHub Phase 1 not handling giant repos. */
-export async function listFilesInFolder({ token, folderId, pageSize = 1000 }) {
-  const params = new URLSearchParams({
-    q: `'${folderId}' in parents and trashed=false and mimeType != 'application/vnd.google-apps.folder'`,
-    fields: 'files(id,name,md5Checksum,mimeType)',
-    pageSize: String(pageSize),
+async function listAllFiles(token, q, fields) {
+  const files = [];
+  let pageToken;
+  do {
+    const params = new URLSearchParams({ q, fields: `nextPageToken,files(${fields})`, pageSize: '1000' });
+    if (pageToken) params.set('pageToken', pageToken);
+    const res = await driveRequest(token, `https://www.googleapis.com/drive/v3/files?${params.toString()}`);
+    if (!res.ok) throw new Error(`Google Drive file list failed (${res.status} ${res.statusText})`);
+    const data = await res.json();
+    files.push(...(data.files || []));
+    pageToken = data.nextPageToken;
+  } while (pageToken);
+  return files;
+}
+
+/** Direct child folders of `parentId` ('root' = My Drive), for the browsable folder picker. */
+export async function listChildFolders({ token, parentId = 'root' }) {
+  const files = await listAllFiles(
+    token,
+    `'${qLiteral(parentId)}' in parents and trashed=false and mimeType='${FOLDER_MIME}'`,
+    'id,name',
+  );
+  return files.map((f) => ({ id: f.id, name: f.name })).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export async function createFolder({ token, parentId = 'root', name }) {
+  const res = await driveRequest(token, 'https://www.googleapis.com/drive/v3/files?fields=id,name', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, mimeType: FOLDER_MIME, parents: [parentId] }),
   });
-  const res = await driveRequest(token, `https://www.googleapis.com/drive/v3/files?${params.toString()}`);
-  if (!res.ok) throw new Error(`Google Drive file list failed (${res.status} ${res.statusText})`);
-  const data = await res.json();
-  return data.files || [];
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Google Drive folder create failed (${res.status} ${res.statusText}): ${body}`);
+  }
+  return res.json(); // { id, name }
+}
+
+/**
+ * Breadth-first walk of everything under `rootId`. Returns
+ * `folders: [{ id, path }]` and `files: [{ id, name, path, md5Checksum, mimeType }]`,
+ * with `path` relative to the root ("Chapter 1/notes.md"). Google-native
+ * documents (Docs/Sheets/...) have no downloadable bytes and are skipped.
+ */
+export async function listFolderTree({ token, rootId }) {
+  const folders = [];
+  const files = [];
+  const queue = [{ id: rootId, path: '' }];
+  while (queue.length > 0) {
+    const current = queue.shift();
+    const children = await listAllFiles(
+      token,
+      `'${qLiteral(current.id)}' in parents and trashed=false`,
+      'id,name,md5Checksum,mimeType',
+    );
+    for (const child of children) {
+      const childPath = current.path ? `${current.path}/${child.name}` : child.name;
+      if (child.mimeType === FOLDER_MIME) {
+        folders.push({ id: child.id, path: childPath });
+        queue.push({ id: child.id, path: childPath });
+      } else if (!String(child.mimeType || '').startsWith('application/vnd.google-apps.')) {
+        files.push({
+          id: child.id,
+          name: child.name,
+          path: childPath,
+          parentId: current.id,
+          md5Checksum: child.md5Checksum || null,
+          mimeType: child.mimeType,
+        });
+      }
+    }
+  }
+  return { folders, files };
+}
+
+/** Renames and/or re-parents a file — used when a file was moved/renamed on the Crowdly side. */
+export async function moveFile({ token, fileId, name, fromParentId, toParentId }) {
+  const params = new URLSearchParams({ fields: 'id,name,parents' });
+  if (toParentId && fromParentId && toParentId !== fromParentId) {
+    params.set('addParents', toParentId);
+    params.set('removeParents', fromParentId);
+  }
+  const res = await driveRequest(token, `https://www.googleapis.com/drive/v3/files/${fileId}?${params.toString()}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Google Drive move failed (${res.status} ${res.statusText}): ${body}`);
+  }
+  return res.json();
+}
+
+/** Moves a file/folder to the Drive trash (recoverable there for 30 days) — used to propagate a Crowdly-side delete. */
+export async function trashFile({ token, fileId }) {
+  const res = await driveRequest(token, `https://www.googleapis.com/drive/v3/files/${fileId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ trashed: true }),
+  });
+  if (!res.ok && res.status !== 404) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Google Drive trash failed (${res.status} ${res.statusText}): ${body}`);
+  }
 }
 
 export async function getStartPageToken({ token }) {
@@ -170,17 +302,26 @@ export async function getStartPageToken({ token }) {
   return data.startPageToken;
 }
 
-/** Account-wide change page (Drive has no "watch this folder" mode — see plan notes); callers filter by `file.parents`. */
+/** All account-wide changes since `pageToken` (Drive has no "watch this folder" mode — see plan notes); callers filter by `file.parents`. */
 export async function listChangesSince({ token, pageToken }) {
-  const params = new URLSearchParams({
-    pageToken,
-    spaces: 'drive',
-    fields: 'newStartPageToken,nextPageToken,changes(fileId,removed,file(id,name,parents,modifiedTime,md5Checksum,mimeType,trashed))',
-    pageSize: '100',
-  });
-  const res = await driveRequest(token, `https://www.googleapis.com/drive/v3/changes?${params.toString()}`);
-  if (!res.ok) throw new Error(`Google Drive changes list failed (${res.status} ${res.statusText})`);
-  return res.json();
+  const changes = [];
+  let next = pageToken;
+  let newStartPageToken = null;
+  while (next) {
+    const params = new URLSearchParams({
+      pageToken: next,
+      spaces: 'drive',
+      fields: 'newStartPageToken,nextPageToken,changes(fileId,removed,file(id,name,parents,modifiedTime,md5Checksum,mimeType,trashed))',
+      pageSize: '1000',
+    });
+    const res = await driveRequest(token, `https://www.googleapis.com/drive/v3/changes?${params.toString()}`);
+    if (!res.ok) throw new Error(`Google Drive changes list failed (${res.status} ${res.statusText})`);
+    const data = await res.json();
+    changes.push(...(data.changes || []));
+    next = data.nextPageToken || null;
+    if (data.newStartPageToken) newStartPageToken = data.newStartPageToken;
+  }
+  return { changes, newStartPageToken };
 }
 
 /** Current metadata for one file — used before a push, to detect an unseen concurrent Drive-side change (mirrors githubApp.js's fetchFileMeta). Returns null on 404. */
@@ -247,7 +388,13 @@ export async function watchChanges({ token, pageToken, channelId, address, expir
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: channelId, type: 'web_hook', address, expiration: String(expirationMs) }),
+      body: JSON.stringify({
+        id: channelId,
+        type: 'web_hook',
+        address,
+        token: channelToken(channelId),
+        expiration: String(expirationMs),
+      }),
     },
   );
   if (!res.ok) {

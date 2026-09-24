@@ -59,7 +59,12 @@ import {
   exchangeCodeForTokens,
   encryptToken,
   fetchUserEmail,
-  listFolders as listGoogleDriveFolders,
+  listChildFolders as listGoogleDriveChildFolders,
+  createFolder as createGoogleDriveFolder,
+  getFileMeta as getGoogleDriveFileMeta,
+  signState as signGoogleDriveState,
+  verifyState as verifyGoogleDriveState,
+  verifyChannelToken as verifyGoogleDriveChannelToken,
   stopChannel as stopGoogleDriveChannel,
 } from './googleDriveApp.js';
 import {
@@ -6292,205 +6297,208 @@ app.post('/api/github/webhook', async (req, res) => {
   });
 });
 
-// --- Google Drive sync (Phase 1: file-level bidirectional sync for creative_space_items) ---
-// Same access convention as the GitHub sync routes above (explicit
-// body/query userId checked against space.user_id, not requireAuth/cookies).
+// --- Google Drive sync (folder + subfolders <-> creative_space_items) ---
+// Session-authenticated (requireAuth) and owner-only. A Google connection is
+// per Crowdly user (google_drive_accounts.user_id is unique), so the folder
+// picker/connect routes always use the *caller's own* account — the client
+// never names an account id.
 
-async function buildGoogleDriveSyncStatus(space, { userId } = {}) {
-  const logRows = await recentDriveSyncLog(space.id, 20);
-  const driveAccountId = space.google_drive_account_id || null;
+async function loadOwnedSpace(req, res) {
+  const { rows } = await pool.query('SELECT * FROM creative_spaces WHERE id = $1', [req.params.spaceId]);
+  const space = rows[0];
+  if (!space) {
+    res.status(404).json({ error: 'Creative space not found' });
+    return null;
+  }
+  if (String(space.user_id) !== String(req.user.id)) {
+    res.status(403).json({ error: 'You do not own this creative space' });
+    return null;
+  }
+  return space;
+}
+
+async function loadOwnDriveAccount(userId) {
+  const { rows } = await pool.query('SELECT id, google_email FROM google_drive_accounts WHERE user_id = $1', [String(userId)]);
+  return rows[0] || null;
+}
+
+async function buildGoogleDriveSyncStatus(space, userId) {
+  const [logRows, account] = await Promise.all([recentDriveSyncLog(space.id, 20), loadOwnDriveAccount(userId)]);
+  const configured = isGoogleDriveConfigured();
   return {
-    configured: isGoogleDriveConfigured(),
+    configured,
     connected: Boolean(space.google_drive_account_id && space.google_drive_folder_id),
     enabled: Boolean(space.google_drive_sync_enabled),
     folderId: space.google_drive_folder_id || null,
     folderName: space.google_drive_folder_name || null,
     lastSyncedAt: space.google_drive_last_synced_at || null,
-    driveAccountId,
-    authUrl: !driveAccountId && userId ? buildGoogleDriveAuthUrl(`${space.id}:${userId}`) : null,
+    hasGoogleAccount: Boolean(account),
+    googleEmail: account?.google_email || null,
+    // Always offered when configured, so the owner can also re-consent or switch Google accounts.
+    authUrl: configured ? buildGoogleDriveAuthUrl(signGoogleDriveState({ spaceId: space.id, userId: String(userId) })) : null,
     recentLog: logRows,
   };
 }
 
-app.get('/creative-spaces/:spaceId/drive-sync/status', async (req, res) => {
-  const { spaceId } = req.params;
-  const userId = req.query.userId ?? null;
-
+app.get('/creative-spaces/:spaceId/drive-sync/status', requireAuth, async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM creative_spaces WHERE id = $1', [spaceId]);
-    const space = rows[0];
-    if (!space) return res.status(404).json({ error: 'Creative space not found' });
-    if (!userId || String(space.user_id) !== String(userId)) {
-      return res.status(403).json({ error: 'You do not have access to this creative space' });
-    }
-
-    res.json(await buildGoogleDriveSyncStatus(space, { userId }));
+    const space = await loadOwnedSpace(req, res);
+    if (!space) return;
+    res.json(await buildGoogleDriveSyncStatus(space, req.user.id));
   } catch (err) {
     console.error('[GET /creative-spaces/:spaceId/drive-sync/status] failed:', err);
     res.status(500).json({ error: 'Failed to load Google Drive sync status' });
   }
 });
 
-app.patch('/creative-spaces/:spaceId/drive-sync', async (req, res) => {
-  const { spaceId } = req.params;
-  const { userId, enabled } = req.body ?? {};
-
-  if (!userId) {
-    return res.status(400).json({ error: 'userId is required' });
-  }
-
+app.patch('/creative-spaces/:spaceId/drive-sync', requireAuth, async (req, res) => {
+  const { enabled } = req.body ?? {};
   try {
-    const spaceRes = await pool.query('SELECT * FROM creative_spaces WHERE id = $1', [spaceId]);
-    const space = spaceRes.rows[0];
-    if (!space) return res.status(404).json({ error: 'Creative space not found' });
-    if (String(space.user_id) !== String(userId)) {
-      return res.status(403).json({ error: 'You do not own this creative space' });
-    }
+    const space = await loadOwnedSpace(req, res);
+    if (!space) return;
     if (enabled && !(space.google_drive_account_id && space.google_drive_folder_id)) {
       return res.status(400).json({ error: 'Connect this Space to a Google Drive folder before enabling sync' });
     }
 
     const { rows } = await pool.query(
       'UPDATE creative_spaces SET google_drive_sync_enabled = $1, updated_at = now() WHERE id = $2 RETURNING *',
-      [Boolean(enabled), spaceId],
+      [Boolean(enabled), space.id],
     );
-    res.json(await buildGoogleDriveSyncStatus(rows[0], { userId }));
+    if (enabled) {
+      runSpaceDriveSync(space.id).catch(() => {}); // initial sync; errors land in google_drive_sync_log.
+    }
+    res.json(await buildGoogleDriveSyncStatus(rows[0], req.user.id));
   } catch (err) {
     console.error('[PATCH /creative-spaces/:spaceId/drive-sync] failed:', err);
     res.status(500).json({ error: 'Failed to update Google Drive sync settings' });
   }
 });
 
-app.post('/creative-spaces/:spaceId/drive-sync/run', async (req, res) => {
-  const { spaceId } = req.params;
-  const { userId } = req.body ?? {};
-
+app.post('/creative-spaces/:spaceId/drive-sync/run', requireAuth, async (req, res) => {
   try {
-    const spaceRes = await pool.query('SELECT user_id FROM creative_spaces WHERE id = $1', [spaceId]);
-    const space = spaceRes.rows[0];
-    if (!space) return res.status(404).json({ error: 'Creative space not found' });
-    if (!userId || String(space.user_id) !== String(userId)) {
-      return res.status(403).json({ error: 'You do not have access to this creative space' });
-    }
-
-    const result = await runSpaceDriveSync(spaceId);
+    const space = await loadOwnedSpace(req, res);
+    if (!space) return;
+    const result = await runSpaceDriveSync(space.id);
     res.json(result);
   } catch (err) {
     console.error('[POST /creative-spaces/:spaceId/drive-sync/run] failed:', err);
-    res.status(500).json({ error: 'Failed to run Google Drive sync' });
+    res.status(500).json({ error: `Google Drive sync failed: ${err.message}` });
   }
 });
 
-// Lists folders visible to a connected Google account, so the owner can
-// pick which one to sync — used both right after OAuth consent
-// (driveAccountId from the redirect query param) and for "Change folder" on
-// an already-connected space (driveAccountId from the space's own status).
-app.get('/creative-spaces/:spaceId/drive-sync/folders', async (req, res) => {
-  const { spaceId } = req.params;
-  const { driveAccountId, userId } = req.query;
-
-  if (!driveAccountId) {
-    return res.status(400).json({ error: 'driveAccountId is required' });
-  }
-
+// Browsable folder picker: direct child folders of `parentId` ('root' = My
+// Drive) in the caller's own connected Google account.
+app.get('/creative-spaces/:spaceId/drive-sync/folders', requireAuth, async (req, res) => {
+  const parentId = req.query.parentId ? String(req.query.parentId) : 'root';
   try {
-    const spaceRes = await pool.query('SELECT user_id FROM creative_spaces WHERE id = $1', [spaceId]);
-    const space = spaceRes.rows[0];
-    if (!space) return res.status(404).json({ error: 'Creative space not found' });
-    if (!userId || String(space.user_id) !== String(userId)) {
-      return res.status(403).json({ error: 'You do not have access to this creative space' });
-    }
+    const space = await loadOwnedSpace(req, res);
+    if (!space) return;
+    const account = await loadOwnDriveAccount(req.user.id);
+    if (!account) return res.status(400).json({ error: 'Connect your Google account first' });
 
-    const token = await getValidDriveAccessToken(driveAccountId);
-    const folders = await listGoogleDriveFolders({ token });
-    res.json({ folders });
+    const token = await getValidDriveAccessToken(account.id);
+    const folders = await listGoogleDriveChildFolders({ token, parentId });
+    res.json({ parentId, folders });
   } catch (err) {
     console.error('[GET /creative-spaces/:spaceId/drive-sync/folders] failed:', err);
-    res.status(500).json({ error: 'Failed to list Google Drive folders for this account' });
+    res.status(500).json({ error: 'Failed to list Google Drive folders' });
   }
 });
 
-// Links a specific folder (chosen from drive-sync/folders above) to this
-// Space. Does not touch google_drive_sync_enabled — connecting a folder and
-// turning on file sync are deliberately separate steps.
-app.post('/creative-spaces/:spaceId/drive-sync/connect', async (req, res) => {
-  const { spaceId } = req.params;
-  const { userId, driveAccountId, folderId, folderName } = req.body ?? {};
+app.post('/creative-spaces/:spaceId/drive-sync/folders', requireAuth, async (req, res) => {
+  const parentId = req.body?.parentId ? String(req.body.parentId) : 'root';
+  const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+  if (!name) return res.status(400).json({ error: 'Folder name is required' });
+  try {
+    const space = await loadOwnedSpace(req, res);
+    if (!space) return;
+    const account = await loadOwnDriveAccount(req.user.id);
+    if (!account) return res.status(400).json({ error: 'Connect your Google account first' });
 
-  if (!userId || !driveAccountId || !folderId) {
-    return res.status(400).json({ error: 'userId, driveAccountId, and folderId are required' });
+    const token = await getValidDriveAccessToken(account.id);
+    const folder = await createGoogleDriveFolder({ token, parentId, name });
+    res.status(201).json({ id: folder.id, name: folder.name });
+  } catch (err) {
+    console.error('[POST /creative-spaces/:spaceId/drive-sync/folders] failed:', err);
+    res.status(500).json({ error: 'Failed to create the Google Drive folder' });
   }
+});
+
+// Links a folder (and its subfolders) from the caller's own Google account to
+// this Space. Does not touch google_drive_sync_enabled — connecting a folder
+// and turning on file sync are deliberately separate steps.
+app.post('/creative-spaces/:spaceId/drive-sync/connect', requireAuth, async (req, res) => {
+  const folderId = req.body?.folderId ? String(req.body.folderId) : null;
+  if (!folderId) return res.status(400).json({ error: 'folderId is required' });
 
   try {
-    const spaceRes = await pool.query('SELECT * FROM creative_spaces WHERE id = $1', [spaceId]);
-    const space = spaceRes.rows[0];
-    if (!space) return res.status(404).json({ error: 'Creative space not found' });
-    if (String(space.user_id) !== String(userId)) {
-      return res.status(403).json({ error: 'You do not own this creative space' });
+    const space = await loadOwnedSpace(req, res);
+    if (!space) return;
+    const account = await loadOwnDriveAccount(req.user.id);
+    if (!account) return res.status(400).json({ error: 'Connect your Google account first' });
+
+    const token = await getValidDriveAccessToken(account.id);
+    const meta = await getGoogleDriveFileMeta({ token, fileId: folderId });
+    if (!meta || meta.trashed || meta.mimeType !== 'application/vnd.google-apps.folder') {
+      return res.status(400).json({ error: 'That folder is not accessible to your Google account' });
     }
 
-    const token = await getValidDriveAccessToken(driveAccountId);
-    const folders = await listGoogleDriveFolders({ token });
-    const match = folders.find((f) => f.id === folderId);
-    if (!match) {
-      return res.status(400).json({ error: 'That folder is not accessible to this Google Drive account' });
-    }
-
+    const folderChanged = space.google_drive_folder_id !== folderId;
     const { rows } = await pool.query(
       `UPDATE creative_spaces
-       SET google_drive_account_id = $1, google_drive_folder_id = $2, google_drive_folder_name = $3, updated_at = now()
-       WHERE id = $4 AND user_id = $5
+       SET google_drive_account_id = $1, google_drive_folder_id = $2, google_drive_folder_name = $3,
+           google_drive_folder_ids = CASE WHEN $5 THEN NULL ELSE google_drive_folder_ids END,
+           updated_at = now()
+       WHERE id = $4
        RETURNING *`,
-      [driveAccountId, folderId, folderName || match.name, spaceId, userId],
+      [account.id, folderId, meta.name, space.id, folderChanged],
     );
+    if (folderChanged) {
+      // Different folder: forget per-item links to the old one so nothing is
+      // mistaken for a Drive-side delete on the first sync.
+      await pool.query(
+        'UPDATE creative_space_items SET google_drive_file_id = NULL, google_drive_md5 = NULL, google_drive_base_content = NULL WHERE space_id = $1',
+        [space.id],
+      );
+    }
 
-    ensureChannelArmed(driveAccountId).catch((err) => {
+    ensureChannelArmed(account.id).catch((err) => {
       console.error('[POST /creative-spaces/:spaceId/drive-sync/connect] failed to arm push-notification channel:', err);
     });
+    if (rows[0].google_drive_sync_enabled) runSpaceDriveSync(space.id).catch(() => {});
 
-    res.json(await buildGoogleDriveSyncStatus(rows[0], { userId }));
+    res.json(await buildGoogleDriveSyncStatus(rows[0], req.user.id));
   } catch (err) {
     console.error('[POST /creative-spaces/:spaceId/drive-sync/connect] failed:', err);
     res.status(500).json({ error: 'Failed to connect this Google Drive folder' });
   }
 });
 
-// Unlinks the connected folder — the connected Google account (and its
-// refresh token/push channel) is left alone if any other Space still uses
-// it, so reconnecting doesn't require re-consent.
-app.post('/creative-spaces/:spaceId/drive-sync/disconnect', async (req, res) => {
-  const { spaceId } = req.params;
-  const { userId } = req.body ?? {};
-
-  if (!userId) {
-    return res.status(400).json({ error: 'userId is required' });
-  }
-
+// Unlinks the connected folder — the Google account itself (and its refresh
+// token/push channel) stays connected if any other Space still uses it, so
+// reconnecting doesn't require re-consent.
+app.post('/creative-spaces/:spaceId/drive-sync/disconnect', requireAuth, async (req, res) => {
   try {
-    const spaceRes = await pool.query('SELECT * FROM creative_spaces WHERE id = $1', [spaceId]);
-    const space = spaceRes.rows[0];
-    if (!space) return res.status(404).json({ error: 'Creative space not found' });
-    if (String(space.user_id) !== String(userId)) {
-      return res.status(403).json({ error: 'You do not own this creative space' });
-    }
-
+    const space = await loadOwnedSpace(req, res);
+    if (!space) return;
     const previousAccountId = space.google_drive_account_id;
 
     const { rows } = await pool.query(
       `UPDATE creative_spaces
        SET google_drive_account_id = NULL, google_drive_folder_id = NULL, google_drive_folder_name = NULL,
-           google_drive_sync_enabled = false, updated_at = now()
-       WHERE id = $1 AND user_id = $2
+           google_drive_folder_ids = NULL, google_drive_sync_enabled = false, updated_at = now()
+       WHERE id = $1
        RETURNING *`,
-      [spaceId, userId],
+      [space.id],
+    );
+    await pool.query(
+      'UPDATE creative_space_items SET google_drive_file_id = NULL, google_drive_md5 = NULL, google_drive_base_content = NULL WHERE space_id = $1',
+      [space.id],
     );
 
     if (previousAccountId) {
       pool
-        .query(
-          'SELECT id FROM creative_spaces WHERE google_drive_account_id = $1 AND id != $2',
-          [previousAccountId, spaceId],
-        )
+        .query('SELECT id FROM creative_spaces WHERE google_drive_account_id = $1 AND id != $2', [previousAccountId, space.id])
         .then(async ({ rows: otherRows }) => {
           if (otherRows.length > 0) return; // another Space still uses this account's channel.
           const accountRes = await pool.query('SELECT * FROM google_drive_accounts WHERE id = $1', [previousAccountId]);
@@ -6508,71 +6516,82 @@ app.post('/creative-spaces/:spaceId/drive-sync/disconnect', async (req, res) => 
         });
     }
 
-    res.json(await buildGoogleDriveSyncStatus(rows[0], { userId }));
+    res.json(await buildGoogleDriveSyncStatus(rows[0], req.user.id));
   } catch (err) {
     console.error('[POST /creative-spaces/:spaceId/drive-sync/disconnect] failed:', err);
     res.status(500).json({ error: 'Failed to disconnect Google Drive' });
   }
 });
 
-// Google OAuth callback — Google redirects here after the user grants
-// consent, with `state` carrying back whatever we passed it in
-// buildGoogleDriveAuthUrl (`${spaceId}:${userId}`). Only registers/updates
-// the account here — the owner picks which folder to connect afterward via
-// the folder picker (drive-sync/folders + connect above).
+// Google OAuth callback — Google redirects here after consent. `state` is
+// the signed, 10-minute token from signGoogleDriveState, so the Space/user
+// it names can't be forged. Registers/updates the caller's Google account,
+// then sends them back to the Space to pick a folder.
 app.get('/api/google-drive/oauth/callback', async (req, res) => {
-  const code = req.query.code ? String(req.query.code) : null;
-  const state = req.query.state ? String(req.query.state) : '';
-  const [spaceId, userId] = state.split(':');
   const frontendBase = process.env.FRONTEND_BASE_URL || 'http://localhost:8080';
+  const verified = verifyGoogleDriveState(req.query.state ? String(req.query.state) : '');
+  const code = req.query.code ? String(req.query.code) : null;
 
-  if (!code || !spaceId || !userId) {
-    return res.status(400).send('Missing code or state');
+  if (!verified) {
+    return res.status(400).send('This Google Drive connect link is invalid or has expired. Please start again from your Space.');
   }
+  const { spaceId, userId } = verified;
+  const backToSpace = (drive) => res.redirect(`${frontendBase}/creative_space/${encodeURIComponent(spaceId)}?drive=${drive}`);
 
-  let driveAccountId = null;
+  if (!code) return backToSpace('error'); // consent denied/cancelled
+
   try {
+    const spaceRes = await pool.query('SELECT user_id FROM creative_spaces WHERE id = $1', [spaceId]);
+    if (!spaceRes.rows[0] || String(spaceRes.rows[0].user_id) !== userId) return backToSpace('error');
+
     const tokens = await exchangeCodeForTokens(code);
     const email = await fetchUserEmail(tokens.access_token);
     const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
 
+    // Google omits refresh_token when this user already granted consent
+    // before; keep the stored one in that case.
     const { rows } = await pool.query(
       `INSERT INTO google_drive_accounts (user_id, google_email, access_token_encrypted, refresh_token_encrypted, token_expires_at)
        VALUES ($1, $2, $3, $4, $5)
        ON CONFLICT (user_id) DO UPDATE
        SET google_email = EXCLUDED.google_email,
            access_token_encrypted = EXCLUDED.access_token_encrypted,
-           refresh_token_encrypted = EXCLUDED.refresh_token_encrypted,
+           refresh_token_encrypted = COALESCE(NULLIF($6, ''), google_drive_accounts.refresh_token_encrypted),
            token_expires_at = EXCLUDED.token_expires_at
        RETURNING id`,
-      [userId, email, encryptToken(tokens.access_token), encryptToken(tokens.refresh_token), expiresAt],
+      [
+        userId,
+        email,
+        encryptToken(tokens.access_token),
+        encryptToken(tokens.refresh_token || ''),
+        expiresAt,
+        tokens.refresh_token ? encryptToken(tokens.refresh_token) : '',
+      ],
     );
-    driveAccountId = rows[0]?.id || null;
-
+    const driveAccountId = rows[0]?.id;
     if (driveAccountId) {
       ensureChannelArmed(driveAccountId).catch((err) => {
         console.error('[GET /api/google-drive/oauth/callback] failed to arm push-notification channel:', err);
       });
     }
+    backToSpace('choose-folder');
   } catch (err) {
     console.error('[GET /api/google-drive/oauth/callback] failed:', err);
+    backToSpace('error');
   }
-
-  res.redirect(
-    `${frontendBase}/creative_space/${spaceId}?drive=choose-folder&driveAccountId=${driveAccountId || ''}`,
-  );
 });
 
-// Google Drive push-notification receiver. Trust boundary is the
-// channel-id/resource-id pair (Drive has no HMAC signature like GitHub's
-// X-Hub-Signature-256) matched against a known google_drive_accounts row —
-// see handleGoogleDriveWebhookEvent. Acks immediately since Drive expects a
-// fast response, then processes the event asynchronously.
+// Google Drive push-notification receiver. Every channel is registered with
+// a per-channel HMAC token (googleDriveApp.js channelToken) that Drive echoes
+// back in X-Goog-Channel-Token; anything without a valid one is ignored.
+// Acks immediately since Drive expects a fast response, then processes the
+// event asynchronously.
 app.post('/api/google-drive/webhook', async (req, res) => {
   res.status(200).json({ ok: true });
 
   const channelId = req.headers['x-goog-channel-id'];
   const resourceId = req.headers['x-goog-resource-id'];
+  if (!isGoogleDriveConfigured() || !verifyGoogleDriveChannelToken(channelId, req.headers['x-goog-channel-token'])) return;
   handleGoogleDriveWebhookEvent(channelId, resourceId).catch((err) => {
     console.error('[POST /api/google-drive/webhook] async event handling failed:', err);
   });
