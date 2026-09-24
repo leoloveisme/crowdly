@@ -10,7 +10,7 @@ this Mac.
 import sys
 from pathlib import Path
 
-from PyInstaller.utils.hooks import collect_submodules
+from PyInstaller.utils.hooks import collect_submodules, copy_metadata
 
 
 PROJECT_ROOT = Path(".").resolve()
@@ -21,12 +21,24 @@ if str(SRC_ROOT) not in sys.path:
 
 
 pyside6_hidden = collect_submodules("PySide6")
+# keyring picks its OS backend (macOS Keychain, Secret Service, ...) via
+# entry points at runtime, so its submodules and metadata must be bundled
+# explicitly — used by editor.gdrive.tokens.
+keyring_hidden = collect_submodules("keyring")
 
 I18N_DIR = SRC_ROOT / "editor" / "i18n"
 i18n_datas = []
 if I18N_DIR.is_dir():
     for path in I18N_DIR.glob("*.qm"):
         i18n_datas.append((str(path), "editor/i18n"))
+
+# Google OAuth "Desktop app" client for direct Google Drive sync (gitignored;
+# see Documentation/Google_Drive_OAuth_setup.md). Optional: without it the
+# app still runs, and Connect → Google Drive explains what's missing.
+GOOGLE_CLIENT = SRC_ROOT / "editor" / "google_oauth_client.json"
+extra_datas = copy_metadata("keyring")
+if GOOGLE_CLIENT.is_file():
+    extra_datas.append((str(GOOGLE_CLIENT), "editor"))
 
 
 block_cipher = None
@@ -38,8 +50,8 @@ a = Analysis(
     [ENTRY_SCRIPT],
     pathex=[str(SRC_ROOT)],
     binaries=[],
-    datas=i18n_datas,
-    hiddenimports=pyside6_hidden,
+    datas=i18n_datas + extra_datas,
+    hiddenimports=pyside6_hidden + keyring_hidden,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

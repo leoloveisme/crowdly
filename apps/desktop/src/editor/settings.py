@@ -49,6 +49,12 @@ class Settings:
     # multi-device scenarios.
     space_sync_state: dict[str, dict[str, str]] = field(default_factory=dict)
 
+    # Per-local-Space Google Drive sync mapping (see editor.gdrive). Keys are
+    # resolved absolute project-space paths; values hold ``folder_id``,
+    # ``folder_name`` (str) and ``enabled`` (bool). Works without any Crowdly
+    # login — the desktop app talks to Google Drive directly.
+    gdrive_sync: dict[str, dict] = field(default_factory=dict)
+
     # Session control behaviour when the application closes.
     # "close_all"    – close all tabs and clear the creative / project space
     #                  (default).
@@ -135,6 +141,22 @@ def load_settings() -> Settings:
                     cleaned[k2] = v2
             space_sync_state[key] = cleaned
 
+    raw_gdrive = raw.get("gdrive_sync") or {}
+    gdrive_sync: dict[str, dict] = {}
+    if isinstance(raw_gdrive, dict):
+        for key, value in raw_gdrive.items():
+            if not isinstance(key, str) or not isinstance(value, dict):
+                continue
+            folder_id = value.get("folder_id")
+            if not isinstance(folder_id, str) or not folder_id:
+                continue
+            folder_name = value.get("folder_name")
+            gdrive_sync[key] = {
+                "folder_id": folder_id,
+                "folder_name": folder_name if isinstance(folder_name, str) else "",
+                "enabled": bool(value.get("enabled", True)),
+            }
+
     session_control = raw.get("session_control", "close_all")
     if session_control not in ("close_all", "keep_session"):
         session_control = "close_all"
@@ -163,6 +185,7 @@ def load_settings() -> Settings:
         crowdly_base_url=crowdly_base_url,
         device_id=device_id,
         space_sync_state=space_sync_state,
+        gdrive_sync=gdrive_sync,
         session_control=session_control,
         session_open_tabs=session_open_tabs,
         session_active_tab=session_active_tab,

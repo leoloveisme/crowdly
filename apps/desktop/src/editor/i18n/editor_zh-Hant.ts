@@ -236,34 +236,6 @@ Details: {error}</translation>
       <translation>Sync with Google Drive</translation>
     </message>
     <message>
-      <source>You need to be logged in to the Crowdly web platform before changing Google Drive sync.</source>
-      <translation>You need to be logged in to the Crowdly web platform before changing Google Drive sync.</translation>
-    </message>
-    <message>
-      <source>This Space needs to be connected to a Google Drive folder first (use "Connect Google Drive" on the Space's page on the web platform, or Settings → Connect → Google Drive here), or the request failed.
-
-Details: {error}</source>
-      <translation>This Space needs to be connected to a Google Drive folder first (use "Connect Google Drive" on the Space's page on the web platform, or Settings → Connect → Google Drive here), or the request failed.
-
-Details: {error}</translation>
-    </message>
-    <message>
-      <source>You need to be logged in to the Crowdly web platform before connecting Google Drive.</source>
-      <translation>You need to be logged in to the Crowdly web platform before connecting Google Drive.</translation>
-    </message>
-    <message>
-      <source>This project space isn't linked to a Crowdly Space on the web yet. Sync with the web platform at least once before connecting Google Drive.
-
-Details: {error}</source>
-      <translation>This project space isn't linked to a Crowdly Space on the web yet. Sync with the web platform at least once before connecting Google Drive.
-
-Details: {error}</translation>
-    </message>
-    <message>
-      <source>Google Drive connect is either not configured on this server, or this Space is already connected to a Google Drive folder — use "Change folder" on the Space's page on the web platform instead.</source>
-      <translation>Google Drive connect is either not configured on this server, or this Space is already connected to a Google Drive folder — use "Change folder" on the Space's page on the web platform instead.</translation>
-    </message>
-    <message>
       <source>Not implemented</source>
       <translation>Not implemented</translation>
     </message>
@@ -519,7 +491,93 @@ Details: {error}</translation>
         <source>No name</source>
         <translation>未命名</translation>
     </message>
-  </context>
+      <message>
+        <source>There is no active project space set. Please choose or create one first.</source>
+        <translation>尚未設定目前的專案空間。請先選擇或建立一個。</translation>
+    </message>
+    <message>
+        <source>Disconnect Google Drive</source>
+        <translation>中斷 Google 雲端硬碟連線</translation>
+    </message>
+    <message>
+        <source>Sync with Google Drive now</source>
+        <translation>立即與 Google 雲端硬碟同步</translation>
+    </message>
+    <message>
+        <source>Google Drive sync log</source>
+        <translation>Google 雲端硬碟同步紀錄</translation>
+    </message>
+    <message>
+        <source>Drive: syncing…</source>
+        <translation>雲端硬碟：同步中…</translation>
+    </message>
+    <message>
+        <source>Drive: on</source>
+        <translation>雲端硬碟：已開啟</translation>
+    </message>
+    <message>
+        <source>Drive: error</source>
+        <translation>雲端硬碟：發生錯誤</translation>
+    </message>
+    <message>
+        <source>Drive: synced {time}</source>
+        <translation>雲端硬碟：已於 {time} 同步</translation>
+    </message>
+    <message>
+        <source>Google Drive folder: {name}</source>
+        <translation>Google 雲端硬碟資料夾：{name}</translation>
+    </message>
+    <message>
+        <source>Connect Google Drive</source>
+        <translation>連接 Google 雲端硬碟</translation>
+    </message>
+    <message>
+        <source>Google Drive isn&apos;t configured in this build of the app (missing Google OAuth client). See Documentation/Google_Drive_OAuth_setup.md.</source>
+        <translation>此版本的應用程式未設定 Google 雲端硬碟（缺少 Google OAuth 用戶端）。請參閱 Documentation/Google_Drive_OAuth_setup.md。</translation>
+    </message>
+    <message>
+        <source>Waiting for you to sign in to Google in your browser…</source>
+        <translation>正在等待您在瀏覽器中登入 Google…</translation>
+    </message>
+    <message>
+        <source>Google sign-in did not complete:
+{error}</source>
+        <translation>Google 登入未完成：
+{error}</translation>
+    </message>
+    <message>
+        <source>Connected this Space to Google Drive folder &quot;{name}&quot;. Syncing…</source>
+        <translation>已將此空間連接到 Google 雲端硬碟資料夾「{name}」。同步中…</translation>
+    </message>
+    <message>
+        <source>Stop syncing this Space with Google Drive? Files stay where they are, both on this computer and on Google Drive.</source>
+        <translation>停止將此空間與 Google 雲端硬碟同步？檔案會保留在原處，包括這台電腦和 Google 雲端硬碟上的檔案。</translation>
+    </message>
+    <message>
+        <source>Also sign out of Google ({email}) in this app?</source>
+        <translation>同時在此應用程式中登出 Google 帳戶（{email}）？</translation>
+    </message>
+    <message>
+        <source>Other Spaces that sync with Google Drive will stop syncing until you connect again.</source>
+        <translation>其他與 Google 雲端硬碟同步的空間將停止同步，直到您重新連接。</translation>
+    </message>
+    <message>
+        <source>Google Drive: {count} file(s) were edited in both places; Drive&apos;s version was saved next to yours as a &quot;conflict&quot; copy.</source>
+        <translation>Google 雲端硬碟：有 {count} 個檔案在兩處都被編輯；雲端硬碟的版本已作為「衝突」副本儲存在您的檔案旁邊。</translation>
+    </message>
+    <message>
+        <source>Google Drive changed &quot;{name}&quot; while you were editing it; Drive&apos;s version was saved as &quot;{copy}&quot;.</source>
+        <translation>在您編輯「{name}」時，它在 Google 雲端硬碟上被變更；雲端硬碟的版本已儲存為「{copy}」。</translation>
+    </message>
+    <message>
+        <source>Nothing has been synced with Google Drive yet.</source>
+        <translation>尚未與 Google 雲端硬碟同步任何內容。</translation>
+    </message>
+    <message>
+        <source>Recent Google Drive sync activity:</source>
+        <translation>最近的 Google 雲端硬碟同步活動：</translation>
+    </message>
+</context>
 <context>
     <name>IncludeContainerWidget</name>
     <message>
@@ -763,6 +821,61 @@ Details: {error}</translation>
     <message>
         <source>Show diff highlights</source>
         <translation>顯示差異高亮</translation>
+    </message>
+</context>
+<context>
+    <name>GoogleDriveFolderDialog</name>
+    <message>
+        <source>My Drive</source>
+        <translation>我的雲端硬碟</translation>
+    </message>
+    <message>
+        <source>Choose a Google Drive folder</source>
+        <translation>選擇 Google 雲端硬碟資料夾</translation>
+    </message>
+    <message>
+        <source>Google account: {email}</source>
+        <translation>Google 帳戶：{email}</translation>
+    </message>
+    <message>
+        <source>The folder you open here, including all its subfolders, will be synced with this Space.</source>
+        <translation>您在此處開啟的資料夾（包括其所有子資料夾）將與此空間同步。</translation>
+    </message>
+    <message>
+        <source>Up</source>
+        <translation>上一層</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>開啟</translation>
+    </message>
+    <message>
+        <source>New folder…</source>
+        <translation>新增資料夾…</translation>
+    </message>
+    <message>
+        <source>Connect this folder</source>
+        <translation>連接此資料夾</translation>
+    </message>
+    <message>
+        <source>Could not list folders:
+{error}</source>
+        <translation>無法列出資料夾：
+{error}</translation>
+    </message>
+    <message>
+        <source>New folder</source>
+        <translation>新增資料夾</translation>
+    </message>
+    <message>
+        <source>Folder name:</source>
+        <translation>資料夾名稱：</translation>
+    </message>
+    <message>
+        <source>Could not create the folder:
+{error}</source>
+        <translation>無法建立資料夾：
+{error}</translation>
     </message>
 </context>
 </TS>

@@ -17,6 +17,8 @@ dependencies = [
     "pdfminer.six",
     "ebooklib",
     "markdownify",
+    "keyring",
+    "merge3",
 ]
 
 [tool.setuptools]

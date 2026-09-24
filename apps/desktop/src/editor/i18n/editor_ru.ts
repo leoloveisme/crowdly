@@ -332,34 +332,6 @@ Details: {error}</source>
         <translation >Синхронизация с Google Drive</translation>
     </message>
     <message>
-        <source>You need to be logged in to the Crowdly web platform before changing Google Drive sync.</source>
-        <translation >Вам нужно войти на веб-платформу Crowdly, прежде чем изменять синхронизацию с Google Drive.</translation>
-    </message>
-    <message>
-        <source>This Space needs to be connected to a Google Drive folder first (use "Connect Google Drive" on the Space's page on the web platform, or Settings → Connect → Google Drive here), or the request failed.
-
-Details: {error}</source>
-        <translation >Сначала нужно подключить это пространство к папке Google Drive (используйте «Connect Google Drive» на странице пространства на веб-платформе, либо «Settings → Connect → Google Drive» здесь), либо запрос не выполнен.
-
-Подробности: {error}</translation>
-    </message>
-    <message>
-        <source>You need to be logged in to the Crowdly web platform before connecting Google Drive.</source>
-        <translation >Вам нужно войти на веб-платформу Crowdly, прежде чем подключать Google Drive.</translation>
-    </message>
-    <message>
-        <source>This project space isn't linked to a Crowdly Space on the web yet. Sync with the web platform at least once before connecting Google Drive.
-
-Details: {error}</source>
-        <translation >Это пространство проекта ещё не связано с пространством Crowdly в вебе. Синхронизируйте его с веб-платформой хотя бы раз, прежде чем подключать Google Drive.
-
-Подробности: {error}</translation>
-    </message>
-    <message>
-        <source>Google Drive connect is either not configured on this server, or this Space is already connected to a Google Drive folder — use "Change folder" on the Space's page on the web platform instead.</source>
-        <translation >Подключение Google Drive либо не настроено на этом сервере, либо это пространство уже подключено к папке Google Drive — используйте «Change folder» на странице пространства на веб-платформе.</translation>
-    </message>
-    <message>
         <source>Not implemented</source>
         <translation >Не реализовано</translation>
     </message>
@@ -614,6 +586,92 @@ Details: {error}</source>
     <message>
         <source>No name</source>
         <translation>Без имени</translation>
+    </message>
+    <message>
+        <source>There is no active project space set. Please choose or create one first.</source>
+        <translation>Активное проектное пространство не задано. Сначала выберите или создайте его.</translation>
+    </message>
+    <message>
+        <source>Disconnect Google Drive</source>
+        <translation>Отключить Google Диск</translation>
+    </message>
+    <message>
+        <source>Sync with Google Drive now</source>
+        <translation>Синхронизировать с Google Диском сейчас</translation>
+    </message>
+    <message>
+        <source>Google Drive sync log</source>
+        <translation>Журнал синхронизации с Google Диском</translation>
+    </message>
+    <message>
+        <source>Drive: syncing…</source>
+        <translation>Диск: синхронизация…</translation>
+    </message>
+    <message>
+        <source>Drive: on</source>
+        <translation>Диск: вкл.</translation>
+    </message>
+    <message>
+        <source>Drive: error</source>
+        <translation>Диск: ошибка</translation>
+    </message>
+    <message>
+        <source>Drive: synced {time}</source>
+        <translation>Диск: синхронизировано в {time}</translation>
+    </message>
+    <message>
+        <source>Google Drive folder: {name}</source>
+        <translation>Папка на Google Диске: {name}</translation>
+    </message>
+    <message>
+        <source>Connect Google Drive</source>
+        <translation>Подключить Google Диск</translation>
+    </message>
+    <message>
+        <source>Google Drive isn&apos;t configured in this build of the app (missing Google OAuth client). See Documentation/Google_Drive_OAuth_setup.md.</source>
+        <translation>Google Диск не настроен в этой сборке приложения (отсутствует OAuth-клиент Google). См. Documentation/Google_Drive_OAuth_setup.md.</translation>
+    </message>
+    <message>
+        <source>Waiting for you to sign in to Google in your browser…</source>
+        <translation>Ожидаем, пока вы войдёте в Google в браузере…</translation>
+    </message>
+    <message>
+        <source>Google sign-in did not complete:
+{error}</source>
+        <translation>Вход в Google не завершён:
+{error}</translation>
+    </message>
+    <message>
+        <source>Connected this Space to Google Drive folder &quot;{name}&quot;. Syncing…</source>
+        <translation>Это пространство подключено к папке «{name}» на Google Диске. Синхронизация…</translation>
+    </message>
+    <message>
+        <source>Stop syncing this Space with Google Drive? Files stay where they are, both on this computer and on Google Drive.</source>
+        <translation>Прекратить синхронизацию этого пространства с Google Диском? Файлы останутся на месте — и на этом компьютере, и на Google Диске.</translation>
+    </message>
+    <message>
+        <source>Also sign out of Google ({email}) in this app?</source>
+        <translation>Также выйти из аккаунта Google ({email}) в этом приложении?</translation>
+    </message>
+    <message>
+        <source>Other Spaces that sync with Google Drive will stop syncing until you connect again.</source>
+        <translation>Другие пространства, синхронизируемые с Google Диском, перестанут синхронизироваться, пока вы не подключитесь снова.</translation>
+    </message>
+    <message>
+        <source>Google Drive: {count} file(s) were edited in both places; Drive&apos;s version was saved next to yours as a &quot;conflict&quot; copy.</source>
+        <translation>Google Диск: файлов, изменённых в обоих местах: {count}; версия с Диска сохранена рядом с вашей как «конфликтная» копия.</translation>
+    </message>
+    <message>
+        <source>Google Drive changed &quot;{name}&quot; while you were editing it; Drive&apos;s version was saved as &quot;{copy}&quot;.</source>
+        <translation>Файл «{name}» изменился на Google Диске, пока вы его редактировали; версия с Диска сохранена как «{copy}».</translation>
+    </message>
+    <message>
+        <source>Nothing has been synced with Google Drive yet.</source>
+        <translation>С Google Диском пока ничего не синхронизировано.</translation>
+    </message>
+    <message>
+        <source>Recent Google Drive sync activity:</source>
+        <translation>Недавняя активность синхронизации с Google Диском:</translation>
     </message>
 </context>
 <context>
@@ -1007,6 +1065,61 @@ Details: {error}</source>
     <message>
         <source>Show diff highlights</source>
         <translation>Показать подсветку изменений</translation>
+    </message>
+</context>
+<context>
+    <name>GoogleDriveFolderDialog</name>
+    <message>
+        <source>My Drive</source>
+        <translation>Мой диск</translation>
+    </message>
+    <message>
+        <source>Choose a Google Drive folder</source>
+        <translation>Выберите папку на Google Диске</translation>
+    </message>
+    <message>
+        <source>Google account: {email}</source>
+        <translation>Аккаунт Google: {email}</translation>
+    </message>
+    <message>
+        <source>The folder you open here, including all its subfolders, will be synced with this Space.</source>
+        <translation>Папка, которую вы здесь откроете, вместе со всеми вложенными папками будет синхронизироваться с этим пространством.</translation>
+    </message>
+    <message>
+        <source>Up</source>
+        <translation>Вверх</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>Открыть</translation>
+    </message>
+    <message>
+        <source>New folder…</source>
+        <translation>Новая папка…</translation>
+    </message>
+    <message>
+        <source>Connect this folder</source>
+        <translation>Подключить эту папку</translation>
+    </message>
+    <message>
+        <source>Could not list folders:
+{error}</source>
+        <translation>Не удалось получить список папок:
+{error}</translation>
+    </message>
+    <message>
+        <source>New folder</source>
+        <translation>Новая папка</translation>
+    </message>
+    <message>
+        <source>Folder name:</source>
+        <translation>Имя папки:</translation>
+    </message>
+    <message>
+        <source>Could not create the folder:
+{error}</source>
+        <translation>Не удалось создать папку:
+{error}</translation>
     </message>
 </context>
 </TS>

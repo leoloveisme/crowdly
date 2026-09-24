@@ -149,61 +149,6 @@ def set_github_sync_enabled(settings: Settings, project_space: Path, user_id: st
   return body
 
 
-def get_drive_sync_status(settings: Settings, project_space: Path, user_id: str) -> Dict[str, Any] | None:
-  """Fetch Google Drive sync status for the Crowdly Space linked to *project_space*.
-
-  Mirrors get_github_sync_status above — returns ``None`` if this project
-  space has no linked remote Space yet, rather than raising.
-  """
-
-  space_id = _mapped_remote_space_id(settings, project_space)
-  if not space_id:
-    return None
-
-  api_base = _build_api_base(settings)
-  url = f"{api_base}/creative-spaces/{space_id}/drive-sync/status?userId={_urlquote(user_id)}"
-  status, body = _get_json(url)
-  if status != 200:
-    raise RuntimeError(body.get("error") or f"Failed to load Google Drive sync status (HTTP {status}).")
-  return body
-
-
-def get_drive_auth_url(settings: Settings, project_space: Path, user_id: str) -> str | None:
-  """Return the Google OAuth consent URL for connecting *project_space*'s linked Crowdly Space to Drive.
-
-  Returns ``None`` if the project space isn't linked to a remote Space yet,
-  if the backend has no Google OAuth client configured, or if a Drive
-  account/folder is already connected (nothing to consent to).
-  """
-
-  status = get_drive_sync_status(settings, project_space, user_id)
-  if not status:
-    return None
-  return status.get("authUrl") or None
-
-
-def set_drive_sync_enabled(settings: Settings, project_space: Path, user_id: str, enabled: bool) -> Dict[str, Any]:
-  """Enable/disable Google Drive sync for the Crowdly Space linked to *project_space*.
-
-  Mirrors set_github_sync_enabled above — Drive sync is a Space-level
-  setting owned by the backend, not a desktop-local one.
-  """
-
-  space_id = _mapped_remote_space_id(settings, project_space)
-  if not space_id:
-    raise RuntimeError(
-      "This project space isn't linked to a Crowdly Space on the web yet. "
-      "Sync with the web platform at least once before enabling Google Drive sync."
-    )
-
-  api_base = _build_api_base(settings)
-  url = f"{api_base}/creative-spaces/{space_id}/drive-sync"
-  status, body = _patch_json(url, {"userId": user_id, "enabled": bool(enabled)})
-  if status != 200:
-    raise RuntimeError(body.get("error") or f"Failed to update Google Drive sync (HTTP {status}).")
-  return body
-
-
 def build_space_snapshot(root: Path) -> Dict[str, Any]:
   """Return a snapshot payload for the given project-space *root*.
 

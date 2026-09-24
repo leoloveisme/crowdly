@@ -240,34 +240,6 @@ Details: {error}</translation>
         <translation >Sync with Google Drive</translation>
     </message>
     <message>
-        <source>You need to be logged in to the Crowdly web platform before changing Google Drive sync.</source>
-        <translation >You need to be logged in to the Crowdly web platform before changing Google Drive sync.</translation>
-    </message>
-    <message>
-        <source>This Space needs to be connected to a Google Drive folder first (use "Connect Google Drive" on the Space's page on the web platform, or Settings → Connect → Google Drive here), or the request failed.
-
-Details: {error}</source>
-        <translation >This Space needs to be connected to a Google Drive folder first (use "Connect Google Drive" on the Space's page on the web platform, or Settings → Connect → Google Drive here), or the request failed.
-
-Details: {error}</translation>
-    </message>
-    <message>
-        <source>You need to be logged in to the Crowdly web platform before connecting Google Drive.</source>
-        <translation >You need to be logged in to the Crowdly web platform before connecting Google Drive.</translation>
-    </message>
-    <message>
-        <source>This project space isn't linked to a Crowdly Space on the web yet. Sync with the web platform at least once before connecting Google Drive.
-
-Details: {error}</source>
-        <translation >This project space isn't linked to a Crowdly Space on the web yet. Sync with the web platform at least once before connecting Google Drive.
-
-Details: {error}</translation>
-    </message>
-    <message>
-        <source>Google Drive connect is either not configured on this server, or this Space is already connected to a Google Drive folder — use "Change folder" on the Space's page on the web platform instead.</source>
-        <translation >Google Drive connect is either not configured on this server, or this Space is already connected to a Google Drive folder — use "Change folder" on the Space's page on the web platform instead.</translation>
-    </message>
-    <message>
         <source>Not implemented</source>
         <translation >Not implemented</translation>
     </message>
@@ -550,6 +522,92 @@ Details: {error}</translation>
     <message>
         <source>No name</source>
         <translation>No name</translation>
+    </message>
+    <message>
+        <source>There is no active project space set. Please choose or create one first.</source>
+        <translation>There is no active project space set. Please choose or create one first.</translation>
+    </message>
+    <message>
+        <source>Disconnect Google Drive</source>
+        <translation>Disconnect Google Drive</translation>
+    </message>
+    <message>
+        <source>Sync with Google Drive now</source>
+        <translation>Sync with Google Drive now</translation>
+    </message>
+    <message>
+        <source>Google Drive sync log</source>
+        <translation>Google Drive sync log</translation>
+    </message>
+    <message>
+        <source>Drive: syncing…</source>
+        <translation>Drive: syncing…</translation>
+    </message>
+    <message>
+        <source>Drive: on</source>
+        <translation>Drive: on</translation>
+    </message>
+    <message>
+        <source>Drive: error</source>
+        <translation>Drive: error</translation>
+    </message>
+    <message>
+        <source>Drive: synced {time}</source>
+        <translation>Drive: synced {time}</translation>
+    </message>
+    <message>
+        <source>Google Drive folder: {name}</source>
+        <translation>Google Drive folder: {name}</translation>
+    </message>
+    <message>
+        <source>Connect Google Drive</source>
+        <translation>Connect Google Drive</translation>
+    </message>
+    <message>
+        <source>Google Drive isn&apos;t configured in this build of the app (missing Google OAuth client). See Documentation/Google_Drive_OAuth_setup.md.</source>
+        <translation>Google Drive isn&apos;t configured in this build of the app (missing Google OAuth client). See Documentation/Google_Drive_OAuth_setup.md.</translation>
+    </message>
+    <message>
+        <source>Waiting for you to sign in to Google in your browser…</source>
+        <translation>Waiting for you to sign in to Google in your browser…</translation>
+    </message>
+    <message>
+        <source>Google sign-in did not complete:
+{error}</source>
+        <translation>Google sign-in did not complete:
+{error}</translation>
+    </message>
+    <message>
+        <source>Connected this Space to Google Drive folder &quot;{name}&quot;. Syncing…</source>
+        <translation>Connected this Space to Google Drive folder &quot;{name}&quot;. Syncing…</translation>
+    </message>
+    <message>
+        <source>Stop syncing this Space with Google Drive? Files stay where they are, both on this computer and on Google Drive.</source>
+        <translation>Stop syncing this Space with Google Drive? Files stay where they are, both on this computer and on Google Drive.</translation>
+    </message>
+    <message>
+        <source>Also sign out of Google ({email}) in this app?</source>
+        <translation>Also sign out of Google ({email}) in this app?</translation>
+    </message>
+    <message>
+        <source>Other Spaces that sync with Google Drive will stop syncing until you connect again.</source>
+        <translation>Other Spaces that sync with Google Drive will stop syncing until you connect again.</translation>
+    </message>
+    <message>
+        <source>Google Drive: {count} file(s) were edited in both places; Drive&apos;s version was saved next to yours as a &quot;conflict&quot; copy.</source>
+        <translation>Google Drive: {count} file(s) were edited in both places; Drive&apos;s version was saved next to yours as a &quot;conflict&quot; copy.</translation>
+    </message>
+    <message>
+        <source>Google Drive changed &quot;{name}&quot; while you were editing it; Drive&apos;s version was saved as &quot;{copy}&quot;.</source>
+        <translation>Google Drive changed &quot;{name}&quot; while you were editing it; Drive&apos;s version was saved as &quot;{copy}&quot;.</translation>
+    </message>
+    <message>
+        <source>Nothing has been synced with Google Drive yet.</source>
+        <translation>Nothing has been synced with Google Drive yet.</translation>
+    </message>
+    <message>
+        <source>Recent Google Drive sync activity:</source>
+        <translation>Recent Google Drive sync activity:</translation>
     </message>
 </context>
 <context>
@@ -943,6 +1001,61 @@ Details: {error}</translation>
     <message>
         <source>Show diff highlights</source>
         <translation>Show diff highlights</translation>
+    </message>
+</context>
+<context>
+    <name>GoogleDriveFolderDialog</name>
+    <message>
+        <source>My Drive</source>
+        <translation>My Drive</translation>
+    </message>
+    <message>
+        <source>Choose a Google Drive folder</source>
+        <translation>Choose a Google Drive folder</translation>
+    </message>
+    <message>
+        <source>Google account: {email}</source>
+        <translation>Google account: {email}</translation>
+    </message>
+    <message>
+        <source>The folder you open here, including all its subfolders, will be synced with this Space.</source>
+        <translation>The folder you open here, including all its subfolders, will be synced with this Space.</translation>
+    </message>
+    <message>
+        <source>Up</source>
+        <translation>Up</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>Open</translation>
+    </message>
+    <message>
+        <source>New folder…</source>
+        <translation>New folder…</translation>
+    </message>
+    <message>
+        <source>Connect this folder</source>
+        <translation>Connect this folder</translation>
+    </message>
+    <message>
+        <source>Could not list folders:
+{error}</source>
+        <translation>Could not list folders:
+{error}</translation>
+    </message>
+    <message>
+        <source>New folder</source>
+        <translation>New folder</translation>
+    </message>
+    <message>
+        <source>Folder name:</source>
+        <translation>Folder name:</translation>
+    </message>
+    <message>
+        <source>Could not create the folder:
+{error}</source>
+        <translation>Could not create the folder:
+{error}</translation>
     </message>
 </context>
 </TS>
