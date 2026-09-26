@@ -671,7 +671,22 @@ async function armChannel(account, token) {
 }
 
 /** Arms (or renews, if expiring soon) the push-notification channel for one account. Safe to call repeatedly — no-ops if the current channel still has plenty of life left. */
+let warnedNoHttpsWebhook = false;
+
 export async function ensureChannelArmed(accountId) {
+  // Drive only delivers push notifications to a public HTTPS address; on a
+  // plain-http backend (local dev) rely on the poll loop and "Sync now".
+  const backendBase = process.env.BACKEND_BASE_URL || 'http://localhost:4000';
+  if (!backendBase.startsWith('https://')) {
+    if (!warnedNoHttpsWebhook) {
+      warnedNoHttpsWebhook = true;
+      console.log(
+        `[googleDriveSync] BACKEND_BASE_URL (${backendBase}) is not HTTPS — Drive push notifications are off; ` +
+          `changes made on Drive arrive via the ${Math.round(POLL_INTERVAL_MS / 60000)}-minute poll or "Sync now".`,
+      );
+    }
+    return;
+  }
   const { rows } = await pool.query('SELECT * FROM google_drive_accounts WHERE id = $1', [accountId]);
   const account = rows[0];
   if (!account) return;
