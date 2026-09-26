@@ -7197,6 +7197,34 @@
   },
   {
     "page_key": "/__layout__",
+    "element_id": "footer-partners-title",
+    "en": "Partners",
+    "ru": "Партнёры",
+    "de": "Partner"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-partner-noshamemedia",
+    "en": "No shame media",
+    "ru": "No shame media",
+    "de": "No shame media"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-partner-cardtalk",
+    "en": "CardTalk",
+    "ru": "CardTalk",
+    "de": "CardTalk"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-partner-shameless",
+    "en": "Shameless",
+    "ru": "Shameless",
+    "de": "Shameless"
+  },
+  {
+    "page_key": "/__layout__",
     "element_id": "footer-bottom-text",
     "en": "Built with love and creativity.",
     "ru": "Создано с любовью и творчеством.",
