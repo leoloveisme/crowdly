@@ -211,7 +211,7 @@ async function loadSyncContext(space) {
     space,
     token,
     folderIdsByPath,
-    stats: { pulled: 0, pushed: 0, merged: 0, conflicts: 0, deleted: 0, moved: 0 },
+    stats: { pulled: 0, pushed: 0, merged: 0, conflicts: 0, deleted: 0, moved: 0, noContent: 0 },
   };
 }
 
@@ -397,7 +397,12 @@ async function reconcileFile(ctx, item, remote, remotePath = null) {
       }
       // Edited in Crowdly since — the edit wins, re-upload below as a new Drive file.
     }
-    if (local === null) return; // metadata-only item (e.g. desktop manifest sync) — nothing to upload yet.
+    if (local === null) {
+      // Metadata-only item (e.g. listed by the desktop app's web sync, which
+      // sends names but not bytes) — nothing to upload until content exists.
+      ctx.stats.noContent += 1;
+      return;
+    }
     const uploaded = await uploadToDrive(ctx, item, local, null);
     await markSynced(item.id, { fileId: uploaded.fileId, md5Checksum: uploaded.md5Checksum, content: local });
     ctx.stats.pushed += 1;
@@ -580,7 +585,16 @@ export async function runSpaceDriveSync(spaceId) {
       const ctx = await loadSyncContext(space);
       if (!ctx) return { skipped: true, reason: 'account_missing' };
       const stats = await syncWholeSpace(ctx);
-      const changed = Object.values(stats).some((n) => n > 0);
+      if (stats.noContent > 0) {
+        await logSync(
+          spaceId,
+          'push',
+          'warn',
+          `${stats.noContent} file(s) are only listed in this Space (no content has been uploaded to Crowdly yet), so they were not copied to Google Drive`,
+        );
+      }
+      const { noContent, ...counts } = stats;
+      const changed = Object.values(counts).some((n) => n > 0);
       if (changed) {
         await logSync(
           spaceId,
