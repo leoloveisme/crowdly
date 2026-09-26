@@ -32,6 +32,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QCheckBox,
     QPushButton,
+    QWidgetAction,
 )
 from PySide6.QtCore import Qt, QTimer, QEvent, QCoreApplication, QObject, QThread, Signal, QUrl
 from PySide6.QtGui import (
@@ -51,7 +52,7 @@ from .. import file_metadata
 from .. import story_sync
 from .. import websync
 from .. import auth as local_auth
-from .. import websync
+from .. import crowdly_session
 from ..versioning import local_queue
 from ..format import types as format_types
 from ..importing import controller as importing_controller
@@ -76,6 +77,7 @@ class MainWindow(QMainWindow):
         parent: object | None = None,
         *,
         translator: object | None = None,
+        restore_sync: bool = False,
     ) -> None:
         super().__init__(parent)
 
@@ -105,12 +107,17 @@ class MainWindow(QMainWindow):
         # authentication wiring later.
         self._username = "username"
 
-        # Simple in-memory flags for synchronisation preferences. These are
-        # placeholders and are not yet persisted. Google Drive sync is real
-        # and persisted per local Space in settings.gdrive_sync (see
-        # _connect_to_google_drive).
+        # Synchronisation preferences ("Settings -> Synchronisation with").
+        # Persisted in settings and restored on the next launch. The web
+        # platform flag only becomes active once _restore_sync_on_startup (or
+        # the user ticking the box) has obtained credentials. Dropbox and
+        # OneDrive are placeholders. Google Drive sync is persisted per local
+        # Space in settings.gdrive_sync (see _connect_to_google_drive).
         self._sync_web_platform = False
-        self._sync_dropbox = False
+        self._sync_dropbox = bool(getattr(settings, "sync_dropbox", False))
+        self._sync_onedrive = bool(getattr(settings, "sync_onedrive", False))
+        # QCheckBox widgets shown in the sync menus, keyed by their state action.
+        self._sync_checkboxes: dict[QAction, QCheckBox] = {}
 
         # Google Drive: the app signs in to Google itself (no Crowdly login
         # needed) and syncs each connected local Space with its own Drive folder.
@@ -232,6 +239,11 @@ class MainWindow(QMainWindow):
         screen = self.screen() or QGuiApplication.primaryScreen()
         if screen is not None:
             self.setGeometry(screen.availableGeometry())
+
+        # Only the app's first window resumes sync from the saved settings;
+        # extra windows (Cmd/Ctrl+N) must not prompt for a second login.
+        if restore_sync:
+            QTimer.singleShot(0, self._restore_sync_on_startup)
 
     # Internal helpers -----------------------------------------------------
 
@@ -372,28 +384,26 @@ class MainWindow(QMainWindow):
         sync_menu = settings_menu.addMenu(self.tr("Synchronisation with"))
         self._sync_menu = sync_menu
 
-        self._action_sync_web = sync_menu.addAction(
-            self.tr("web platform"), self._toggle_sync_web_platform
+        self._action_sync_web = self._add_checkbox_item(
+            sync_menu, self.tr("web platform"), self._toggle_sync_web_platform
         )
-        self._action_sync_web.setCheckable(True)
-
-        self._action_sync_github = sync_menu.addAction(
-            self.tr("GitHub"), self._toggle_sync_github
+        self._action_sync_github = self._add_checkbox_item(
+            sync_menu, self.tr("GitHub"), self._toggle_sync_github
         )
-        self._action_sync_github.setCheckable(True)
 
         online_storage_menu = sync_menu.addMenu(self.tr("online storage"))
         self._online_storage_menu = online_storage_menu
 
-        self._action_sync_dropbox = online_storage_menu.addAction(
-            self.tr("Dropbox"), self._toggle_sync_dropbox
+        self._action_sync_dropbox = self._add_checkbox_item(
+            online_storage_menu, self.tr("Dropbox"), self._toggle_sync_dropbox
         )
-        self._action_sync_dropbox.setCheckable(True)
-
-        self._action_sync_gdrive = online_storage_menu.addAction(
-            self.tr("Google Drive"), self._toggle_sync_google_drive
+        self._action_sync_gdrive = self._add_checkbox_item(
+            online_storage_menu, self.tr("Google Drive"), self._toggle_sync_google_drive
         )
-        self._action_sync_gdrive.setCheckable(True)
+        # Placeholder, like Dropbox: remembers the preference only.
+        self._action_sync_onedrive = self._add_checkbox_item(
+            online_storage_menu, self.tr("OneDrive"), self._toggle_sync_onedrive
+        )
 
         connect_menu = settings_menu.addMenu(self.tr("Connect"))
         self._connect_menu = connect_menu
@@ -405,9 +415,6 @@ class MainWindow(QMainWindow):
         )
         self._action_disconnect_gdrive = connect_menu.addAction(
             self.tr("Disconnect Google Drive"), self._disconnect_google_drive
-        )
-        self._action_gdrive_sync_now = connect_menu.addAction(
-            self.tr("Sync with Google Drive now"), self._gdrive_sync_active_space
         )
         self._action_gdrive_log = connect_menu.addAction(
             self.tr("Google Drive sync log"), self._show_gdrive_log
@@ -616,6 +623,10 @@ class MainWindow(QMainWindow):
         self._shortcut_new_tab = QShortcut(QKeySequence("Ctrl+T"), self)
         self._shortcut_new_tab.activated.connect(self._new_tab)
 
+        # New window: Cmd+N on macOS, Ctrl+N on Windows/Linux (same mapping).
+        self._shortcut_new_window = QShortcut(QKeySequence("Ctrl+N"), self)
+        self._shortcut_new_window.activated.connect(self._new_window)
+
         # After the first tab is created, keep the per-tab document mapping in
         # sync with the active document.
         if not self._tab_documents:
@@ -748,6 +759,7 @@ class MainWindow(QMainWindow):
 
         if hasattr(self, "_gdrive_account"):
             self._update_gdrive_action_state()
+        self._refresh_github_sync_state()
 
     def _space_and_project_space_unset(self) -> bool:
         """Return True when there is no active project space configured.
@@ -2613,6 +2625,7 @@ class MainWindow(QMainWindow):
         if hasattr(self, "_action_sync_web"):
             self._action_sync_web.setText(self.tr("web platform"))
             self._action_sync_web.setChecked(self._sync_web_platform)
+            self._sync_checkboxes[self._action_sync_web].setText(self.tr("web platform"))
         if hasattr(self, "_action_sync_github"):
             # No local self._sync_github flag to restore here (unlike the
             # other sync toggles) — GitHub sync state lives on the backend
@@ -2620,6 +2633,7 @@ class MainWindow(QMainWindow):
             # label text and leaves whatever checked-state the last
             # successful toggle/status fetch left it in untouched.
             self._action_sync_github.setText(self.tr("GitHub"))
+            self._sync_checkboxes[self._action_sync_github].setText(self.tr("GitHub"))
         if hasattr(self, "_action_sync_current_space"):
             self._action_sync_current_space.setText(self.tr("Sync current Space now"))
         if hasattr(self, "_action_pull_current_space"):
@@ -2629,8 +2643,14 @@ class MainWindow(QMainWindow):
         if hasattr(self, "_action_sync_dropbox"):
             self._action_sync_dropbox.setText(self.tr("Dropbox"))
             self._action_sync_dropbox.setChecked(self._sync_dropbox)
+            self._sync_checkboxes[self._action_sync_dropbox].setText(self.tr("Dropbox"))
         if hasattr(self, "_action_sync_gdrive"):
             self._action_sync_gdrive.setText(self.tr("Google Drive"))
+            self._sync_checkboxes[self._action_sync_gdrive].setText(self.tr("Google Drive"))
+        if hasattr(self, "_action_sync_onedrive"):
+            self._action_sync_onedrive.setText(self.tr("OneDrive"))
+            self._action_sync_onedrive.setChecked(self._sync_onedrive)
+            self._sync_checkboxes[self._action_sync_onedrive].setText(self.tr("OneDrive"))
         if hasattr(self, "_import_menu"):
             self._import_menu.setTitle(self.tr("Import"))
         if hasattr(self, "_action_import"):
@@ -2643,8 +2663,6 @@ class MainWindow(QMainWindow):
             self._action_connect_gdrive.setText(self.tr("Google Drive"))
         if hasattr(self, "_action_disconnect_gdrive"):
             self._action_disconnect_gdrive.setText(self.tr("Disconnect Google Drive"))
-        if hasattr(self, "_action_gdrive_sync_now"):
-            self._action_gdrive_sync_now.setText(self.tr("Sync with Google Drive now"))
         if hasattr(self, "_action_gdrive_log"):
             self._action_gdrive_log.setText(self.tr("Google Drive sync log"))
         if hasattr(self, "_gdrive_account"):
@@ -4150,16 +4168,14 @@ class MainWindow(QMainWindow):
                 if not creds:
                     # User aborted or did not provide credentials -> keep sync off.
                     if hasattr(self, "_action_sync_web") and isinstance(self._action_sync_web, QAction):
-                        self._action_sync_web.blockSignals(True)
                         self._action_sync_web.setChecked(False)
-                        self._action_sync_web.blockSignals(False)
-                    self._sync_web_platform = False
+                    self._set_web_sync_preference(False)
                     self._retranslate_ui()
                     # Do not start any timers.
                     return
 
                 # We have credentials: enable sync and start polling.
-                self._sync_web_platform = True
+                self._set_web_sync_preference(True)
                 self._retranslate_ui()
                 self._update_sync_status_label()
 
@@ -4202,7 +4218,7 @@ class MainWindow(QMainWindow):
                     pass
             else:
                 # Turning sync off: stop polling + pending push debounce.
-                self._sync_web_platform = False
+                self._set_web_sync_preference(False)
                 if self._web_pull_timer.isActive():
                     self._web_pull_timer.stop()
                 if self._web_sync_timer.isActive():
@@ -4231,9 +4247,7 @@ class MainWindow(QMainWindow):
         desired = self._action_sync_github.isChecked()
 
         def _revert(checked: bool) -> None:
-            self._action_sync_github.blockSignals(True)
             self._action_sync_github.setChecked(checked)
-            self._action_sync_github.blockSignals(False)
 
         project_space = self._project_space_path
         if project_space is None:
@@ -4285,8 +4299,104 @@ class MainWindow(QMainWindow):
     def _toggle_sync_dropbox(self) -> None:  # pragma: no cover - UI wiring
         """Toggle synchronisation with Dropbox (placeholder)."""
 
-        self._sync_dropbox = not self._sync_dropbox
+        self._sync_dropbox = self._action_sync_dropbox.isChecked()
+        self._settings.sync_dropbox = self._sync_dropbox
+        save_settings(self._settings)
         self._retranslate_ui()
+
+    def _toggle_sync_onedrive(self) -> None:  # pragma: no cover - UI wiring
+        """Toggle synchronisation with OneDrive (placeholder)."""
+
+        self._sync_onedrive = self._action_sync_onedrive.isChecked()
+        self._settings.sync_onedrive = self._sync_onedrive
+        save_settings(self._settings)
+        self._retranslate_ui()
+
+    def _add_checkbox_item(self, menu: QMenu, text: str, handler) -> QAction:
+        """Add a menu entry drawn as a real QCheckBox and return its state action.
+
+        Native checkable menu items show no indicator at all while unchecked
+        on macOS, so the sync menus embed a QCheckBox instead. The returned
+        (hidden) checkable QAction holds the state: code keeps using
+        ``isChecked()`` / ``setChecked()`` on it and the checkbox follows.
+        Clicking the checkbox updates the action, then calls *handler*.
+        """
+
+        action = QAction(text, self)
+        action.setCheckable(True)
+
+        checkbox = QCheckBox(text, menu)
+        checkbox.setStyleSheet("QCheckBox { padding: 3px 12px 3px 10px; }")
+        widget_action = QWidgetAction(menu)
+        widget_action.setDefaultWidget(checkbox)
+        menu.addAction(widget_action)
+
+        def _on_clicked(checked: bool) -> None:
+            action.setChecked(checked)
+            handler()
+
+        def _on_toggled(checked: bool) -> None:
+            checkbox.blockSignals(True)
+            checkbox.setChecked(checked)
+            checkbox.blockSignals(False)
+
+        checkbox.clicked.connect(_on_clicked)
+        action.toggled.connect(_on_toggled)
+        self._sync_checkboxes[action] = checkbox
+        return action
+
+    def _set_web_sync_preference(self, enabled: bool) -> None:
+        """Set the web platform sync flag and remember it for the next launch."""
+
+        self._sync_web_platform = enabled
+        if self._settings.sync_web_platform != enabled:
+            self._settings.sync_web_platform = enabled
+            try:
+                save_settings(self._settings)
+            except Exception:
+                pass
+
+    def _restore_sync_on_startup(self) -> None:  # pragma: no cover - UI wiring
+        """Resume the sync the user left ticked when the app last closed.
+
+        A remembered login (see editor.crowdly_session) is applied silently.
+        Crowdly platform sync then resumes without a prompt; if the user had
+        logged out, ticking-on goes through the normal login dialog, and
+        cancelling it leaves the box unticked. Google Drive resumes through
+        its own poll timer; GitHub state is fetched from the backend.
+        """
+
+        remembered = crowdly_session.load(self._settings)
+        if remembered is not None:
+            email, password = remembered
+            try:
+                self.apply_login(email)
+            except Exception:
+                pass
+            self._crowdly_web_credentials = (email, password)
+
+        if self._settings.sync_web_platform:
+            self._action_sync_web.setChecked(True)
+            self._toggle_sync_web_platform()
+
+        self._refresh_github_sync_state()
+
+    def _refresh_github_sync_state(self) -> None:  # pragma: no cover - network dependent
+        """Tick the GitHub checkbox to match the backend (best-effort)."""
+
+        if not hasattr(self, "_action_sync_github"):
+            return
+        project_space = self._project_space_path
+        if project_space is None or not self._crowdly_user_id:
+            self._action_sync_github.setChecked(False)
+            return
+        try:
+            status = websync.get_github_sync_status(
+                self._settings, project_space, self._crowdly_user_id
+            )
+        except Exception:
+            return
+        self._action_sync_github.setChecked(bool(status and status.get("enabled")))
 
     # --- Google Drive (direct, per local Space — see editor.gdrive) -----------
 
@@ -4304,9 +4414,7 @@ class MainWindow(QMainWindow):
 
         mapping = self._gdrive_mapping(self._project_space_path)
         if hasattr(self, "_action_sync_gdrive"):
-            self._action_sync_gdrive.blockSignals(True)
             self._action_sync_gdrive.setChecked(bool(mapping and mapping.get("enabled")))
-            self._action_sync_gdrive.blockSignals(False)
         if hasattr(self, "_action_disconnect_gdrive"):
             self._action_disconnect_gdrive.setEnabled(bool(mapping) or self._gdrive_account.is_signed_in())
         self._update_gdrive_status_label()
@@ -5302,9 +5410,11 @@ class MainWindow(QMainWindow):
             dialog.exec()
             return
 
-        # Logged in -> perform a simple logout.
+        # Logged in -> perform a simple logout, and forget the remembered
+        # login so the next launch asks again.
         self._logged_in = False
         self._username = "username"
+        crowdly_session.clear(self._settings)
         self._retranslate_ui()
         self._update_user_status_label()
         self._update_sync_status_label()
@@ -5315,11 +5425,19 @@ class MainWindow(QMainWindow):
         )
         self._update_user_status_label()
 
-    def apply_login(self, username: str) -> None:
-        """Apply a successful login for *username* to the main window state."""
+    def apply_login(self, username: str, password: str | None = None) -> None:
+        """Apply a successful login for *username* to the main window state.
+
+        When *password* is given the login is remembered (OS keychain) so the
+        user stays logged in across restarts until they explicitly log out,
+        and it is reused as this session's web credentials.
+        """
 
         self._username = username
         self._logged_in = True
+        if password:
+            self._crowdly_web_credentials = (username, password)
+            crowdly_session.save(self._settings, username, password)
 
         # Resolve the corresponding local user id so Spaces sync can attribute
         # updates to the correct Crowdly account.
@@ -5332,6 +5450,7 @@ class MainWindow(QMainWindow):
         self._retranslate_ui()
         self._update_user_status_label()
         self._update_sync_status_label()
+        self._refresh_github_sync_state()
 
         # If web sync is already enabled and the user logs in afterwards,
         # immediately perform a best-effort structural pull so that newly
@@ -6143,6 +6262,7 @@ class MainWindow(QMainWindow):
                 # reuse them without forcing another login.
                 try:
                     self._crowdly_web_credentials = (creds.username, creds.password)
+                    crowdly_session.save(self._settings, creds.username, creds.password)
                     self._update_sync_status_label()
                 except Exception:
                     pass
@@ -6962,6 +7082,7 @@ class MainWindow(QMainWindow):
             return None
 
         self._crowdly_web_credentials = (creds.username, creds.password)
+        crowdly_session.save(self._settings, creds.username, creds.password)
         self._update_sync_status_label()
         return self._crowdly_web_credentials
 
@@ -6973,14 +7094,15 @@ class MainWindow(QMainWindow):
         - Shows a clear, actionable error message.
         """
 
-        # Clear cached credentials so the next attempt asks again.
+        # Clear cached (and remembered) credentials so the next attempt asks again.
         try:
             self._crowdly_web_credentials = None
+            crowdly_session.clear(self._settings)
         except Exception:
             pass
 
         # Ensure sync is turned off and timers are stopped.
-        self._sync_web_platform = False
+        self._set_web_sync_preference(False)
         try:
             if self._web_pull_timer.isActive():
                 self._web_pull_timer.stop()
@@ -6995,9 +7117,7 @@ class MainWindow(QMainWindow):
         # Keep the action state consistent without retriggering this handler.
         if hasattr(self, "_action_sync_web") and isinstance(self._action_sync_web, QAction):
             try:
-                self._action_sync_web.blockSignals(True)
                 self._action_sync_web.setChecked(False)
-                self._action_sync_web.blockSignals(False)
             except Exception:
                 pass
 

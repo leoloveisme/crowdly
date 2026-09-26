@@ -312,6 +312,10 @@ Details: {error}</source>
         <translation >Dropbox</translation>
     </message>
     <message>
+        <source>OneDrive</source>
+        <translation>OneDrive</translation>
+    </message>
+    <message>
         <source>Google Drive</source>
         <translation >Google Drive</translation>
     </message>

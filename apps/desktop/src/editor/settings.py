@@ -55,6 +55,18 @@ class Settings:
     # login — the desktop app talks to Google Drive directly.
     gdrive_sync: dict[str, dict] = field(default_factory=dict)
 
+    # "Settings -> Synchronisation with" checkboxes that are restored on the
+    # next launch. Google Drive (per Space, above) and GitHub (per Crowdly
+    # Space, on the backend) keep their own state elsewhere.
+    sync_web_platform: bool = False
+    sync_dropbox: bool = False
+    sync_onedrive: bool = False
+
+    # Email of the Crowdly account the user stayed logged in with. The
+    # password lives in the OS keychain (see editor.crowdly_session); both
+    # are cleared on an explicit logout.
+    remembered_login: str | None = None
+
     # Session control behaviour when the application closes.
     # "close_all"    – close all tabs and clear the creative / project space
     #                  (default).
@@ -178,6 +190,10 @@ def load_settings() -> Settings:
         for entry in raw_tab_titles:
             session_tab_titles.append(entry if isinstance(entry, str) else "")
 
+    remembered_login = raw.get("remembered_login")
+    if not isinstance(remembered_login, str) or not remembered_login:
+        remembered_login = None
+
     settings = Settings(
         project_space=project_space,
         spaces=spaces,
@@ -186,6 +202,10 @@ def load_settings() -> Settings:
         device_id=device_id,
         space_sync_state=space_sync_state,
         gdrive_sync=gdrive_sync,
+        sync_web_platform=bool(raw.get("sync_web_platform", False)),
+        sync_dropbox=bool(raw.get("sync_dropbox", False)),
+        sync_onedrive=bool(raw.get("sync_onedrive", False)),
+        remembered_login=remembered_login,
         session_control=session_control,
         session_open_tabs=session_open_tabs,
         session_active_tab=session_active_tab,
