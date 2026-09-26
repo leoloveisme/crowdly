@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import EditableText from "@/components/EditableText";
+import SpaceUserPicker from "@/modules/space-user-picker";
 
 const IMAGE_EXTENSIONS = /\.(png|jpe?g|webp|gif|svg)$/i;
 const TEXT_EXTENSIONS = /\.(md|markdown|txt|json|jsonl|csv|html)$/i;
@@ -296,6 +297,7 @@ const CreativeSpacePage: React.FC = () => {
   };
 
   const isOwner = Boolean(authUser?.id && space && space.user_id === authUser.id);
+  const [userPickerOpen, setUserPickerOpen] = useState(false);
 
   useEffect(() => {
     const loadSpace = async () => {
@@ -310,7 +312,9 @@ const CreativeSpacePage: React.FC = () => {
         const url = params.toString()
           ? `${API_BASE}/creative-spaces/${spaceId}?${params.toString()}`
           : `${API_BASE}/creative-spaces/${spaceId}`;
-        const res = await fetch(url);
+        // credentials: users granted access to a "selected" Space are
+        // recognised by their session cookie.
+        const res = await fetch(url, { credentials: "include" });
         const body = await res.json().catch(() => ({}));
         if (!res.ok) {
           console.error("[CreativeSpacePage] Failed to load space", { status: res.status, body });
@@ -346,7 +350,7 @@ const CreativeSpacePage: React.FC = () => {
       const url = params.toString()
         ? `${API_BASE}/creative-spaces/${spaceId}/items?${params.toString()}`
         : `${API_BASE}/creative-spaces/${spaceId}/items`;
-      const res = await fetch(url);
+      const res = await fetch(url, { credentials: "include" });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
         console.error("[CreativeSpacePage] Failed to load items", { status: res.status, body });
@@ -379,7 +383,7 @@ const CreativeSpacePage: React.FC = () => {
     try {
       const params = new URLSearchParams();
       if (authUser?.id) params.set("userId", authUser.id);
-      const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/content-items?${params.toString()}`);
+      const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/content-items?${params.toString()}`, { credentials: "include" });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
         console.error("[CreativeSpacePage] Failed to load stories/screenplays", { status: res.status, body });
@@ -836,10 +840,8 @@ const CreativeSpacePage: React.FC = () => {
     }
   };
 
-  const handleToggleVisibility = async () => {
+  const handleSetVisibility = async (next: "public" | "private") => {
     if (!spaceId || !authUser?.id || !space) return;
-    const current = (space.visibility || "private").toLowerCase();
-    const next = current === "public" ? "private" : "public";
     try {
       const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}`, {
         method: "PATCH",
@@ -1116,10 +1118,18 @@ const CreativeSpacePage: React.FC = () => {
                   className={`px-2 py-0.5 rounded-full text-[11px] ${
                     space.visibility === "public"
                       ? "bg-emerald-50 text-emerald-700"
-                      : "bg-amber-50 text-amber-700"
+                      : space.visibility === "selected"
+                        ? "bg-indigo-50 text-indigo-700"
+                        : "bg-amber-50 text-amber-700"
                   }`}
                 >
-                  {space.visibility === "public" ? "Public" : "Private"}
+                  {space.visibility === "public" ? (
+                    <EditableText id="space-badge-public">Public</EditableText>
+                  ) : space.visibility === "selected" ? (
+                    <EditableText id="space-badge-selected">Selected users</EditableText>
+                  ) : (
+                    <EditableText id="space-badge-private">Private</EditableText>
+                  )}
                 </span>
                 <span
                   className={`px-2 py-0.5 rounded-full text-[11px] ${
@@ -1136,13 +1146,38 @@ const CreativeSpacePage: React.FC = () => {
             <div className="flex flex-wrap items-center gap-2 justify-end">
               {isOwner && (
                 <>
+                  {space.visibility !== "public" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleSetVisibility("public")}
+                      className="rounded-full px-3 text-xs"
+                    >
+                      <EditableText id="space-make-public">Make public</EditableText>
+                    </Button>
+                  )}
+                  {(space.visibility || "private") !== "private" && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleSetVisibility("private")}
+                      className="rounded-full px-3 text-xs"
+                    >
+                      <EditableText id="space-make-private">Make private</EditableText>
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={handleToggleVisibility}
+                    onClick={() => setUserPickerOpen(true)}
+                    disabled={space.visibility === "public"}
                     className="rounded-full px-3 text-xs"
                   >
-                    {space.visibility === "public" ? "Make private" : "Make public"}
+                    {space.visibility === "selected" ? (
+                      <EditableText id="space-manage-users">Manage selected users</EditableText>
+                    ) : (
+                      <EditableText id="space-make-selected">Only for selected user(s)</EditableText>
+                    )}
                   </Button>
                   <Button
                     size="sm"
@@ -1892,6 +1927,14 @@ const CreativeSpacePage: React.FC = () => {
         </DialogContent>
       </Dialog>
 
+      {isOwner && spaceId && (
+        <SpaceUserPicker
+          spaceId={spaceId}
+          open={userPickerOpen}
+          onClose={() => setUserPickerOpen(false)}
+          onSaved={(updated) => setSpace((prev) => (prev ? { ...prev, visibility: updated.visibility } : prev))}
+        />
+      )}
       <CrowdlyFooter />
     </div>
   );

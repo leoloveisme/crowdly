@@ -25,6 +25,8 @@ interface CreativeSpacesProps {
   onDelete?: (space: CreativeSpace) => void;
   onClone?: (space: CreativeSpace) => void;
   onToggleVisibility?: (space: CreativeSpace, nextVisibility: CreativeSpace["visibility"]) => void;
+  /** "Only for selected user(s)": open the user picker for this Space. */
+  onSelectUsers?: (space: CreativeSpace) => void;
   onTogglePublished?: (space: CreativeSpace, nextPublished: boolean) => void;
   onShowStats?: (space: CreativeSpace) => void;
 }
@@ -49,6 +51,7 @@ const CreativeSpacesModule: React.FC<CreativeSpacesProps> = ({
   onDelete,
   onClone,
   onToggleVisibility,
+  onSelectUsers,
   onTogglePublished,
   onShowStats,
 }) => {
@@ -83,7 +86,7 @@ const CreativeSpacesModule: React.FC<CreativeSpacesProps> = ({
   }
 
   const renderVisibility = (space: CreativeSpace) => {
-    const vis = space.visibility || "private";
+    const vis = space.visibility === "selected" ? "selected users" : space.visibility || "private";
     const published = Boolean(space.published);
     const label = published ? `${vis} · published` : `${vis} · unpublished`;
     return <span className="text-[11px] text-gray-500 whitespace-nowrap">{label}</span>;
@@ -142,18 +145,36 @@ const CreativeSpacesModule: React.FC<CreativeSpacesProps> = ({
                     <EditableText id="spaces-mod-stats">Stats</EditableText>
                   </button>
                 )}
-                {onToggleVisibility && (
+                {onToggleVisibility && space.visibility !== "public" && (
                   <button
                     type="button"
-                    onClick={() =>
-                      onToggleVisibility(
-                        space,
-                        (space.visibility === "private" ? "public" : "private") as CreativeSpace["visibility"],
-                      )
-                    }
+                    onClick={() => onToggleVisibility(space, "public")}
                     className="px-1 py-0.5 rounded hover:bg-gray-100"
                   >
-                    {space.visibility === "private" ? <EditableText id="spaces-mod-make-public">Make public</EditableText> : <EditableText id="spaces-mod-make-private">Make private</EditableText>}
+                    <EditableText id="spaces-mod-make-public">Make public</EditableText>
+                  </button>
+                )}
+                {onToggleVisibility && (space.visibility || "private") !== "private" && (
+                  <button
+                    type="button"
+                    onClick={() => onToggleVisibility(space, "private")}
+                    className="px-1 py-0.5 rounded hover:bg-gray-100"
+                  >
+                    <EditableText id="spaces-mod-make-private">Make private</EditableText>
+                  </button>
+                )}
+                {onSelectUsers && (
+                  <button
+                    type="button"
+                    onClick={() => onSelectUsers(space)}
+                    disabled={space.visibility === "public"}
+                    className="px-1 py-0.5 rounded hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                  >
+                    {space.visibility === "selected" ? (
+                      <EditableText id="spaces-mod-manage-users">Manage selected users</EditableText>
+                    ) : (
+                      <EditableText id="spaces-mod-make-selected">Only for selected user(s)</EditableText>
+                    )}
                   </button>
                 )}
                 {onTogglePublished && (

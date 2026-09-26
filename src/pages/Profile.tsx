@@ -68,6 +68,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import CommunicationsSection from "@/components/CommunicationsSection";
 import StatsDisplay from "@/components/StatsDisplay";
 import CreativeSpacesModule, { CreativeSpace } from "@/modules/creative spaces";
+import SpaceUserPicker from "@/modules/space-user-picker";
 import ProfileInformation from "@/modules/profile information";
 import ContributionsModule, { ContributionRow as ProfileContributionRow } from "@/modules/contributions";
 import FavoriteStories from "@/modules/favorite stories";
@@ -185,6 +186,8 @@ const Profile = () => {
   // Creative spaces: these mirror project spaces on the desktop app.
   const [creativeSpaces, setCreativeSpaces] = useState<CreativeSpace[]>([]);
   const [creativeSpacesLoading, setCreativeSpacesLoading] = useState(false);
+  const [spaceForUserPicker, setSpaceForUserPicker] = useState<CreativeSpace | null>(null);
+  const [sharedSpaces, setSharedSpaces] = useState<{ id: string; name: string }[]>([]);
   const [activeSpaceForStats, setActiveSpaceForStats] = useState<CreativeSpace | null>(null);
 
   // Legacy state starts, merged for compatibility
@@ -512,6 +515,22 @@ const Profile = () => {
     };
 
     fetchSpaces();
+  }, [authUser]);
+
+  // Spaces other users shared with me via "Only for selected user(s)"
+  useEffect(() => {
+    if (!authUser?.id) return;
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/creative-spaces/shared-with-me`, { credentials: "include" });
+        if (res.ok) {
+          const data = await res.json();
+          setSharedSpaces(Array.isArray(data) ? data : []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch shared creative spaces", err);
+      }
+    })();
   }, [authUser]);
 
   // Load stories the user is creating / co-creating
@@ -1116,9 +1135,38 @@ const Profile = () => {
             onDelete={handleDeleteCreativeSpace}
             onClone={handleCloneCreativeSpace}
             onToggleVisibility={handleToggleSpaceVisibility}
+            onSelectUsers={(space) => setSpaceForUserPicker(space)}
             onTogglePublished={handleToggleSpacePublished}
             onShowStats={(space) => setActiveSpaceForStats(space)}
           />
+          {spaceForUserPicker && (
+            <SpaceUserPicker
+              spaceId={spaceForUserPicker.id}
+              open={Boolean(spaceForUserPicker)}
+              onClose={() => setSpaceForUserPicker(null)}
+              onSaved={(updated) =>
+                setCreativeSpaces((prev) =>
+                  prev.map((s) => (s.id === updated.id ? ({ ...s, visibility: updated.visibility } as CreativeSpace) : s)),
+                )
+              }
+            />
+          )}
+          {sharedSpaces.length > 0 && (
+            <div className="mt-3 border rounded-lg bg-white p-4">
+              <h3 className="text-sm font-semibold mb-2">
+                <EditableText id="profile-spaces-shared-heading">Shared with me</EditableText>
+              </h3>
+              <ul className="divide-y text-sm">
+                {sharedSpaces.map((space) => (
+                  <li key={space.id} className="py-2">
+                    <Link to={`/creative_space/${space.id}`} className="hover:underline text-purple-700">
+                      {space.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {activeSpaceForStats && (
             <div className="mt-3 text-xs text-gray-600 border rounded-lg p-3 bg-gray-50">
               <div className="flex justify-between items-start mb-1">

@@ -8895,5 +8895,173 @@
     "en": "Replaces:",
     "ru": "Заменяет:",
     "de": "Ersetzt:"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "space-picker-title",
+    "en": "Only for selected user(s)",
+    "ru": "Только для выбранных пользователей",
+    "de": "Nur für ausgewählte Nutzer"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "space-picker-hint",
+    "en": "Only you and the users listed here will be able to view this Space.",
+    "ru": "Только вы и перечисленные здесь пользователи смогут видеть это пространство.",
+    "de": "Nur du und die hier aufgeführten Nutzer können diesen Bereich sehen."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "space-picker-loading",
+    "en": "Loading...",
+    "ru": "Загрузка...",
+    "de": "Wird geladen..."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "space-picker-empty",
+    "en": "No users selected yet.",
+    "ru": "Пользователи ещё не выбраны.",
+    "de": "Noch keine Nutzer ausgewählt."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "space-picker-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "space-picker-saving",
+    "en": "Saving...",
+    "ru": "Сохранение...",
+    "de": "Wird gespeichert..."
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "space-picker-save",
+    "en": "Save",
+    "ru": "Сохранить",
+    "de": "Speichern"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-picker-title",
+    "en": "Only for selected user(s)",
+    "ru": "Только для выбранных пользователей",
+    "de": "Nur für ausgewählte Nutzer"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-picker-hint",
+    "en": "Only you and the users listed here will be able to view this Space.",
+    "ru": "Только вы и перечисленные здесь пользователи смогут видеть это пространство.",
+    "de": "Nur du und die hier aufgeführten Nutzer können diesen Bereich sehen."
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-picker-loading",
+    "en": "Loading...",
+    "ru": "Загрузка...",
+    "de": "Wird geladen..."
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-picker-empty",
+    "en": "No users selected yet.",
+    "ru": "Пользователи ещё не выбраны.",
+    "de": "Noch keine Nutzer ausgewählt."
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-picker-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-picker-saving",
+    "en": "Saving...",
+    "ru": "Сохранение...",
+    "de": "Wird gespeichert..."
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-picker-save",
+    "en": "Save",
+    "ru": "Сохранить",
+    "de": "Speichern"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "spaces-mod-make-selected",
+    "en": "Only for selected user(s)",
+    "ru": "Только для выбранных пользователей",
+    "de": "Nur für ausgewählte Nutzer"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "spaces-mod-manage-users",
+    "en": "Manage selected users",
+    "ru": "Управлять выбранными пользователями",
+    "de": "Ausgewählte Nutzer verwalten"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-spaces-shared-heading",
+    "en": "Shared with me",
+    "ru": "Доступные мне",
+    "de": "Mit mir geteilt"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-badge-public",
+    "en": "Public",
+    "ru": "Публичное",
+    "de": "Öffentlich"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-badge-private",
+    "en": "Private",
+    "ru": "Приватное",
+    "de": "Privat"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-badge-selected",
+    "en": "Selected users",
+    "ru": "Выбранные пользователи",
+    "de": "Ausgewählte Nutzer"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-make-public",
+    "en": "Make public",
+    "ru": "Сделать публичным",
+    "de": "Öffentlich machen"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-make-private",
+    "en": "Make private",
+    "ru": "Сделать приватным",
+    "de": "Privat machen"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-make-selected",
+    "en": "Only for selected user(s)",
+    "ru": "Только для выбранных пользователей",
+    "de": "Nur für ausgewählte Nutzer"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-manage-users",
+    "en": "Manage selected users",
+    "ru": "Управлять выбранными пользователями",
+    "de": "Ausgewählte Nutzer verwalten"
   }
 ]
