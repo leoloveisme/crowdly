@@ -174,7 +174,7 @@ class AuthDialog(QDialog):
             MainWindow = None  # type: ignore
 
         if MainWindow is not None and isinstance(parent, MainWindow):  # type: ignore[arg-type]
-            parent.apply_login(self._username_value)
+            parent.apply_login(self._username_value, password=password)
 
         QMessageBox.information(
             self,

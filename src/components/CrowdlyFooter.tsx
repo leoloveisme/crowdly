@@ -8,7 +8,7 @@ const CrowdlyFooter = () => {
     <footer className="relative bg-gradient-to-tr from-indigo-200 via-pink-100 to-white dark:from-indigo-900 dark:via-slate-900 dark:to-pink-900 w-full py-10 px-0 mt-14 border-t border-indigo-100 dark:border-indigo-800/40">
       <div className="container mx-auto px-4">
         <div className="max-w-6xl mx-auto rounded-3xl bg-white/90 dark:bg-gradient-to-tr dark:from-indigo-900/80 dark:to-pink-900/50 p-8 shadow-xl border border-pink-200/40 dark:border-indigo-800/60">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-10">
             <div>
               <h3 className="font-semibold text-lg text-indigo-800 dark:text-indigo-100 mb-4">
                 <EditableText id="footer-company-title" layoutScoped>Company</EditableText>
@@ -109,6 +109,22 @@ const CrowdlyFooter = () => {
                 </a></li>
                 <li><a href="https://www.youtube.com/@Crowdly.Entertainment" title="Crowdly channel on YouTube" target="_blank" className="text-gray-600 hover:text-pink-600 transition">
                   <EditableText id="footer-youtube" layoutScoped>YouTube</EditableText>
+                </a></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold text-lg text-indigo-800 dark:text-indigo-100 mb-4">
+                <EditableText id="footer-partners-title" layoutScoped>Partners</EditableText>
+              </h3>
+              <ul className="space-y-2">
+                <li><a href="https://noshamemedia.org" title="No shame media administers and oversees its own projects" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-pink-600 transition">
+                  <EditableText id="footer-partner-noshamemedia" layoutScoped>No shame media</EditableText>
+                </a></li>
+                <li><a href="https://cardtalk.site" title="Card Talk - deep thoughts and self-analysis / self-reflections provoking card game" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-pink-600 transition">
+                  <EditableText id="footer-partner-cardtalk" layoutScoped>CardTalk</EditableText>
+                </a></li>
+                <li><a href="https://noshamedating.com" title="Shameless - no shame (adult) (language) dating platform" target="_blank" rel="noopener noreferrer" className="text-gray-600 hover:text-pink-600 transition">
+                  <EditableText id="footer-partner-shameless" layoutScoped>Shameless</EditableText>
                 </a></li>
               </ul>
             </div>

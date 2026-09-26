@@ -111,7 +111,7 @@ def main(argv: list[str] | None = None) -> None:
     if translator is not None:
         app.installTranslator(translator)
 
-    window = MainWindow(app_settings, translator=translator)
+    window = MainWindow(app_settings, translator=translator, restore_sync=True)
 
     # Register the window so any FileOpen events arriving from now on (the
     # app was already running and macOS delivered another "Open With"
