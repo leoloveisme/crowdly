@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import CrowdlyHeader from "@/components/CrowdlyHeader";
 import CrowdlyFooter from "@/components/CrowdlyFooter";
+import EditableText from "@/components/EditableText";
 import { useAuth } from "@/contexts/AuthContext";
 import { StoriesOutput, StoriesOutputItem } from "@/modules/stories output";
 import type { ExperienceItem } from "@/modules/favorite stories";
@@ -13,16 +14,20 @@ const API_BASE = import.meta.env.PROD
 
 const FavoritesOutput: React.FC = () => {
   const { user } = useAuth();
-  const userId = user ? ((user as any).id ?? (user as any).user_id ?? null) : null;
+  const userId = user ? user.id : null;
 
   const [items, setItems] = useState<StoriesOutputItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<React.ReactNode | null>(null);
 
   useEffect(() => {
     if (!userId) {
       setItems([]);
-      setError("You need to be logged in to see your favorites.");
+      setError(
+        <EditableText id="favorites-error-login">
+          You need to be logged in to see your favorites.
+        </EditableText>
+      );
       return;
     }
 
@@ -34,7 +39,7 @@ const FavoritesOutput: React.FC = () => {
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
           console.error("[FavoritesOutput] Failed to fetch favorites", { status: res.status, body });
-          setError("Failed to load favorites.");
+          setError(<EditableText id="favorites-error-load-failed">Failed to load favorites.</EditableText>);
           setItems([]);
           return;
         }
@@ -63,7 +68,7 @@ const FavoritesOutput: React.FC = () => {
         }
       } catch (err) {
         console.error("[FavoritesOutput] Error fetching favorites", err);
-        setError("Failed to load favorites.");
+        setError(<EditableText id="favorites-error-load-failed">Failed to load favorites.</EditableText>);
         setItems([]);
       } finally {
         setLoading(false);
@@ -78,7 +83,7 @@ const FavoritesOutput: React.FC = () => {
       <CrowdlyHeader />
       <main className="flex-grow container mx-auto px-4 py-8">
         <StoriesOutput
-          title="Favorites"
+          title={<EditableText id="favorites-title">Favorites</EditableText>}
           items={items}
           loading={loading}
           error={error}

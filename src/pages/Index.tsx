@@ -84,6 +84,33 @@ interface MostPopularScreenplay {
   popularity_score: number;
 }
 
+// Raw shape of items returned by the /stories/* and /screenplays/* list
+// endpoints, before they're normalized into the interfaces above.
+interface RawStoryListItem {
+  chapter_id: string;
+  chapter_title: string;
+  created_at: string;
+  story_title_id: string;
+  story_title?: string;
+  language?: string | null;
+  cover_image_url?: string | null;
+  last_activity_at?: string;
+  like_count?: number;
+  favorite_count?: number;
+  popularity_score?: number;
+}
+
+interface RawScreenplayListItem {
+  screenplay_id: string;
+  title?: string;
+  created_at: string;
+  slugline?: string | null;
+  last_activity_at?: string;
+  like_count?: number;
+  favorite_count?: number;
+  popularity_score?: number;
+}
+
 const BranchList = React.lazy(() => import("@/components/BranchList"));
 
 const Index = () => {
@@ -142,7 +169,7 @@ const Index = () => {
         } else {
           const data = await res.json();
           setNewestStories(
-            (data as any[]).map((item) => ({
+            (data as RawStoryListItem[]).map((item) => ({
               chapter_id: item.chapter_id,
               chapter_title: item.chapter_title,
               created_at: item.created_at,
@@ -177,7 +204,7 @@ const Index = () => {
         } else {
           const data = await res.json();
           setMostActiveStories(
-            (data as any[]).map((item) => ({
+            (data as RawStoryListItem[]).map((item) => ({
               chapter_id: item.chapter_id,
               chapter_title: item.chapter_title,
               created_at: item.created_at,
@@ -213,7 +240,7 @@ const Index = () => {
         } else {
           const data = await res.json();
           setNewestScreenplays(
-            (data as any[]).map((item) => ({
+            (data as RawScreenplayListItem[]).map((item) => ({
               screenplay_id: item.screenplay_id,
               title: item.title || "Untitled Screenplay",
               created_at: item.created_at,
@@ -245,7 +272,7 @@ const Index = () => {
         } else {
           const data = await res.json();
           setMostActiveScreenplays(
-            (data as any[]).map((item) => ({
+            (data as RawScreenplayListItem[]).map((item) => ({
               screenplay_id: item.screenplay_id,
               title: item.title || "Untitled Screenplay",
               created_at: item.created_at,
@@ -278,7 +305,7 @@ const Index = () => {
         } else {
           const data = await res.json();
           setMostPopularStories(
-            (data as any[]).map((item) => ({
+            (data as RawStoryListItem[]).map((item) => ({
               chapter_id: item.chapter_id,
               chapter_title: item.chapter_title,
               created_at: item.created_at,
@@ -316,7 +343,7 @@ const Index = () => {
         } else {
           const data = await res.json();
           setMostPopularScreenplays(
-            (data as any[]).map((item) => ({
+            (data as RawScreenplayListItem[]).map((item) => ({
               screenplay_id: item.screenplay_id,
               title: item.title || "Untitled Screenplay",
               created_at: item.created_at,
@@ -415,7 +442,9 @@ Crowd-created stories that branch and grow — discover, experience, create, col
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
-                      <DialogTitle>What would you like to create?</DialogTitle>
+                      <DialogTitle>
+                        <EditableText id="hero-create-dialog-title">What would you like to create?</EditableText>
+                      </DialogTitle>
                     </DialogHeader>
                     <div className="mt-4 flex flex-col gap-3">
                       <button
@@ -426,7 +455,7 @@ Crowd-created stories that branch and grow — discover, experience, create, col
                           navigate("/new-story-template?type=story");
                         }}
                       >
-                        Regular story (novel)
+                        <EditableText id="hero-create-option-story">Regular story (novel)</EditableText>
                       </button>
                       <button
                         type="button"
@@ -436,7 +465,17 @@ Crowd-created stories that branch and grow — discover, experience, create, col
                           navigate("/new-story-template?type=screenplay");
                         }}
                       >
-                        Screenplay story
+                        <EditableText id="hero-create-option-screenplay">Screenplay story</EditableText>
+                      </button>
+                      <button
+                        type="button"
+                        className="w-full px-4 py-2 rounded border bg-white hover:bg-gray-50 text-sm text-left"
+                        onClick={() => {
+                          setCreateDialogOpen(false);
+                          navigate("/new-comic-template");
+                        }}
+                      >
+                        <EditableText id="hero-create-option-comic">Comic / manga</EditableText>
                       </button>
                     </div>
                   </DialogContent>
@@ -566,7 +605,7 @@ Crowd-created stories that branch and grow — discover, experience, create, col
                   On this page they're only for you to see. The same functionality will be available in the User Profile with Visibililty options: public, private, for friends only
                 </EditableText>
               </p>
-              <FavoriteStories userId={user ? (user as any).id ?? (user as any).user_id ?? null : null} />
+              <FavoriteStories userId={user ? user.id : null} />
             </div>
           </section>
 
@@ -925,7 +964,7 @@ Crowd-created stories that branch and grow — discover, experience, create, col
                   </EditableText>
                 </p>
                 <LivingExperiencingStories
-                  userId={user ? (user as any).id ?? (user as any).user_id ?? null : null}
+                  userId={user ? user.id : null}
                 />
               </CardContent>
             </Card>
@@ -960,7 +999,7 @@ Crowd-created stories that branch and grow — discover, experience, create, col
                   </EditableText>
                 </p>
                 <LivedExperiencedStories
-                  userId={user ? (user as any).id ?? (user as any).user_id ?? null : null}
+                  userId={user ? user.id : null}
                 />
               </CardContent>
             </Card>

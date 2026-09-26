@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import CrowdlyHeader from "@/components/CrowdlyHeader";
 import CrowdlyFooter from "@/components/CrowdlyFooter";
+import EditableText from "@/components/EditableText";
 import { useAuth } from "@/contexts/AuthContext";
 import { StoriesOutput, StoriesOutputItem } from "@/modules/stories output";
 import type { ExperienceItem } from "@/modules/lived-experienced stories";
@@ -13,16 +14,20 @@ const API_BASE = import.meta.env.PROD
 
 const LivedStoriesOutput: React.FC = () => {
   const { user } = useAuth();
-  const userId = user ? ((user as any).id ?? (user as any).user_id ?? null) : null;
+  const userId = user ? user.id : null;
 
   const [items, setItems] = useState<StoriesOutputItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<React.ReactNode | null>(null);
 
   useEffect(() => {
     if (!userId) {
       setItems([]);
-      setError("You need to be logged in to see stories you have already lived / experienced.");
+      setError(
+        <EditableText id="lived-stories-error-login">
+          You need to be logged in to see stories you have already lived / experienced.
+        </EditableText>
+      );
       return;
     }
 
@@ -34,7 +39,7 @@ const LivedStoriesOutput: React.FC = () => {
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
           console.error("[LivedStoriesOutput] Failed to fetch experienced", { status: res.status, body });
-          setError("Failed to load lived / experienced titles.");
+          setError(<EditableText id="lived-stories-error-load-failed">Failed to load lived / experienced titles.</EditableText>);
           setItems([]);
           return;
         }
@@ -62,7 +67,7 @@ const LivedStoriesOutput: React.FC = () => {
         }
       } catch (err) {
         console.error("[LivedStoriesOutput] Error fetching experienced", err);
-        setError("Failed to load lived / experienced titles.");
+        setError(<EditableText id="lived-stories-error-load-failed">Failed to load lived / experienced titles.</EditableText>);
         setItems([]);
       } finally {
         setLoading(false);
@@ -77,7 +82,7 @@ const LivedStoriesOutput: React.FC = () => {
       <CrowdlyHeader />
       <main className="flex-grow container mx-auto px-4 py-8">
         <StoriesOutput
-          title="Lived / Experienced those story(-ies)"
+          title={<EditableText id="lived-stories-title">Lived / Experienced those story(-ies)</EditableText>}
           items={items}
           loading={loading}
           error={error}

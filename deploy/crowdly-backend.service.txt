@@ -1,0 +1,30 @@
+# Target-state systemd unit for the backend, matching Phase 1 of
+# "deploy strategy for Crowdly VPS.md": WorkingDirectory and
+# EnvironmentFile move from /var/www/crowdly/backend to
+# /opt/crowdly-backend/backend. Everything else below is a best-effort
+# reconstruction of the fields we confirmed from `systemctl status` and
+# `cat /etc/systemd/system/crowdly-backend.service` earlier (User=lad,
+# this ExecStart, this EnvironmentFile, enabled at boot) — NOT a verified
+# byte-for-byte copy of the live file's every directive (e.g. any
+# Restart=/RestartSec=/StandardOutput= lines it may already have).
+#
+# Before using this: diff it against the real
+# /etc/systemd/system/crowdly-backend.service on the VPS and merge — keep
+# anything already there that isn't shown here, change only the two paths.
+
+[Unit]
+Description=Crowdly backend API
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=lad
+Group=lad
+WorkingDirectory=/opt/crowdly-backend/backend
+EnvironmentFile=/opt/crowdly-backend/backend/.env
+ExecStart=/usr/bin/node src/server.js
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

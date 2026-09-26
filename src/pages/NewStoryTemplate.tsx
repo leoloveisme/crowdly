@@ -91,11 +91,10 @@ import CrowdlyFooter from "@/components/CrowdlyFooter";
 import ProfilePictureUpload from "@/components/ProfilePictureUpload";
 import { useToast } from "@/hooks/use-toast";
 import EditableText from "@/components/EditableText";
-import ChapterEditor from "@/components/ChapterEditor";
 import LayoutOptionButtons from "@/components/LayoutOptionButtons";
-import RevisionCheckboxCell from "@/components/RevisionCheckboxCell";
+import CompareRevisionsContainer from "@/modules/compare revisions";
 import { useAuth } from "@/contexts/AuthContext";
-import StorySelector from "@/components/StorySelector";
+import StorySelector, { type StoryTitleRow } from "@/components/StorySelector";
 import NewStoryDialog from "@/components/NewStoryDialog";
 import StoryLanguageSelect from "@/components/StoryLanguageSelect";
 import CoverImageUpload from "@/components/CoverImageUpload";
@@ -114,6 +113,12 @@ interface CreativeSpaceRow {
   name: string;
 }
 
+interface Chapter {
+  chapter_id: string;
+  chapter_title: string;
+  paragraphs: string[];
+}
+
 const DEFAULT_STORY_TITLE = "Story of my life";
 const DEFAULT_CHAPTER_TITLE = "Chapter 1 - The day I was conceived";
 const showAdvanced = false; // hide advanced controls/cards for now
@@ -127,7 +132,7 @@ const NewStoryTemplate = () => {
   const [storyTitleId, setStoryTitleId] = useState<string | null>(null);
   const [chapterId, setChapterId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [chapters, setChapters] = useState<any[]>([]);
+  const [chapters, setChapters] = useState<Chapter[]>([]);
   const [chaptersLoading, setChaptersLoading] = useState(false);
   const [addChapterMode, setAddChapterMode] = useState(false);
   const [newChapterTitle, setNewChapterTitle] = useState(DEFAULT_CHAPTER_TITLE);
@@ -149,16 +154,12 @@ const NewStoryTemplate = () => {
   const [layoutOptionsOpen, setLayoutOptionsOpen] = useState(true);
   const [branchesOpen, setBranchesOpen] = useState(true);
   const [isPublished, setIsPublished] = useState(false);
-  const [compareOpen, setCompareOpen] = useState(false);
-  const [selectedRevisions, setSelectedRevisions] = useState<number[]>([]);
-  const [columnChecked, setColumnChecked] = useState<number[]>([]);
   const [activeLayoutOption, setActiveLayoutOption] = useState<number | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [savingTitle, setSavingTitle] = useState(false);
-  const [storyTitleRevisions, setStoryTitleRevisions] = useState<any[]>([]);
-  const [stories, setStories] = useState<any[]>([]); // List of all user's stories
+  const [stories, setStories] = useState<StoryTitleRow[]>([]); // List of all user's stories
   const [editingChapterId, setEditingChapterId] = useState<string | null>(null);
   const [spaces, setSpaces] = useState<CreativeSpaceRow[]>([]);
   const [spacesLoading, setSpacesLoading] = useState(false);
@@ -219,33 +220,6 @@ const NewStoryTemplate = () => {
     });
   };
 
-  const toggleCompare = () => {
-    setCompareOpen(!compareOpen);
-  };
-
-  const toggleRevisionSelection = (revisionId: number) => {
-    setSelectedRevisions(prev => {
-      if (prev.includes(revisionId)) {
-        return prev.filter(id => id !== revisionId);
-      } else {
-        if (prev.length >= 4) {
-          return [...prev.slice(1), revisionId];
-        }
-        return [...prev, revisionId];
-      }
-    });
-  };
-
-  const toggleColumnCheckbox = (revisionId: number) => {
-    setColumnChecked(prev => {
-      if (prev.includes(revisionId)) {
-        return prev.filter(id => id !== revisionId);
-      } else {
-        return [...prev, revisionId];
-      }
-    });
-  };
-  
   const handleEditClick = (section: string) => {
     toast({
       title: "Edit mode activated",
@@ -331,7 +305,6 @@ const NewStoryTemplate = () => {
           setMainTitle(data.title);
 
           await fetchAllUserStories();
-          fetchStoryTitleRevisions(data.storyTitleId);
 
           const params = new URLSearchParams({ storyTitleId: data.storyTitleId });
           const chaptersRes = await fetch(`${API_BASE}/chapters?${params.toString()}`);
@@ -361,6 +334,7 @@ const NewStoryTemplate = () => {
           // 2) Update first chapter
           const chapterRes = await fetch(`${API_BASE}/chapters/${chapterId}`, {
             method: "PATCH",
+            credentials: "include",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               chapterTitle: newChapterTitle,
@@ -403,18 +377,6 @@ const NewStoryTemplate = () => {
     return () => clearTimeout(handle);
   }, [dirty, storyTitleId, chapterId, newChapterTitle, initialParagraphText, mainTitle, user]);
   
-  // Fetch story title revisions
-  const fetchStoryTitleRevisions = async (storyTitleId: string) => {
-    try {
-      const res = await fetch(`${API_BASE}/story-title-revisions/${storyTitleId}`);
-      if (!res.ok) return;
-      const data = await res.json();
-      setStoryTitleRevisions(data || []);
-    } catch (err) {
-      console.error('Failed to fetch story title revisions', err);
-    }
-  };
-
   // Fetch all user stories (Story List)
   const fetchAllUserStories = async () => {
     if (!user) return;
@@ -437,7 +399,7 @@ const NewStoryTemplate = () => {
       const res = await fetch(`${API_BASE}/creative-spaces?userId=${user.id}`);
       const body = await res.json().catch(() => []);
       if (res.ok && Array.isArray(body)) {
-        const mapped: CreativeSpaceRow[] = body.map((row: any) => ({
+        const mapped: CreativeSpaceRow[] = body.map((row: CreativeSpaceRow) => ({
           id: row.id,
           name: row.name || 'No name creative space',
         }));
@@ -483,17 +445,17 @@ const NewStoryTemplate = () => {
           name: trimmed,
         }),
       });
-      const body = await res.json().catch(() => ({}));
+      const body = (await res.json().catch(() => ({}))) as { error?: string; id?: string; name?: string };
       if (!res.ok) {
         toast({
           title: 'Failed to create Space',
-          description: (body as any).error || 'Unexpected error while creating Space.',
+          description: body.error || 'Unexpected error while creating Space.',
           variant: 'destructive',
         });
         return;
       }
-      const createdId = (body as any).id as string | undefined;
-      const createdName = ((body as any).name as string) || trimmed;
+      const createdId = body.id;
+      const createdName = body.name || trimmed;
       if (createdId) {
         const newSpace: CreativeSpaceRow = { id: createdId, name: createdName };
         setSpaces((prev) => {
@@ -548,7 +510,6 @@ const NewStoryTemplate = () => {
       await fetchAllUserStories();
       setStoryTitleId(inserted.storyTitleId);
       setMainTitle(inserted.title);
-      fetchStoryTitleRevisions(inserted.storyTitleId);
       navigate(`/story/${inserted.storyTitleId}`);
     } catch (err) {
       console.error('Failed to create story', err);
@@ -570,12 +531,11 @@ const NewStoryTemplate = () => {
     fetchForUser();
   }, [user]);
 
-  // On storyTitleId change, load that story's title and revisions
+  // On storyTitleId change, load that story's title
   useEffect(() => {
     if (!storyTitleId) return;
     const story = stories.find((s) => s.story_title_id === storyTitleId);
     if (story) setMainTitle(story.title);
-    fetchStoryTitleRevisions(storyTitleId);
   }, [storyTitleId]);
 
   // Helper: fetch story title by ID and update mainTitle state
@@ -585,7 +545,7 @@ const NewStoryTemplate = () => {
       // Reuse /story-titles and filter client-side as a simple implementation
       const res = await fetch(`${API_BASE}/story-titles?${params.toString()}`);
       if (!res.ok) return;
-      const data = (await res.json()) as any[];
+      const data = (await res.json()) as StoryTitleRow[];
       const match = data.find((s) => s.story_title_id === id);
       if (match?.title) {
         setMainTitle(match.title);
@@ -631,6 +591,7 @@ const NewStoryTemplate = () => {
     try {
       const res = await fetch(`${API_BASE}/chapters`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           storyTitleId,
@@ -676,11 +637,11 @@ const NewStoryTemplate = () => {
     try {
       const res = await fetch(`${API_BASE}/chapters/${chapter_id}`, {
         method: "PATCH",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           chapterTitle: patch.chapter_title,
           paragraphs: patch.paragraphs,
-          userId: user?.id,
         }),
       });
 
@@ -720,6 +681,7 @@ const NewStoryTemplate = () => {
     try {
       const res = await fetch(`${API_BASE}/chapters/${chapter_id}`, {
         method: "DELETE",
+        credentials: "include",
       });
 
       if (!res.ok && res.status !== 204) {
@@ -754,7 +716,7 @@ const NewStoryTemplate = () => {
   };
 
   // Chapter title inline-edit handlers (web-style editor for existing stories)
-  const startEditChapterTitle = (chapter: any) => {
+  const startEditChapterTitle = (chapter: Chapter) => {
     setEditingChapterId(chapter.chapter_id);
     setEditingChapterTitle(chapter.chapter_title || "");
   };
@@ -768,7 +730,7 @@ const NewStoryTemplate = () => {
     setEditingChapterTitle(e.target.value);
   };
 
-  const saveChapterTitle = async (chapter: any) => {
+  const saveChapterTitle = async (chapter: Chapter) => {
     const newTitle = editingChapterTitle.trim();
     setEditingChapterId(null);
     if (!newTitle || newTitle === chapter.chapter_title) {
@@ -781,7 +743,7 @@ const NewStoryTemplate = () => {
 
   const handleChapterTitleKeyDown = async (
     e: React.KeyboardEvent<HTMLInputElement>,
-    chapter: any,
+    chapter: Chapter,
   ) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -793,7 +755,7 @@ const NewStoryTemplate = () => {
   };
 
   // Inline paragraph editing handlers
-  const startEditParagraph = (chapter: any, index: number, text: string) => {
+  const startEditParagraph = (chapter: Chapter, index: number, text: string) => {
     setEditingParagraph({ chapterId: chapter.chapter_id, index });
     setEditingParagraphText(text);
   };
@@ -803,7 +765,7 @@ const NewStoryTemplate = () => {
     setEditingParagraphText("");
   };
 
-  const saveParagraph = async (chapter: any, index: number) => {
+  const saveParagraph = async (chapter: Chapter, index: number) => {
     const raw = editingParagraphText;
     setEditingParagraph(null);
     if (!Array.isArray(chapter.paragraphs)) {
@@ -835,7 +797,7 @@ const NewStoryTemplate = () => {
 
   const handleParagraphKeyDown = async (
     e: React.KeyboardEvent<HTMLTextAreaElement>,
-    chapter: any,
+    chapter: Chapter,
     index: number,
   ) => {
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
@@ -918,7 +880,7 @@ const NewStoryTemplate = () => {
     branchName: string;
     paragraphs: string[];
     language: string;
-    metadata: any;
+    metadata: Record<string, unknown> | null;
     chapterId: string;
     paragraphIndex: number;
     paragraphText: string;
@@ -937,11 +899,13 @@ const NewStoryTemplate = () => {
     try {
       const res = await fetch(`${API_BASE}/paragraph-branches`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           chapterId,
           parentParagraphIndex: paragraphIndex,
-          parentParagraphText: branchName || paragraphText || "",
+          parentParagraphText: paragraphText || "",
+          branchName: branchName || undefined,
           branchText,
           userId: user.id,
           language,
@@ -1385,6 +1349,28 @@ const NewStoryTemplate = () => {
                                 </div>
                               </div>
                             )}
+
+                            <div className="mt-3">
+                              <button
+                                type="button"
+                                className="text-xs text-blue-600 hover:underline"
+                                onClick={() => toggleSection('revisions')}
+                              >
+                                {revisionsOpen ? (
+                                  <EditableText id="new-story-hide-revisions-btn">Hide revisions</EditableText>
+                                ) : (
+                                  <EditableText id="new-story-show-revisions-btn">Show revisions</EditableText>
+                                )}
+                              </button>
+                              {revisionsOpen && (
+                                <div className="mt-2 border rounded p-3 bg-gray-50/50">
+                                  <CompareRevisionsContainer
+                                    chapterId={chapter.chapter_id}
+                                    contentType="story"
+                                  />
+                                </div>
+                              )}
+                            </div>
                           </div>
                         ))}
 

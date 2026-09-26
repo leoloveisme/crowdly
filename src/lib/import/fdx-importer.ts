@@ -187,7 +187,7 @@ function parseFdxDocument(doc: Document): { content: string; metadata: FdxMetada
  */
 function countWords(text: string): number {
   return text
-    .replace(/[#*_~`\[\]()]/g, '')
+    .replace(/[#*_~`[\]()]/g, '')
     .split(/\s+/)
     .filter((w) => w.length > 0).length;
 }

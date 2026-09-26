@@ -15,6 +15,32 @@ const transporter = nodemailer.createTransport({
 
 const FROM = process.env.SMTP_FROM || 'noreply@crowdly.cloud';
 
+export function isMailerConfigured() {
+  return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+export async function sendFeedbackEmail({ name, email, feedback }) {
+  const displayName = (name || '').trim() || 'Anonymous';
+
+  await transporter.sendMail({
+    from: FROM,
+    to: process.env.FEEDBACK_TO_EMAIL || 'feedback@crowdly.cloud',
+    replyTo: email,
+    subject: `New Crowdly feedback from ${displayName}`,
+    text: `From: ${displayName} <${email}>\n\n${feedback}`,
+    html: `<p><strong>From:</strong> ${escapeHtml(displayName)} &lt;${escapeHtml(email)}&gt;</p><p>${escapeHtml(feedback).replace(/\n/g, '<br>')}</p>`,
+  });
+}
+
 export function sendInvitationEmail(to, firstName, invitationCode) {
   const html = `
     <h2>Welcome to Crowdly Alpha, ${firstName}!</h2>

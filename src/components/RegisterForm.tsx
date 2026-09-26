@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import EditableText from "@/components/EditableText";
+import { errorMessage } from "@/lib/apiBase";
 
 // Use same-origin API base in development; dev server proxies to backend.
 // In production, VITE_API_BASE_URL can point at the deployed API.
@@ -65,11 +66,11 @@ const RegisterForm = () => {
 
       // Navigate to login so user can sign in
       navigate("/login");
-    } catch (error: any) {
+    } catch (error) {
       console.error("Registration error:", error);
       toast({
         title: "Registration failed",
-        description: error?.message || "An unexpected error occurred",
+        description: errorMessage(error) || "An unexpected error occurred",
         variant: "destructive",
       });
     } finally {

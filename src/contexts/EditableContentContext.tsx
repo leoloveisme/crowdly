@@ -1,12 +1,15 @@
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, useMemo, ReactNode } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 import { useLocation } from "react-router-dom";
+import { getPageKey, LAYOUT_PAGE_KEY } from "@/lib/pageKey";
 
 const API_BASE = import.meta.env.PROD
   ? (import.meta.env.VITE_API_BASE_URL ?? "")
   : "";
+
+const LANGUAGE_STORAGE_KEY = "crowdly_ui_language";
 
 interface EditableContent {
   [key: string]: {
@@ -20,10 +23,10 @@ interface EditableContentContextType {
   contents: EditableContent;
   isEditingEnabled: boolean;
   toggleEditingMode: () => void;
-  startEditing: (elementId: string, content: string, original: string) => void;
-  updateContent: (elementId: string, content: string) => void;
-  saveContent: (elementId: string, contentOverride?: string) => Promise<void>;
-  cancelEditing: (elementId: string) => void;
+  startEditing: (elementId: string, content: string, original: string, layoutScoped?: boolean) => void;
+  updateContent: (elementId: string, content: string, layoutScoped?: boolean) => void;
+  saveContent: (elementId: string, contentOverride?: string, layoutScoped?: boolean) => Promise<void>;
+  cancelEditing: (elementId: string, layoutScoped?: boolean) => void;
   isAdmin: boolean;
   currentLanguage: string;
   setCurrentLanguage: (language: string) => void;
@@ -32,24 +35,38 @@ interface EditableContentContextType {
 const EditableContentContext = createContext<EditableContentContextType | undefined>(undefined);
 
 export const EditableContentProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [contents, setContents] = useState<EditableContent>({});
+  // Layout content (Header/Footer) is scoped independently of the current
+  // page — it's the same on every route — while page content is scoped to
+  // the current page's canonical key. Kept as two maps so navigating between
+  // pages never clobbers Header/Footer translations, and vice versa.
+  const [layoutContents, setLayoutContents] = useState<EditableContent>({});
+  const [pageContents, setPageContents] = useState<EditableContent>({});
   const [isEditingEnabled, setIsEditingEnabled] = useState(false);
-  const [currentLanguage, setCurrentLanguage] = useState<string>("English");
+  const [currentLanguage, setCurrentLanguageState] = useState<string>(
+    () => localStorage.getItem(LANGUAGE_STORAGE_KEY) || "English"
+  );
   const { user, hasRole } = useAuth();
   const location = useLocation();
   const isAdmin = user !== null && (hasRole('platform_admin') || hasRole('ui_translator'));
-  const currentPath = location.pathname;
+
+  // Canonical key for the current page (route pattern, not literal URL) —
+  // e.g. "/story/:story_id" regardless of which story is being viewed.
+  const pageKey = useMemo(() => getPageKey(location.pathname), [location.pathname]);
+
+  const contents = useMemo(
+    () => ({ ...layoutContents, ...pageContents }),
+    [layoutContents, pageContents]
+  );
 
   // Handle language change
   const handleLanguageChange = (language: string) => {
-    // Clear existing content first
-    setContents({});
+    // Clear existing content first — the two effects below will repopulate
+    // both maps for the new language.
+    setLayoutContents({});
+    setPageContents({});
 
-    // Set the new language
-    setCurrentLanguage(language);
-
-    // Force a content refetch with the new language
-    fetchEditableContent(currentPath, language);
+    setCurrentLanguageState(language);
+    localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
 
     // Display toast notification about language change
     toast({
@@ -59,8 +76,12 @@ export const EditableContentProvider: React.FC<{ children: ReactNode }> = ({ chi
     });
   };
 
-  // Fetch existing content from the database based on current path and language
-  const fetchEditableContent = async (path: string, language: string) => {
+  // Fetch existing content from the database for a given key/language into a given setter.
+  const fetchContentInto = async (
+    path: string,
+    language: string,
+    setter: React.Dispatch<React.SetStateAction<EditableContent>>
+  ) => {
     if (!path) return;
 
     try {
@@ -75,7 +96,7 @@ export const EditableContentProvider: React.FC<{ children: ReactNode }> = ({ chi
       const data = await res.json();
 
       if (data && Array.isArray(data)) {
-        setContents(prev => {
+        setter(prev => {
           const updated: EditableContent = {};
           data.forEach((item: { element_id: string; content: string; original_content: string | null }) => {
             updated[item.element_id] = {
@@ -89,14 +110,21 @@ export const EditableContentProvider: React.FC<{ children: ReactNode }> = ({ chi
         });
       }
     } catch (error) {
-      console.error('Error in fetchEditableContent:', error);
+      console.error('Error in fetchContentInto:', error);
     }
   };
 
-  // Fetch content whenever path or language changes
+  // Layout content only depends on language — Header/Footer render on every page.
   useEffect(() => {
-    fetchEditableContent(currentPath, currentLanguage);
-  }, [currentPath, currentLanguage]);
+    fetchContentInto(LAYOUT_PAGE_KEY, currentLanguage, setLayoutContents);
+  }, [currentLanguage]);
+
+  // Page content depends on the canonical page key and language. Navigating
+  // between two pages that share a route pattern (e.g. two different
+  // stories) keeps pageKey identical, so this does not redundantly refetch.
+  useEffect(() => {
+    fetchContentInto(pageKey, currentLanguage, setPageContents);
+  }, [pageKey, currentLanguage]);
 
   const toggleEditingMode = () => {
     if (!isAdmin) return;
@@ -115,13 +143,15 @@ export const EditableContentProvider: React.FC<{ children: ReactNode }> = ({ chi
 
     // Exit all editing states when disabling editing mode
     if (isEditingEnabled) {
-      setContents(prev => {
+      const clearEditing = (prev: EditableContent) => {
         const updated = { ...prev };
         Object.keys(updated).forEach(key => {
-          updated[key].isEditing = false;
+          updated[key] = { ...updated[key], isEditing: false };
         });
         return updated;
-      });
+      };
+      setLayoutContents(clearEditing);
+      setPageContents(clearEditing);
     }
 
     toast({
@@ -132,12 +162,13 @@ export const EditableContentProvider: React.FC<{ children: ReactNode }> = ({ chi
     });
   };
 
-  const startEditing = (elementId: string, content: string, original: string) => {
+  const startEditing = (elementId: string, content: string, original: string, layoutScoped = false) => {
     if (!isAdmin || !isEditingEnabled) return;
     // English is the source language — block editing to prevent accidental changes
     if (currentLanguage === "English") return;
 
-    setContents(prev => ({
+    const setter = layoutScoped ? setLayoutContents : setPageContents;
+    setter(prev => ({
       ...prev,
       [elementId]: {
         content,
@@ -147,10 +178,11 @@ export const EditableContentProvider: React.FC<{ children: ReactNode }> = ({ chi
     }));
   };
 
-  const updateContent = (elementId: string, content: string) => {
+  const updateContent = (elementId: string, content: string, layoutScoped = false) => {
     if (!isAdmin) return;
 
-    setContents(prev => ({
+    const setter = layoutScoped ? setLayoutContents : setPageContents;
+    setter(prev => ({
       ...prev,
       [elementId]: {
         ...prev[elementId],
@@ -159,11 +191,13 @@ export const EditableContentProvider: React.FC<{ children: ReactNode }> = ({ chi
     }));
   };
 
-  const saveContent = async (elementId: string, contentOverride?: string) => {
-    if (!isAdmin || !currentPath) return;
+  const saveContent = async (elementId: string, contentOverride?: string, layoutScoped = false) => {
+    const key = layoutScoped ? LAYOUT_PAGE_KEY : pageKey;
+    if (!isAdmin || !key) return;
 
     try {
-      const contentData = contents[elementId];
+      const source = layoutScoped ? layoutContents : pageContents;
+      const contentData = source[elementId];
       if (!contentData) return;
 
       // Use contentOverride if provided (avoids async state timing issues)
@@ -174,7 +208,7 @@ export const EditableContentProvider: React.FC<{ children: ReactNode }> = ({ chi
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId: user?.id,
-          page_path: currentPath,
+          page_path: key,
           element_id: elementId,
           language: currentLanguage,
           content: finalContent,
@@ -193,7 +227,8 @@ export const EditableContentProvider: React.FC<{ children: ReactNode }> = ({ chi
       }
 
       // Update locally — no refetch needed, avoids wiping other elements' state
-      setContents(prev => ({
+      const setter = layoutScoped ? setLayoutContents : setPageContents;
+      setter(prev => ({
         ...prev,
         [elementId]: {
           content: finalContent,
@@ -217,10 +252,11 @@ export const EditableContentProvider: React.FC<{ children: ReactNode }> = ({ chi
     }
   };
 
-  const cancelEditing = (elementId: string) => {
+  const cancelEditing = (elementId: string, layoutScoped = false) => {
     if (!isAdmin) return;
 
-    setContents(prev => {
+    const setter = layoutScoped ? setLayoutContents : setPageContents;
+    setter(prev => {
       const elementData = prev[elementId];
       if (!elementData) return prev;
 

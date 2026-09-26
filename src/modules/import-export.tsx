@@ -351,7 +351,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onOpenChange }
         return;
       }
 
-      const userId = (user as any).id ?? (user as any).user_id;
+      const userId = user.id;
       if (!userId) {
         setError("Unable to determine user ID.");
         return;
@@ -442,6 +442,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onOpenChange }
             try {
               await fetch(`${API_BASE}/chapters`, {
                 method: "POST",
+                credentials: "include",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   storyTitleId,
@@ -722,7 +723,7 @@ export const ExportDialog: React.FC<ExportDialogProps> = ({
     }
   }, [open]);
 
-  const userId = user ? ((user as any).id ?? (user as any).user_id) : null;
+  const userId = user ? user.id : null;
 
   // --------------- Export to format (PDF, DOCX, etc.) ---------------
   const handleExportFormat = useCallback(

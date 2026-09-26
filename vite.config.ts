@@ -71,6 +71,22 @@ export default defineConfig(({ mode }) => ({
         target: "http://localhost:4000",
         changeOrigin: true,
       },
+      "/gallery-images": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/uploads": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/comics": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/comic-pages": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
       "/users": {
         target: "http://localhost:4000",
         changeOrigin: true,
@@ -130,6 +146,17 @@ export default defineConfig(({ mode }) => ({
       "/alpha/check-access": {
         target: "http://localhost:4000",
         changeOrigin: true,
+      },
+      // Friends/messaging/notifications API — namespaced under /api because
+      // /friends and /conversations would otherwise collide with SPA page
+      // routes of the same bare name.
+      "/api": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+        // No path rewrite — the backend mounts these routers at /api itself
+        // (see server.js), so the prefix must pass through unchanged.
+        // SSE (/api/events): keep the connection open instead of buffering/timing it out.
+        proxyTimeout: 0,
       },
     },
   },

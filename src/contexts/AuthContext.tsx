@@ -27,6 +27,10 @@ interface AuthContextType {
   hasRole: (role: UserRole) => boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  // Clears the cached user without a server round-trip, for callers that
+  // already know the session is dead (e.g. a background fetch got a 401)
+  // rather than the user actively signing out.
+  clearSession: () => void;
 }
 
 interface AuthResponse {
@@ -51,8 +55,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [roles, setRoles] = useState<UserRole[]>([]);
   const navigate = useNavigate();
 
-  // Load persisted user on first mount
+  // Show the cached user immediately (avoids a logged-out flash while the
+  // /auth/me round-trip below is in flight), then confirm it against the
+  // backend — the cache has no way to know if the session behind it has
+  // since expired or been logged out elsewhere, so it can't be trusted on
+  // its own.
   useEffect(() => {
+    let cancelled = false;
+
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
@@ -63,9 +73,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err) {
       console.error("Failed to parse stored auth user", err);
       localStorage.removeItem(STORAGE_KEY);
-    } finally {
-      setLoading(false);
     }
+
+    (async () => {
+      try {
+        const response = await fetch(`${API_BASE}/auth/me`, { credentials: "include" });
+        if (cancelled) return;
+
+        if (!response.ok) {
+          // No valid session server-side (expired, logged out elsewhere,
+          // cookie cleared) — the cached user, if any, is stale.
+          setUser(null);
+          setRoles([]);
+          localStorage.removeItem(STORAGE_KEY);
+          return;
+        }
+
+        const data = (await response.json()) as AuthResponse;
+        const nextUser: UserWithRoles = { id: data.id, email: data.email, roles: data.roles };
+        setUser(nextUser);
+        setRoles(data.roles ?? []);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(nextUser));
+      } catch (err) {
+        // Network error reaching the backend — leave the cached user in
+        // place rather than logging them out over a transient outage.
+        console.error("Failed to verify session", err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const hasRole = (role: UserRole): boolean => {
@@ -78,6 +118,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const response = await fetch(`${API_BASE}/auth/login`, {
         method: "POST",
+        credentials: "include", // required to store the session cookie the backend sets
         headers: {
           "Content-Type": "application/json",
         },
@@ -123,6 +164,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
+      // Invalidate the session server-side too, not just locally — a stolen
+      // cookie should stop working the moment the real user logs out.
+      await fetch(`${API_BASE}/auth/logout`, { method: "POST", credentials: "include" }).catch((err) => {
+        console.error("Failed to invalidate session server-side:", err);
+      });
       setUser(null);
       setRoles([]);
       localStorage.removeItem(STORAGE_KEY);
@@ -141,6 +187,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const clearSession = () => {
+    setUser(null);
+    setRoles([]);
+    localStorage.removeItem(STORAGE_KEY);
+  };
+
   const value: AuthContextType = {
     user,
     loading,
@@ -148,6 +200,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     hasRole,
     signIn,
     signOut,
+    clearSession,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -1,17 +1,167 @@
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import { randomUUID } from 'crypto';
 import { pool } from './db.js';
-import { loginWithEmailPassword, registerWithEmailPassword, changePassword, deleteAccountWithPassword } from './auth.js';
+import { loginWithEmailPassword, registerWithEmailPassword, changePassword, deleteAccountWithPassword, getUserWithRoles } from './auth.js';
 import bcrypt from 'bcryptjs';
 import { sendInvitationEmail, sendApplicationConfirmationEmail, sendApplicationToInvitationEmail } from './email.js';
+import {
+  ensureSessionsTable,
+  createSession,
+  destroySession,
+  requireAuth,
+  getSessionUser,
+  SESSION_COOKIE_NAME,
+  SESSION_COOKIE_OPTIONS,
+} from './sessions.js';
+import feedbackRouter from './feedback.js';
+import friendsRouter, { ensureFriendRequestsTable } from './friends.js';
+import followsRouter, { ensureFollowsTable } from './follows.js';
+import notificationsRouter, { ensureNotificationsTable } from './notifications.js';
+import messagingRouter, {
+  ensureConversationsTable,
+  ensureMessagesTable,
+  ensureConversationReadsTable,
+} from './messaging.js';
+import galleryRouter, { ensureStoryGalleryImagesTable, UPLOADS_ROOT } from './gallery.js';
+import comicsRouter, { ensureComicTables } from './comics.js';
+import translationsRouter from './translations.js';
+import editionsRouter from './editions.js';
+import chapterMediaRouter from './chapterMedia.js';
+import aiRouter from './ai/router.js';
+import { startAiWorker } from './ai/jobs.js';
+import creativeSpaceFilesRouter, { CREATIVE_SPACE_FILES_ROOT, guessMimeType } from './creativeSpaceFiles.js';
+import { eventsHandler } from './events.js';
+import {
+  isGithubAppConfigured,
+  parseRepoFullName,
+  verifyWebhookSignature,
+  buildInstallUrl,
+  getInstallationToken,
+  fetchInstallationRepos,
+} from './githubApp.js';
+import {
+  ensureGithubSyncTables,
+  runSpaceSync,
+  recentSyncLog,
+  startGithubPollingLoop,
+  handleGithubWebhookEvent,
+  ensureGithubContentLinksTable,
+  initGithubCrdtLinks,
+  createGithubContentLink,
+  listGithubContentLinks,
+} from './githubSync.js';
+import {
+  isGoogleDriveConfigured,
+  buildAuthUrl as buildGoogleDriveAuthUrl,
+  exchangeCodeForTokens,
+  encryptToken,
+  fetchUserEmail,
+  listChildFolders as listGoogleDriveChildFolders,
+  createFolder as createGoogleDriveFolder,
+  getFileMeta as getGoogleDriveFileMeta,
+  signState as signGoogleDriveState,
+  verifyState as verifyGoogleDriveState,
+  verifyChannelToken as verifyGoogleDriveChannelToken,
+  stopChannel as stopGoogleDriveChannel,
+} from './googleDriveApp.js';
+import {
+  ensureGoogleDriveSyncTables,
+  runSpaceDriveSync,
+  recentSyncLog as recentDriveSyncLog,
+  startGoogleDrivePollingLoop,
+  handleGoogleDriveWebhookEvent,
+  getValidDriveAccessToken,
+  ensureChannelArmed,
+} from './googleDriveSync.js';
+import path from 'path';
+import fs from 'fs';
+import http from 'http';
+import { ensureCrdtDocChunksTable } from './crdt/postgresStorageAdapter.js';
+import {
+  createCrdtRepo,
+  attachCrdtWebSocketServer,
+  authorizeDocAccess,
+  changeAttribution,
+  buildRevisionHistory,
+  restoreHandleToHeads,
+  applyContentToHandle,
+  CRDT_WS_PATH,
+} from './crdt/repo.js';
+import {
+  CRDT_DOC_TYPE_COLUMN,
+  CRDT_DOC_TYPE_SEEDERS,
+  userCanAccessCrdtEntity,
+} from './crdt/seeders.js';
 
 dotenv.config();
 
 const app = express();
-app.use(cors());
-app.use(express.json({ limit: '5mb' }));
+
+// Populated by createCrdtRepo() near the bottom of this file, before the
+// HTTP server starts listening. Declared here (module scope) so the
+// /crdt/docs/* route handlers above can close over it even though it's
+// assigned later in the file — they only read it once a request actually
+// arrives, by which point startup has finished.
+let crdtRepo;
+
+// Explicit origin allowlist (not a wildcard) so credentials: true is safe —
+// a wildcard origin cannot be combined with credentialed requests anyway,
+// and the session cookie below depends on this being correct.
+const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:8080,http://localhost:5173')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      // Same-origin requests (e.g. curl, server-to-server) have no Origin header.
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+  }),
+);
+// `verify` stashes the raw request bytes on req.rawBody alongside the usual
+// parsed req.body — needed only by POST /api/github/webhook below, to check
+// GitHub's HMAC signature against the exact bytes it signed (the parsed/
+// re-serialized JSON would not byte-for-byte match). Every other route's
+// behavior is unaffected.
+app.use(express.json({ limit: '5mb', verify: (req, res, buf) => { req.rawBody = buf; } }));
+app.use(cookieParser());
+
+// Mounted under /api — the frontend has SPA pages at bare paths like
+// /friends and /communications, so the friends/messaging/notifications API
+// can't live at those same bare paths too (the dev proxy and the browser's
+// own top-level navigation can't tell "serve the app" from "hit the API"
+// apart at the same URL). The rest of this file's routes predate the SPA
+// pages that would collide with them, so they're left as-is.
+app.use('/api', feedbackRouter);
+app.use('/api', friendsRouter);
+app.use('/api', followsRouter);
+app.use('/api', notificationsRouter);
+app.use('/api', messagingRouter);
+app.get('/api/events', requireAuth, eventsHandler);
+
+// Gallery routes live at bare paths (/stories/:id/gallery, /gallery-images/:id),
+// same as the rest of the story routes below — not under /api.
+app.use(galleryRouter);
+app.use(comicsRouter);
+app.use(translationsRouter);
+app.use(editionsRouter);
+app.use(chapterMediaRouter);
+app.use(aiRouter);
+// Not statically served (unlike /uploads below) — Space items can be
+// private, so content is only ever handed out through the authenticated
+// routes in creativeSpaceFiles.js.
+app.use(creativeSpaceFilesRouter);
+// Uploaded gallery/comic-page images, served statically for both the dev proxy and prod.
+app.use('/uploads', express.static(UPLOADS_ROOT));
 
 // Ensure auxiliary tables / columns exist (best-effort)
 async function ensureStoryAccessTable() {
@@ -28,6 +178,52 @@ async function ensureStoryAccessTable() {
     console.log('[init] ensured story_access table exists');
   } catch (err) {
     console.error('[init] failed to ensure story_access table:', err);
+  }
+}
+
+// Resolves what a user may do with a story's chapters:
+// - 'owner' if they created the story
+// - 'contributor' if they have an explicit story_access row, OR the story
+//   is public (any signed-in user may contribute to a public story)
+// - null otherwise (no access to create/edit chapters)
+async function getStoryAccessRole(storyTitleId, userId) {
+  if (!storyTitleId || !userId) return null;
+  try {
+    const { rows } = await pool.query(
+      'SELECT creator_id, visibility FROM story_title WHERE story_title_id = $1',
+      [storyTitleId],
+    );
+    if (rows.length === 0) return null;
+    const story = rows[0];
+    if (story.creator_id === userId) return 'owner';
+
+    const accessRes = await pool.query(
+      'SELECT role FROM story_access WHERE story_title_id = $1 AND user_id = $2',
+      [storyTitleId, userId],
+    );
+    if (accessRes.rows.length > 0) return accessRes.rows[0].role;
+
+    if ((story.visibility ?? 'public') === 'public') return 'contributor';
+    return null;
+  } catch (err) {
+    console.error('[getStoryAccessRole] failed:', err);
+    return null;
+  }
+}
+
+// Mirrors the frontend's hasRole("platform_admin") / hasRole("editor")
+// checks — platform staff can moderate any story regardless of story_access.
+async function isPlatformAdminOrEditor(userId) {
+  if (!userId) return false;
+  try {
+    const { rows } = await pool.query(
+      "SELECT 1 FROM user_roles WHERE user_id = $1 AND role IN ('platform_admin', 'editor')",
+      [userId],
+    );
+    return rows.length > 0;
+  } catch (err) {
+    console.error('[isPlatformAdminOrEditor] failed:', err);
+    return false;
   }
 }
 
@@ -77,6 +273,33 @@ async function ensureChapterTagsColumns() {
     console.log('[init] ensured stories.tags and stories.paragraph_tags columns exist');
   } catch (err) {
     console.error('[init] failed to ensure stories tags columns:', err);
+  }
+}
+
+// Per-chapter publish flag (distinct from story_title.published, which
+// gates the whole book). New rows default false — a freshly-created/
+// imported chapter isn't publicly visible until the owner explicitly
+// includes it. Chapters that already existed before this column was added
+// are backfilled to true (scoped to the ADD COLUMN's own transaction via a
+// one-time flag check) so previously-visible content doesn't silently
+// disappear once Phase 3's chapter-level gating goes live.
+async function ensureChapterPublishedColumn() {
+  try {
+    const before = await pool.query(
+      "SELECT 1 FROM information_schema.columns WHERE table_name = 'stories' AND column_name = 'published'",
+    );
+    const columnAlreadyExisted = before.rows.length > 0;
+
+    await pool.query('ALTER TABLE stories ADD COLUMN IF NOT EXISTS published boolean NOT NULL DEFAULT false');
+
+    if (!columnAlreadyExisted) {
+      await pool.query('UPDATE stories SET published = true');
+      console.log('[init] backfilled stories.published = true for pre-existing chapters');
+    }
+
+    console.log('[init] ensured stories.published column exists');
+  } catch (err) {
+    console.error('[init] failed to ensure stories.published column:', err);
   }
 }
 
@@ -422,10 +645,10 @@ async function ensurePgcryptoExtension() {
   }
 }
 
-// CRDT document and change storage, following the high-level plan in
-// further revisioning plans.md. This initial implementation focuses on
-// storing changes (as opaque binary patches) and basic metadata; the
-// server does not yet reconstruct or interpret Automerge docs itself.
+// CRDT document catalog: maps a chapter/scene/story-title/screenplay-title
+// to an automerge-repo DocumentId (doc_key). Real-time sync, history, and
+// restore are implemented in ./crdt/repo.js and ./crdt/postgresStorageAdapter.js
+// — this function only owns table/column bootstrapping.
 async function ensureCrdtDocumentsTables() {
   try {
     await pool.query(`
@@ -453,6 +676,45 @@ async function ensureCrdtDocumentsTables() {
       'CREATE INDEX IF NOT EXISTS crdt_documents_branch_idx ON crdt_documents(branch_id)',
     );
 
+    // Real-time collaboration extension: chapter/story_title docs above
+    // predate screenplays. Add nullable FKs so a crdt_documents row can also
+    // catalog a screenplay scene or screenplay title doc (doc_type
+    // 'scene' | 'screenplay_title', alongside the existing
+    // 'chapter' | 'story_title').
+    await pool.query(
+      "ALTER TABLE crdt_documents ADD COLUMN IF NOT EXISTS screenplay_id uuid NULL REFERENCES screenplay_title(screenplay_id) ON DELETE CASCADE",
+    );
+    await pool.query(
+      "ALTER TABLE crdt_documents ADD COLUMN IF NOT EXISTS scene_id uuid NULL REFERENCES screenplay_scene(scene_id) ON DELETE CASCADE",
+    );
+    await pool.query(
+      'CREATE INDEX IF NOT EXISTS crdt_documents_screenplay_idx ON crdt_documents(screenplay_id)',
+    );
+    await pool.query(
+      'CREATE INDEX IF NOT EXISTS crdt_documents_scene_idx ON crdt_documents(scene_id)',
+    );
+    // One live doc per entity: prevents POST /crdt/docs/ensure from racing
+    // itself into two docs for the same chapter/scene/title.
+    await pool.query(
+      'CREATE UNIQUE INDEX IF NOT EXISTS crdt_documents_chapter_unique ON crdt_documents(chapter_id) WHERE doc_type = \'chapter\'',
+    );
+    await pool.query(
+      'CREATE UNIQUE INDEX IF NOT EXISTS crdt_documents_scene_unique ON crdt_documents(scene_id) WHERE doc_type = \'scene\'',
+    );
+    await pool.query(
+      'CREATE UNIQUE INDEX IF NOT EXISTS crdt_documents_story_title_unique ON crdt_documents(story_title_id) WHERE doc_type = \'story_title\'',
+    );
+    await pool.query(
+      'CREATE UNIQUE INDEX IF NOT EXISTS crdt_documents_screenplay_title_unique ON crdt_documents(screenplay_id) WHERE doc_type = \'screenplay_title\'',
+    );
+
+    // Chunked binary doc storage for automerge-repo's PostgresStorageAdapter.
+    // Superseses crdt_changes (see below) as the real storage path — that
+    // table's flat ordered-log shape was never wired up (0 rows in
+    // production) and doesn't fit automerge-repo's chunked snapshot +
+    // incremental-changes model.
+    await ensureCrdtDocChunksTable(pool);
+
     await pool.query(`
       CREATE TABLE IF NOT EXISTS crdt_changes (
         id           bigserial PRIMARY KEY,
@@ -469,7 +731,7 @@ async function ensureCrdtDocumentsTables() {
       'CREATE INDEX IF NOT EXISTS crdt_changes_doc_ts_idx ON crdt_changes(doc_id, ts)',
     );
 
-    console.log('[init] ensured crdt_documents and crdt_changes tables exist');
+    console.log('[init] ensured crdt_documents, crdt_doc_chunks, and (legacy) crdt_changes tables exist');
   } catch (err) {
     console.error('[init] failed to ensure CRDT tables:', err);
   }
@@ -660,6 +922,21 @@ async function ensureCreativeSpaceItemsTable() {
     );
     await pool.query(
       'CREATE INDEX IF NOT EXISTS creative_space_items_space_updated_idx ON creative_space_items(space_id, updated_at)',
+    );
+
+    // Real file content storage (see creativeSpaceFiles.js) — the Space
+    // sync protocol only ever exchanged metadata (relative_path/size/hash),
+    // so this column tracks whether/where actual bytes have since been
+    // uploaded or edited through the web UI, separately from that manifest.
+    await pool.query(
+      'ALTER TABLE creative_space_items ADD COLUMN IF NOT EXISTS storage_path text',
+    );
+
+    // Tracks which raw file, if any, has already been "structured" into a
+    // real chapter by the import wizard — lets the wizard show
+    // already-imported vs. not-yet-imported files and avoid double-import.
+    await pool.query(
+      'ALTER TABLE creative_space_items ADD COLUMN IF NOT EXISTS linked_chapter_id uuid REFERENCES stories(chapter_id) ON DELETE SET NULL',
     );
 
     console.log('[init] ensured creative_space_items table exists');
@@ -1218,6 +1495,12 @@ ensurePgcryptoExtension().catch((err) => {
 ensureStoryAccessTable().catch((err) => {
   console.error('[init] ensureStoryAccessTable unhandled error:', err);
 });
+ensureStoryGalleryImagesTable().catch((err) => {
+  console.error('[init] ensureStoryGalleryImagesTable unhandled error:', err);
+});
+ensureComicTables().catch((err) => {
+  console.error('[init] ensureComicTables unhandled error:', err);
+});
 ensureStoryTitlePublishedColumn().catch((err) => {
   console.error('[init] ensureStoryTitlePublishedColumn unhandled error:', err);
 });
@@ -1293,6 +1576,18 @@ ensureReactionsScreenplayColumns().catch((err) => {
 ensureCreativeSpaceItemsTable().catch((err) => {
   console.error('[init] ensureCreativeSpaceItemsTable unhandled error:', err);
 });
+// Must run after ensureCreativeSpaceItemsTable — it adds a column onto creative_space_items.
+ensureGithubSyncTables().catch((err) => {
+  console.error('[init] ensureGithubSyncTables unhandled error:', err);
+});
+// Phase 2 — must run after ensureCreativeSpacesTable (FK) and ensureCrdtDocumentsTables (conceptually references crdt_documents.doc_key, though not FK-enforced to avoid first-boot ordering issues).
+ensureGithubContentLinksTable().catch((err) => {
+  console.error('[init] ensureGithubContentLinksTable unhandled error:', err);
+});
+// Must run after ensureCreativeSpaceItemsTable — it adds a column onto creative_space_items.
+ensureGoogleDriveSyncTables().catch((err) => {
+  console.error('[init] ensureGoogleDriveSyncTables unhandled error:', err);
+});
 ensureStoryCreativeSpaceColumnsAndAttachments().catch((err) => {
   console.error('[init] ensureStoryCreativeSpaceColumnsAndAttachments unhandled error:', err);
 });
@@ -1311,6 +1606,22 @@ ensureUserBannedColumn().catch((err) => {
 ensureAdminMessagesTable().catch((err) => {
   console.error('[init] ensureAdminMessagesTable unhandled error:', err);
 });
+
+// Awaited in sequence, unlike the fire-and-forget calls around it — each of
+// these tables has a foreign key into the one before it (conversations ->
+// friend_requests -> local_users), so creating them out of order can fail
+// on a fresh database.
+(async () => {
+  await ensureSessionsTable();
+  await ensureFriendRequestsTable();
+  await ensureFollowsTable();
+  await ensureConversationsTable();
+  await ensureMessagesTable();
+  await ensureConversationReadsTable();
+  await ensureNotificationsTable();
+})().catch((err) => {
+  console.error('[init] friends/messaging table setup unhandled error:', err);
+});
 ensureUserTranslatorLanguagesTable().catch((err) => {
   console.error('[init] ensureUserTranslatorLanguagesTable unhandled error:', err);
 });
@@ -1325,6 +1636,9 @@ ensureScreenplayTitleDescriptionColumn().catch((err) => {
 });
 ensureChapterTagsColumns().catch((err) => {
   console.error('[init] ensureChapterTagsColumns unhandled error:', err);
+});
+ensureChapterPublishedColumn().catch((err) => {
+  console.error('[init] ensureChapterPublishedColumn unhandled error:', err);
 });
 ensureStoryCollaboratorsTable().catch((err) => {
   console.error('[init] ensureStoryCollaboratorsTable unhandled error:', err);
@@ -1441,11 +1755,43 @@ app.post('/auth/login', async (req, res) => {
 
   try {
     const authResult = await loginWithEmailPassword(email, password);
+    const session = await createSession(authResult.id);
+    res.cookie(SESSION_COOKIE_NAME, session.token, SESSION_COOKIE_OPTIONS);
     res.json(authResult);
   } catch (err) {
     console.error('[auth/login] failed:', err);
     res.status(401).json({ error: 'Invalid email or password' });
   }
+});
+
+// Confirms the caller's session cookie is still valid server-side and
+// returns the current user — the frontend calls this on load instead of
+// trusting its cached localStorage user indefinitely, since that cache
+// survives session expiry/logout-elsewhere with nothing to invalidate it.
+app.get('/auth/me', requireAuth, async (req, res) => {
+  try {
+    const user = await getUserWithRoles(req.user.id);
+    if (!user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+    res.json(user);
+  } catch (err) {
+    console.error('[auth/me] failed:', err);
+    res.status(500).json({ error: 'Failed to load current user' });
+  }
+});
+
+// Invalidates the session server-side (not just clearing the cookie
+// client-side) so a stolen cookie stops working immediately.
+app.post('/auth/logout', async (req, res) => {
+  const token = req.cookies?.[SESSION_COOKIE_NAME];
+  try {
+    await destroySession(token);
+  } catch (err) {
+    console.error('[auth/logout] failed to destroy session:', err);
+  }
+  res.clearCookie(SESSION_COOKIE_NAME, { path: SESSION_COOKIE_OPTIONS.path });
+  res.status(204).send();
 });
 
 // Change password for a logged-in user (local auth)
@@ -1569,13 +1915,16 @@ app.get('/search', async (req, res) => {
 
   const pattern = `%${q}%`;
 
+  // Space-linked content also needs its Space to be public — a public+
+  // published book sitting in a still-private Space shouldn't surface in
+  // discovery (see the AND-gating model: most restrictive wins).
   const storyVisibilityFilter = includePrivate
     ? ''
-    : " AND st.visibility = 'public' AND st.published = true";
+    : " AND st.visibility = 'public' AND st.published = true AND (st.creative_space_id IS NULL OR cs.visibility = 'public')";
 
   const screenplayVisibilityFilter = includePrivate
     ? ''
-    : " AND st.visibility = 'public' AND st.published = true";
+    : " AND st.visibility = 'public' AND st.published = true AND (st.creative_space_id IS NULL OR cs.visibility = 'public')";
 
   try {
     const storyPromise = pool.query(
@@ -1588,6 +1937,7 @@ app.get('/search', async (req, res) => {
          LEFT(COALESCE(s.paragraphs[1]::text, ''), 200) AS snippet
        FROM story_title st
        JOIN stories s ON s.story_title_id = st.story_title_id
+       LEFT JOIN creative_spaces cs ON cs.id = st.creative_space_id
        WHERE (st.title ILIKE $1 OR s.chapter_title ILIKE $1 OR s.paragraphs::text ILIKE $1)
        ${storyVisibilityFilter}
        ORDER BY s.created_at DESC
@@ -1603,6 +1953,7 @@ app.get('/search', async (req, res) => {
          COALESCE(MIN(ss.slugline), '') AS slugline
        FROM screenplay_title st
        LEFT JOIN screenplay_scene ss ON ss.screenplay_id = st.screenplay_id
+       LEFT JOIN creative_spaces cs ON cs.id = st.creative_space_id
        WHERE (st.title ILIKE $1 OR ss.slugline ILIKE $1)
        ${screenplayVisibilityFilter}
        GROUP BY st.screenplay_id, st.title, st.created_at
@@ -2182,7 +2533,9 @@ app.get('/screenplays/newest', async (req, res) => {
          ORDER BY ss.scene_index ASC, ss.created_at ASC
          LIMIT 1
        ) fs ON TRUE
+       LEFT JOIN creative_spaces cs ON cs.id = st.creative_space_id
        WHERE st.visibility = 'public' AND st.published = true
+         AND (st.creative_space_id IS NULL OR cs.visibility = 'public')
        ORDER BY st.created_at DESC
        LIMIT $1`,
       [limit],
@@ -2221,7 +2574,9 @@ app.get('/screenplays/most-active', async (req, res) => {
          FROM screenplay_title st
          LEFT JOIN screenplay_scene ss ON ss.screenplay_id = st.screenplay_id
          LEFT JOIN screenplay_block sb ON sb.screenplay_id = st.screenplay_id
+         LEFT JOIN creative_spaces cs ON cs.id = st.creative_space_id
          WHERE st.visibility = 'public' AND st.published = true
+           AND (st.creative_space_id IS NULL OR cs.visibility = 'public')
          GROUP BY st.screenplay_id, st.title
        ),
        scored AS (
@@ -2304,7 +2659,9 @@ app.get('/screenplays/most-popular', async (req, res) => {
          FROM screenplay_title st
          LEFT JOIN reaction_counts rc ON rc.screenplay_id = st.screenplay_id
          LEFT JOIN favorite_counts fc ON fc.screenplay_id = st.screenplay_id
+         LEFT JOIN creative_spaces cs ON cs.id = st.creative_space_id
          WHERE st.visibility = 'public' AND st.published = true
+           AND (st.creative_space_id IS NULL OR cs.visibility = 'public')
        ),
        first_scene AS (
          SELECT
@@ -2344,8 +2701,41 @@ app.get('/screenplays/most-popular', async (req, res) => {
 });
 
 // Get a single screenplay by ID (no visibility rules yet; keep simple for v1)
+// Mirrors the story_title visibility gate at GET /story-titles/:storyTitleId
+// (creator/screenplay_access always allowed; unlisted/private otherwise
+// blocked for everyone else) — screenplays had no such check at all before
+// this, so a "private" screenplay was viewable by anyone who had its id.
+async function checkScreenplayAccess(screenplay, userId) {
+  const visibility = screenplay.visibility ?? 'public';
+  if (visibility === 'public') return { allowed: true };
+
+  if (userId && screenplay.creator_id === userId) return { allowed: true };
+
+  if (userId) {
+    try {
+      const access = await pool.query(
+        'SELECT 1 FROM screenplay_access WHERE screenplay_id = $1 AND user_id = $2 LIMIT 1',
+        [screenplay.screenplay_id, userId],
+      );
+      if (access.rows.length > 0) return { allowed: true };
+    } catch {}
+  }
+
+  if (visibility === 'unlisted') {
+    return {
+      allowed: false,
+      message: 'This screenplay is unlisted. You need an invitation from the owner to view it.',
+    };
+  }
+  return {
+    allowed: false,
+    message: 'This screenplay is private. Please log in or ask the owner for access.',
+  };
+}
+
 app.get('/screenplays/:screenplayId', async (req, res) => {
   const { screenplayId } = req.params;
+  const userId = req.query.userId ?? null;
   try {
     const { rows } = await pool.query(
       'SELECT * FROM screenplay_title WHERE screenplay_id = $1',
@@ -2354,7 +2744,12 @@ app.get('/screenplays/:screenplayId', async (req, res) => {
     if (rows.length === 0) {
       return res.status(404).json({ error: 'Screenplay not found' });
     }
-    res.json(rows[0]);
+    const screenplay = rows[0];
+    const access = await checkScreenplayAccess(screenplay, userId);
+    if (!access.allowed) {
+      return res.status(403).json({ error: access.message });
+    }
+    res.json(screenplay);
   } catch (err) {
     console.error('[GET /screenplays/:screenplayId] failed:', err);
     res.status(500).json({ error: 'Failed to fetch screenplay' });
@@ -2442,9 +2837,22 @@ app.delete('/screenplays/:screenplayId', async (req, res) => {
 // Get scenes + (optionally) blocks for a screenplay
 app.get('/screenplays/:screenplayId/scenes', async (req, res) => {
   const { screenplayId } = req.params;
+  const userId = req.query.userId ?? null;
   const includeBlocks = req.query.includeBlocks === 'true';
 
   try {
+    const titleRes = await pool.query(
+      'SELECT screenplay_id, creator_id, visibility FROM screenplay_title WHERE screenplay_id = $1',
+      [screenplayId],
+    );
+    if (titleRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Screenplay not found' });
+    }
+    const access = await checkScreenplayAccess(titleRes.rows[0], userId);
+    if (!access.allowed) {
+      return res.status(403).json({ error: access.message });
+    }
+
     const { rows: scenes } = await pool.query(
       'SELECT * FROM screenplay_scene WHERE screenplay_id = $1 ORDER BY scene_index ASC',
       [screenplayId],
@@ -2842,6 +3250,25 @@ app.post('/screenplays/:screenplayId/sync-desktop', async (req, res) => {
       [newTitle, newFormatType, screenplayId],
     );
 
+    // Capture the scenes/blocks about to be destroyed so a revision trail
+    // can be written below — this sync destroys and recreates every scene
+    // with a fresh scene_id each time, so a scene-scoped revision row would
+    // itself get cascade-deleted on the very next sync (screenplay_revisions.scene_id
+    // is ON DELETE CASCADE). A title-scoped row (scene_id NULL) below survives
+    // that and is what closes this route's previously-zero revision trail.
+    const prevStateRes = await client.query(
+      `SELECT sc.scene_index, sc.slugline, sc.location, sc.time_of_day, sc.is_interior, sc.synopsis,
+              COALESCE(json_agg(json_build_object('blockType', b.block_type, 'text', b.text) ORDER BY b.block_index)
+                       FILTER (WHERE b.block_id IS NOT NULL), '[]') AS blocks
+       FROM screenplay_scene sc
+       LEFT JOIN screenplay_block b ON b.scene_id = sc.scene_id
+       WHERE sc.screenplay_id = $1
+       GROUP BY sc.scene_id
+       ORDER BY sc.scene_index`,
+      [screenplayId],
+    );
+    const prevScenes = prevStateRes.rows;
+
     // Replace scenes and blocks in a simple, deterministic way.
     await client.query('DELETE FROM screenplay_block WHERE screenplay_id = $1', [screenplayId]);
     await client.query('DELETE FROM screenplay_scene WHERE screenplay_id = $1', [screenplayId]);
@@ -2894,7 +3321,44 @@ app.post('/screenplays/:screenplayId/sync-desktop', async (req, res) => {
       }
     }
 
+    // Best-effort: record this desktop sync in the revision trail (title-scoped,
+    // scene_id NULL — see the prevStateRes comment above for why). A failure
+    // here must not block the sync itself, same as every other revision
+    // insert in this file. Runs on `client` (this same transaction) — safe
+    // to do before COMMIT, unlike ensureScreenplayAccessRow below.
+    try {
+      const nextRev = await getNextScreenplayRevisionNumber(screenplayId, null);
+      await client.query(
+        `INSERT INTO screenplay_revisions
+           (screenplay_title_id, scene_id, prev_content, new_content, created_by, revision_number, revision_reason)
+         VALUES ($1, NULL, $2, $3, $4, $5, $6)`,
+        [
+          screenplayId,
+          JSON.stringify({ scenes: prevScenes }),
+          JSON.stringify({ scenes }),
+          userId || null,
+          nextRev,
+          'Desktop sync',
+        ],
+      );
+    } catch (errRev) {
+      console.error(
+        '[POST /screenplays/:screenplayId/sync-desktop] failed to insert screenplay_revisions row:',
+        errRev,
+      );
+    }
+
+    await client.query('COMMIT');
+
     // Best-effort: ensure the syncing user shows up as a collaborator.
+    // Must run AFTER commit, not before: ensureScreenplayAccessRow uses the
+    // plain `pool` (a different connection than `client`), and its INSERT
+    // needs a FOR KEY SHARE lock on the screenplay_title row to validate the
+    // FK — which deadlocks against this same request's own `FOR UPDATE` lock
+    // on that row (taken above) for as long as this transaction stays open.
+    // This was a pre-existing bug (every real desktop sync call hung here
+    // indefinitely) surfaced while adding the revision-trail write above;
+    // fixed as part of the same change since both touch this call site.
     try {
       await ensureScreenplayAccessRow(screenplayId, userId, 'contributor');
     } catch (errAccess) {
@@ -2903,8 +3367,6 @@ app.post('/screenplays/:screenplayId/sync-desktop', async (req, res) => {
         errAccess,
       );
     }
-
-    await client.query('COMMIT');
 
     return res.json({
       ok: true,
@@ -3454,20 +3916,34 @@ async function getNextParagraphRevisionNumber(chapterId, paragraphIndex) {
 }
 
 // Create story title + initial revision + first chapter in a single transaction
-app.post('/stories/template', async (req, res) => {
-  const { title, chapterTitle, paragraphs, userId, creativeSpaceId, language, coverImageUrl } = req.body ?? {};
-
-  if (!title || !chapterTitle || !Array.isArray(paragraphs) || !userId) {
-    return res.status(400).json({ error: 'title, chapterTitle, paragraphs[], and userId are required' });
-  }
-
+// Shared by POST /stories/template and the import wizard's "new book" path
+// (backend/src/server.js's /creative-spaces/:spaceId/import-wizard/structure-chapter)
+// so there is exactly one place that knows how a story_title + its first
+// chapter get created together.
+//
+// Space-linked stories default to private/unpublished (rather than
+// inheriting story_title's public/true column defaults) so a book isn't
+// silently public the moment it's created inside a Space — the owner must
+// explicitly publish it (see PATCH /story-titles/:storyTitleId/settings).
+async function createStoryFromTemplate({ title, chapterTitle, paragraphs, userId, creativeSpaceId, language, coverImageUrl }) {
+  const isSpaceLinked = Boolean(creativeSpaceId);
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
     const insertTitle = await client.query(
-      'INSERT INTO story_title (title, creator_id, initiator_id, creative_space_id, language, cover_image_url) VALUES ($1, $2, $2, $3, $4, $5) RETURNING story_title_id, title, creative_space_id, language, cover_image_url',
-      [title, userId, creativeSpaceId || null, language || 'en', coverImageUrl || null],
+      `INSERT INTO story_title (title, creator_id, initiator_id, creative_space_id, language, cover_image_url, visibility, published)
+       VALUES ($1, $2, $2, $3, $4, $5, $6, $7)
+       RETURNING story_title_id, title, creative_space_id, language, cover_image_url, visibility, published`,
+      [
+        title,
+        userId,
+        creativeSpaceId || null,
+        language || 'en',
+        coverImageUrl || null,
+        isSpaceLinked ? 'private' : 'public',
+        !isSpaceLinked,
+      ],
     );
     const storyTitleRow = insertTitle.rows[0];
 
@@ -3483,7 +3959,7 @@ app.post('/stories/template', async (req, res) => {
           [storyTitleRow.story_title_id, creativeSpaceId, 'primary'],
         );
       } catch (errSpaces) {
-        console.error('[POST /stories/template] failed to upsert story_spaces row:', errSpaces);
+        console.error('[createStoryFromTemplate] failed to upsert story_spaces row:', errSpaces);
       }
     }
 
@@ -3501,7 +3977,7 @@ app.post('/stories/template', async (req, res) => {
     );
 
     const insertChapter = await client.query(
-      'INSERT INTO stories (story_title_id, episode_number, part_number, chapter_index, chapter_title, paragraphs) VALUES ($1, $2, $3, $4, $5, $6) RETURNING chapter_id, chapter_title, paragraphs, episode_number, part_number, chapter_index',
+      'INSERT INTO stories (story_title_id, episode_number, part_number, chapter_index, chapter_title, paragraphs) VALUES ($1, $2, $3, $4, $5, $6) RETURNING chapter_id, chapter_title, paragraphs, episode_number, part_number, chapter_index, published',
       [storyTitleRow.story_title_id, null, null, 1, chapterTitle, paragraphs],
     );
     const chapterRow = insertChapter.rows[0];
@@ -3518,7 +3994,7 @@ app.post('/stories/template', async (req, res) => {
       );
     } catch (errAccess) {
       // Do not fail story creation if story_access insert fails
-      console.error('[stories/template] failed to insert story_access row:', errAccess);
+      console.error('[createStoryFromTemplate] failed to insert story_access row:', errAccess);
     }
 
     // Best-effort: add creator as the default author in story_collaborators
@@ -3530,8 +4006,35 @@ app.post('/stories/template', async (req, res) => {
         [storyTitleRow.story_title_id, userId],
       );
     } catch (errCollab) {
-      console.error('[stories/template] failed to insert story_collaborators author row:', errCollab);
+      console.error('[createStoryFromTemplate] failed to insert story_collaborators author row:', errCollab);
     }
+
+    return { storyTitleRow, chapterRow };
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+app.post('/stories/template', async (req, res) => {
+  const { title, chapterTitle, paragraphs, userId, creativeSpaceId, language, coverImageUrl } = req.body ?? {};
+
+  if (!title || !chapterTitle || !Array.isArray(paragraphs) || !userId) {
+    return res.status(400).json({ error: 'title, chapterTitle, paragraphs[], and userId are required' });
+  }
+
+  try {
+    const { storyTitleRow, chapterRow } = await createStoryFromTemplate({
+      title,
+      chapterTitle,
+      paragraphs,
+      userId,
+      creativeSpaceId,
+      language,
+      coverImageUrl,
+    });
 
     res.status(201).json({
       storyTitleId: storyTitleRow.story_title_id,
@@ -3541,14 +4044,11 @@ app.post('/stories/template', async (req, res) => {
       paragraphs: chapterRow.paragraphs,
     });
   } catch (err) {
-    await client.query('ROLLBACK');
     console.error('[stories/template] failed:', err);
     res.status(500).json({
       error: 'Failed to create story template',
       details: err?.message || String(err),
     });
-  } finally {
-    client.release();
   }
 });
 
@@ -3575,7 +4075,9 @@ app.get('/stories/newest', async (req, res) => {
            ) AS rn
          FROM stories s
          JOIN story_title st ON st.story_title_id = s.story_title_id
+         LEFT JOIN creative_spaces cs ON cs.id = st.creative_space_id
          WHERE st.visibility = 'public' AND st.published = true
+           AND (st.creative_space_id IS NULL OR cs.visibility = 'public')
        )
        SELECT
          lc.chapter_id,
@@ -3634,7 +4136,9 @@ app.get('/stories/most-active', async (req, res) => {
          LEFT JOIN chapter_likes cl ON cl.chapter_id = s.chapter_id
          LEFT JOIN reactions r ON r.chapter_id = s.chapter_id
          LEFT JOIN paragraph_branches pb ON pb.chapter_id = s.chapter_id
+         LEFT JOIN creative_spaces cs ON cs.id = st.creative_space_id
          WHERE st.visibility = 'public' AND st.published = true
+           AND (st.creative_space_id IS NULL OR cs.visibility = 'public')
          GROUP BY st.story_title_id, st.title, st.language, st.cover_image_url
        ),
        scored AS (
@@ -3728,7 +4232,9 @@ app.get('/stories/most-popular', async (req, res) => {
          FROM story_title st
          LEFT JOIN reaction_counts rc ON rc.story_title_id = st.story_title_id
          LEFT JOIN favorite_counts fc ON fc.story_title_id = st.story_title_id
+         LEFT JOIN creative_spaces cs ON cs.id = st.creative_space_id
          WHERE st.visibility = 'public' AND st.published = true
+           AND (st.creative_space_id IS NULL OR cs.visibility = 'public')
        ),
        latest_chapter AS (
          SELECT
@@ -3775,16 +4281,32 @@ app.get('/stories/most-popular', async (req, res) => {
 // List chapters (stories rows) for a story
 app.get('/chapters', async (req, res) => {
   const storyTitleId = req.query.storyTitleId;
+  const viewerId = req.query.userId || null;
   if (!storyTitleId) {
     return res.status(400).json({ error: 'storyTitleId query parameter is required' });
   }
 
   try {
     const { rows } = await pool.query(
-      'SELECT * FROM stories WHERE story_title_id = $1 ORDER BY episode_number NULLS FIRST, part_number NULLS FIRST, chapter_index ASC, created_at ASC',
+      // source_stale: for a translated chapter, the chapter it translates has
+      // changed since the translator last marked it up to date.
+      `SELECT s.*,
+              (src.content_updated_at > COALESCE(s.source_synced_at, s.created_at)) AS source_stale
+         FROM stories s
+         LEFT JOIN stories src ON src.chapter_id = s.source_chapter_id
+        WHERE s.story_title_id = $1
+        ORDER BY s.episode_number NULLS FIRST, s.part_number NULLS FIRST, s.chapter_index ASC, s.created_at ASC`,
       [storyTitleId],
     );
-    res.json(rows);
+
+    // Unpublished chapters (see ensureChapterPublishedColumn) are a draft —
+    // only the owner or a contributor should see them; never trust the
+    // client to hide rows it already received.
+    const role = viewerId ? await getStoryAccessRole(storyTitleId, viewerId) : null;
+    const canSeeUnpublished = role === 'owner' || role === 'contributor';
+    const visibleRows = canSeeUnpublished ? rows : rows.filter((r) => r.published);
+
+    res.json(visibleRows);
   } catch (err) {
     console.error('[chapters] failed:', err);
     res.status(500).json({ error: 'Failed to fetch chapters' });
@@ -3795,7 +4317,7 @@ app.get('/chapters', async (req, res) => {
 // provided chapterIds array. This allows the frontend to express an
 // explicit chapter ordering (e.g., inserting a new chapter directly
 // below the current one).
-app.patch('/stories/:storyTitleId/chapters/reorder', async (req, res) => {
+app.patch('/stories/:storyTitleId/chapters/reorder', requireAuth, async (req, res) => {
   const { storyTitleId } = req.params;
   const { chapterIds } = req.body ?? {};
 
@@ -3803,6 +4325,11 @@ app.patch('/stories/:storyTitleId/chapters/reorder', async (req, res) => {
     return res
       .status(400)
       .json({ error: 'storyTitleId and non-empty chapterIds[] are required' });
+  }
+
+  const role = await getStoryAccessRole(storyTitleId, req.user.id);
+  if (role !== 'owner') {
+    return res.status(403).json({ error: 'Not authorized to reorder chapters for this story' });
   }
 
   const client = await pool.connect();
@@ -3829,14 +4356,20 @@ app.patch('/stories/:storyTitleId/chapters/reorder', async (req, res) => {
   }
 });
 
-// List stories a user is creating or contributing to
+// List stories a user is creating or contributing to.
+// Role labels:
+// - creator:     everyone who wrote, created and/or contributed to the story
+//                (so every row here has it)
+// - initiator:   started the story (story_title.initiator_id, never changes)
+// - owner:       current owner (story_title.creator_id, changes on transfer)
+// - contributor: wrote chapters / chapter revisions
 app.get('/users/:userId/stories', async (req, res) => {
   const { userId } = req.params;
 
   try {
-    // Stories created by the user
+    // Stories the user initiated or currently owns
     const created = await pool.query(
-      'SELECT story_title_id, title, created_at, visibility, published, language, cover_image_url FROM story_title WHERE creator_id = $1',
+      'SELECT story_title_id, title, created_at, visibility, published, language, cover_image_url, creator_id, initiator_id FROM story_title WHERE creator_id = $1 OR initiator_id = $1',
       [userId],
     );
 
@@ -3860,6 +4393,9 @@ app.get('/users/:userId/stories', async (req, res) => {
     // Merge and tag roles
     const map = new Map();
     for (const row of created.rows) {
+      const roles = ['creator'];
+      if (row.initiator_id === userId) roles.push('initiator');
+      if (row.creator_id === userId) roles.push('owner');
       map.set(row.story_title_id, {
         story_title_id: row.story_title_id,
         title: row.title,
@@ -3868,7 +4404,7 @@ app.get('/users/:userId/stories', async (req, res) => {
         published: row.published,
         language: row.language,
         cover_image_url: row.cover_image_url,
-        roles: ['creator'],
+        roles,
       });
     }
     for (const row of contributed.rows) {
@@ -3886,7 +4422,7 @@ app.get('/users/:userId/stories', async (req, res) => {
           published: row.published,
           language: row.language,
           cover_image_url: row.cover_image_url,
-          roles: ['contributor'],
+          roles: ['creator', 'contributor'],
         });
       }
     }
@@ -3927,6 +4463,8 @@ app.get('/users/:userId/screenplays', async (req, res) => {
       [userId],
     );
 
+    // Same role labels as GET /users/:userId/stories. Screenplays have no
+    // ownership transfer, so creator_id is both the initiator and the owner.
     const map = new Map();
     for (const row of created.rows) {
       map.set(row.screenplay_id, {
@@ -3935,7 +4473,7 @@ app.get('/users/:userId/screenplays', async (req, res) => {
         created_at: row.created_at,
         visibility: row.visibility,
         published: row.published,
-        roles: ['creator'],
+        roles: ['creator', 'initiator', 'owner'],
       });
     }
 
@@ -3952,7 +4490,7 @@ app.get('/users/:userId/screenplays', async (req, res) => {
           created_at: row.created_at,
           visibility: row.visibility,
           published: row.published,
-          roles: [row.role],
+          roles: ['creator', row.role],
         });
       }
     }
@@ -4110,11 +4648,13 @@ async function fetchUserExperienceItems(userId, flagColumn) {
        us.is_lived
      FROM user_story_status us
      JOIN story_title st ON st.story_title_id = us.story_title_id
+     LEFT JOIN creative_spaces cs ON cs.id = st.creative_space_id
      WHERE us.user_id = $1
        AND us.content_type = 'story'
        AND us.${flagColumn} = true
        AND st.visibility = 'public'
-       AND st.published = true`,
+       AND st.published = true
+       AND (st.creative_space_id IS NULL OR cs.visibility = 'public')`,
     [userId],
   );
 
@@ -4139,11 +4679,13 @@ async function fetchUserExperienceItems(userId, flagColumn) {
        ORDER BY ss.scene_index ASC, ss.created_at ASC
        LIMIT 1
      ) fs ON TRUE
+     LEFT JOIN creative_spaces cs ON cs.id = st.creative_space_id
      WHERE us.user_id = $1
        AND us.content_type = 'screenplay'
        AND us.${flagColumn} = true
        AND st.visibility = 'public'
-       AND st.published = true`,
+       AND st.published = true
+       AND (st.creative_space_id IS NULL OR cs.visibility = 'public')`,
     [userId],
   );
 
@@ -4292,13 +4834,48 @@ app.get('/creative-spaces', async (req, res) => {
   }
 });
 
-// Get a single creative space by id (for detail page / ownership checks)
-//
-// Access rules:
+// Space view access:
 // - Owner can always see their own Space.
-// - Non-owners and guests can only see Spaces that are explicitly
-//   marked as public. For now we treat any non-'public' visibility
-//   value as private/owner-only.
+// - 'public' Spaces are visible to everyone, including guests.
+// - 'selected' Spaces are visible to the users listed in
+//   creative_space_access. That grant is checked against the session user
+//   (not a client-supplied userId), so it can't be claimed by passing an id.
+// - Any other visibility value is treated as private/owner-only.
+async function canViewSpace(space, req, userId) {
+  if (userId && String(space.user_id) === String(userId)) return true;
+  const visibility = String(space.visibility ?? 'private').toLowerCase();
+  if (visibility === 'public') return true;
+  if (visibility !== 'selected') return false;
+  const viewer = await getSessionUser(req.cookies?.[SESSION_COOKIE_NAME]);
+  if (!viewer) return false;
+  const { rowCount } = await pool.query(
+    'SELECT 1 FROM creative_space_access WHERE space_id = $1 AND user_id = $2',
+    [space.id, viewer.id],
+  );
+  return rowCount > 0;
+}
+
+// Spaces other users have shared with the signed-in user via
+// "Only for selected user(s)". Declared before /creative-spaces/:spaceId
+// so the literal path isn't captured as a spaceId.
+app.get('/creative-spaces/shared-with-me', requireAuth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT cs.* FROM creative_spaces cs
+       JOIN creative_space_access a ON a.space_id = cs.id
+       WHERE a.user_id = $1 AND cs.visibility = 'selected'
+       ORDER BY cs.name ASC`,
+      [req.user.id],
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('[GET /creative-spaces/shared-with-me] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch shared creative spaces' });
+  }
+});
+
+// Get a single creative space by id (for detail page / ownership checks).
+// Access rules: see canViewSpace().
 app.get('/creative-spaces/:spaceId', async (req, res) => {
   const { spaceId } = req.params;
   const userId = req.query.userId ?? null;
@@ -4314,25 +4891,14 @@ app.get('/creative-spaces/:spaceId', async (req, res) => {
     }
 
     const space = rows[0];
-    const visibilityRaw = space.visibility ?? 'private';
-    const visibility = String(visibilityRaw).toLowerCase();
-
-    // Owner can always view the Space regardless of visibility.
-    if (userId && String(space.user_id) === String(userId)) {
-      return res.json(space);
-    }
-
-    // Non-owners (including guests) may only view Spaces that are
-    // explicitly public. Any other visibility value is treated as
-    // private/owner-only for now.
-    if (visibility === 'public') {
+    if (await canViewSpace(space, req, userId)) {
       return res.json(space);
     }
 
     console.warn('[GET /creative-spaces/:spaceId] access denied for Space', {
       spaceId,
       userId,
-      visibility,
+      visibility: space.visibility,
     });
     return res
       .status(403)
@@ -4447,8 +5013,12 @@ app.patch('/creative-spaces/:spaceId', async (req, res) => {
     values.push(path || null);
   }
   if (visibility !== undefined) {
+    const nextVisibility = visibility || 'private';
+    if (!['public', 'private', 'selected'].includes(nextVisibility)) {
+      return res.status(400).json({ error: 'visibility must be public, private or selected' });
+    }
     fields.push(`visibility = $${idx++}`);
-    values.push(visibility || 'private');
+    values.push(nextVisibility);
   }
   if (published !== undefined) {
     fields.push(`published = $${idx++}`);
@@ -4482,6 +5052,66 @@ app.patch('/creative-spaces/:spaceId', async (req, res) => {
   } catch (err) {
     console.error('[PATCH /creative-spaces/:spaceId] failed:', err);
     res.status(500).json({ error: 'Failed to update creative space' });
+  }
+});
+
+// Users a Space is shared with when its visibility is 'selected'
+// ("Only for selected user(s)"). Owner-only via loadOwnedSpace().
+async function listSpaceAccessUsers(spaceId) {
+  const { rows } = await pool.query(
+    `SELECT u.id, u.email, p.username, p.first_name, p.last_name
+     FROM creative_space_access a
+     JOIN local_users u ON u.id = a.user_id
+     LEFT JOIN profiles p ON p.id = u.id
+     WHERE a.space_id = $1
+     ORDER BY COALESCE(p.username, u.email) ASC`,
+    [spaceId],
+  );
+  return rows;
+}
+
+app.get('/creative-spaces/:spaceId/access', requireAuth, async (req, res) => {
+  try {
+    const space = await loadOwnedSpace(req, res);
+    if (!space) return;
+    res.json({ users: await listSpaceAccessUsers(space.id) });
+  } catch (err) {
+    console.error('[GET /creative-spaces/:spaceId/access] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch Space access list' });
+  }
+});
+
+// Replaces the whole access list with body.userIds.
+app.put('/creative-spaces/:spaceId/access', requireAuth, async (req, res) => {
+  const rawIds = Array.isArray(req.body?.userIds) ? req.body.userIds : null;
+  if (!rawIds) {
+    return res.status(400).json({ error: 'userIds array is required' });
+  }
+  const userIds = [...new Set(rawIds.map((id) => String(id)).filter(Boolean))];
+
+  const client = await pool.connect();
+  try {
+    const space = await loadOwnedSpace(req, res);
+    if (!space) return;
+    await client.query('BEGIN');
+    await client.query('DELETE FROM creative_space_access WHERE space_id = $1', [space.id]);
+    if (userIds.length > 0) {
+      await client.query(
+        `INSERT INTO creative_space_access (space_id, user_id)
+         SELECT $1, u.id FROM local_users u
+         WHERE u.id::text = ANY($2::text[]) AND u.id::text <> $3
+         ON CONFLICT DO NOTHING`,
+        [space.id, userIds, String(space.user_id)],
+      );
+    }
+    await client.query('COMMIT');
+    res.json({ users: await listSpaceAccessUsers(space.id) });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('[PUT /creative-spaces/:spaceId/access] failed:', err);
+    res.status(500).json({ error: 'Failed to update Space access list' });
+  } finally {
+    client.release();
   }
 });
 
@@ -4583,16 +5213,11 @@ app.get('/creative-spaces/:spaceId/items', async (req, res) => {
       return res.status(404).json({ error: 'Creative space not found' });
     }
     const space = spaceRes.rows[0];
-    const visibilityRaw = space.visibility ?? 'private';
-    const visibility = String(visibilityRaw).toLowerCase();
-
-    const isOwner = userId && String(space.user_id) === String(userId);
-
-    if (!isOwner && visibility !== 'public') {
+    if (!(await canViewSpace(space, req, userId))) {
       console.warn('[GET /creative-spaces/:spaceId/items] access denied for Space', {
         spaceId,
         userId,
-        visibility,
+        visibility: space.visibility,
       });
       return res
         .status(403)
@@ -4629,6 +5254,265 @@ app.get('/creative-spaces/:spaceId/items', async (req, res) => {
   } catch (err) {
     console.error('[GET /creative-spaces/:spaceId/items] failed:', err);
     res.status(500).json({ error: 'Failed to list creative space items' });
+  }
+});
+
+// Stories/screenplays whose creative_space_id points at this Space — the
+// Space page has no other way to reach the structured content that was
+// synced/imported into it (story_attachments/story_spaces only ever get
+// read from the story side, never from the Space side).
+app.get('/creative-spaces/:spaceId/content-items', async (req, res) => {
+  const { spaceId } = req.params;
+  const userId = req.query.userId ?? null;
+
+  if (!spaceId) {
+    return res.status(400).json({ error: 'spaceId is required' });
+  }
+
+  try {
+    const spaceRes = await pool.query('SELECT id, user_id, visibility FROM creative_spaces WHERE id = $1', [spaceId]);
+    if (spaceRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Creative space not found' });
+    }
+    const space = spaceRes.rows[0];
+    const isOwner = userId && String(space.user_id) === String(userId);
+    if (!(await canViewSpace(space, req, userId))) {
+      return res.status(403).json({ error: 'You do not have access to this creative space.' });
+    }
+
+    const storyFilter = isOwner ? '' : " AND visibility = 'public' AND published = true";
+    const { rows: stories } = await pool.query(
+      `SELECT story_title_id, title, visibility, published FROM story_title WHERE creative_space_id = $1${storyFilter} ORDER BY title`,
+      [spaceId],
+    );
+    const { rows: screenplays } = await pool.query(
+      `SELECT screenplay_id, title, visibility, published FROM screenplay_title WHERE creative_space_id = $1${storyFilter} ORDER BY title`,
+      [spaceId],
+    );
+
+    res.json({ stories, screenplays });
+  } catch (err) {
+    console.error('[GET /creative-spaces/:spaceId/content-items] failed:', err);
+    res.status(500).json({ error: 'Failed to load stories/screenplays for this creative space' });
+  }
+});
+
+// Text-ish mime types the import wizard can parse into paragraphs. Anything
+// else (PDF, ODT, images, ...) is rejected with a clear error instead of
+// being fed through a text parser it isn't — no chapter text is fabricated.
+const IMPORT_WIZARD_TEXT_MIME_TYPES = new Set(['text/plain', 'text/markdown']);
+
+function splitTextIntoParagraphs(text) {
+  return String(text || '')
+    .split(/\n+/)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
+}
+
+// Reads a creative_space_items file's stored content from disk (same
+// storage layout as GET /creative-spaces/:spaceId/items/:itemId/content in
+// creativeSpaceFiles.js) without going through that HTTP route.
+function readCreativeSpaceItemText(item) {
+  if (!item.storage_path) {
+    const err = new Error(`"${item.name}" has no content stored yet`);
+    err.code = 'no_content';
+    throw err;
+  }
+  const mimeType = item.mime_type || guessMimeType(item.name);
+  if (!IMPORT_WIZARD_TEXT_MIME_TYPES.has(mimeType)) {
+    const err = new Error(`"${item.name}" is a ${mimeType} file — only plain text/markdown files can be structured into chapters`);
+    err.code = 'unsupported_type';
+    throw err;
+  }
+  const filePath = path.join(CREATIVE_SPACE_FILES_ROOT, item.storage_path);
+  if (!fs.existsSync(filePath)) {
+    const err = new Error(`"${item.name}"'s stored content could not be found on disk`);
+    err.code = 'no_content';
+    throw err;
+  }
+  return fs.readFileSync(filePath, 'utf8');
+}
+
+// Turns one or more raw Space files into a real chapter (story_title +
+// stories row), generalizing what backend/scripts/import-happybeings.js did
+// by hand for a single Space into a reusable, self-service route. New
+// chapters are always created unpublished (see ensureChapterPublishedColumn)
+// — the owner explicitly publishes afterward via PATCH /chapters/:id/publish.
+app.post('/creative-spaces/:spaceId/import-wizard/structure-chapter', requireAuth, async (req, res) => {
+  const { spaceId } = req.params;
+  const { itemIds, mode, bookTitle, storyTitleId, chapterTitle } = req.body ?? {};
+
+  if (!Array.isArray(itemIds) || itemIds.length === 0 || !chapterTitle) {
+    return res.status(400).json({ error: 'itemIds[] and chapterTitle are required' });
+  }
+  if (mode !== 'new_book' && mode !== 'existing_book') {
+    return res.status(400).json({ error: "mode must be 'new_book' or 'existing_book'" });
+  }
+  if (mode === 'new_book' && !bookTitle) {
+    return res.status(400).json({ error: 'bookTitle is required for mode "new_book"' });
+  }
+  if (mode === 'existing_book' && !storyTitleId) {
+    return res.status(400).json({ error: 'storyTitleId is required for mode "existing_book"' });
+  }
+
+  try {
+    const spaceRes = await pool.query('SELECT user_id FROM creative_spaces WHERE id = $1', [spaceId]);
+    if (spaceRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Creative space not found' });
+    }
+    const isSpaceOwner = spaceRes.rows[0].user_id === req.user.id;
+
+    if (mode === 'existing_book') {
+      const storyRes = await pool.query(
+        'SELECT creative_space_id FROM story_title WHERE story_title_id = $1',
+        [storyTitleId],
+      );
+      if (storyRes.rows.length === 0) {
+        return res.status(404).json({ error: 'Target book not found' });
+      }
+      if (storyRes.rows[0].creative_space_id !== spaceId) {
+        return res.status(400).json({ error: 'Target book does not belong to this Space' });
+      }
+      const role = await getStoryAccessRole(storyTitleId, req.user.id);
+      if (!role) {
+        return res.status(403).json({ error: 'Not authorized to add chapters to this book' });
+      }
+    } else if (!isSpaceOwner) {
+      // Creating a brand-new book in someone else's Space isn't part of this
+      // wizard's scope — only the Space owner may do that.
+      return res.status(403).json({ error: 'Only the Space owner may create a new book here' });
+    }
+
+    const itemsRes = await pool.query(
+      'SELECT * FROM creative_space_items WHERE space_id = $1 AND id = ANY($2::uuid[]) AND deleted = false',
+      [spaceId, itemIds],
+    );
+    const itemsById = new Map(itemsRes.rows.map((row) => [row.id, row]));
+    const missing = itemIds.filter((id) => !itemsById.has(id));
+    if (missing.length > 0) {
+      return res.status(404).json({ error: `Item(s) not found in this Space: ${missing.join(', ')}` });
+    }
+
+    let combinedText;
+    try {
+      combinedText = itemIds.map((id) => readCreativeSpaceItemText(itemsById.get(id))).join('\n\n');
+    } catch (readErr) {
+      return res.status(400).json({ error: readErr.message });
+    }
+
+    const paragraphs = splitTextIntoParagraphs(combinedText);
+    if (paragraphs.length === 0) {
+      return res.status(400).json({ error: 'Selected file(s) contained no text to import' });
+    }
+
+    let resultStoryTitleId;
+    let chapterId;
+
+    if (mode === 'new_book') {
+      const { storyTitleRow, chapterRow } = await createStoryFromTemplate({
+        title: bookTitle,
+        chapterTitle,
+        paragraphs,
+        userId: req.user.id,
+        creativeSpaceId: spaceId,
+      });
+      resultStoryTitleId = storyTitleRow.story_title_id;
+      chapterId = chapterRow.chapter_id;
+    } else {
+      const countRes = await pool.query(
+        'SELECT COALESCE(MAX(chapter_index), 0) AS max_idx FROM stories WHERE story_title_id = $1',
+        [storyTitleId],
+      );
+      const nextIdx = (countRes.rows[0]?.max_idx || 0) + 1;
+      const insertRes = await pool.query(
+        'INSERT INTO stories (story_title_id, chapter_index, chapter_title, paragraphs) VALUES ($1, $2, $3, $4) RETURNING chapter_id',
+        [storyTitleId, nextIdx, chapterTitle, paragraphs],
+      );
+      chapterId = insertRes.rows[0].chapter_id;
+      resultStoryTitleId = storyTitleId;
+
+      try {
+        await pool.query(
+          `INSERT INTO story_access (story_title_id, user_id, role)
+           VALUES ($1, $2, 'contributor')
+           ON CONFLICT (story_title_id, user_id) DO NOTHING`,
+          [storyTitleId, req.user.id],
+        );
+      } catch (accessErr) {
+        console.error('[import-wizard/structure-chapter] failed to insert story_access row:', accessErr);
+      }
+    }
+
+    await pool.query(
+      'UPDATE creative_space_items SET linked_chapter_id = $1 WHERE id = ANY($2::uuid[])',
+      [chapterId, itemIds],
+    );
+
+    res.status(201).json({ storyTitleId: resultStoryTitleId, chapterId });
+  } catch (err) {
+    console.error('[POST /creative-spaces/:spaceId/import-wizard/structure-chapter] failed:', err);
+    res.status(500).json({ error: 'Failed to structure chapter' });
+  }
+});
+
+// Owner-only per-chapter publish toggle (distinct from the book-level
+// PATCH /story-titles/:storyTitleId/settings, which controls the whole book).
+app.patch('/chapters/:chapterId/publish', requireAuth, async (req, res) => {
+  const { chapterId } = req.params;
+  const { published } = req.body ?? {};
+  if (typeof published !== 'boolean') {
+    return res.status(400).json({ error: 'published (boolean) is required' });
+  }
+
+  try {
+    const existing = await pool.query('SELECT story_title_id FROM stories WHERE chapter_id = $1', [chapterId]);
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ error: 'Chapter not found' });
+    }
+    const role = await getStoryAccessRole(existing.rows[0].story_title_id, req.user.id);
+    if (role !== 'owner') {
+      return res.status(403).json({ error: 'Only the story owner may publish/unpublish chapters' });
+    }
+
+    const { rows } = await pool.query(
+      'UPDATE stories SET published = $1 WHERE chapter_id = $2 RETURNING chapter_id, published',
+      [published, chapterId],
+    );
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('[PATCH /chapters/:chapterId/publish] failed:', err);
+    res.status(500).json({ error: 'Failed to update chapter publish state' });
+  }
+});
+
+// Batch variant for the wizard's "publish selected chapters" bulk action.
+app.patch('/creative-spaces/:spaceId/import-wizard/publish-chapters', requireAuth, async (req, res) => {
+  const { chapterIds, published } = req.body ?? {};
+  if (!Array.isArray(chapterIds) || chapterIds.length === 0 || typeof published !== 'boolean') {
+    return res.status(400).json({ error: 'chapterIds[] and published (boolean) are required' });
+  }
+
+  try {
+    const updated = [];
+    const skipped = [];
+    for (const chapterId of chapterIds) {
+      const existing = await pool.query('SELECT story_title_id FROM stories WHERE chapter_id = $1', [chapterId]);
+      if (existing.rows.length === 0) {
+        skipped.push(chapterId);
+        continue;
+      }
+      const role = await getStoryAccessRole(existing.rows[0].story_title_id, req.user.id);
+      if (role !== 'owner') {
+        skipped.push(chapterId);
+        continue;
+      }
+      await pool.query('UPDATE stories SET published = $1 WHERE chapter_id = $2', [published, chapterId]);
+      updated.push(chapterId);
+    }
+    res.json({ updated, skipped });
+  } catch (err) {
+    console.error('[PATCH /creative-spaces/:spaceId/import-wizard/publish-chapters] failed:', err);
+    res.status(500).json({ error: 'Failed to update chapter publish states' });
   }
 });
 
@@ -4938,15 +5822,11 @@ app.get('/creative-spaces/:spaceId/sync', async (req, res) => {
     }
 
     const space = spaceRes.rows[0];
-    const visibilityRaw = space.visibility ?? 'private';
-    const visibility = String(visibilityRaw).toLowerCase();
-    const isOwner = userId && String(space.user_id) === String(userId);
-
-    if (!isOwner && visibility !== 'public') {
+    if (!(await canViewSpace(space, req, userId))) {
       console.warn('[GET /creative-spaces/:spaceId/sync] access denied for Space', {
         spaceId,
         userId,
-        visibility,
+        visibility: space.visibility,
       });
       return res
         .status(403)
@@ -5114,8 +5994,695 @@ app.post('/creative-spaces/:spaceId/sync', async (req, res) => {
   }
 });
 
+// --- GitHub sync (Phase 1: file-level bidirectional sync for creative_space_items) ---
+// Access follows the same convention as the rest of the creative-spaces
+// routes above (explicit body/query userId checked against space.user_id) —
+// not requireAuth/cookies.
+
+async function buildGithubSyncStatus(space, { userId } = {}) {
+  const logRows = await recentSyncLog(space.id, 20);
+
+  // A GitHub App installation belongs to a GitHub account, not to a single
+  // Crowdly space. If this user already installed the App from another
+  // space, re-sending them through the GitHub install URL leads to GitHub's
+  // "already installed" page, which never redirects back here — so surface
+  // the existing installation and let the frontend skip straight to the
+  // repo picker instead.
+  let existingInstallationId = null;
+  let existingInstallationAccount = null;
+  if (!space.github_installation_id && userId) {
+    const { rows } = await pool.query(
+      `SELECT installation_id, account_login FROM github_installations
+       WHERE connected_by = $1 ORDER BY connected_at DESC LIMIT 1`,
+      [userId],
+    );
+    if (rows[0]) {
+      existingInstallationId = rows[0].installation_id;
+      existingInstallationAccount = rows[0].account_login || null;
+    }
+  }
+
+  return {
+    configured: isGithubAppConfigured(),
+    connected: Boolean(space.github_installation_id),
+    enabled: Boolean(space.github_sync_enabled),
+    repo: space.github_repo || null,
+    branch: space.github_branch || 'master',
+    lastSyncedAt: space.last_synced_at || null,
+    lastCommitSha: space.github_last_commit_sha || null,
+    installationId: space.github_installation_id || null,
+    installUrl:
+      !space.github_installation_id && userId ? buildInstallUrl(`${space.id}:${userId}`) : null,
+    existingInstallationId,
+    existingInstallationAccount,
+    recentLog: logRows,
+  };
+}
+
+app.get('/creative-spaces/:spaceId/github-sync/status', async (req, res) => {
+  const { spaceId } = req.params;
+  const userId = req.query.userId ?? null;
+
+  try {
+    const { rows } = await pool.query('SELECT * FROM creative_spaces WHERE id = $1', [spaceId]);
+    const space = rows[0];
+    if (!space) return res.status(404).json({ error: 'Creative space not found' });
+    if (!userId || String(space.user_id) !== String(userId)) {
+      return res.status(403).json({ error: 'You do not have access to this creative space' });
+    }
+
+    res.json(await buildGithubSyncStatus(space, { userId }));
+  } catch (err) {
+    console.error('[GET /creative-spaces/:spaceId/github-sync/status] failed:', err);
+    res.status(500).json({ error: 'Failed to load GitHub sync status' });
+  }
+});
+
+app.patch('/creative-spaces/:spaceId/github-sync', async (req, res) => {
+  const { spaceId } = req.params;
+  const { userId, enabled, branch } = req.body ?? {};
+
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+
+  try {
+    const spaceRes = await pool.query('SELECT * FROM creative_spaces WHERE id = $1', [spaceId]);
+    const space = spaceRes.rows[0];
+    if (!space) return res.status(404).json({ error: 'Creative space not found' });
+    if (String(space.user_id) !== String(userId)) {
+      return res.status(403).json({ error: 'You do not own this creative space' });
+    }
+    if (enabled && !space.github_installation_id) {
+      return res.status(400).json({ error: 'Connect this Space to a GitHub repo before enabling sync' });
+    }
+
+    const fields = [];
+    const values = [];
+    let idx = 1;
+    if (enabled !== undefined) {
+      fields.push(`github_sync_enabled = $${idx++}`);
+      values.push(Boolean(enabled));
+    }
+    if (branch !== undefined) {
+      fields.push(`github_branch = $${idx++}`);
+      values.push(branch || 'master');
+    }
+    if (fields.length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+    fields.push('updated_at = now()');
+    values.push(spaceId);
+
+    const { rows } = await pool.query(
+      `UPDATE creative_spaces SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+      values,
+    );
+    res.json(await buildGithubSyncStatus(rows[0], { userId }));
+  } catch (err) {
+    console.error('[PATCH /creative-spaces/:spaceId/github-sync] failed:', err);
+    res.status(500).json({ error: 'Failed to update GitHub sync settings' });
+  }
+});
+
+app.post('/creative-spaces/:spaceId/github-sync/run', async (req, res) => {
+  const { spaceId } = req.params;
+  const { userId } = req.body ?? {};
+
+  try {
+    const spaceRes = await pool.query('SELECT user_id FROM creative_spaces WHERE id = $1', [spaceId]);
+    const space = spaceRes.rows[0];
+    if (!space) return res.status(404).json({ error: 'Creative space not found' });
+    if (!userId || String(space.user_id) !== String(userId)) {
+      return res.status(403).json({ error: 'You do not have access to this creative space' });
+    }
+
+    const result = await runSpaceSync(spaceId);
+    res.json(result);
+  } catch (err) {
+    console.error('[POST /creative-spaces/:spaceId/github-sync/run] failed:', err);
+    res.status(500).json({ error: 'Failed to run GitHub sync' });
+  }
+});
+
+// Lists the repos a GitHub App installation has access to, so the owner can
+// pick which one to connect instead of us guessing. Used both right after
+// a fresh install (installationId from the redirect query param) and for
+// "Change repository" on an already-connected space (installationId from
+// the space's own github_installation_id).
+app.get('/creative-spaces/:spaceId/github-sync/installation-repos', async (req, res) => {
+  const { spaceId } = req.params;
+  const { installationId, userId } = req.query;
+
+  if (!installationId) {
+    return res.status(400).json({ error: 'installationId is required' });
+  }
+
+  try {
+    const spaceRes = await pool.query('SELECT user_id FROM creative_spaces WHERE id = $1', [spaceId]);
+    const space = spaceRes.rows[0];
+    if (!space) return res.status(404).json({ error: 'Creative space not found' });
+    if (!userId || String(space.user_id) !== String(userId)) {
+      return res.status(403).json({ error: 'You do not have access to this creative space' });
+    }
+
+    const token = await getInstallationToken(String(installationId));
+    const { repositories } = await fetchInstallationRepos({ token });
+    res.json({ repositories });
+  } catch (err) {
+    console.error('[GET /creative-spaces/:spaceId/github-sync/installation-repos] failed:', err);
+    res.status(500).json({ error: 'Failed to list repositories for this GitHub installation' });
+  }
+});
+
+// Links a specific repo (chosen from installation-repos above) to this
+// Space. Does not touch github_sync_enabled — connecting a repo and
+// turning on file sync are deliberately separate steps.
+app.post('/creative-spaces/:spaceId/github-sync/connect', async (req, res) => {
+  const { spaceId } = req.params;
+  const { userId, installationId, repo, branch } = req.body ?? {};
+
+  if (!userId || !installationId || !repo) {
+    return res.status(400).json({ error: 'userId, installationId, and repo are required' });
+  }
+
+  try {
+    const spaceRes = await pool.query('SELECT * FROM creative_spaces WHERE id = $1', [spaceId]);
+    const space = spaceRes.rows[0];
+    if (!space) return res.status(404).json({ error: 'Creative space not found' });
+    if (String(space.user_id) !== String(userId)) {
+      return res.status(403).json({ error: 'You do not own this creative space' });
+    }
+
+    const token = await getInstallationToken(String(installationId));
+    const { repositories } = await fetchInstallationRepos({ token });
+    const match = repositories.find((r) => r.fullName === repo);
+    if (!match) {
+      return res.status(400).json({ error: 'That repository is not accessible to this GitHub installation' });
+    }
+
+    await pool.query(
+      `INSERT INTO github_installations (installation_id, connected_by)
+       VALUES ($1, $2)
+       ON CONFLICT (installation_id) DO UPDATE SET connected_by = EXCLUDED.connected_by`,
+      [installationId, userId],
+    );
+
+    const { rows } = await pool.query(
+      `UPDATE creative_spaces
+       SET github_installation_id = $1, github_repo = $2, github_branch = $3, updated_at = now()
+       WHERE id = $4 AND user_id = $5
+       RETURNING *`,
+      [installationId, repo, branch || match.defaultBranch || 'master', spaceId, userId],
+    );
+    res.json(await buildGithubSyncStatus(rows[0], { userId }));
+  } catch (err) {
+    console.error('[POST /creative-spaces/:spaceId/github-sync/connect] failed:', err);
+    res.status(500).json({ error: 'Failed to connect this repository' });
+  }
+});
+
+// Unlinks the connected repo — the owner can then either reconnect (via
+// install-url, if the App needs installing again) or "Connect GitHub"
+// against a different installation. github_installations rows are left
+// alone since other Spaces may still reference the same installation.
+app.post('/creative-spaces/:spaceId/github-sync/disconnect', async (req, res) => {
+  const { spaceId } = req.params;
+  const { userId } = req.body ?? {};
+
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
+  }
+
+  try {
+    const spaceRes = await pool.query('SELECT user_id FROM creative_spaces WHERE id = $1', [spaceId]);
+    const space = spaceRes.rows[0];
+    if (!space) return res.status(404).json({ error: 'Creative space not found' });
+    if (String(space.user_id) !== String(userId)) {
+      return res.status(403).json({ error: 'You do not own this creative space' });
+    }
+
+    const { rows } = await pool.query(
+      `UPDATE creative_spaces
+       SET github_installation_id = NULL, github_repo = NULL, github_branch = 'master',
+           github_sync_enabled = false, github_last_commit_sha = NULL, updated_at = now()
+       WHERE id = $1 AND user_id = $2
+       RETURNING *`,
+      [spaceId, userId],
+    );
+    res.json(await buildGithubSyncStatus(rows[0], { userId }));
+  } catch (err) {
+    console.error('[POST /creative-spaces/:spaceId/github-sync/disconnect] failed:', err);
+    res.status(500).json({ error: 'Failed to disconnect GitHub' });
+  }
+});
+
+// --- Phase 2: chapter <-> markdown links -----------------------------
+// Unlike the routes above (explicit body/query userId), these require a
+// real session (requireAuth) because they mint/reuse a CRDT doc_key via the
+// same access-gated sequence POST /crdt/docs/ensure uses (server.js:6922),
+// inlined here rather than factored out, to avoid touching that
+// already-working route.
+
+app.post('/creative-spaces/:spaceId/github-sync/link', requireAuth, async (req, res) => {
+  const { spaceId } = req.params;
+  const { relativePath, entityId } = req.body ?? {};
+
+  if (!relativePath || !entityId) {
+    return res.status(400).json({ error: 'relativePath and entityId are required' });
+  }
+
+  const client = await pool.connect();
+  try {
+    const spaceRes = await client.query('SELECT * FROM creative_spaces WHERE id = $1', [spaceId]);
+    const space = spaceRes.rows[0];
+    if (!space) return res.status(404).json({ error: 'Creative space not found' });
+    if (String(space.user_id) !== String(req.user.id)) {
+      return res.status(403).json({ error: 'You do not own this creative space' });
+    }
+
+    await client.query('BEGIN');
+
+    const existing = await client.query(
+      "SELECT doc_key FROM crdt_documents WHERE doc_type = 'chapter' AND chapter_id = $1",
+      [entityId],
+    );
+
+    // Seeded regardless of whether the doc already exists — seeded.entity is
+    // what the access check below needs either way.
+    const seeded = await CRDT_DOC_TYPE_SEEDERS.chapter(client, entityId);
+    if (!seeded) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Chapter not found' });
+    }
+
+    const canAccess = await userCanAccessCrdtEntity(client, req.user, 'chapter', seeded.entity);
+    if (!canAccess) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'You do not have access to this chapter' });
+    }
+
+    let docKey;
+    if (existing.rows.length > 0) {
+      docKey = existing.rows[0].doc_key;
+    } else {
+      const handle = crdtRepo.create(seeded.value);
+      handle.change((d) => { Object.assign(d, seeded.value); }, {
+        message: changeAttribution(req.user),
+        time: Math.floor(Date.now() / 1000),
+      });
+      await client.query(
+        `INSERT INTO crdt_documents
+           (doc_key, story_title_id, chapter_id, branch_id, screenplay_id, scene_id, doc_type, is_canonical, owner_user_id, created_by)
+         VALUES ($1, $2, $3, NULL, NULL, NULL, 'chapter', true, $4, $4)`,
+        [handle.documentId, seeded.entity.storyTitleId, seeded.entity.chapterId, req.user.id],
+      );
+      docKey = handle.documentId;
+    }
+
+    await client.query('COMMIT');
+
+    const link = await createGithubContentLink({ spaceId, relativePath, entityId, docKey, userId: req.user.id });
+    res.json(link);
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('[POST /creative-spaces/:spaceId/github-sync/link] failed:', err);
+    res.status(500).json({ error: 'Failed to link this chapter to GitHub' });
+  } finally {
+    client.release();
+  }
+});
+
+app.get('/creative-spaces/:spaceId/github-sync/links', requireAuth, async (req, res) => {
+  const { spaceId } = req.params;
+  try {
+    const spaceRes = await pool.query('SELECT user_id FROM creative_spaces WHERE id = $1', [spaceId]);
+    const space = spaceRes.rows[0];
+    if (!space) return res.status(404).json({ error: 'Creative space not found' });
+    if (String(space.user_id) !== String(req.user.id)) {
+      return res.status(403).json({ error: 'You do not have access to this creative space' });
+    }
+    const links = await listGithubContentLinks(spaceId);
+    res.json({ links });
+  } catch (err) {
+    console.error('[GET /creative-spaces/:spaceId/github-sync/links] failed:', err);
+    res.status(500).json({ error: 'Failed to list GitHub content links' });
+  }
+});
+
+// GitHub App installation callback — GitHub redirects here after the user
+// installs/approves the App, with `state` carrying back whatever we passed
+// it in buildInstallUrl (`${spaceId}:${userId}`). Only registers the
+// installation here — the owner picks which repo to connect afterward via
+// the repo picker (installation-repos + connect above), so we don't guess.
+app.get('/api/github/install/callback', async (req, res) => {
+  const installationId = req.query.installation_id ? String(req.query.installation_id) : null;
+  const state = req.query.state ? String(req.query.state) : '';
+  const [spaceId, userId] = state.split(':');
+  const frontendBase = process.env.FRONTEND_BASE_URL || 'http://localhost:8080';
+
+  if (!installationId || !spaceId) {
+    return res.status(400).send('Missing installation_id or state');
+  }
+
+  try {
+    await pool.query(
+      `INSERT INTO github_installations (installation_id, connected_by)
+       VALUES ($1, $2)
+       ON CONFLICT (installation_id) DO UPDATE SET connected_by = EXCLUDED.connected_by`,
+      [installationId, userId || null],
+    );
+  } catch (err) {
+    console.error('[GET /api/github/install/callback] failed:', err);
+  }
+
+  res.redirect(`${frontendBase}/creative_space/${spaceId}?github=choose-repo&installation_id=${installationId}`);
+});
+
+// GitHub App webhook receiver. Signature-verified (not session-authenticated
+// — GitHub is the caller, not a logged-in browser). Acks immediately since
+// GitHub expects a fast response, then processes the event asynchronously.
+app.post('/api/github/webhook', async (req, res) => {
+  const signature = req.headers['x-hub-signature-256'];
+  if (!verifyWebhookSignature(req.rawBody, signature)) {
+    return res.status(401).json({ error: 'Invalid webhook signature' });
+  }
+
+  res.status(202).json({ ok: true });
+
+  const eventName = req.headers['x-github-event'];
+  handleGithubWebhookEvent(eventName, req.body).catch((err) => {
+    console.error('[POST /api/github/webhook] async event handling failed:', err);
+  });
+});
+
+// --- Google Drive sync (folder + subfolders <-> creative_space_items) ---
+// Session-authenticated (requireAuth) and owner-only. A Google connection is
+// per Crowdly user (google_drive_accounts.user_id is unique), so the folder
+// picker/connect routes always use the *caller's own* account — the client
+// never names an account id.
+
+async function loadOwnedSpace(req, res) {
+  const { rows } = await pool.query('SELECT * FROM creative_spaces WHERE id = $1', [req.params.spaceId]);
+  const space = rows[0];
+  if (!space) {
+    res.status(404).json({ error: 'Creative space not found' });
+    return null;
+  }
+  if (String(space.user_id) !== String(req.user.id)) {
+    res.status(403).json({ error: 'You do not own this creative space' });
+    return null;
+  }
+  return space;
+}
+
+async function loadOwnDriveAccount(userId) {
+  const { rows } = await pool.query('SELECT id, google_email FROM google_drive_accounts WHERE user_id = $1', [String(userId)]);
+  return rows[0] || null;
+}
+
+async function buildGoogleDriveSyncStatus(space, userId) {
+  const [logRows, account] = await Promise.all([recentDriveSyncLog(space.id, 20), loadOwnDriveAccount(userId)]);
+  const configured = isGoogleDriveConfigured();
+  return {
+    configured,
+    connected: Boolean(space.google_drive_account_id && space.google_drive_folder_id),
+    enabled: Boolean(space.google_drive_sync_enabled),
+    folderId: space.google_drive_folder_id || null,
+    folderName: space.google_drive_folder_name || null,
+    lastSyncedAt: space.google_drive_last_synced_at || null,
+    hasGoogleAccount: Boolean(account),
+    googleEmail: account?.google_email || null,
+    // Always offered when configured, so the owner can also re-consent or switch Google accounts.
+    authUrl: configured ? buildGoogleDriveAuthUrl(signGoogleDriveState({ spaceId: space.id, userId: String(userId) })) : null,
+    recentLog: logRows,
+  };
+}
+
+app.get('/creative-spaces/:spaceId/drive-sync/status', requireAuth, async (req, res) => {
+  try {
+    const space = await loadOwnedSpace(req, res);
+    if (!space) return;
+    res.json(await buildGoogleDriveSyncStatus(space, req.user.id));
+  } catch (err) {
+    console.error('[GET /creative-spaces/:spaceId/drive-sync/status] failed:', err);
+    res.status(500).json({ error: 'Failed to load Google Drive sync status' });
+  }
+});
+
+app.patch('/creative-spaces/:spaceId/drive-sync', requireAuth, async (req, res) => {
+  const { enabled } = req.body ?? {};
+  try {
+    const space = await loadOwnedSpace(req, res);
+    if (!space) return;
+    if (enabled && !(space.google_drive_account_id && space.google_drive_folder_id)) {
+      return res.status(400).json({ error: 'Connect this Space to a Google Drive folder before enabling sync' });
+    }
+
+    const { rows } = await pool.query(
+      'UPDATE creative_spaces SET google_drive_sync_enabled = $1, updated_at = now() WHERE id = $2 RETURNING *',
+      [Boolean(enabled), space.id],
+    );
+    if (enabled) {
+      runSpaceDriveSync(space.id).catch(() => {}); // initial sync; errors land in google_drive_sync_log.
+    }
+    res.json(await buildGoogleDriveSyncStatus(rows[0], req.user.id));
+  } catch (err) {
+    console.error('[PATCH /creative-spaces/:spaceId/drive-sync] failed:', err);
+    res.status(500).json({ error: 'Failed to update Google Drive sync settings' });
+  }
+});
+
+app.post('/creative-spaces/:spaceId/drive-sync/run', requireAuth, async (req, res) => {
+  try {
+    const space = await loadOwnedSpace(req, res);
+    if (!space) return;
+    const result = await runSpaceDriveSync(space.id);
+    res.json(result);
+  } catch (err) {
+    console.error('[POST /creative-spaces/:spaceId/drive-sync/run] failed:', err);
+    res.status(500).json({ error: `Google Drive sync failed: ${err.message}` });
+  }
+});
+
+// Browsable folder picker: direct child folders of `parentId` ('root' = My
+// Drive) in the caller's own connected Google account.
+app.get('/creative-spaces/:spaceId/drive-sync/folders', requireAuth, async (req, res) => {
+  const parentId = req.query.parentId ? String(req.query.parentId) : 'root';
+  try {
+    const space = await loadOwnedSpace(req, res);
+    if (!space) return;
+    const account = await loadOwnDriveAccount(req.user.id);
+    if (!account) return res.status(400).json({ error: 'Connect your Google account first' });
+
+    const token = await getValidDriveAccessToken(account.id);
+    const folders = await listGoogleDriveChildFolders({ token, parentId });
+    res.json({ parentId, folders });
+  } catch (err) {
+    console.error('[GET /creative-spaces/:spaceId/drive-sync/folders] failed:', err);
+    res.status(500).json({ error: 'Failed to list Google Drive folders' });
+  }
+});
+
+app.post('/creative-spaces/:spaceId/drive-sync/folders', requireAuth, async (req, res) => {
+  const parentId = req.body?.parentId ? String(req.body.parentId) : 'root';
+  const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+  if (!name) return res.status(400).json({ error: 'Folder name is required' });
+  try {
+    const space = await loadOwnedSpace(req, res);
+    if (!space) return;
+    const account = await loadOwnDriveAccount(req.user.id);
+    if (!account) return res.status(400).json({ error: 'Connect your Google account first' });
+
+    const token = await getValidDriveAccessToken(account.id);
+    const folder = await createGoogleDriveFolder({ token, parentId, name });
+    res.status(201).json({ id: folder.id, name: folder.name });
+  } catch (err) {
+    console.error('[POST /creative-spaces/:spaceId/drive-sync/folders] failed:', err);
+    res.status(500).json({ error: 'Failed to create the Google Drive folder' });
+  }
+});
+
+// Links a folder (and its subfolders) from the caller's own Google account to
+// this Space. Does not touch google_drive_sync_enabled — connecting a folder
+// and turning on file sync are deliberately separate steps.
+app.post('/creative-spaces/:spaceId/drive-sync/connect', requireAuth, async (req, res) => {
+  const folderId = req.body?.folderId ? String(req.body.folderId) : null;
+  if (!folderId) return res.status(400).json({ error: 'folderId is required' });
+
+  try {
+    const space = await loadOwnedSpace(req, res);
+    if (!space) return;
+    const account = await loadOwnDriveAccount(req.user.id);
+    if (!account) return res.status(400).json({ error: 'Connect your Google account first' });
+
+    const token = await getValidDriveAccessToken(account.id);
+    const meta = await getGoogleDriveFileMeta({ token, fileId: folderId });
+    if (!meta || meta.trashed || meta.mimeType !== 'application/vnd.google-apps.folder') {
+      return res.status(400).json({ error: 'That folder is not accessible to your Google account' });
+    }
+
+    const folderChanged = space.google_drive_folder_id !== folderId;
+    const { rows } = await pool.query(
+      `UPDATE creative_spaces
+       SET google_drive_account_id = $1, google_drive_folder_id = $2, google_drive_folder_name = $3,
+           google_drive_folder_ids = CASE WHEN $5 THEN NULL ELSE google_drive_folder_ids END,
+           updated_at = now()
+       WHERE id = $4
+       RETURNING *`,
+      [account.id, folderId, meta.name, space.id, folderChanged],
+    );
+    if (folderChanged) {
+      // Different folder: forget per-item links to the old one so nothing is
+      // mistaken for a Drive-side delete on the first sync.
+      await pool.query(
+        'UPDATE creative_space_items SET google_drive_file_id = NULL, google_drive_md5 = NULL, google_drive_base_content = NULL WHERE space_id = $1',
+        [space.id],
+      );
+    }
+
+    ensureChannelArmed(account.id).catch((err) => {
+      console.error('[POST /creative-spaces/:spaceId/drive-sync/connect] failed to arm push-notification channel:', err);
+    });
+    if (rows[0].google_drive_sync_enabled) runSpaceDriveSync(space.id).catch(() => {});
+
+    res.json(await buildGoogleDriveSyncStatus(rows[0], req.user.id));
+  } catch (err) {
+    console.error('[POST /creative-spaces/:spaceId/drive-sync/connect] failed:', err);
+    res.status(500).json({ error: 'Failed to connect this Google Drive folder' });
+  }
+});
+
+// Unlinks the connected folder — the Google account itself (and its refresh
+// token/push channel) stays connected if any other Space still uses it, so
+// reconnecting doesn't require re-consent.
+app.post('/creative-spaces/:spaceId/drive-sync/disconnect', requireAuth, async (req, res) => {
+  try {
+    const space = await loadOwnedSpace(req, res);
+    if (!space) return;
+    const previousAccountId = space.google_drive_account_id;
+
+    const { rows } = await pool.query(
+      `UPDATE creative_spaces
+       SET google_drive_account_id = NULL, google_drive_folder_id = NULL, google_drive_folder_name = NULL,
+           google_drive_folder_ids = NULL, google_drive_sync_enabled = false, updated_at = now()
+       WHERE id = $1
+       RETURNING *`,
+      [space.id],
+    );
+    await pool.query(
+      'UPDATE creative_space_items SET google_drive_file_id = NULL, google_drive_md5 = NULL, google_drive_base_content = NULL WHERE space_id = $1',
+      [space.id],
+    );
+
+    if (previousAccountId) {
+      pool
+        .query('SELECT id FROM creative_spaces WHERE google_drive_account_id = $1 AND id != $2', [previousAccountId, space.id])
+        .then(async ({ rows: otherRows }) => {
+          if (otherRows.length > 0) return; // another Space still uses this account's channel.
+          const accountRes = await pool.query('SELECT * FROM google_drive_accounts WHERE id = $1', [previousAccountId]);
+          const account = accountRes.rows[0];
+          if (!account?.channel_id || !account?.channel_resource_id) return;
+          const token = await getValidDriveAccessToken(previousAccountId);
+          await stopGoogleDriveChannel({ token, channelId: account.channel_id, resourceId: account.channel_resource_id });
+          await pool.query(
+            'UPDATE google_drive_accounts SET channel_id = NULL, channel_resource_id = NULL, channel_expires_at = NULL WHERE id = $1',
+            [previousAccountId],
+          );
+        })
+        .catch((err) => {
+          console.error('[POST /creative-spaces/:spaceId/drive-sync/disconnect] failed to tear down push channel:', err);
+        });
+    }
+
+    res.json(await buildGoogleDriveSyncStatus(rows[0], req.user.id));
+  } catch (err) {
+    console.error('[POST /creative-spaces/:spaceId/drive-sync/disconnect] failed:', err);
+    res.status(500).json({ error: 'Failed to disconnect Google Drive' });
+  }
+});
+
+// Google OAuth callback — Google redirects here after consent. `state` is
+// the signed, 10-minute token from signGoogleDriveState, so the Space/user
+// it names can't be forged. Registers/updates the caller's Google account,
+// then sends them back to the Space to pick a folder.
+app.get('/api/google-drive/oauth/callback', async (req, res) => {
+  const frontendBase = process.env.FRONTEND_BASE_URL || 'http://localhost:8080';
+  const verified = verifyGoogleDriveState(req.query.state ? String(req.query.state) : '');
+  const code = req.query.code ? String(req.query.code) : null;
+
+  if (!verified) {
+    return res.status(400).send('This Google Drive connect link is invalid or has expired. Please start again from your Space.');
+  }
+  const { spaceId, userId } = verified;
+  const backToSpace = (drive) => res.redirect(`${frontendBase}/creative_space/${encodeURIComponent(spaceId)}?drive=${drive}`);
+
+  if (!code) return backToSpace('error'); // consent denied/cancelled
+
+  try {
+    const spaceRes = await pool.query('SELECT user_id FROM creative_spaces WHERE id = $1', [spaceId]);
+    if (!spaceRes.rows[0] || String(spaceRes.rows[0].user_id) !== userId) return backToSpace('error');
+
+    const tokens = await exchangeCodeForTokens(code);
+    // Google's consent screen lets users untick individual permissions;
+    // without Drive access every Drive call would fail with 403.
+    if (!String(tokens.scope || '').split(' ').includes('https://www.googleapis.com/auth/drive')) {
+      return backToSpace('missing-scope');
+    }
+    const email = await fetchUserEmail(tokens.access_token);
+    const expiresAt = new Date(Date.now() + tokens.expires_in * 1000);
+
+    // Google omits refresh_token when this user already granted consent
+    // before; keep the stored one in that case.
+    const { rows } = await pool.query(
+      `INSERT INTO google_drive_accounts (user_id, google_email, access_token_encrypted, refresh_token_encrypted, token_expires_at)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (user_id) DO UPDATE
+       SET google_email = EXCLUDED.google_email,
+           access_token_encrypted = EXCLUDED.access_token_encrypted,
+           refresh_token_encrypted = COALESCE(NULLIF($6, ''), google_drive_accounts.refresh_token_encrypted),
+           token_expires_at = EXCLUDED.token_expires_at
+       RETURNING id`,
+      [
+        userId,
+        email,
+        encryptToken(tokens.access_token),
+        encryptToken(tokens.refresh_token || ''),
+        expiresAt,
+        tokens.refresh_token ? encryptToken(tokens.refresh_token) : '',
+      ],
+    );
+    const driveAccountId = rows[0]?.id;
+    if (driveAccountId) {
+      ensureChannelArmed(driveAccountId).catch((err) => {
+        console.error('[GET /api/google-drive/oauth/callback] failed to arm push-notification channel:', err);
+      });
+    }
+    backToSpace('choose-folder');
+  } catch (err) {
+    console.error('[GET /api/google-drive/oauth/callback] failed:', err);
+    backToSpace('error');
+  }
+});
+
+// Google Drive push-notification receiver. Every channel is registered with
+// a per-channel HMAC token (googleDriveApp.js channelToken) that Drive echoes
+// back in X-Goog-Channel-Token; anything without a valid one is ignored.
+// Acks immediately since Drive expects a fast response, then processes the
+// event asynchronously.
+app.post('/api/google-drive/webhook', async (req, res) => {
+  res.status(200).json({ ok: true });
+
+  const channelId = req.headers['x-goog-channel-id'];
+  const resourceId = req.headers['x-goog-resource-id'];
+  if (!isGoogleDriveConfigured() || !verifyGoogleDriveChannelToken(channelId, req.headers['x-goog-channel-token'])) return;
+  handleGoogleDriveWebhookEvent(channelId, resourceId).catch((err) => {
+    console.error('[POST /api/google-drive/webhook] async event handling failed:', err);
+  });
+});
+
 // Create a new chapter
-app.post('/chapters', async (req, res) => {
+app.post('/chapters', requireAuth, async (req, res) => {
   const {
     storyTitleId,
     chapterTitle,
@@ -5123,11 +6690,16 @@ app.post('/chapters', async (req, res) => {
     episodeNumber,
     partNumber,
     chapterIndex,
-    userId,
   } = req.body ?? {};
+  const userId = req.user.id;
 
   if (!storyTitleId || !chapterTitle || !Array.isArray(paragraphs)) {
     return res.status(400).json({ error: 'storyTitleId, chapterTitle, and paragraphs[] are required' });
+  }
+
+  const role = await getStoryAccessRole(storyTitleId, userId);
+  if (!role) {
+    return res.status(403).json({ error: 'Not authorized to add chapters to this story' });
   }
 
   const ep = Number.isInteger(episodeNumber) ? episodeNumber : null;
@@ -5144,44 +6716,42 @@ app.post('/chapters', async (req, res) => {
     // Best-effort 1: record the chapter creator as a contributor in
     // story_access so they appear in the Contributors tab even if they
     // have not yet edited existing chapters.
-    if (userId) {
-      try {
-        await pool.query(
-          `INSERT INTO story_access (story_title_id, user_id, role)
-           VALUES ($1, $2, $3)
-           ON CONFLICT (story_title_id, user_id) DO NOTHING`,
-          [storyTitleId, userId, 'contributor'],
-        );
-      } catch (accessErr) {
-        console.error('[POST /chapters] failed to insert story_access row for contributor:', accessErr);
-        // Do not fail chapter creation if story_access insert fails.
-      }
+    try {
+      await pool.query(
+        `INSERT INTO story_access (story_title_id, user_id, role)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (story_title_id, user_id) DO NOTHING`,
+        [storyTitleId, userId, role === 'owner' ? 'owner' : 'contributor'],
+      );
+    } catch (accessErr) {
+      console.error('[POST /chapters] failed to insert story_access row for contributor:', accessErr);
+      // Do not fail chapter creation if story_access insert fails.
+    }
 
-      // Best-effort 2: create an initial chapter_revisions row so this
-      // creation is visible as a text contribution and is attributed to
-      // the user in chapter_revisions.created_by.
-      try {
-        const nextRev = await getNextChapterRevisionNumber(chapterRow.chapter_id);
-        await pool.query(
-          `INSERT INTO chapter_revisions
-             (chapter_id, prev_chapter_title, new_chapter_title, prev_paragraphs, new_paragraphs, created_by, revision_number, revision_reason, language)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-          [
-            chapterRow.chapter_id,
-            null,
-            chapterTitle,
-            null,
-            paragraphs,
-            userId,
-            nextRev,
-            'Chapter created',
-            'en',
-          ],
-        );
-      } catch (revErr) {
-        console.error('[POST /chapters] failed to insert initial chapter_revision:', revErr);
-        // Again, do not fail chapter creation if revision insert fails.
-      }
+    // Best-effort 2: create an initial chapter_revisions row so this
+    // creation is visible as a text contribution and is attributed to
+    // the user in chapter_revisions.created_by.
+    try {
+      const nextRev = await getNextChapterRevisionNumber(chapterRow.chapter_id);
+      await pool.query(
+        `INSERT INTO chapter_revisions
+           (chapter_id, prev_chapter_title, new_chapter_title, prev_paragraphs, new_paragraphs, created_by, revision_number, revision_reason, language)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [
+          chapterRow.chapter_id,
+          null,
+          chapterTitle,
+          null,
+          paragraphs,
+          userId,
+          nextRev,
+          'Chapter created',
+          'en',
+        ],
+      );
+    } catch (revErr) {
+      console.error('[POST /chapters] failed to insert initial chapter_revision:', revErr);
+      // Again, do not fail chapter creation if revision insert fails.
     }
 
     // Bump story_title.updated_at so desktop clients can detect remote changes.
@@ -5199,9 +6769,10 @@ app.post('/chapters', async (req, res) => {
 });
 
 // Update an existing chapter and record a revision
-app.patch('/chapters/:chapterId', async (req, res) => {
+app.patch('/chapters/:chapterId', requireAuth, async (req, res) => {
   const { chapterId } = req.params;
-  const { chapterTitle, paragraphs, userId, tags, paragraphTags } = req.body ?? {};
+  const { chapterTitle, paragraphs, tags, paragraphTags } = req.body ?? {};
+  const userId = req.user.id;
 
   if (!chapterTitle && !Array.isArray(paragraphs) && tags === undefined && paragraphTags === undefined) {
     return res.status(400).json({ error: 'chapterTitle, paragraphs[], tags, or paragraphTags must be provided' });
@@ -5217,6 +6788,17 @@ app.patch('/chapters/:chapterId', async (req, res) => {
       return res.status(404).json({ error: 'Chapter not found' });
     }
     const existing = existingRes.rows[0];
+
+    const role = await getStoryAccessRole(existing.story_title_id, userId);
+    if (role === 'contributor') {
+      return res.status(403).json({
+        error: 'Contributors must propose changes to existing chapters',
+        useProposals: true,
+      });
+    }
+    if (role !== 'owner') {
+      return res.status(403).json({ error: 'Not authorized to edit this chapter' });
+    }
 
     const fields = [];
     const values = [];
@@ -5655,6 +7237,26 @@ app.get('/stories/:storyTitleId/contributions', async (req, res) => {
       }
     }
 
+    // Attach who made each contribution. Both the contributions table and the
+    // legacy fallback above only carry author_user_id; resolve it to the
+    // email/name the Contributions tab shows (was always "Unknown").
+    const authorIds = [...new Set(rows.map((r) => r.author_user_id).filter(Boolean))];
+    if (authorIds.length > 0) {
+      const { rows: authors } = await pool.query(
+        `SELECT u.id, u.email,
+                NULLIF(TRIM(CONCAT_WS(' ', p.first_name, p.last_name)), '') AS full_name
+           FROM local_users u
+           LEFT JOIN profiles p ON p.id = u.id
+          WHERE u.id = ANY($1::uuid[])`,
+        [authorIds],
+      );
+      const byId = new Map(authors.map((a) => [a.id, a]));
+      rows = rows.map((r) => {
+        const author = byId.get(r.author_user_id);
+        return author ? { ...r, user_email: author.email, user_name: author.full_name } : r;
+      });
+    }
+
     // Attach reactions and comment counts
     const { rows: reactions } = await pool.query(
       `SELECT chapter_id, paragraph_index,
@@ -5762,11 +7364,11 @@ app.get('/users/:userId/contributions', async (req, res) => {
 });
 
 // Delete a chapter
-app.delete('/chapters/:chapterId', async (req, res) => {
+app.delete('/chapters/:chapterId', requireAuth, async (req, res) => {
   const { chapterId } = req.params;
 
   try {
-    // Look up story_title_id first so we can bump updated_at.
+    // Look up story_title_id first so we can bump updated_at and check access.
     let storyTitleId = null;
     try {
       const lookup = await pool.query('SELECT story_title_id FROM stories WHERE chapter_id = $1', [chapterId]);
@@ -5775,6 +7377,14 @@ app.delete('/chapters/:chapterId', async (req, res) => {
       }
     } catch (errLookup) {
       console.error('[DELETE /chapters/:chapterId] failed to look up story_title_id:', errLookup);
+    }
+    if (!storyTitleId) {
+      return res.status(404).json({ error: 'Chapter not found' });
+    }
+
+    const role = await getStoryAccessRole(storyTitleId, req.user.id);
+    if (role !== 'owner') {
+      return res.status(403).json({ error: 'Not authorized to delete this chapter' });
     }
 
     const { rowCount } = await pool.query('DELETE FROM stories WHERE chapter_id = $1', [chapterId]);
@@ -5798,22 +7408,131 @@ app.delete('/chapters/:chapterId', async (req, res) => {
 });
 
 // Delete a story (story_title) and cascade to chapters via FK
-app.delete('/story-titles/:storyTitleId', async (req, res) => {
+app.delete('/story-titles/:storyTitleId', requireAuth, async (req, res) => {
   const { storyTitleId } = req.params;
 
   try {
-    const { rowCount } = await pool.query(
-      'DELETE FROM story_title WHERE story_title_id = $1',
+    const storyRes = await pool.query(
+      'SELECT creator_id FROM story_title WHERE story_title_id = $1',
       [storyTitleId],
     );
-    if (rowCount === 0) {
+    if (storyRes.rows.length === 0) {
       return res.status(404).json({ error: 'Story not found' });
     }
+
+    // Mirrors the frontend's canDeleteStory: owner, or a platform_admin/editor.
+    let allowed = storyRes.rows[0].creator_id === req.user.id;
+    if (!allowed) {
+      const roleRes = await pool.query(
+        "SELECT 1 FROM user_roles WHERE user_id = $1 AND role IN ('platform_admin', 'editor')",
+        [req.user.id],
+      );
+      allowed = roleRes.rows.length > 0;
+    }
+    if (!allowed) {
+      return res.status(403).json({ error: 'Not authorized to delete this story' });
+    }
+
+    await pool.query('DELETE FROM story_title WHERE story_title_id = $1', [storyTitleId]);
     // FKs on stories and child tables should cascade
     res.status(204).send();
   } catch (err) {
     console.error('[DELETE /story-titles/:storyTitleId] failed:', err);
     res.status(500).json({ error: 'Failed to delete story' });
+  }
+});
+
+// What can the signed-in user do with this story's chapters?
+app.get('/story-titles/:storyTitleId/my-access', requireAuth, async (req, res) => {
+  const { storyTitleId } = req.params;
+  try {
+    const role = await getStoryAccessRole(storyTitleId, req.user.id);
+    // `explicit` separates the story's own team (owner or a story_access
+    // row) from the implicit "any signed-in user" contributor role on public
+    // stories, so the frontend can show creator-only UI to the team alone.
+    let explicit = role === 'owner';
+    if (role === 'contributor') {
+      const accessRes = await pool.query(
+        'SELECT 1 FROM story_access WHERE story_title_id = $1 AND user_id = $2',
+        [storyTitleId, req.user.id],
+      );
+      explicit = accessRes.rows.length > 0;
+    }
+    res.json({ role, explicit });
+  } catch (err) {
+    console.error('[GET /story-titles/:storyTitleId/my-access] failed:', err);
+    res.status(500).json({ error: 'Failed to resolve access role' });
+  }
+});
+
+// Owner grants a specific user contributor access (needed for unlisted
+// stories, where contribution isn't implicit the way it is for public ones).
+app.post('/story-titles/:storyTitleId/contributors', requireAuth, async (req, res) => {
+  const { storyTitleId } = req.params;
+  const { userId, email } = req.body ?? {};
+
+  try {
+    const storyRes = await pool.query(
+      'SELECT creator_id FROM story_title WHERE story_title_id = $1',
+      [storyTitleId],
+    );
+    if (storyRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Story not found' });
+    }
+    if (storyRes.rows[0].creator_id !== req.user.id) {
+      return res.status(403).json({ error: 'Only the story owner may grant contributor access' });
+    }
+
+    let grantUserId = userId || null;
+    if (!grantUserId && email) {
+      const userRes = await pool.query('SELECT id FROM local_users WHERE email = $1', [email]);
+      if (userRes.rows.length === 0) {
+        return res.status(404).json({ error: 'No user found with that email' });
+      }
+      grantUserId = userRes.rows[0].id;
+    }
+    if (!grantUserId) {
+      return res.status(400).json({ error: 'userId or email is required' });
+    }
+
+    await pool.query(
+      `INSERT INTO story_access (story_title_id, user_id, role)
+       VALUES ($1, $2, 'contributor')
+       ON CONFLICT (story_title_id, user_id) DO UPDATE SET role = 'contributor'
+       WHERE story_access.role <> 'owner'`,
+      [storyTitleId, grantUserId],
+    );
+
+    res.status(201).json({ storyTitleId, userId: grantUserId, role: 'contributor' });
+  } catch (err) {
+    console.error('[POST /story-titles/:storyTitleId/contributors] failed:', err);
+    res.status(500).json({ error: 'Failed to grant contributor access' });
+  }
+});
+
+// Owner revokes a previously-granted contributor
+app.delete('/story-titles/:storyTitleId/contributors/:userId', requireAuth, async (req, res) => {
+  const { storyTitleId, userId } = req.params;
+  try {
+    const storyRes = await pool.query(
+      'SELECT creator_id FROM story_title WHERE story_title_id = $1',
+      [storyTitleId],
+    );
+    if (storyRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Story not found' });
+    }
+    if (storyRes.rows[0].creator_id !== req.user.id) {
+      return res.status(403).json({ error: 'Only the story owner may revoke contributor access' });
+    }
+
+    await pool.query(
+      `DELETE FROM story_access WHERE story_title_id = $1 AND user_id = $2 AND role = 'contributor'`,
+      [storyTitleId, userId],
+    );
+    res.status(204).send();
+  } catch (err) {
+    console.error('[DELETE /story-titles/:storyTitleId/contributors/:userId] failed:', err);
+    res.status(500).json({ error: 'Failed to revoke contributor access' });
   }
 });
 
@@ -5971,118 +7690,167 @@ app.get('/reactions', async (req, res) => {
   }
 });
 
-// Simple CRDT document APIs. These are intentionally conservative:
-// they store opaque binary patches (e.g. Automerge changes) and return
-// them to clients, but do not attempt to reconstruct or interpret docs
-// on the server yet.
+// Real-time CRDT document APIs. Live sync itself happens over the
+// /crdt-sync WebSocket (see crdtRepo setup near the bottom of this file,
+// close to where the http.Server is created) — these REST endpoints cover
+// the three things a WS sync channel can't: minting/looking up a doc_key
+// for a given entity (with access control, since sharePolicy alone can't
+// authorize a document that doesn't exist yet), reading a human-facing
+// revision list, and restoring to a past revision.
 
-// Get CRDT document metadata and all changes by docKey
-app.get('/crdt/docs/:docKey', async (req, res) => {
-  const { docKey } = req.params;
 
-  try {
-    const { rows: docs } = await pool.query(
-      'SELECT * FROM crdt_documents WHERE doc_key = $1',
-      [docKey],
-    );
-    if (docs.length === 0) {
-      return res.status(404).json({ error: 'Doc not found' });
-    }
-    const doc = docs[0];
-
-    const { rows: changes } = await pool.query(
-      'SELECT id, actor_id, seq, ts, encode(patch, \'base64\') AS patch, is_snapshot FROM crdt_changes WHERE doc_id = $1 ORDER BY id ASC',
-      [doc.id],
-    );
-
-    res.json({ doc, changes });
-  } catch (err) {
-    console.error('[GET /crdt/docs/:docKey] failed:', err);
-    res.status(500).json({ error: 'Failed to load CRDT document' });
+// Look up (or, if the requester has access, create) the automerge-repo
+// DocumentId for a given entity. This is the one place doc creation is
+// gated by story_access/screenplay_access — once catalogued, the WS
+// sharePolicy in crdt/repo.js re-checks the same access on every sync.
+app.post('/crdt/docs/ensure', requireAuth, async (req, res) => {
+  const { docType, chapterId, sceneId, storyTitleId, screenplayId } = req.body ?? {};
+  const entityColumn = CRDT_DOC_TYPE_COLUMN[docType];
+  const seeder = CRDT_DOC_TYPE_SEEDERS[docType];
+  if (!entityColumn || !seeder) {
+    return res.status(400).json({ error: 'docType must be one of chapter | scene | story_title | screenplay_title' });
   }
-});
-
-// Append CRDT changes to a document, creating it if needed.
-// Body: { actorId, changes: string[base64], docType?, storyTitleId?, chapterId?, branchId?, isCanonical?, ownerUserId? }
-app.post('/crdt/docs/:docKey/changes', async (req, res) => {
-  const { docKey } = req.params;
-  const {
-    actorId,
-    changes,
-    docType,
-    storyTitleId,
-    chapterId,
-    branchId,
-    isCanonical,
-    ownerUserId,
-  } = req.body ?? {};
-
-  if (!Array.isArray(changes) || changes.length === 0) {
-    return res.status(400).json({ error: 'changes[] (base64) is required' });
+  const entityId = { chapter: chapterId, scene: sceneId, story_title: storyTitleId, screenplay_title: screenplayId }[docType];
+  if (!entityId) {
+    return res.status(400).json({ error: `${entityColumn} is required for docType "${docType}"` });
   }
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
-    let docRes = await client.query(
-      'SELECT * FROM crdt_documents WHERE doc_key = $1 FOR UPDATE',
-      [docKey],
+    const existing = await client.query(
+      `SELECT doc_key FROM crdt_documents WHERE doc_type = $1 AND ${entityColumn} = $2`,
+      [docType, entityId],
     );
-    let doc = docRes.rows[0];
-
-    if (!doc) {
-      if (!docType || !storyTitleId) {
-        await client.query('ROLLBACK');
-        return res
-          .status(400)
-          .json({ error: 'docType and storyTitleId are required when creating a new CRDT doc' });
-      }
-
-      const insertRes = await client.query(
-        `INSERT INTO crdt_documents
-           (doc_key, story_title_id, chapter_id, branch_id, doc_type, is_canonical, owner_user_id, created_by)
-         VALUES ($1, $2, $3, $4, $5, COALESCE($6, true), $7, $8)
-         RETURNING *`,
-        [
-          docKey,
-          storyTitleId,
-          chapterId || null,
-          branchId || null,
-          docType,
-          typeof isCanonical === 'boolean' ? isCanonical : true,
-          ownerUserId || null,
-          actorId || null,
-        ],
-      );
-      doc = insertRes.rows[0];
+    if (existing.rows.length > 0) {
+      await client.query('COMMIT');
+      return res.json({ docKey: existing.rows[0].doc_key });
     }
 
-    const seqBaseRes = await client.query(
-      'SELECT COALESCE(MAX(seq), 0) AS max_seq FROM crdt_changes WHERE doc_id = $1',
-      [doc.id],
-    );
-    let seq = Number(seqBaseRes.rows[0]?.max_seq ?? 0);
-
-    for (const c of changes) {
-      seq += 1;
-      if (typeof c !== 'string') continue;
-      const buf = Buffer.from(c, 'base64');
-      await client.query(
-        `INSERT INTO crdt_changes (doc_id, actor_id, seq, patch, is_snapshot)
-         VALUES ($1, $2, $3, $4, $5)`,
-        [doc.id, actorId || null, seq, buf, false],
-      );
+    const seeded = await seeder(client, entityId);
+    if (!seeded) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Entity not found' });
     }
+
+    const canAccess = await userCanAccessCrdtEntity(client, req.user, docType, seeded.entity);
+    if (!canAccess) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'You do not have access to this content' });
+    }
+
+    const handle = crdtRepo.create(seeded.value);
+    handle.change((d) => { Object.assign(d, seeded.value); }, {
+      message: changeAttribution(req.user),
+      time: Math.floor(Date.now() / 1000),
+    });
+    // repo.create() already applies the initial value as the first change;
+    // the extra no-op change above just attaches an attributed message to
+    // it so the very first history entry has an author, same as every
+    // change after it.
+
+    await client.query(
+      `INSERT INTO crdt_documents
+         (doc_key, story_title_id, chapter_id, branch_id, screenplay_id, scene_id, doc_type, is_canonical, owner_user_id, created_by)
+       VALUES ($1, $2, $3, NULL, $4, $5, $6, true, $7, $7)`,
+      [
+        handle.documentId,
+        seeded.entity.storyTitleId || null,
+        seeded.entity.chapterId || null,
+        seeded.entity.screenplayId || null,
+        seeded.entity.sceneId || null,
+        docType,
+        req.user.id,
+      ],
+    );
 
     await client.query('COMMIT');
-    res.status(204).send();
+    res.json({ docKey: handle.documentId });
   } catch (err) {
     await client.query('ROLLBACK');
-    console.error('[POST /crdt/docs/:docKey/changes] failed:', err);
-    res.status(500).json({ error: 'Failed to append CRDT changes' });
+    console.error('[POST /crdt/docs/ensure] failed:', err);
+    res.status(500).json({ error: 'Failed to ensure CRDT document' });
   } finally {
     client.release();
+  }
+});
+
+// Human-facing revision list for a doc (grouped changes — see
+// buildRevisionHistory), same RevisionSnapshot-ish shape the frontend's
+// RevisionComparison component already expects.
+app.get('/crdt/docs/:docKey/history', requireAuth, async (req, res) => {
+  const { docKey } = req.params;
+  try {
+    const allowed = await authorizeDocAccess(`rest:${req.user.id}`, docKey, {
+      sockets: { [`rest:${req.user.id}`]: { crowdlyUser: req.user } },
+    }, pool);
+    if (!allowed) return res.status(403).json({ error: 'You do not have access to this document' });
+
+    const handle = await crdtRepo.find(docKey);
+    await handle.whenReady();
+    const doc = handle.doc();
+    if (!doc) return res.status(404).json({ error: 'Doc not found' });
+
+    const history = buildRevisionHistory(doc);
+    res.json({ docKey, revisions: history });
+  } catch (err) {
+    console.error('[GET /crdt/docs/:docKey/history] failed:', err);
+    res.status(500).json({ error: 'Failed to load document history' });
+  }
+});
+
+// Restore a doc's live content to a historical revision, expressed as a new
+// forward change (see restoreHandleToHeads) — never a truncation.
+app.post('/crdt/docs/:docKey/restore', requireAuth, async (req, res) => {
+  const { docKey } = req.params;
+  const { toHeads } = req.body ?? {};
+  if (!Array.isArray(toHeads) || toHeads.length === 0) {
+    return res.status(400).json({ error: 'toHeads (string[]) is required' });
+  }
+  try {
+    const allowed = await authorizeDocAccess(`rest:${req.user.id}`, docKey, {
+      sockets: { [`rest:${req.user.id}`]: { crowdlyUser: req.user } },
+    }, pool);
+    if (!allowed) return res.status(403).json({ error: 'You do not have access to this document' });
+
+    const handle = await crdtRepo.find(docKey);
+    await handle.whenReady();
+    restoreHandleToHeads(handle, toHeads, req.user);
+    res.json({ docKey, heads: handle.heads() });
+  } catch (err) {
+    console.error('[POST /crdt/docs/:docKey/restore] failed:', err);
+    res.status(500).json({ error: 'Failed to restore document' });
+  }
+});
+
+// Applies whole-document content as a single attributed change — the sync
+// path for clients with no native CRDT of their own (the desktop app: no
+// maintained Automerge binding exists for Python). Every "Web sync:
+// enabled" trigger point in the desktop app should call this alongside its
+// existing full-content sync, so what previously only reached
+// stories.paragraphs/screenplay_block also reaches the doc's history (see
+// docs/mobile-crdt-spec.md for why native/mobile clients should prefer real
+// operational changes over this coarser path once they can).
+app.post('/crdt/docs/:docKey/apply-content', requireAuth, async (req, res) => {
+  const { docKey } = req.params;
+  const { value, source } = req.body ?? {};
+  if (!value || typeof value !== 'object') {
+    return res.status(400).json({ error: 'value (object) is required' });
+  }
+  try {
+    const allowed = await authorizeDocAccess(`rest:${req.user.id}`, docKey, {
+      sockets: { [`rest:${req.user.id}`]: { crowdlyUser: req.user } },
+    }, pool);
+    if (!allowed) return res.status(403).json({ error: 'You do not have access to this document' });
+
+    const handle = await crdtRepo.find(docKey);
+    await handle.whenReady();
+    applyContentToHandle(handle, value, req.user, typeof source === 'string' ? source : undefined);
+    res.json({ docKey, heads: handle.heads() });
+  } catch (err) {
+    console.error('[POST /crdt/docs/:docKey/apply-content] failed:', err);
+    res.status(500).json({ error: 'Failed to apply content to document' });
   }
 });
 
@@ -6092,8 +7860,8 @@ app.post('/crdt/docs/:docKey/changes', async (req, res) => {
 // and approval status. It does not yet integrate full CRDT docs, but
 // follows the same approval semantics (approved / declined / undecided).
 
-// Create a new proposal for a chapter paragraph or branch
-app.post('/stories/:storyTitleId/proposals', async (req, res) => {
+// Create a new proposal for a chapter paragraph, chapter title, or branch
+app.post('/stories/:storyTitleId/proposals', requireAuth, async (req, res) => {
   const { storyTitleId } = req.params;
   const {
     targetType,
@@ -6101,27 +7869,31 @@ app.post('/stories/:storyTitleId/proposals', async (req, res) => {
     targetBranchId,
     targetPath,
     proposedText,
-    authorUserId,
   } = req.body ?? {};
+  const authorUserId = req.user.id;
 
   if (
     !storyTitleId ||
     !targetType ||
     proposedText === undefined ||
-    proposedText === null ||
-    !authorUserId
+    proposedText === null
   ) {
     return res
       .status(400)
-      .json({ error: 'storyTitleId, targetType, proposedText, and authorUserId are required' });
+      .json({ error: 'storyTitleId, targetType, and proposedText are required' });
   }
 
-  if (targetType === 'paragraph' && !targetChapterId) {
-    return res.status(400).json({ error: 'targetChapterId is required for paragraph proposals' });
+  if ((targetType === 'paragraph' || targetType === 'chapter_title') && !targetChapterId) {
+    return res.status(400).json({ error: 'targetChapterId is required for this proposal type' });
   }
 
   if (targetType === 'branch' && !targetBranchId) {
     return res.status(400).json({ error: 'targetBranchId is required for branch proposals' });
+  }
+
+  const role = await getStoryAccessRole(storyTitleId, authorUserId);
+  if (!role) {
+    return res.status(403).json({ error: 'Not authorized to propose changes to this story' });
   }
 
   try {
@@ -6224,7 +7996,7 @@ app.get('/stories/:storyTitleId/proposals', async (req, res) => {
 });
 
 // Approve a proposal and (for now) merge by replacing target text
-app.post('/proposals/:proposalId/approve', async (req, res) => {
+app.post('/proposals/:proposalId/approve', requireAuth, async (req, res) => {
   const { proposalId } = req.params;
 
   try {
@@ -6242,12 +8014,28 @@ app.post('/proposals/:proposalId/approve', async (req, res) => {
       }
       const proposal = propRows[0];
 
+      const role = await getStoryAccessRole(proposal.story_title_id, req.user.id);
+      if (role !== 'owner' && !(await isPlatformAdminOrEditor(req.user.id))) {
+        await client.query('ROLLBACK');
+        return res.status(403).json({ error: 'Only the story owner may approve proposals' });
+      }
+
       if (proposal.status === 'approved') {
         await client.query('ROLLBACK');
         return res.status(400).json({ error: 'Proposal already approved' });
       }
 
-      if (proposal.target_type === 'paragraph') {
+      if (proposal.target_type === 'chapter_title') {
+        const chapterId = proposal.target_chapter_id;
+        if (!chapterId) {
+          await client.query('ROLLBACK');
+          return res.status(400).json({ error: 'Invalid chapter_title proposal target' });
+        }
+        await client.query(
+          'UPDATE stories SET chapter_title = $1 WHERE chapter_id = $2',
+          [proposal.proposed_text, chapterId],
+        );
+      } else if (proposal.target_type === 'paragraph') {
         const chapterId = proposal.target_chapter_id;
         const idx = proposal.target_path ? parseInt(proposal.target_path, 10) : null;
         if (!chapterId || Number.isNaN(idx)) {
@@ -6334,10 +8122,22 @@ app.post('/proposals/:proposalId/approve', async (req, res) => {
 });
 
 // Decline a proposal (no merge)
-app.post('/proposals/:proposalId/decline', async (req, res) => {
+app.post('/proposals/:proposalId/decline', requireAuth, async (req, res) => {
   const { proposalId } = req.params;
 
   try {
+    const { rows: propRows } = await pool.query(
+      'SELECT story_title_id, status FROM crdt_proposals WHERE id = $1',
+      [proposalId],
+    );
+    if (propRows.length === 0) {
+      return res.status(404).json({ error: 'Proposal not found' });
+    }
+    const role = await getStoryAccessRole(propRows[0].story_title_id, req.user.id);
+    if (role !== 'owner' && !(await isPlatformAdminOrEditor(req.user.id))) {
+      return res.status(403).json({ error: 'Only the story owner may decline proposals' });
+    }
+
     const now = new Date();
     const { rowCount } = await pool.query(
       `UPDATE crdt_proposals
@@ -6527,17 +8327,66 @@ app.get('/comments', async (req, res) => {
   }
 });
 
-// Paragraph branches: create
-app.post('/paragraph-branches', async (req, res) => {
+// Who may edit/delete an existing paragraph branch: the story owner, the
+// branch's own author, or platform staff. Resolves the branch's story via its
+// chapter. Returns { status, error } on refusal, or { branch } when allowed.
+async function authorizeParagraphBranchWrite(branchId, userId) {
+  const { rows } = await pool.query(
+    `SELECT pb.id, pb.user_id, s.story_title_id
+       FROM paragraph_branches pb
+       JOIN stories s ON s.chapter_id = pb.chapter_id
+      WHERE pb.id = $1`,
+    [branchId],
+  );
+  if (rows.length === 0) return { status: 404, error: 'Branch not found' };
+  const branch = rows[0];
+  if (branch.user_id && branch.user_id === userId) return { branch };
+  const role = await getStoryAccessRole(branch.story_title_id, userId);
+  if (role === 'owner') return { branch };
+  if (await isPlatformAdminOrEditor(userId)) return { branch };
+  return { status: 403, error: 'Not authorized to change this branch' };
+}
+
+// Paragraph-branch field validation shared by create and update.
+// parent_paragraph_text is a copy of the ORIGINAL paragraph the branch
+// replaces; the branch's own name lives in branch_name (migration 0008).
+const MAX_BRANCH_METADATA_BYTES = 10 * 1024;
+
+async function cleanBranchLanguage(language) {
+  if (language === undefined || language === null || language === '') return undefined;
+  const { rows } = await pool.query('SELECT 1 FROM locales WHERE code = $1', [String(language)]);
+  if (rows.length === 0) throw Object.assign(new Error('Unsupported language'), { status: 400 });
+  return String(language);
+}
+
+function cleanBranchMetadata(metadata) {
+  if (metadata === undefined) return undefined;
+  if (metadata === null) return null;
+  if (typeof metadata !== 'object' || Array.isArray(metadata)) {
+    throw Object.assign(new Error('metadata must be a JSON object'), { status: 400 });
+  }
+  const json = JSON.stringify(metadata);
+  if (Buffer.byteLength(json, 'utf8') > MAX_BRANCH_METADATA_BYTES) {
+    throw Object.assign(new Error('metadata is too large'), { status: 400 });
+  }
+  return json;
+}
+
+const cleanBranchName = (name) =>
+  name === undefined ? undefined : name === null ? null : String(name).trim().slice(0, 200) || null;
+
+// Paragraph branches: create (story owner or contributor)
+app.post('/paragraph-branches', requireAuth, async (req, res) => {
   const {
     chapterId,
     parentParagraphIndex,
     parentParagraphText,
     branchText,
-    userId,
+    branchName,
     language,
     metadata,
   } = req.body ?? {};
+  const userId = req.user.id;
 
   // Allow empty string for branchText so that a "quick branch" can be
   // created before the user has typed any content. We only reject if the
@@ -6549,23 +8398,40 @@ app.post('/paragraph-branches', async (req, res) => {
   }
 
   try {
+    const chapterRes = await pool.query('SELECT story_title_id FROM stories WHERE chapter_id = $1', [chapterId]);
+    if (chapterRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Chapter not found' });
+    }
+    const role = await getStoryAccessRole(chapterRes.rows[0].story_title_id, userId);
+    if (role !== 'owner' && role !== 'contributor') {
+      return res.status(403).json({ error: 'Not authorized to add branches to this story' });
+    }
+
+    // A branch is written in the story's language unless told otherwise.
+    const storyLang = await pool.query('SELECT language FROM story_title WHERE story_title_id = $1', [
+      chapterRes.rows[0].story_title_id,
+    ]);
+    const cleanLanguage = (await cleanBranchLanguage(language)) ?? storyLang.rows[0]?.language ?? 'en';
+
     const { rows } = await pool.query(
       `INSERT INTO paragraph_branches
-         (chapter_id, parent_paragraph_index, parent_paragraph_text, branch_text, user_id, language, metadata)
-       VALUES ($1, $2, $3, $4, $5, COALESCE($6, 'en'), $7)
+         (chapter_id, parent_paragraph_index, parent_paragraph_text, branch_text, user_id, language, metadata, branch_name)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
       [
         chapterId,
         parentParagraphIndex,
-        parentParagraphText || null,
+        parentParagraphText || '',
         branchText,
-        userId || null,
-        language || 'en',
-        metadata ?? null,
+        userId,
+        cleanLanguage,
+        cleanBranchMetadata(metadata) ?? null,
+        cleanBranchName(branchName) ?? null,
       ],
     );
     res.status(201).json(rows[0]);
   } catch (err) {
+    if (err.status === 400) return res.status(400).json({ error: err.message });
     console.error('[POST /paragraph-branches] failed:', err);
     res.status(500).json({ error: 'Failed to create paragraph branch' });
   }
@@ -6606,47 +8472,77 @@ app.get('/stories/:storyTitleId/branches', async (req, res) => {
   }
 });
 
-// Paragraph branches: update
-app.patch('/paragraph-branches/:id', async (req, res) => {
+// Paragraph branches: update (story owner, branch author, or platform staff)
+// { branchText?, branchName?, language?, metadata? }. The original paragraph
+// copy (parent_paragraph_text) is not editable here.
+app.patch('/paragraph-branches/:id', requireAuth, async (req, res) => {
   const { id } = req.params;
-  const { branchText, parentParagraphText } = req.body ?? {};
+  const { branchText, branchName, language, metadata } = req.body ?? {};
 
-  if (!branchText && !parentParagraphText) {
-    return res.status(400).json({ error: 'branchText or parentParagraphText must be provided' });
+  if ([branchText, branchName, language, metadata].every((v) => v === undefined)) {
+    return res.status(400).json({ error: 'Nothing to update' });
+  }
+  if (branchText !== undefined && typeof branchText !== 'string') {
+    return res.status(400).json({ error: 'branchText must be a string' });
+  }
+
+  try {
+    const auth = await authorizeParagraphBranchWrite(id, req.user.id);
+    if (auth.error) return res.status(auth.status).json({ error: auth.error });
+  } catch (err) {
+    console.error('[PATCH /paragraph-branches/:id] authorization failed:', err);
+    return res.status(500).json({ error: 'Failed to update paragraph branch' });
   }
 
   const fields = [];
   const values = [];
   let idx = 1;
 
-  if (branchText !== undefined) {
-    fields.push(`branch_text = $${idx++}`);
-    values.push(branchText);
-  }
-  if (parentParagraphText !== undefined) {
-    fields.push(`parent_paragraph_text = $${idx++}`);
-    values.push(parentParagraphText);
-  }
-  values.push(id);
-
-  const sql = `UPDATE paragraph_branches SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`;
-
   try {
-    const { rows } = await pool.query(sql, values);
+    const cleanLanguage = await cleanBranchLanguage(language);
+    const cleanMetadata = cleanBranchMetadata(metadata);
+    const cleanName = cleanBranchName(branchName);
+
+    if (branchText !== undefined) {
+      fields.push(`branch_text = $${idx++}`);
+      values.push(branchText);
+    }
+    if (cleanName !== undefined) {
+      fields.push(`branch_name = $${idx++}`);
+      values.push(cleanName);
+    }
+    if (cleanLanguage !== undefined) {
+      fields.push(`language = $${idx++}`);
+      values.push(cleanLanguage);
+    }
+    if (cleanMetadata !== undefined) {
+      fields.push(`metadata = $${idx++}`);
+      values.push(cleanMetadata);
+    }
+    if (fields.length === 0) return res.status(400).json({ error: 'Nothing to update' });
+    values.push(id);
+
+    const { rows } = await pool.query(
+      `UPDATE paragraph_branches SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
+      values,
+    );
     if (!rows.length) {
       return res.status(404).json({ error: 'Branch not found' });
     }
     res.json(rows[0]);
   } catch (err) {
+    if (err.status === 400) return res.status(400).json({ error: err.message });
     console.error('[PATCH /paragraph-branches/:id] failed:', err);
     res.status(500).json({ error: 'Failed to update paragraph branch' });
   }
 });
 
-// Paragraph branches: delete
-app.delete('/paragraph-branches/:id', async (req, res) => {
+// Paragraph branches: delete (story owner, branch author, or platform staff)
+app.delete('/paragraph-branches/:id', requireAuth, async (req, res) => {
   const { id } = req.params;
   try {
+    const auth = await authorizeParagraphBranchWrite(id, req.user.id);
+    if (auth.error) return res.status(auth.status).json({ error: auth.error });
     const { rowCount } = await pool.query('DELETE FROM paragraph_branches WHERE id = $1', [id]);
     if (!rowCount) {
       return res.status(404).json({ error: 'Branch not found' });
@@ -6806,7 +8702,7 @@ app.patch('/story-titles/:storyTitleId', async (req, res) => {
 // Update story visibility / published flags (no revision)
 app.patch('/story-titles/:storyTitleId/settings', async (req, res) => {
   const { storyTitleId } = req.params;
-  const { visibility, published, genre, tags, completion_status, clone_policy, export_policy, language, cover_image_url, description } = req.body ?? {};
+  const { visibility, published, genre, tags, completion_status, clone_policy, export_policy, translation_policy, narration_policy, language, cover_image_url, description } = req.body ?? {};
 
   if (
     visibility === undefined &&
@@ -6816,12 +8712,14 @@ app.patch('/story-titles/:storyTitleId/settings', async (req, res) => {
     completion_status === undefined &&
     clone_policy === undefined &&
     export_policy === undefined &&
+    translation_policy === undefined &&
+    narration_policy === undefined &&
     language === undefined &&
     cover_image_url === undefined &&
     description === undefined
   ) {
     return res.status(400).json({
-      error: 'At least one of visibility, published, genre, tags, completion_status, clone_policy, export_policy, language, cover_image_url, or description must be provided',
+      error: 'At least one of visibility, published, genre, tags, completion_status, clone_policy, export_policy, translation_policy, narration_policy, language, cover_image_url, or description must be provided',
     });
   }
 
@@ -6856,6 +8754,20 @@ app.patch('/story-titles/:storyTitleId/settings', async (req, res) => {
   if (export_policy !== undefined) {
     fields.push(`export_policy = $${idx++}`);
     values.push(export_policy);
+  }
+  if (translation_policy !== undefined) {
+    if (!['anyone', 'restricted', 'none'].includes(translation_policy)) {
+      return res.status(400).json({ error: "translation_policy must be 'anyone', 'restricted' or 'none'" });
+    }
+    fields.push(`translation_policy = $${idx++}`);
+    values.push(translation_policy);
+  }
+  if (narration_policy !== undefined) {
+    if (!['anyone', 'restricted', 'none'].includes(narration_policy)) {
+      return res.status(400).json({ error: "narration_policy must be 'anyone', 'restricted' or 'none'" });
+    }
+    fields.push(`narration_policy = $${idx++}`);
+    values.push(narration_policy);
   }
   if (language !== undefined) {
     fields.push(`language = $${idx++}`);
@@ -7046,6 +8958,8 @@ app.post('/story-titles/:storyTitleId/sync-desktop', async (req, res) => {
         [creatorId, authorId],
       );
 
+      // Legacy desktop-sync metadata, keyed per user (not per story) — not
+      // authoritative. story_title.initiator_id is the source of truth.
       await client.query(
         `INSERT INTO story_initiators (creator_id, initiator_id, updated_at)
          VALUES ($1, $2, now())
@@ -7409,11 +9323,12 @@ app.get('/stories/:storyTitleId/collaborators', async (req, res) => {
 });
 
 // POST /stories/:storyTitleId/authors — add an author
-app.post('/stories/:storyTitleId/authors', async (req, res) => {
+app.post('/stories/:storyTitleId/authors', requireAuth, async (req, res) => {
   const { storyTitleId } = req.params;
-  const { userId, requestingUserId } = req.body ?? {};
-  if (!userId || !requestingUserId) {
-    return res.status(400).json({ error: 'userId and requestingUserId are required' });
+  const { userId } = req.body ?? {};
+  const requestingUserId = req.user.id;
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
   }
   try {
     const storyRes = await pool.query('SELECT creator_id FROM story_title WHERE story_title_id = $1', [storyTitleId]);
@@ -7443,12 +9358,9 @@ app.post('/stories/:storyTitleId/authors', async (req, res) => {
 });
 
 // DELETE /stories/:storyTitleId/authors/:userId — remove an author
-app.delete('/stories/:storyTitleId/authors/:userId', async (req, res) => {
+app.delete('/stories/:storyTitleId/authors/:userId', requireAuth, async (req, res) => {
   const { storyTitleId, userId } = req.params;
-  const requestingUserId = req.query.requestingUserId;
-  if (!requestingUserId) {
-    return res.status(400).json({ error: 'requestingUserId is required' });
-  }
+  const requestingUserId = req.user.id;
   try {
     const storyRes = await pool.query('SELECT creator_id FROM story_title WHERE story_title_id = $1', [storyTitleId]);
     if (!storyRes.rows.length) return res.status(404).json({ error: 'Story not found' });
@@ -7467,11 +9379,12 @@ app.delete('/stories/:storyTitleId/authors/:userId', async (req, res) => {
 });
 
 // POST /stories/:storyTitleId/coauthors — add a co-author
-app.post('/stories/:storyTitleId/coauthors', async (req, res) => {
+app.post('/stories/:storyTitleId/coauthors', requireAuth, async (req, res) => {
   const { storyTitleId } = req.params;
-  const { userId, requestingUserId } = req.body ?? {};
-  if (!userId || !requestingUserId) {
-    return res.status(400).json({ error: 'userId and requestingUserId are required' });
+  const { userId } = req.body ?? {};
+  const requestingUserId = req.user.id;
+  if (!userId) {
+    return res.status(400).json({ error: 'userId is required' });
   }
   try {
     const storyRes = await pool.query('SELECT creator_id FROM story_title WHERE story_title_id = $1', [storyTitleId]);
@@ -7501,12 +9414,9 @@ app.post('/stories/:storyTitleId/coauthors', async (req, res) => {
 });
 
 // DELETE /stories/:storyTitleId/coauthors/:userId — remove a co-author
-app.delete('/stories/:storyTitleId/coauthors/:userId', async (req, res) => {
+app.delete('/stories/:storyTitleId/coauthors/:userId', requireAuth, async (req, res) => {
   const { storyTitleId, userId } = req.params;
-  const requestingUserId = req.query.requestingUserId;
-  if (!requestingUserId) {
-    return res.status(400).json({ error: 'requestingUserId is required' });
-  }
+  const requestingUserId = req.user.id;
   try {
     const storyRes = await pool.query('SELECT creator_id FROM story_title WHERE story_title_id = $1', [storyTitleId]);
     if (!storyRes.rows.length) return res.status(404).json({ error: 'Story not found' });
@@ -7525,11 +9435,12 @@ app.delete('/stories/:storyTitleId/coauthors/:userId', async (req, res) => {
 });
 
 // POST /stories/:storyTitleId/transfer-ownership — transfer story ownership
-app.post('/stories/:storyTitleId/transfer-ownership', async (req, res) => {
+app.post('/stories/:storyTitleId/transfer-ownership', requireAuth, async (req, res) => {
   const { storyTitleId } = req.params;
-  const { newOwnerId, requestingUserId } = req.body ?? {};
-  if (!newOwnerId || !requestingUserId) {
-    return res.status(400).json({ error: 'newOwnerId and requestingUserId are required' });
+  const { newOwnerId } = req.body ?? {};
+  const requestingUserId = req.user.id;
+  if (!newOwnerId) {
+    return res.status(400).json({ error: 'newOwnerId is required' });
   }
   const client = await pool.connect();
   try {
@@ -7562,9 +9473,13 @@ app.post('/stories/:storyTitleId/transfer-ownership', async (req, res) => {
       'UPDATE story_title SET creator_id = $1 WHERE story_title_id = $2',
       [newOwnerId, storyTitleId],
     );
-    // Demote old owner in story_access to contributor
+    // Demote old owner to contributor. Upsert, because story creation doesn't
+    // add a story_access row for the creator — without one the previous owner
+    // would lose all access (and be locked out of a private story).
     await client.query(
-      `UPDATE story_access SET role = 'contributor' WHERE story_title_id = $1 AND user_id = $2`,
+      `INSERT INTO story_access (story_title_id, user_id, role)
+       VALUES ($1, $2, 'contributor')
+       ON CONFLICT (story_title_id, user_id) DO UPDATE SET role = 'contributor'`,
       [storyTitleId, currentOwnerId],
     );
     // Promote new owner in story_access
@@ -7655,7 +9570,7 @@ app.post('/stories/:storyTitleId/clone', async (req, res) => {
     }
 
     const insertTitleRes = await client.query(
-      'INSERT INTO story_title (title, creator_id, visibility, published, creative_space_id, language, cover_image_url) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING story_title_id, title, visibility, published, creative_space_id, language, cover_image_url',
+      'INSERT INTO story_title (title, creator_id, initiator_id, visibility, published, creative_space_id, language, cover_image_url) VALUES ($1, $2, $2, $3, $4, $5, $6, $7) RETURNING story_title_id, title, visibility, published, creative_space_id, language, cover_image_url',
       [src.title, userId, src.visibility ?? 'public', src.published ?? true, newCreativeSpaceId, src.language || 'en', src.cover_image_url || null],
     );
     const newTitle = insertTitleRes.rows[0];
@@ -8356,6 +10271,42 @@ ensureUiTranslatorRole();
 const port = Number(process.env.PORT) || 4000;
 const host = process.env.HOST || '0.0.0.0';
 
-app.listen(port, host, () => {
-  console.log(`Crowdly backend listening on http://${host === '0.0.0.0' ? 'localhost' : host}:${port}`);
+// Real-time CRDT collaboration: an http.Server wraps `app` so the same port
+// serves both plain REST (unchanged) and the /crdt-sync WebSocket upgrade.
+// Every existing app.use/app.get/app.post route above keeps working exactly
+// as before — this only adds a new upgrade path alongside them.
+const httpServer = http.createServer(app);
+
+const { repo, wss } = createCrdtRepo({
+  pool,
+  authorizeDocAccess: (peerId, documentId, wsAdapter) => authorizeDocAccess(peerId, documentId, wsAdapter, pool),
 });
+crdtRepo = repo;
+attachCrdtWebSocketServer(httpServer, { wss, getSessionUser });
+
+// Phase 2 GitHub sync: attach live push listeners for every already-linked
+// chapter. Safe to run regardless of whether a GitHub App is configured —
+// it only touches the CRDT repo, not the GitHub API.
+initGithubCrdtLinks(crdtRepo).catch((err) => {
+  console.error('[init] initGithubCrdtLinks unhandled error:', err);
+});
+
+httpServer.listen(port, host, () => {
+  console.log(`Crowdly backend listening on http://${host === '0.0.0.0' ? 'localhost' : host}:${port}`);
+  console.log(`Crowdly real-time CRDT sync listening on ws://${host === '0.0.0.0' ? 'localhost' : host}:${port}${CRDT_WS_PATH}`);
+});
+
+// Background AI jobs (users' own AI providers): translation drafts, narration
+startAiWorker();
+
+if (isGithubAppConfigured()) {
+  startGithubPollingLoop();
+} else {
+  console.log('[init] GitHub App not configured (GITHUB_APP_ID/GITHUB_APP_PRIVATE_KEY missing) — GitHub sync disabled');
+}
+
+if (isGoogleDriveConfigured()) {
+  startGoogleDrivePollingLoop();
+} else {
+  console.log('[init] Google Drive OAuth not configured (GOOGLE_OAUTH_CLIENT_ID/GOOGLE_OAUTH_CLIENT_SECRET/GOOGLE_TOKEN_ENCRYPTION_KEY missing) — Google Drive sync disabled');
+}

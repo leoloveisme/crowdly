@@ -42,7 +42,7 @@ const CrowdlySoftware = () => {
               Crowdly Software
             </EditableText>
           </h1>
-          <p className="text-xl text-gray-600 mb-8">
+          <p className="text-xl text-blue-600 mb-8">
             <EditableText id="software-empty-paragraph">
             
             </EditableText>
@@ -51,17 +51,22 @@ const CrowdlySoftware = () => {
           <div className="space-y-4">
             <p className="mb-2">
               <EditableText id="crowdly-software">
-               Here you will be able to download Crowdly software: desktop and mobile apps
+               Here you will be able to download Crowdly software: desktop and mobile apps made for various operating systems
               </EditableText>
             </p>    
-            <p className="mb-2">
+            <p className="mb-2  text-blue-600">
               <EditableText id="crowdly-software">
-               <a href="http://localhost:5173" title="Crowdly web app" target="_blank" rel="noopener noreferrer">Launch Crowdly web app</a>
+               <a href="http://crowdly.cloud/web_app" title="Crowdly web app" target="_blank" rel="noopener noreferrer">Launch Crowdly web app</a>
               </EditableText>
             </p>     
-            <p className="mb-2">
+            <p className="mb-2 text-blue-600">
               <EditableText id="crowdly-on-github">
-                <a href="https://github.com/leoloveisme/crowdly" title="Crowdly on Github" target="_blank" rel="noopener noreferrer">Crowdly on Github</a> - feel free to contribute to this open sourced project
+                <a href="https://github.com/leoloveisme/crowdly" title="Crowdly on Github" target="_blank" rel="noopener noreferrer">Crowdly on Github</a> 
+              </EditableText>
+</p>
+<p className="mb-2">
+              <EditableText id="crowdly-on-github">
+                 Feel free to contribute to this open sourced project
               </EditableText>
             </p>           
      

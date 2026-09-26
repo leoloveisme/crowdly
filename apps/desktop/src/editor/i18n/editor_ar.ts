@@ -1,0 +1,893 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
+<TS version="2.1" language="en_US">
+  <context>
+    <name>MainWindow</name>
+    <message>
+      <source>Distraction-Free Editor</source>
+      <translation>Distraction-Free Editor</translation>
+    </message>
+    <message>
+      <source>Main menu</source>
+      <translation>Main menu</translation>
+    </message>
+    <message>
+      <source>New</source>
+      <translation>New</translation>
+    </message>
+    <message>
+      <source>Master document</source>
+      <translation>Master document</translation>
+    </message>
+    <message>
+      <source>New document</source>
+      <translation>New document</translation>
+    </message>
+    <message>
+      <source>New directory</source>
+      <translation>New directory</translation>
+    </message>
+    <message>
+      <source>Open</source>
+      <translation>Open</translation>
+    </message>
+    <message>
+      <source>Story on the web</source>
+      <translation>Story on the web</translation>
+    </message>
+    <message>
+      <source>File</source>
+      <translation>File</translation>
+    </message>
+    <message>
+      <source>in the current tab</source>
+      <translation>in the current tab</translation>
+    </message>
+    <message>
+      <source>in a new tab</source>
+      <translation>in a new tab</translation>
+    </message>
+    <message>
+      <source>in a new window</source>
+      <translation>in a new window</translation>
+    </message>
+    <message>
+      <source>Settings</source>
+      <translation>Settings</translation>
+    </message>
+    <message>
+      <source>Create or choose your project space</source>
+      <translation>Create or choose your project space</translation>
+    </message>
+    <message>
+      <source>Clear project space setting</source>
+      <translation>Clear project space setting</translation>
+    </message>
+    <message>
+      <source>Change interface language</source>
+      <translation>Change interface language</translation>
+    </message>
+    <message>
+      <source>English</source>
+      <translation>English</translation>
+    </message>
+    <message>
+      <source>Russian</source>
+      <translation>Russian</translation>
+    </message>
+    <message>
+      <source>Arabic</source>
+      <translation>Arabic</translation>
+    </message>
+    <message>
+      <source>Chinese (Simplified)</source>
+      <translation>Chinese (Simplified)</translation>
+    </message>
+    <message>
+      <source>Chinese (Traditional)</source>
+      <translation>Chinese (Traditional)</translation>
+    </message>
+    <message>
+      <source>Japanese</source>
+      <translation>Japanese</translation>
+    </message>
+    <message>
+      <source>French</source>
+      <translation>الفرنسية</translation>
+    </message>
+    <message>
+      <source>Spanish</source>
+      <translation>الإسبانية</translation>
+    </message>
+    <message>
+      <source>German</source>
+      <translation>الألمانية</translation>
+    </message>
+    <message>
+      <source>Hindi</source>
+      <translation>الهندية</translation>
+    </message>
+    <message>
+      <source>Quit</source>
+      <translation>Quit</translation>
+    </message>
+    <message>
+      <source>Preview</source>
+      <translation>Distraction free editing</translation>
+    </message>
+    <message>
+      <source>Show or hide the preview pane</source>
+      <translation>Activate / De-activate distraction free editing</translation>
+    </message>
+    <message>
+      <source>Current project space: {path}</source>
+      <translation>Current project space: {path}</translation>
+    </message>
+    <message>
+      <source>Export</source>
+      <translation>Export</translation>
+    </message>
+    <message>
+      <source>as PDF</source>
+      <translation>as PDF</translation>
+    </message>
+    <message>
+      <source>as EPUB</source>
+      <translation>as EPUB</translation>
+    </message>
+    <message>
+      <source>as docx</source>
+      <translation>as docx</translation>
+    </message>
+    <message>
+      <source>as odt</source>
+      <translation>as odt</translation>
+    </message>
+    <message>
+      <source>as FDX</source>
+      <translation>as FDX</translation>
+    </message>
+    <message>
+      <source>as FOUNTAIN</source>
+      <translation>as FOUNTAIN</translation>
+    </message>
+    <message>
+      <source>Save as</source>
+      <translation>Save as</translation>
+    </message>
+    <message>
+      <source>as .md file</source>
+      <translation>as .md file</translation>
+    </message>
+    <message>
+      <source>as .story file</source>
+      <translation>as .story file</translation>
+    </message>
+    <message>
+      <source>as .screenplay file</source>
+      <translation>as .screenplay file</translation>
+    </message>
+    <message>
+      <source>Import</source>
+      <translation>Import</translation>
+    </message>
+    <message>
+      <source>Import from file...</source>
+      <translation>Import from file...</translation>
+    </message>
+    <message>
+      <source>Synchronisation with</source>
+      <translation>Synchronisation with</translation>
+    </message>
+    <message>
+      <source>web platform</source>
+      <translation>web platform</translation>
+    </message>
+    <message>
+      <source>GitHub</source>
+      <translation>GitHub</translation>
+    </message>
+    <message>
+      <source>Sync with GitHub</source>
+      <translation>Sync with GitHub</translation>
+    </message>
+    <message>
+      <source>You need to be logged in to the Crowdly web platform before changing GitHub sync.</source>
+      <translation>You need to be logged in to the Crowdly web platform before changing GitHub sync.</translation>
+    </message>
+    <message>
+      <source>This Space needs to be connected to a GitHub repository first (use "Connect GitHub" on the Space's page on the web platform), or the request failed.
+
+Details: {error}</source>
+      <translation>This Space needs to be connected to a GitHub repository first (use "Connect GitHub" on the Space's page on the web platform), or the request failed.
+
+Details: {error}</translation>
+    </message>
+    <message>
+      <source>online storage</source>
+      <translation>online storage</translation>
+    </message>
+    <message>
+      <source>Connect</source>
+      <translation>Connect</translation>
+    </message>
+    <message>
+      <source>Dropbox</source>
+      <translation>Dropbox</translation>
+    </message>
+    <message>
+      <source>OneDrive</source>
+      <translation>OneDrive</translation>
+    </message>
+    <message>
+      <source>Google Drive</source>
+      <translation>Google Drive</translation>
+    </message>
+    <message>
+      <source>Connecting to Dropbox is not implemented yet.</source>
+      <translation>Connecting to Dropbox is not implemented yet.</translation>
+    </message>
+    <message>
+      <source>Connecting to Google Drive is not implemented yet.</source>
+      <translation>Connecting to Google Drive is not implemented yet.</translation>
+    </message>
+    <message>
+      <source>Connecting to GitHub is not implemented yet.</source>
+      <translation>Connecting to GitHub is not implemented yet.</translation>
+    </message>
+    <message>
+      <source>Sync with Google Drive</source>
+      <translation>Sync with Google Drive</translation>
+    </message>
+    <message>
+      <source>Not implemented</source>
+      <translation>Not implemented</translation>
+    </message>
+    <message>
+      <source>Opening a story from the web is not implemented yet.</source>
+      <translation>Opening a story from the web is not implemented yet.</translation>
+    </message>
+    <message>
+      <source>Login</source>
+      <translation>Login</translation>
+    </message>
+    <message>
+      <source>Logout</source>
+      <translation>Logout</translation>
+    </message>
+    <message>
+      <source>View</source>
+      <translation>View</translation>
+    </message>
+    <message>
+      <source>Show windows</source>
+      <translation>إظهار النوافذ</translation>
+    </message>
+    <message>
+      <source>(no windows open)</source>
+      <translation>(لا توجد نوافذ مفتوحة)</translation>
+    </message>
+    <message>
+      <source>Markdown (MD) / HTML editor</source>
+      <translation>Markdown (MD) / HTML editor</translation>
+    </message>
+    <message>
+      <source>WYSIWYG editor (preview pane)</source>
+      <translation>WYSIWYG editor (preview pane)</translation>
+    </message>
+    <message>
+      <source>You are now logged in (placeholder).</source>
+      <translation>You are now logged in (placeholder).</translation>
+    </message>
+    <message>
+      <source>You are now logged out (placeholder).</source>
+      <translation>You are now logged out (placeholder).</translation>
+    </message>
+    <message>
+      <source>Current project space: (not set)</source>
+      <translation>Current project space: (not set)</translation>
+    </message>
+    <message>
+      <source>Open Markdown document</source>
+      <translation>Open Markdown document</translation>
+    </message>
+    <message>
+      <source>Markdown files (*.md);;All files (*)</source>
+      <translation>Markdown files (*.md);;All files (*)</translation>
+    </message>
+    <message>
+      <source>Outside project space</source>
+      <translation>Outside project space</translation>
+    </message>
+    <message>
+      <source>You&apos;re opening a file outside of your project space.</source>
+      <translation>You&apos;re opening a file outside of your project space.</translation>
+    </message>
+    <message>
+      <source>The content of this file will be saved as a new copy within the project space.</source>
+      <translation>The content of this file will be saved as a new copy within the project space.</translation>
+    </message>
+    <message>
+      <source>Words: {words}   Paragraphs: {paras}   Chapters: {chapters}</source>
+      <translation>Words: {words}   Paragraphs: {paras}   Chapters: {chapters}</translation>
+    </message>
+    <message>
+      <source>Logged in as: {username}</source>
+      <translation>Logged in as: {username}</translation>
+    </message>
+    <message>
+      <source>Web sync: off</source>
+      <translation>Web sync: off</translation>
+    </message>
+    <message>
+      <source>Web sync: enabled</source>
+      <translation>Web sync: enabled</translation>
+    </message>
+    <message>
+      <source>Web sync: connected as {username}</source>
+      <translation>Web sync: connected as {username}</translation>
+    </message>
+    <message>
+      <source>Web login failed</source>
+      <translation>Web login failed</translation>
+    </message>
+    <message>
+      <source>Please double-check your login data and re-enter them again.
+
+If nothing works, please get help and possibly contact support.</source>
+      <translation>Please double-check your login data and re-enter them again.
+
+If nothing works, please get help and possibly contact support.</translation>
+    </message>
+    <message>
+      <source>Syncing story to the web...</source>
+      <translation>Syncing story to the web...</translation>
+    </message>
+    <message>
+      <source>Story synced to the web.</source>
+      <translation>Story synced to the web.</translation>
+    </message>
+    <message>
+      <source>Sync failed</source>
+      <translation>Sync failed</translation>
+    </message>
+    <message>
+      <source>Could not sync story to the web.
+
+Details: {error}</source>
+      <translation>Could not sync story to the web.
+
+Details: {error}</translation>
+    </message>
+    <message>
+      <source>Pulled latest story from the web.</source>
+      <translation>Pulled latest story from the web.</translation>
+    </message>
+    <message>
+      <source>Web update check failed.</source>
+      <translation>Web update check failed.</translation>
+    </message>
+    <message>
+      <source>Story settings</source>
+      <translation>Story settings</translation>
+    </message>
+    <message>
+        <source>Insert</source>
+        <translation>إدراج</translation>
+    </message>
+    <message>
+        <source>Image...</source>
+        <translation>صورة...</translation>
+    </message>
+    <message>
+        <source>Insert Image</source>
+        <translation>إدراج صورة</translation>
+    </message>
+    <message>
+        <source>Images (*.png *.jpg *.jpeg *.gif *.webp)</source>
+        <translation>صور (*.png *.jpg *.jpeg *.gif *.webp)</translation>
+    </message>
+    <message>
+      <source>View story metadata</source>
+      <translation>View story metadata</translation>
+    </message>
+    <message>
+      <source>Add genre</source>
+      <translation>Add genre</translation>
+    </message>
+    <message>
+      <source>Refresh from web</source>
+      <translation>Refresh from web</translation>
+    </message>
+    <message>
+      <source>Compare revisions</source>
+      <translation>Compare revisions</translation>
+    </message>
+    <message>
+      <source>Story metadata</source>
+      <translation>Story metadata</translation>
+    </message>
+    <message>
+      <source>No file is currently loaded.</source>
+      <translation>No file is currently loaded.</translation>
+    </message>
+    <message>
+      <source>This file is not associated with a Crowdly story.</source>
+      <translation>This file is not associated with a Crowdly story.</translation>
+    </message>
+    <message>
+      <source>Genre</source>
+      <translation>Genre</translation>
+    </message>
+    <message>
+      <source>Choose genre</source>
+      <translation>Choose genre</translation>
+    </message>
+    <message>
+      <source>Genre:</source>
+      <translation>Genre:</translation>
+    </message>
+    <message>
+      <source>Other genre</source>
+      <translation>Other genre</translation>
+    </message>
+    <message>
+      <source>Enter genre:</source>
+      <translation>Enter genre:</translation>
+    </message>
+    <message>
+      <source>Genre deleted.</source>
+      <translation>Genre deleted.</translation>
+    </message>
+    <message>
+      <source>Genre updated.</source>
+      <translation>Genre updated.</translation>
+    </message>
+    <message>
+      <source>Edit description</source>
+      <translation>تعديل الوصف</translation>
+    </message>
+    <message>
+      <source>Description</source>
+      <translation>الوصف</translation>
+    </message>
+    <message>
+      <source>Enter description:</source>
+      <translation>أدخل الوصف:</translation>
+    </message>
+    <message>
+      <source>Description updated.</source>
+      <translation>تم تحديث الوصف.</translation>
+    </message>
+    <message>
+      <source>Description deleted.</source>
+      <translation>تم حذف الوصف.</translation>
+    </message>
+    <message>
+      <source>Session control</source>
+      <translation>التحكم بالجلسة</translation>
+    </message>
+    <message>
+      <source>Here you can decide how the session control for closing of the app should work.</source>
+      <translation>هنا يمكنك تحديد كيفية عمل التحكم بالجلسة عند إغلاق التطبيق.</translation>
+    </message>
+    <message>
+      <source>The app will:</source>
+      <translation>سيقوم التطبيق بـ:</translation>
+    </message>
+    <message>
+      <source>Close all its tabs and clear creative / project Space</source>
+      <translation>إغلاق جميع علامات التبويب ومسح المساحة الإبداعية / مساحة المشروع</translation>
+    </message>
+    <message>
+      <source>Keep the current session (saves all the opened tabs and windows, and the Space remains set)</source>
+      <translation>الاحتفاظ بالجلسة الحالية (يحفظ جميع علامات التبويب والنوافذ المفتوحة، وتبقى المساحة محددة)</translation>
+    </message>
+    <message>
+      <source>Save</source>
+      <translation>حفظ</translation>
+    </message>
+    <message>
+      <source>Cancel</source>
+      <translation>إلغاء</translation>
+    </message>
+    <message>
+        <source>No name</source>
+        <translation>بدون اسم</translation>
+    </message>
+      <message>
+        <source>There is no active project space set. Please choose or create one first.</source>
+        <translation>لم يتم تعيين مساحة مشروع نشطة. يرجى اختيار مساحة أو إنشاؤها أولاً.</translation>
+    </message>
+    <message>
+        <source>Disconnect Google Drive</source>
+        <translation>قطع الاتصال بـ Google Drive</translation>
+    </message>
+    <message>
+        <source>Sync with Google Drive now</source>
+        <translation>المزامنة مع Google Drive الآن</translation>
+    </message>
+    <message>
+        <source>Google Drive sync log</source>
+        <translation>سجل مزامنة Google Drive</translation>
+    </message>
+    <message>
+        <source>Drive: syncing…</source>
+        <translation>Drive: جارٍ المزامنة…</translation>
+    </message>
+    <message>
+        <source>Drive: on</source>
+        <translation>Drive: مفعّل</translation>
+    </message>
+    <message>
+        <source>Drive: error</source>
+        <translation>Drive: خطأ</translation>
+    </message>
+    <message>
+        <source>Drive: synced {time}</source>
+        <translation>Drive: تمت المزامنة {time}</translation>
+    </message>
+    <message>
+        <source>Google Drive folder: {name}</source>
+        <translation>مجلد Google Drive: {name}</translation>
+    </message>
+    <message>
+        <source>Connect Google Drive</source>
+        <translation>ربط Google Drive</translation>
+    </message>
+    <message>
+        <source>Google Drive isn&apos;t configured in this build of the app (missing Google OAuth client). See Documentation/Google_Drive_OAuth_setup.md.</source>
+        <translation>لم يتم إعداد Google Drive في هذا الإصدار من التطبيق (عميل Google OAuth مفقود). راجع Documentation/Google_Drive_OAuth_setup.md.</translation>
+    </message>
+    <message>
+        <source>Waiting for you to sign in to Google in your browser…</source>
+        <translation>في انتظار تسجيل دخولك إلى Google في المتصفح…</translation>
+    </message>
+    <message>
+        <source>Google sign-in did not complete:
+{error}</source>
+        <translation>لم يكتمل تسجيل الدخول إلى Google:
+{error}</translation>
+    </message>
+    <message>
+        <source>Connected this Space to Google Drive folder &quot;{name}&quot;. Syncing…</source>
+        <translation>تم ربط هذه المساحة بمجلد Google Drive &quot;{name}&quot;. جارٍ المزامنة…</translation>
+    </message>
+    <message>
+        <source>Stop syncing this Space with Google Drive? Files stay where they are, both on this computer and on Google Drive.</source>
+        <translation>هل تريد إيقاف مزامنة هذه المساحة مع Google Drive؟ ستبقى الملفات في مكانها، على هذا الكمبيوتر وعلى Google Drive.</translation>
+    </message>
+    <message>
+        <source>Also sign out of Google ({email}) in this app?</source>
+        <translation>هل تريد أيضًا تسجيل الخروج من Google ({email}) في هذا التطبيق؟</translation>
+    </message>
+    <message>
+        <source>Other Spaces that sync with Google Drive will stop syncing until you connect again.</source>
+        <translation>ستتوقف المساحات الأخرى التي تتزامن مع Google Drive عن المزامنة حتى تعيد الربط.</translation>
+    </message>
+    <message>
+        <source>Google Drive: {count} file(s) were edited in both places; Drive&apos;s version was saved next to yours as a &quot;conflict&quot; copy.</source>
+        <translation>Google Drive: تم تعديل {count} ملف(ات) في كلا المكانين؛ حُفظت نسخة Drive بجانب نسختك كنسخة &quot;تعارض&quot;.</translation>
+    </message>
+    <message>
+        <source>Google Drive changed &quot;{name}&quot; while you were editing it; Drive&apos;s version was saved as &quot;{copy}&quot;.</source>
+        <translation>تغيّر &quot;{name}&quot; على Google Drive أثناء تحريرك له؛ حُفظت نسخة Drive باسم &quot;{copy}&quot;.</translation>
+    </message>
+    <message>
+        <source>Nothing has been synced with Google Drive yet.</source>
+        <translation>لم تتم مزامنة أي شيء مع Google Drive بعد.</translation>
+    </message>
+    <message>
+        <source>Recent Google Drive sync activity:</source>
+        <translation>نشاط مزامنة Google Drive الأخير:</translation>
+    </message>
+    <message>
+        <source>Google Drive access wasn&apos;t granted. Please connect again and, on Google&apos;s permission screen, tick the box &quot;See, edit, create, and delete all of your Google Drive files&quot;.</source>
+        <translation>لم يتم منح الوصول إلى Google Drive. يرجى الربط مرة أخرى، وفي شاشة أذونات Google حدّد المربع &quot;عرض جميع ملفاتك على Google Drive وتعديلها وإنشاؤها وحذفها&quot;.</translation>
+    </message>
+    <message>
+        <source>Your Google sign-in doesn&apos;t include Drive access yet. Your browser will open again: on Google&apos;s permission screen, tick the box &quot;See, edit, create, and delete all of your Google Drive files&quot;.</source>
+        <translation>تسجيل دخولك إلى Google لا يتضمن الوصول إلى Drive بعد. سيفتح المتصفح مرة أخرى: في شاشة أذونات Google حدّد المربع &quot;عرض جميع ملفاتك على Google Drive وتعديلها وإنشاؤها وحذفها&quot;.</translation>
+    </message>
+</context>
+<context>
+    <name>IncludeContainerWidget</name>
+    <message>
+        <source>Locate file...</source>
+        <translation>تحديد موقع الملف...</translation>
+    </message>
+    <message>
+        <source>Point this include at a file, e.g. if the original has moved</source>
+        <translation>اربط هذا العنصر بملف، مثلاً إذا تم نقل الملف الأصلي</translation>
+    </message>
+</context>
+<context>
+    <name>MasterDocumentWindow</name>
+    <message>
+        <source>Export</source>
+        <translation>تصدير</translation>
+    </message>
+    <message>
+        <source>as PDF</source>
+        <translation>كـ PDF</translation>
+    </message>
+    <message>
+        <source>as EPUB</source>
+        <translation>كـ EPUB</translation>
+    </message>
+    <message>
+        <source>as docx</source>
+        <translation>كـ docx</translation>
+    </message>
+    <message>
+        <source>as odt</source>
+        <translation>كـ odt</translation>
+    </message>
+    <message>
+        <source>as FDX</source>
+        <translation>كـ FDX</translation>
+    </message>
+    <message>
+        <source>as FOUNTAIN</source>
+        <translation>كـ FOUNTAIN</translation>
+    </message>
+    <message>
+        <source>Export as PDF</source>
+        <translation>تصدير كـ PDF</translation>
+    </message>
+    <message>
+        <source>PDF files (*.pdf);;All files (*)</source>
+        <translation>ملفات PDF (*.pdf);;كل الملفات (*)</translation>
+    </message>
+    <message>
+        <source>Export as EPUB</source>
+        <translation>تصدير كـ EPUB</translation>
+    </message>
+    <message>
+        <source>EPUB files (*.epub);;All files (*)</source>
+        <translation>ملفات EPUB (*.epub);;كل الملفات (*)</translation>
+    </message>
+    <message>
+        <source>Export as docx</source>
+        <translation>تصدير كـ docx</translation>
+    </message>
+    <message>
+        <source>Word documents (*.docx);;All files (*)</source>
+        <translation>مستندات Word (*.docx);;كل الملفات (*)</translation>
+    </message>
+    <message>
+        <source>Export as odt</source>
+        <translation>تصدير كـ odt</translation>
+    </message>
+    <message>
+        <source>OpenDocument text (*.odt);;All files (*)</source>
+        <translation>نص OpenDocument (*.odt);;كل الملفات (*)</translation>
+    </message>
+    <message>
+        <source>Export as FDX</source>
+        <translation>تصدير كـ FDX</translation>
+    </message>
+    <message>
+        <source>Final Draft files (*.fdx);;All files (*)</source>
+        <translation>ملفات Final Draft (*.fdx);;كل الملفات (*)</translation>
+    </message>
+    <message>
+        <source>Export as Fountain</source>
+        <translation>تصدير كـ Fountain</translation>
+    </message>
+    <message>
+        <source>Fountain files (*.fountain);;All files (*)</source>
+        <translation>ملفات Fountain (*.fountain);;كل الملفات (*)</translation>
+    </message>
+    <message>
+        <source>Export failed</source>
+        <translation>فشل التصدير</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while exporting the document.</source>
+        <translation>حدث خطأ غير متوقع أثناء تصدير المستند.</translation>
+    </message>
+    <message>
+        <source>Exported document to: {path}</source>
+        <translation>تم تصدير المستند إلى: {path}</translation>
+    </message>
+    <message>
+        <source>The master document is empty; there is nothing to export.</source>
+        <translation>المستند الرئيسي فارغ؛ لا يوجد ما يمكن تصديره.</translation>
+    </message>
+    <message>
+        <source>Locate file</source>
+        <translation>تحديد موقع الملف</translation>
+    </message>
+    <message>
+        <source>All files (*)</source>
+        <translation>كل الملفات (*)</translation>
+    </message>
+    <message>
+        <source>Linked this include to: {path}</source>
+        <translation>تم ربط هذا العنصر بـ: {path}</translation>
+    </message>
+    <message>
+        <source>Re-linked {count} file(s) that had moved.</source>
+        <translation>تمت إعادة ربط {count} من الملفات التي تم نقلها.</translation>
+    </message>
+    <message>
+        <source>{count} file(s) could not be found -- use "Locate file..." on the affected container(s).</source>
+        <translation>تعذر العثور على {count} من الملفات — استخدم "تحديد موقع الملف..." للعناصر المتأثرة.</translation>
+    </message>
+    <message>
+        <source>Save as</source>
+        <translation>حفظ باسم</translation>
+    </message>
+    <message>
+        <source>as .md file</source>
+        <translation>كملف .md</translation>
+    </message>
+    <message>
+        <source>as .story file</source>
+        <translation>كملف .story</translation>
+    </message>
+    <message>
+        <source>as .screenplay file</source>
+        <translation>كملف .screenplay</translation>
+    </message>
+    <message>
+        <source>as .master file</source>
+        <translation>كملف .master</translation>
+    </message>
+    <message>
+        <source>The master document is empty; there is nothing to save.</source>
+        <translation>المستند الرئيسي فارغ؛ لا يوجد ما يمكن حفظه.</translation>
+    </message>
+    <message>
+        <source>Save as Markdown</source>
+        <translation>حفظ كملف Markdown</translation>
+    </message>
+    <message>
+        <source>Markdown files (*.md);;All files (*)</source>
+        <translation>ملفات Markdown (*.md);;كل الملفات (*)</translation>
+    </message>
+    <message>
+        <source>Saved document to: {path}</source>
+        <translation>تم حفظ المستند في: {path}</translation>
+    </message>
+    <message>
+        <source>Save failed</source>
+        <translation>فشل الحفظ</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the document.</source>
+        <translation>حدث خطأ غير متوقع أثناء حفظ المستند.</translation>
+    </message>
+    <message>
+        <source>Save as Story</source>
+        <translation>حفظ كقصة</translation>
+    </message>
+    <message>
+        <source>Story files (*.story);;All files (*)</source>
+        <translation>ملفات القصص (*.story);;كل الملفات (*)</translation>
+    </message>
+    <message>
+        <source>Saved story to: {path} (Story ID: {id})</source>
+        <translation>تم حفظ القصة في: {path} (معرّف القصة: {id})</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the story.</source>
+        <translation>حدث خطأ غير متوقع أثناء حفظ القصة.</translation>
+    </message>
+    <message>
+        <source>Save as Screenplay</source>
+        <translation>حفظ كسيناريو</translation>
+    </message>
+    <message>
+        <source>Screenplay files (*.screenplay);;All files (*)</source>
+        <translation>ملفات السيناريو (*.screenplay);;كل الملفات (*)</translation>
+    </message>
+    <message>
+        <source>Saved screenplay to: {path} (Screenplay ID: {id})</source>
+        <translation>تم حفظ السيناريو في: {path} (معرّف السيناريو: {id})</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the screenplay.</source>
+        <translation>حدث خطأ غير متوقع أثناء حفظ السيناريو.</translation>
+    </message>
+    <message>
+        <source>Save as Master document</source>
+        <translation>حفظ كمستند رئيسي</translation>
+    </message>
+    <message>
+        <source>Master documents (*.master);;All files (*)</source>
+        <translation>المستندات الرئيسية (*.master);;كل الملفات (*)</translation>
+    </message>
+    <message>
+        <source>Saved master document to: {path}</source>
+        <translation>تم حفظ المستند الرئيسي في: {path}</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the master document.</source>
+        <translation>حدث خطأ غير متوقع أثناء حفظ المستند الرئيسي.</translation>
+    </message>
+    <message>
+        <source>Save outside Space</source>
+        <translation>الحفظ خارج المساحة</translation>
+    </message>
+    <message>
+        <source>You're about to save the {file_type} file outside of a creative Space. Do you really want to do that?</source>
+        <translation>أنت على وشك حفظ ملف {file_type} خارج مساحة إبداعية. هل تريد فعلاً القيام بذلك؟</translation>
+    </message>
+    <message>
+        <source>Yes</source>
+        <translation>نعم</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>إلغاء</translation>
+    </message>
+    <message>
+        <source>Set | Create new Space</source>
+        <translation>تعيين | إنشاء مساحة جديدة</translation>
+    </message>
+</context>
+<context>
+    <name>CompareRevisionsWindow</name>
+    <message>
+        <source>Show diff highlights</source>
+        <translation>إظهار تمييز الفروقات</translation>
+    </message>
+</context>
+<context>
+    <name>GoogleDriveFolderDialog</name>
+    <message>
+        <source>My Drive</source>
+        <translation>ملفاتي</translation>
+    </message>
+    <message>
+        <source>Choose a Google Drive folder</source>
+        <translation>اختر مجلدًا على Google Drive</translation>
+    </message>
+    <message>
+        <source>Google account: {email}</source>
+        <translation>حساب Google: {email}</translation>
+    </message>
+    <message>
+        <source>The folder you open here, including all its subfolders, will be synced with this Space.</source>
+        <translation>سيتم مزامنة المجلد الذي تفتحه هنا، بما في ذلك جميع مجلداته الفرعية، مع هذه المساحة.</translation>
+    </message>
+    <message>
+        <source>Up</source>
+        <translation>لأعلى</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>فتح</translation>
+    </message>
+    <message>
+        <source>New folder…</source>
+        <translation>مجلد جديد…</translation>
+    </message>
+    <message>
+        <source>Connect this folder</source>
+        <translation>ربط هذا المجلد</translation>
+    </message>
+    <message>
+        <source>Could not list folders:
+{error}</source>
+        <translation>تعذّر عرض المجلدات:
+{error}</translation>
+    </message>
+    <message>
+        <source>New folder</source>
+        <translation>مجلد جديد</translation>
+    </message>
+    <message>
+        <source>Folder name:</source>
+        <translation>اسم المجلد:</translation>
+    </message>
+    <message>
+        <source>Could not create the folder:
+{error}</source>
+        <translation>تعذّر إنشاء المجلد:
+{error}</translation>
+    </message>
+</context>
+</TS>

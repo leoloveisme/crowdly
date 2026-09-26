@@ -5,7 +5,20 @@ import CrowdlyHeader from "@/components/CrowdlyHeader";
 import CrowdlyFooter from "@/components/CrowdlyFooter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, Users, MessageSquare, GitBranch, HandHelping, Rocket, Film, ExternalLink } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { BookOpen, Users, MessageSquare, GitBranch, HandHelping, Rocket, Film, ExternalLink, Trash2 } from "lucide-react";
 import EditableText from "@/components/EditableText";
 
 const API_BASE = import.meta.env.PROD
@@ -83,6 +96,7 @@ type ContentItem = (StoryItem & { type: "story" }) | (ScreenplayItem & { type: "
 const RoleBadge = ({ role }: { role: string }) => {
   const colors: Record<string, string> = {
     creator: "bg-blue-100 text-blue-700",
+    initiator: "bg-teal-100 text-teal-700",
     owner: "bg-indigo-100 text-indigo-700",
     contributor: "bg-amber-100 text-amber-700",
     editor: "bg-purple-100 text-purple-700",
@@ -139,6 +153,12 @@ const Admin = () => {
   const [loadedTabs, setLoadedTabs] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState("stories");
 
+  const [isCreateSpaceOpen, setIsCreateSpaceOpen] = useState(false);
+  const [newSpaceName, setNewSpaceName] = useState("");
+  const [creatingSpace, setCreatingSpace] = useState(false);
+  const [spaceToDelete, setSpaceToDelete] = useState<SpaceItem | null>(null);
+  const [deletingSpace, setDeletingSpace] = useState(false);
+
   useEffect(() => {
     if (!user) {
       navigate("/", { replace: true });
@@ -193,6 +213,48 @@ const Admin = () => {
     } catch (err) { console.error("Failed to fetch spaces:", err); }
   }, [user]);
 
+  const handleCreateSpace = async () => {
+    if (!user || !newSpaceName.trim()) return;
+    setCreatingSpace(true);
+    try {
+      const res = await fetch(`${API_BASE}/creative-spaces`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id, name: newSpaceName.trim() }),
+      });
+      if (res.ok) {
+        const created: SpaceItem = await res.json();
+        setSpaces((prev) => [...prev, created]);
+        setNewSpaceName("");
+        setIsCreateSpaceOpen(false);
+      }
+    } catch (err) {
+      console.error("Failed to create space:", err);
+    } finally {
+      setCreatingSpace(false);
+    }
+  };
+
+  const handleDeleteSpace = async () => {
+    if (!user || !spaceToDelete) return;
+    setDeletingSpace(true);
+    try {
+      const res = await fetch(`${API_BASE}/creative-spaces/${spaceToDelete.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id }),
+      });
+      if (res.ok) {
+        setSpaces((prev) => prev.filter((s) => s.id !== spaceToDelete.id));
+      }
+    } catch (err) {
+      console.error("Failed to delete space:", err);
+    } finally {
+      setDeletingSpace(false);
+      setSpaceToDelete(null);
+    }
+  };
+
   // Lazy-load data when a tab is first viewed
   useEffect(() => {
     if (!user || loadedTabs.has(activeTab)) return;
@@ -234,9 +296,10 @@ const Admin = () => {
     ...screenplays.map((s) => ({ ...s, type: "screenplay" as const })),
   ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-  // For Co-Authors tab: stories/screenplays where user is a collaborator (not sole creator)
+  // For Co-Authors tab: stories/screenplays where user has a collaborator role
+  // (anything beyond creator/initiator/owner)
   const collaboratorContent = allContent.filter(
-    (item) => item.roles.length > 1 || !item.roles.includes("creator")
+    (item) => item.roles.some((r) => !["creator", "initiator", "owner"].includes(r))
   );
 
   return (
@@ -545,6 +608,7 @@ const Admin = () => {
                           <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"><EditableText id="admin-spaces-th-visibility">Visibility</EditableText></th>
                           <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"><EditableText id="admin-spaces-th-created">Created</EditableText></th>
                           <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"></th>
+                          <th className="text-left p-2 font-medium text-xs uppercase tracking-wide"></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -561,18 +625,78 @@ const Admin = () => {
                             <td className="p-2">
                               <Link to={`/creative_space/${s.id}`} className="text-muted-foreground hover:text-foreground"><ExternalLink className="h-4 w-4" /></Link>
                             </td>
+                            <td className="p-2">
+                              <button
+                                type="button"
+                                aria-label="Delete space"
+                                className="text-muted-foreground hover:text-destructive"
+                                onClick={() => setSpaceToDelete(s)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
                 )}
+
+                <div className="mt-4">
+                  <Dialog open={isCreateSpaceOpen} onOpenChange={setIsCreateSpaceOpen}>
+                    <DialogTrigger asChild>
+                      <Button variant="default">
+                        <EditableText id="admin-spaces-add-btn">+ Add Space</EditableText>
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Create a New Space</DialogTitle>
+                      </DialogHeader>
+                      <Input
+                        value={newSpaceName}
+                        onChange={(e) => setNewSpaceName(e.target.value)}
+                        placeholder="Enter space name"
+                      />
+                      <DialogFooter>
+                        <Button disabled={creatingSpace || !newSpaceName.trim()} onClick={handleCreateSpace}>
+                          {creatingSpace ? "Creating..." : "Create"}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
       </main>
       <CrowdlyFooter />
+
+      {/* Delete space confirmation dialog */}
+      <AlertDialog open={spaceToDelete !== null} onOpenChange={(open) => { if (!open) setSpaceToDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="w-5 h-5" />
+              Delete Space
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Do you really want to delete the Space and all it's content?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>No</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90"
+              disabled={deletingSpace}
+              onClick={handleDeleteSpace}
+            >
+              {deletingSpace ? "Deleting..." : "Yes"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

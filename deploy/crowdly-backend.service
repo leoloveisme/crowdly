@@ -1,0 +1,15 @@
+[Unit]
+Description=Crowdly Backend API
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=lad
+WorkingDirectory=/opt/crowdly-backend/backend
+EnvironmentFile=/opt/crowdly-backend/backend/.env
+ExecStart=/usr/bin/node src/server.js
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

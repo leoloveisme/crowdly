@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesUpdate } from "@/integrations/supabase/types";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -67,6 +68,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import CommunicationsSection from "@/components/CommunicationsSection";
 import StatsDisplay from "@/components/StatsDisplay";
 import CreativeSpacesModule, { CreativeSpace } from "@/modules/creative spaces";
+import SpaceUserPicker from "@/modules/space-user-picker";
 import ProfileInformation from "@/modules/profile information";
 import ContributionsModule, { ContributionRow as ProfileContributionRow } from "@/modules/contributions";
 import FavoriteStories from "@/modules/favorite stories";
@@ -74,12 +76,40 @@ import LivingExperiencingStories from "@/modules/living-experiencing stories";
 import LivedExperiencedStories from "@/modules/lived-experienced stories";
 import UserInteractionsWidget from "@/modules/UserInteractionsWidget";
 import GroupsManager from "@/modules/groups";
+import AiConnectionsSection from "@/components/settings/AiConnectionsSection";
 
 // Use same-origin API base in development; dev server proxies to backend.
 // In production, VITE_API_BASE_URL can point at the deployed API.
 const API_BASE = import.meta.env.PROD
   ? (import.meta.env.VITE_API_BASE_URL ?? "")
   : "";
+
+interface RawContributionRow {
+  id?: string | number;
+  story_title?: string;
+  chapter_title?: string;
+  new_paragraph?: string;
+  created_at?: string;
+  words?: number;
+  likes?: number;
+  dislikes?: number;
+  comments?: number;
+  status?: string;
+}
+
+interface RawCreativeSpaceRow {
+  id: string;
+  name: string;
+  description?: string | null;
+  path?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  visibility?: string | null;
+  published?: boolean | null;
+  default_item_visibility?: string | null;
+  last_synced_at?: string | null;
+  sync_state?: string | null;
+}
 
 const INITIAL_PROFILE = {
   first_name: "",
@@ -120,9 +150,17 @@ const INITIAL_PROFILE = {
   screenplays_selected_user_ids: [] as string[],
 };
 
+// The backend /profiles response (and legacy Supabase "profiles" rows) also
+// carry an `id` and `real_nickname`, which aren't part of the local-only
+// INITIAL_PROFILE defaults above but are merged in via spread once loaded.
+export type ProfileData = typeof INITIAL_PROFILE & {
+  id?: string;
+  real_nickname?: string;
+};
+
 const Profile = () => {
   const { user: authUser } = useAuth();
-  const [profile, setProfile] = useState({ ...INITIAL_PROFILE });
+  const [profile, setProfile] = useState<ProfileData>({ ...INITIAL_PROFILE });
   const [isLoading, setIsLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
@@ -148,6 +186,8 @@ const Profile = () => {
   // Creative spaces: these mirror project spaces on the desktop app.
   const [creativeSpaces, setCreativeSpaces] = useState<CreativeSpace[]>([]);
   const [creativeSpacesLoading, setCreativeSpacesLoading] = useState(false);
+  const [spaceForUserPicker, setSpaceForUserPicker] = useState<CreativeSpace | null>(null);
+  const [sharedSpaces, setSharedSpaces] = useState<{ id: string; name: string }[]>([]);
   const [activeSpaceForStats, setActiveSpaceForStats] = useState<CreativeSpace | null>(null);
 
   // Legacy state starts, merged for compatibility
@@ -249,7 +289,7 @@ const Profile = () => {
           setContributions([]);
           return;
         }
-        const mapped: ProfileContributionRow[] = data.map((row: any, index: number) => ({
+        const mapped: ProfileContributionRow[] = data.map((row: RawContributionRow, index: number) => ({
           id: row.id ?? index,
           story_title: row.story_title ?? '',
           chapter_title: row.chapter_title ?? '',
@@ -451,14 +491,14 @@ const Profile = () => {
           setCreativeSpaces([]);
         } else {
           const data = await res.json();
-          const mapped = (Array.isArray(data) ? data : []).map((row: any) => ({
+          const mapped = (Array.isArray(data) ? data : []).map((row: RawCreativeSpaceRow) => ({
             id: row.id,
             name: row.name,
             description: row.description ?? null,
             path: row.path ?? null,
             createdAt: row.created_at ?? null,
             updatedAt: row.updated_at ?? null,
-            visibility: (row.visibility as any) ?? 'private',
+            visibility: (row.visibility as CreativeSpace['visibility']) ?? 'private',
             published: Boolean(row.published),
             default_item_visibility: row.default_item_visibility ?? null,
             last_synced_at: row.last_synced_at ?? null,
@@ -475,6 +515,22 @@ const Profile = () => {
     };
 
     fetchSpaces();
+  }, [authUser]);
+
+  // Spaces other users shared with me via "Only for selected user(s)"
+  useEffect(() => {
+    if (!authUser?.id) return;
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/creative-spaces/shared-with-me`, { credentials: "include" });
+        if (res.ok) {
+          const data = await res.json();
+          setSharedSpaces(Array.isArray(data) ? data : []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch shared creative spaces", err);
+      }
+    })();
   }, [authUser]);
 
   // Load stories the user is creating / co-creating
@@ -509,7 +565,7 @@ const Profile = () => {
   // Save profile field (generic handler). When using local auth, this writes
   // to the backend /profiles/:userId endpoint. For legacy Supabase-only
   // users, it still updates Supabase.
-  const saveProfileField = async (key: keyof typeof profile, value: any) => {
+  const saveProfileField = async (key: keyof typeof profile, value: unknown) => {
     // Local backend profile (preferred)
     if (authUser?.id) {
       setProfile((prev) => ({ ...prev, [key]: value }));
@@ -542,9 +598,12 @@ const Profile = () => {
     // Supabase legacy path
     if (!userId) return;
     setProfile((prev) => ({ ...prev, [key]: value }));
-    const updateObj: any = {};
+    const updateObj: Partial<Record<keyof typeof profile, unknown>> = {};
     updateObj[key] = value;
-    const { error } = await supabase.from("profiles").update(updateObj).eq("id", userId);
+    const { error } = await supabase
+      .from("profiles")
+      .update(updateObj as TablesUpdate<"profiles">)
+      .eq("id", userId);
     if (error) {
       toast({
         title: "Failed to update",
@@ -625,7 +684,7 @@ const Profile = () => {
   const getContainerVisibility = (
     container: VisibilityContainer,
   ): "public" | "private" | "friends" | "selected" => {
-    const field =
+    const field: keyof typeof profile =
       container === "favorites"
         ? "favorites_visibility"
         : container === "living"
@@ -635,20 +694,20 @@ const Profile = () => {
         : container === "stories"
         ? "stories_visibility"
         : "screenplays_visibility";
-    const raw = (profile as any)[field];
+    const raw = profile[field];
     if (raw === "public" || raw === "private" || raw === "friends" || raw === "selected") {
       return raw;
     }
     const legacyFlag =
       container === "favorites"
-        ? (profile as any).show_public_favorites
+        ? profile.show_public_favorites
         : container === "living"
-        ? (profile as any).show_public_living
+        ? profile.show_public_living
         : container === "lived"
-        ? (profile as any).show_public_lived
+        ? profile.show_public_lived
         : container === "stories"
-        ? (profile as any).show_public_stories
-        : (profile as any).show_public_screenplays;
+        ? profile.show_public_stories
+        : profile.show_public_screenplays;
     return legacyFlag === false ? "private" : "public";
   };
 
@@ -1076,9 +1135,38 @@ const Profile = () => {
             onDelete={handleDeleteCreativeSpace}
             onClone={handleCloneCreativeSpace}
             onToggleVisibility={handleToggleSpaceVisibility}
+            onSelectUsers={(space) => setSpaceForUserPicker(space)}
             onTogglePublished={handleToggleSpacePublished}
             onShowStats={(space) => setActiveSpaceForStats(space)}
           />
+          {spaceForUserPicker && (
+            <SpaceUserPicker
+              spaceId={spaceForUserPicker.id}
+              open={Boolean(spaceForUserPicker)}
+              onClose={() => setSpaceForUserPicker(null)}
+              onSaved={(updated) =>
+                setCreativeSpaces((prev) =>
+                  prev.map((s) => (s.id === updated.id ? ({ ...s, visibility: updated.visibility } as CreativeSpace) : s)),
+                )
+              }
+            />
+          )}
+          {sharedSpaces.length > 0 && (
+            <div className="mt-3 border rounded-lg bg-white p-4">
+              <h3 className="text-sm font-semibold mb-2">
+                <EditableText id="profile-spaces-shared-heading">Shared with me</EditableText>
+              </h3>
+              <ul className="divide-y text-sm">
+                {sharedSpaces.map((space) => (
+                  <li key={space.id} className="py-2">
+                    <Link to={`/creative_space/${space.id}`} className="hover:underline text-purple-700">
+                      {space.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           {activeSpaceForStats && (
             <div className="mt-3 text-xs text-gray-600 border rounded-lg p-3 bg-gray-50">
               <div className="flex justify-between items-start mb-1">
@@ -1203,7 +1291,7 @@ const Profile = () => {
                               ownerUserId={authUser.id}
                               containerKey="stories"
                               selectedUserIds={
-                                (profile as any).stories_selected_user_ids || []
+                                profile.stories_selected_user_ids || []
                               }
                               onChangeSelectedUserIds={(ids) =>
                                 handleSelectedUsersChange("stories", ids)
@@ -1340,7 +1428,7 @@ const Profile = () => {
                               ownerUserId={authUser.id}
                               containerKey="screenplays"
                               selectedUserIds={
-                                (profile as any).screenplays_selected_user_ids || []
+                                profile.screenplays_selected_user_ids || []
                               }
                               onChangeSelectedUserIds={(ids) =>
                                 handleSelectedUsersChange("screenplays", ids)
@@ -1477,7 +1565,7 @@ const Profile = () => {
                                 ownerUserId={authUser.id}
                                 containerKey="favorites"
                                 selectedUserIds={
-                                  (profile as any).favorites_selected_user_ids || []
+                                  profile.favorites_selected_user_ids || []
                                 }
                                 onChangeSelectedUserIds={(ids) =>
                                   handleSelectedUsersChange("favorites", ids)
@@ -1583,7 +1671,7 @@ const Profile = () => {
                                 ownerUserId={authUser.id}
                                 containerKey="living"
                                 selectedUserIds={
-                                  (profile as any).living_selected_user_ids || []
+                                  profile.living_selected_user_ids || []
                                 }
                                 onChangeSelectedUserIds={(ids) =>
                                   handleSelectedUsersChange("living", ids)
@@ -1689,7 +1777,7 @@ const Profile = () => {
                                 ownerUserId={authUser.id}
                                 containerKey="lived"
                                 selectedUserIds={
-                                  (profile as any).lived_selected_user_ids || []
+                                  profile.lived_selected_user_ids || []
                                 }
                                 onChangeSelectedUserIds={(ids) =>
                                   handleSelectedUsersChange("lived", ids)
@@ -1793,6 +1881,9 @@ const Profile = () => {
             </p>           
           </div>
         </div>
+
+        {/* Your own AI providers (translation drafts, narration) */}
+        <AiConnectionsSection />
 
         {/* Original Tabs Section for detailed stats */}
         <div className="mb-8">

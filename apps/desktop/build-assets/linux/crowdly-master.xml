@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Shared-mime-info fragment declaring the .master file type so Linux file
+  managers recognise it and route it to Crowdly via crowdly-app.desktop's
+  MimeType= list.
+
+  Not wired into an installer automatically -- this repo has none yet. To
+  register it on a machine:
+    xdg-mime install crowdly-master.xml
+    update-desktop-database ~/.local/share/applications   # or the system dir
+  (or place this file under /usr/share/mime/packages/ and run
+  `update-mime-database /usr/share/mime` as part of packaging).
+-->
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-crowdly-master">
+    <comment>Crowdly Master Document</comment>
+    <glob pattern="*.master"/>
+  </mime-type>
+</mime-info>

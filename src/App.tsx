@@ -6,11 +6,17 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-route
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { AlphaProvider, useAlpha } from "./contexts/AlphaContext";
 import { EditableContentProvider } from "./contexts/EditableContentContext";
+import { LiveUpdatesProvider } from "./contexts/LiveUpdatesContext";
+import Friends from "./pages/Friends";
+import Communications from "./pages/Communications";
 import Index from "./pages/Index";
 import SuggestFeature from "./pages/SuggestFeature";
+import Feedback from "./pages/Feedback";
+import Contact from "./pages/Contact";
 import FeatureSuggestions from "./pages/FeatureSuggestions";
 import AccountAdministration from "./pages/AccountAdministration";
 import NewStoryTemplate from "./pages/NewStoryTemplate";
+import NewComicTemplate from "./pages/NewComicTemplate";
 import StoryforConsumers from "./pages/StoryforConsumers";
 import StoryToLiveToExperience from "./pages/StoryToLiveToExperience";
 import Profile from "./pages/Profile";
@@ -33,6 +39,8 @@ import NewestStoriesOutput from "./pages/NewestStoriesOutput";
 import LivingStoriesOutput from "./pages/LivingStoriesOutput";
 import LivedStoriesOutput from "./pages/LivedStoriesOutput";
 import NewestScreenplaysOutput from "./pages/NewestScreenplaysOutput";
+import NewestComicsOutput from "./pages/NewestComicsOutput";
+import Comic from "./pages/Comic";
 import SearchPage from "./pages/Search";
 import AlphaGate from "./pages/AlphaGate";
 import InviteUsers from "./pages/InviteUsers";
@@ -68,8 +76,11 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
+            <LiveUpdatesProvider>
             <AlphaProvider>
               <EditableContentProvider>
+                {/* Route patterns below are duplicated in src/lib/pageKey.ts for
+                    translation-key matching — keep both lists in sync. */}
                 <Routes>
                   {/* Alpha gate is always accessible */}
                   <Route path="/alpha" element={<AlphaGate />} />
@@ -77,9 +88,12 @@ const App = () => {
                   {/* All other routes are protected by the alpha guard */}
                   <Route path="/" element={<AlphaGuard><Index /></AlphaGuard>} />
                   <Route path="/suggest-feature" element={<AlphaGuard><SuggestFeature /></AlphaGuard>} />
+                  <Route path="/feedback" element={<AlphaGuard><Feedback /></AlphaGuard>} />
+                  <Route path="/contact" element={<AlphaGuard><Contact /></AlphaGuard>} />
                   <Route path="/feature-suggestions" element={<AlphaGuard><FeatureSuggestions /></AlphaGuard>} />
                   <Route path="/account-administration" element={<AlphaGuard><AccountAdministration /></AlphaGuard>} />
                   <Route path="/new-story-template" element={<AlphaGuard><NewStoryTemplate /></AlphaGuard>} />
+                  <Route path="/new-comic-template" element={<AlphaGuard><NewComicTemplate /></AlphaGuard>} />
                   <Route path="/story-for-consumers" element={<AlphaGuard><StoryforConsumers /></AlphaGuard>} />
                   <Route path="/story-to-live" element={<AlphaGuard><StoryToLiveToExperience /></AlphaGuard>} />
                   <Route path="/profile" element={<AlphaGuard><Profile /></AlphaGuard>} />
@@ -94,6 +108,8 @@ const App = () => {
                   <Route path="/admin" element={<AlphaGuard><Admin /></AlphaGuard>} />
                   <Route path="/support" element={<AlphaGuard><Support /></AlphaGuard>} />
                   <Route path="/admin/invite-users" element={<AlphaGuard><InviteUsers /></AlphaGuard>} />
+                  <Route path="/friends" element={<AlphaGuard><Friends /></AlphaGuard>} />
+                  <Route path="/communications" element={<AlphaGuard><Communications /></AlphaGuard>} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="/search" element={<AlphaGuard><SearchPage /></AlphaGuard>} />
                   <Route path="/story/:story_id" element={<AlphaGuard><Story /></AlphaGuard>} />
@@ -104,6 +120,8 @@ const App = () => {
                   <Route path="/favorites" element={<AlphaGuard><FavoritesOutput /></AlphaGuard>} />
                   <Route path="/newest_stories" element={<AlphaGuard><NewestStoriesOutput /></AlphaGuard>} />
                   <Route path="/newest_screenplays" element={<AlphaGuard><NewestScreenplaysOutput /></AlphaGuard>} />
+                  <Route path="/newest_comics" element={<AlphaGuard><NewestComicsOutput /></AlphaGuard>} />
+                  <Route path="/comic/:comic_id" element={<AlphaGuard><Comic /></AlphaGuard>} />
                   <Route path="/living_stories" element={<AlphaGuard><LivingStoriesOutput /></AlphaGuard>} />
                   <Route path="/lived_stories" element={<AlphaGuard><LivedStoriesOutput /></AlphaGuard>} />
                   {/* Public user page, e.g. /leolove */}
@@ -113,6 +131,7 @@ const App = () => {
                 <EditingModeToggle />
               </EditableContentProvider>
             </AlphaProvider>
+            </LiveUpdatesProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>

@@ -1,9 +1,0 @@
-pyside6
-markdown
-psycopg2-binary
-bcrypt
-python-docx
-odfpy
-pdfminer.six
-ebooklib
-markdownify

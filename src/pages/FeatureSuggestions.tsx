@@ -21,7 +21,7 @@ interface FeatureSuggestion {
   description: string;
   created_at: string;
   visibility: 'public' | 'private' | 'anonymous';
-  attachments: any[] | null;
+  attachments: { name: string }[] | null;
 }
 
 const FeatureSuggestions = () => {
@@ -42,7 +42,7 @@ const FeatureSuggestions = () => {
           throw error;
         }
 
-        setSuggestions(data as FeatureSuggestion[]);
+        setSuggestions(data as unknown as FeatureSuggestion[]);
       } catch (error) {
         console.error("Error fetching suggestions:", error);
         toast({

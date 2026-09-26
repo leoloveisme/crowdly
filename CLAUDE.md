@@ -6,10 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Crowdly is a multi-creator, crowd-created entertainment platform combining features of YouTube, Audible, Netflix, Goodreads, GitHub, and Wattpad. It supports text, pictures, audio, and video content with versioning and branching of crowd-created stories.
 
-The project consists of three applications:
-- **Web platform** (React/TypeScript/Vite) - main frontend at root
+The project consists of four applications:
+- **Web platform** (React/TypeScript/Vite) - the main Crowdly platform (browsing, publishing, social features) at root
 - **Backend API** (Node.js/Express) - in `backend/`
-- **Desktop app** (Python/PySide6) - in `apps/desktop app/`
+- **Desktop app** (Python/PySide6) - the native story/screenplay editor, in `apps/desktop/`
+- **Web editor** (React/TypeScript/Vite) - a standalone, lightweight browser-based companion to the desktop editor for editing stories and creative spaces from any browser without installing anything ("all you need is a browser"); it is not a replacement for the main web platform, in `apps/web/`
 
 ## Development Commands
 
@@ -24,15 +25,22 @@ npm run lint     # ESLint
 ```bash
 npm run dev      # Start Express with nodemon on :4000
 npm run start    # Production start
+npm run migrate  # Apply pending DB migrations (backend/migrations/*.sql)
 npm run create-admin  # Create admin user
 ```
 
-### Desktop App (apps/desktop app/)
+### Desktop App (apps/desktop/)
 ```bash
 python -m venv .venv # Install virtual environment
 source .venv/bin/activate # activate virtual environment
 pip install -e .   # Install in development mode
 python -m editor   # Run the editor
+```
+
+### Web Editor (apps/web/)
+```bash
+npm run dev      # Start Vite dev server
+npm run build    # Production build
 ```
 
 ## Architecture
@@ -91,7 +99,7 @@ PORT=4000
 
 ## Desktop App — Mandatory Checklist for Menu Changes
 
-Whenever you add, rename, or modify a menu item or action in the desktop app (`apps/desktop app/`), you **must** also:
+Whenever you add, rename, or modify a menu item or action in the desktop app (`apps/desktop/`), you **must** also:
 
 1. **Update `_retranslate_ui()`** in `main_window.py` — add a `setText()` / `setTitle()` call for the new or changed action/menu so the text is refreshed when the user switches language at runtime.
 2. **Update ALL `.ts` translation files** in `src/editor/i18n/` — add the corresponding `<message>` entry with the source string and a proper translation for every language file (`editor_en.ts`, `editor_ru.ts`, `editor_ar.ts`, `editor_zh-Hans.ts`, `editor_zh-Hant.ts`, `editor_ja.ts`, `editor_kr.ts`, `editor_pt.ts`).
@@ -109,8 +117,34 @@ Whenever you create or modify a page (`src/pages/`) or module (`src/modules/`), 
 3. **Use a consistent ID convention**: `{page-or-module-prefix}-{element-description}` (e.g., `admin-tab-users`, `search-btn`, `export-save-device`). IDs must be unique across the page.
 4. **Use the `as` prop** when the element needs a specific HTML tag (e.g., `as="h1"`, `as="p"`). The default is `"span"`.
 5. **Do NOT wrap dynamic/user-generated content** (e.g., usernames, story titles, dates) — only wrap static UI text that should be the same for all users in a given language.
-6. **Do NOT wrap Header or Footer** — these are handled separately.
+6. **Do NOT wrap Header or Footer as part of unrelated page/module work** — `CrowdlyHeader.tsx`/`CrowdlyFooter.tsx` already use `EditableText` internally (with `layoutScoped`, see below); their IDs are managed together in those two files, not touched incidentally while wrapping some other page.
 
 The `EditableContentProvider` already wraps the entire app in `App.tsx`, so no additional provider setup is needed. Translations are fetched per page path and language from the `/interface-translations` backend endpoint.
 
 Skipping this step means the page/module will have untranslatable UI text. Treat this as a mandatory part of any new page or module, not a separate task.
+
+## Web App — UI Translation Content Pipeline (adding languages/strings)
+
+Every `EditableText` element is keyed by `(page_key, element_id, language)` in the `interface_translations` table:
+
+- `page_key` is **not** the literal URL — it's a canonical route pattern computed by `src/lib/pageKey.ts`'s `getPageKey()`, so one translation covers every instance of a dynamic route (e.g. `/story/:story_id` covers every story, not just the one being edited when the translation was entered). Keep `pageKey.ts`'s route list in sync with `src/App.tsx`'s `<Routes>`.
+- Header/Footer content uses the fixed key `/__layout__` regardless of the current page. Pass the `layoutScoped` prop on any `<EditableText>` used inside `CrowdlyHeader.tsx`/`CrowdlyFooter.tsx` so it's saved/fetched under that key instead of whatever page happens to be showing.
+- Real translated copy lives in `backend/scripts/data/interface-translations.seed.json` — a flat array of `{ page_key, element_id, en, ru, de, ... }` entries (one key per language; add a new key to every entry as new languages are introduced). It's loaded by `backend/scripts/seed-interface-translations.js` (`npm run seed-interface-translations --prefix backend`), which upserts into `interface_translations` (`ON CONFLICT (page_path, element_id, language) DO UPDATE`), so re-running it is always safe.
+- `.github/workflows/deploy.yml` runs this seed script on every push to `alpha`, right after `npm run migrate` and before the service restart — so editing the JSON and pushing is enough to update production; no manual DB step is needed.
+
+To add a new language: add a key for it to every entry in the seed JSON (or at least the ones you have copy for) and push to `alpha`. To add a new translatable string: wrap it in `EditableText` per the checklist above, then either add its `(page_key, element_id, en, ...)` entry to the seed JSON, or leave it for a `platform_admin`/`ui_translator` to fill in later via the in-app editing UI — untranslated strings simply fall back to the English `children`.
+
+## Backend — Mandatory Workflow for Database Schema Changes
+
+The backend has a versioned migration mechanism: `backend/migrations/*.sql`, applied in filename order and tracked in a `schema_migrations` table by `backend/scripts/migrate.js` (`npm run migrate --prefix backend`). `.github/workflows/deploy.yml` runs this on every push to `alpha`, before the service restarts, so anything committed here reaches the Crowdly VPS automatically.
+
+Whenever you need to create/alter a table or column, you **must**:
+
+1. **Add a new file** `backend/migrations/NNNN_description.sql`, where `NNNN` is the next sequence number after the highest one already in that directory (e.g. `0001_add_foo_column.sql`).
+2. **Make every statement idempotent** — `CREATE TABLE IF NOT EXISTS`, `ADD COLUMN IF NOT EXISTS`, a `DO $$ ... IF NOT EXISTS ... END $$` block for constraints/enum values, etc. — matching the style already used throughout `0000_baseline.sql`. Migrations can run against a database that's already at a later state than you tested against, so guard accordingly.
+3. **Never edit a migration file that has already been committed/merged** — a file's contents are hashed into its already-applied history implicitly via `schema_migrations.filename`; changing old SQL after the fact means environments that already ran it won't re-run the new version. Add a new migration instead.
+4. **Test locally first**: run `npm run migrate --prefix backend` against your local dev database before committing.
+
+Do **NOT** add a new `ensure*()`-style function to `backend/src/server.js` (or any sibling module) that runs schema DDL at process boot — that pattern predates this migration mechanism (see `backend/migrations/0000_baseline.sql`'s header for the history) and is now retired for anything new. The existing `ensure*()` functions are left in place as harmless no-ops; don't add to them.
+
+Skipping this means the schema change works on your machine but never reaches production, or reaches it inconsistently across environments. Treat this as a mandatory part of any backend change that touches the database shape, not a separate task.

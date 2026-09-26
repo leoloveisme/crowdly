@@ -91,6 +91,28 @@ export async function loginWithEmailPassword(email, password) {
 }
 
 /**
+ * Load the { id, email, roles } shape for an already-authenticated user
+ * (session token verified by requireAuth upstream) — used by GET /auth/me
+ * so the frontend can confirm a restored session is still valid instead of
+ * trusting a locally-cached user indefinitely.
+ */
+export async function getUserWithRoles(userId) {
+  const { rows } = await pool.query('SELECT id, email FROM local_users WHERE id = $1', [userId]);
+  if (rows.length === 0) return null;
+  const user = rows[0];
+
+  const { rows: roleRows } = await pool.query('SELECT role FROM user_roles WHERE user_id = $1', [
+    userId,
+  ]);
+
+  return {
+    id: user.id,
+    email: user.email,
+    roles: roleRows.map((r) => r.role),
+  };
+}
+
+/**
  * Change a user's password after verifying their current password.
  */
 export async function changePassword(userId, currentPassword, newPassword) {

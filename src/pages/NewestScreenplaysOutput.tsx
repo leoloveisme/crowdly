@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import CrowdlyHeader from "@/components/CrowdlyHeader";
 import CrowdlyFooter from "@/components/CrowdlyFooter";
+import EditableText from "@/components/EditableText";
 import { StoriesOutput, StoriesOutputItem } from "@/modules/stories output";
 
 // Use same-origin API base in development; dev server proxies to backend.
@@ -19,7 +20,7 @@ interface NewestScreenplayApiRow {
 const NewestScreenplaysOutput: React.FC = () => {
   const [items, setItems] = useState<StoriesOutputItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<React.ReactNode | null>(null);
 
   useEffect(() => {
     const fetchNewest = async () => {
@@ -31,7 +32,7 @@ const NewestScreenplaysOutput: React.FC = () => {
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
           console.error("[NewestScreenplaysOutput] Failed to fetch newest screenplays", { status: res.status, body });
-          setError("Failed to load newest screenplays.");
+          setError(<EditableText id="newest-screenplays-error-load-failed">Failed to load newest screenplays.</EditableText>);
           setItems([]);
           return;
         }
@@ -53,7 +54,7 @@ const NewestScreenplaysOutput: React.FC = () => {
         }
       } catch (err) {
         console.error("[NewestScreenplaysOutput] Error fetching newest screenplays", err);
-        setError("Failed to load newest screenplays.");
+        setError(<EditableText id="newest-screenplays-error-load-failed">Failed to load newest screenplays.</EditableText>);
         setItems([]);
       } finally {
         setLoading(false);
@@ -68,7 +69,7 @@ const NewestScreenplaysOutput: React.FC = () => {
       <CrowdlyHeader />
       <main className="flex-grow container mx-auto px-4 py-8">
         <StoriesOutput
-          title="Newest Screenplays"
+          title={<EditableText id="newest-screenplays-title">Newest Screenplays</EditableText>}
           items={items}
           loading={loading}
           error={error}

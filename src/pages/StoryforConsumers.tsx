@@ -83,7 +83,7 @@ const StoryforConsumers = () => {
   const [selectedParagraphForBranch, setSelectedParagraphForBranch] = useState<string | null>(null);
   
   const [showContributorStats, setShowContributorStats] = useState<{ [userId: string]: boolean }>({});
-  const [selectedContributor, setSelectedContributor] = useState<any>(null);
+  const [selectedContributor, setSelectedContributor] = useState<ReturnType<typeof getContributorStats> | null>(null);
   
   const userName = user?.email?.split("@")[0] || "Guest";
   
@@ -924,10 +924,6 @@ const StoryforConsumers = () => {
                             <div className="font-medium">{revision.description}</div>
                             <div className="text-gray-500 text-sm">{revision.timestamp}</div>
                           </div>
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4 mr-1" />
-                            <EditableText id="view-revision-btn">View</EditableText>
-                          </Button>
                         </div>
                       ))}
                     </div>
