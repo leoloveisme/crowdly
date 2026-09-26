@@ -236,34 +236,6 @@ Details: {error}</translation>
       <translation>Sync with Google Drive</translation>
     </message>
     <message>
-      <source>You need to be logged in to the Crowdly web platform before changing Google Drive sync.</source>
-      <translation>You need to be logged in to the Crowdly web platform before changing Google Drive sync.</translation>
-    </message>
-    <message>
-      <source>This Space needs to be connected to a Google Drive folder first (use "Connect Google Drive" on the Space's page on the web platform, or Settings → Connect → Google Drive here), or the request failed.
-
-Details: {error}</source>
-      <translation>This Space needs to be connected to a Google Drive folder first (use "Connect Google Drive" on the Space's page on the web platform, or Settings → Connect → Google Drive here), or the request failed.
-
-Details: {error}</translation>
-    </message>
-    <message>
-      <source>You need to be logged in to the Crowdly web platform before connecting Google Drive.</source>
-      <translation>You need to be logged in to the Crowdly web platform before connecting Google Drive.</translation>
-    </message>
-    <message>
-      <source>This project space isn't linked to a Crowdly Space on the web yet. Sync with the web platform at least once before connecting Google Drive.
-
-Details: {error}</source>
-      <translation>This project space isn't linked to a Crowdly Space on the web yet. Sync with the web platform at least once before connecting Google Drive.
-
-Details: {error}</translation>
-    </message>
-    <message>
-      <source>Google Drive connect is either not configured on this server, or this Space is already connected to a Google Drive folder — use "Change folder" on the Space's page on the web platform instead.</source>
-      <translation>Google Drive connect is either not configured on this server, or this Space is already connected to a Google Drive folder — use "Change folder" on the Space's page on the web platform instead.</translation>
-    </message>
-    <message>
       <source>Not implemented</source>
       <translation>Not implemented</translation>
     </message>
@@ -519,7 +491,101 @@ Details: {error}</translation>
         <source>No name</source>
         <translation>未命名</translation>
     </message>
-  </context>
+      <message>
+        <source>There is no active project space set. Please choose or create one first.</source>
+        <translation>尚未设置当前项目空间。请先选择或创建一个。</translation>
+    </message>
+    <message>
+        <source>Disconnect Google Drive</source>
+        <translation>断开 Google 云端硬盘</translation>
+    </message>
+    <message>
+        <source>Sync with Google Drive now</source>
+        <translation>立即与 Google 云端硬盘同步</translation>
+    </message>
+    <message>
+        <source>Google Drive sync log</source>
+        <translation>Google 云端硬盘同步日志</translation>
+    </message>
+    <message>
+        <source>Drive: syncing…</source>
+        <translation>云端硬盘：正在同步…</translation>
+    </message>
+    <message>
+        <source>Drive: on</source>
+        <translation>云端硬盘：已开启</translation>
+    </message>
+    <message>
+        <source>Drive: error</source>
+        <translation>云端硬盘：出错</translation>
+    </message>
+    <message>
+        <source>Drive: synced {time}</source>
+        <translation>云端硬盘：已于 {time} 同步</translation>
+    </message>
+    <message>
+        <source>Google Drive folder: {name}</source>
+        <translation>Google 云端硬盘文件夹：{name}</translation>
+    </message>
+    <message>
+        <source>Connect Google Drive</source>
+        <translation>连接 Google 云端硬盘</translation>
+    </message>
+    <message>
+        <source>Google Drive isn&apos;t configured in this build of the app (missing Google OAuth client). See Documentation/Google_Drive_OAuth_setup.md.</source>
+        <translation>此版本的应用未配置 Google 云端硬盘（缺少 Google OAuth 客户端）。请参阅 Documentation/Google_Drive_OAuth_setup.md。</translation>
+    </message>
+    <message>
+        <source>Waiting for you to sign in to Google in your browser…</source>
+        <translation>正在等待您在浏览器中登录 Google…</translation>
+    </message>
+    <message>
+        <source>Google sign-in did not complete:
+{error}</source>
+        <translation>Google 登录未完成：
+{error}</translation>
+    </message>
+    <message>
+        <source>Connected this Space to Google Drive folder &quot;{name}&quot;. Syncing…</source>
+        <translation>已将此空间连接到 Google 云端硬盘文件夹“{name}”。正在同步…</translation>
+    </message>
+    <message>
+        <source>Stop syncing this Space with Google Drive? Files stay where they are, both on this computer and on Google Drive.</source>
+        <translation>停止将此空间与 Google 云端硬盘同步？文件会保留在原处，包括这台电脑和 Google 云端硬盘上的文件。</translation>
+    </message>
+    <message>
+        <source>Also sign out of Google ({email}) in this app?</source>
+        <translation>同时在此应用中退出 Google 账号（{email}）？</translation>
+    </message>
+    <message>
+        <source>Other Spaces that sync with Google Drive will stop syncing until you connect again.</source>
+        <translation>其他与 Google 云端硬盘同步的空间将停止同步，直到您重新连接。</translation>
+    </message>
+    <message>
+        <source>Google Drive: {count} file(s) were edited in both places; Drive&apos;s version was saved next to yours as a &quot;conflict&quot; copy.</source>
+        <translation>Google 云端硬盘：有 {count} 个文件在两处都被编辑；云端硬盘的版本已作为“冲突”副本保存在您的文件旁边。</translation>
+    </message>
+    <message>
+        <source>Google Drive changed &quot;{name}&quot; while you were editing it; Drive&apos;s version was saved as &quot;{copy}&quot;.</source>
+        <translation>在您编辑“{name}”时，它在 Google 云端硬盘上被更改；云端硬盘的版本已保存为“{copy}”。</translation>
+    </message>
+    <message>
+        <source>Nothing has been synced with Google Drive yet.</source>
+        <translation>尚未与 Google 云端硬盘同步任何内容。</translation>
+    </message>
+    <message>
+        <source>Recent Google Drive sync activity:</source>
+        <translation>最近的 Google 云端硬盘同步活动：</translation>
+    </message>
+    <message>
+        <source>Google Drive access wasn&apos;t granted. Please connect again and, on Google&apos;s permission screen, tick the box &quot;See, edit, create, and delete all of your Google Drive files&quot;.</source>
+        <translation>未授予 Google 云端硬盘访问权限。请重新连接，并在 Google 权限页面勾选“查看、修改、创建和删除您的所有 Google 云端硬盘文件”。</translation>
+    </message>
+    <message>
+        <source>Your Google sign-in doesn&apos;t include Drive access yet. Your browser will open again: on Google&apos;s permission screen, tick the box &quot;See, edit, create, and delete all of your Google Drive files&quot;.</source>
+        <translation>您的 Google 登录尚未包含云端硬盘访问权限。浏览器将再次打开：请在 Google 权限页面勾选“查看、修改、创建和删除您的所有 Google 云端硬盘文件”。</translation>
+    </message>
+</context>
 <context>
     <name>IncludeContainerWidget</name>
     <message>
@@ -763,6 +829,61 @@ Details: {error}</translation>
     <message>
         <source>Show diff highlights</source>
         <translation>显示差异高亮</translation>
+    </message>
+</context>
+<context>
+    <name>GoogleDriveFolderDialog</name>
+    <message>
+        <source>My Drive</source>
+        <translation>我的云端硬盘</translation>
+    </message>
+    <message>
+        <source>Choose a Google Drive folder</source>
+        <translation>选择 Google 云端硬盘文件夹</translation>
+    </message>
+    <message>
+        <source>Google account: {email}</source>
+        <translation>Google 账号：{email}</translation>
+    </message>
+    <message>
+        <source>The folder you open here, including all its subfolders, will be synced with this Space.</source>
+        <translation>您在此处打开的文件夹（包括其所有子文件夹）将与此空间同步。</translation>
+    </message>
+    <message>
+        <source>Up</source>
+        <translation>上一级</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>打开</translation>
+    </message>
+    <message>
+        <source>New folder…</source>
+        <translation>新建文件夹…</translation>
+    </message>
+    <message>
+        <source>Connect this folder</source>
+        <translation>连接此文件夹</translation>
+    </message>
+    <message>
+        <source>Could not list folders:
+{error}</source>
+        <translation>无法列出文件夹：
+{error}</translation>
+    </message>
+    <message>
+        <source>New folder</source>
+        <translation>新建文件夹</translation>
+    </message>
+    <message>
+        <source>Folder name:</source>
+        <translation>文件夹名称：</translation>
+    </message>
+    <message>
+        <source>Could not create the folder:
+{error}</source>
+        <translation>无法创建文件夹：
+{error}</translation>
     </message>
 </context>
 </TS>

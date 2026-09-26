@@ -236,34 +236,6 @@ Details: {error}</translation>
       <translation>Sync with Google Drive</translation>
     </message>
     <message>
-      <source>You need to be logged in to the Crowdly web platform before changing Google Drive sync.</source>
-      <translation>You need to be logged in to the Crowdly web platform before changing Google Drive sync.</translation>
-    </message>
-    <message>
-      <source>This Space needs to be connected to a Google Drive folder first (use "Connect Google Drive" on the Space's page on the web platform, or Settings → Connect → Google Drive here), or the request failed.
-
-Details: {error}</source>
-      <translation>This Space needs to be connected to a Google Drive folder first (use "Connect Google Drive" on the Space's page on the web platform, or Settings → Connect → Google Drive here), or the request failed.
-
-Details: {error}</translation>
-    </message>
-    <message>
-      <source>You need to be logged in to the Crowdly web platform before connecting Google Drive.</source>
-      <translation>You need to be logged in to the Crowdly web platform before connecting Google Drive.</translation>
-    </message>
-    <message>
-      <source>This project space isn't linked to a Crowdly Space on the web yet. Sync with the web platform at least once before connecting Google Drive.
-
-Details: {error}</source>
-      <translation>This project space isn't linked to a Crowdly Space on the web yet. Sync with the web platform at least once before connecting Google Drive.
-
-Details: {error}</translation>
-    </message>
-    <message>
-      <source>Google Drive connect is either not configured on this server, or this Space is already connected to a Google Drive folder — use "Change folder" on the Space's page on the web platform instead.</source>
-      <translation>Google Drive connect is either not configured on this server, or this Space is already connected to a Google Drive folder — use "Change folder" on the Space's page on the web platform instead.</translation>
-    </message>
-    <message>
       <source>Not implemented</source>
       <translation>Not implemented</translation>
     </message>
@@ -519,7 +491,101 @@ Details: {error}</translation>
         <source>No name</source>
         <translation>Sem nome</translation>
     </message>
-  </context>
+      <message>
+        <source>There is no active project space set. Please choose or create one first.</source>
+        <translation>Nenhum espaço de projeto ativo está definido. Escolha ou crie um primeiro.</translation>
+    </message>
+    <message>
+        <source>Disconnect Google Drive</source>
+        <translation>Desconectar o Google Drive</translation>
+    </message>
+    <message>
+        <source>Sync with Google Drive now</source>
+        <translation>Sincronizar com o Google Drive agora</translation>
+    </message>
+    <message>
+        <source>Google Drive sync log</source>
+        <translation>Registro de sincronização do Google Drive</translation>
+    </message>
+    <message>
+        <source>Drive: syncing…</source>
+        <translation>Drive: sincronizando…</translation>
+    </message>
+    <message>
+        <source>Drive: on</source>
+        <translation>Drive: ativado</translation>
+    </message>
+    <message>
+        <source>Drive: error</source>
+        <translation>Drive: erro</translation>
+    </message>
+    <message>
+        <source>Drive: synced {time}</source>
+        <translation>Drive: sincronizado às {time}</translation>
+    </message>
+    <message>
+        <source>Google Drive folder: {name}</source>
+        <translation>Pasta do Google Drive: {name}</translation>
+    </message>
+    <message>
+        <source>Connect Google Drive</source>
+        <translation>Conectar o Google Drive</translation>
+    </message>
+    <message>
+        <source>Google Drive isn&apos;t configured in this build of the app (missing Google OAuth client). See Documentation/Google_Drive_OAuth_setup.md.</source>
+        <translation>O Google Drive não está configurado nesta versão do aplicativo (falta o cliente OAuth do Google). Consulte Documentation/Google_Drive_OAuth_setup.md.</translation>
+    </message>
+    <message>
+        <source>Waiting for you to sign in to Google in your browser…</source>
+        <translation>Aguardando você entrar no Google pelo navegador…</translation>
+    </message>
+    <message>
+        <source>Google sign-in did not complete:
+{error}</source>
+        <translation>O login no Google não foi concluído:
+{error}</translation>
+    </message>
+    <message>
+        <source>Connected this Space to Google Drive folder &quot;{name}&quot;. Syncing…</source>
+        <translation>Este espaço foi conectado à pasta &quot;{name}&quot; do Google Drive. Sincronizando…</translation>
+    </message>
+    <message>
+        <source>Stop syncing this Space with Google Drive? Files stay where they are, both on this computer and on Google Drive.</source>
+        <translation>Parar de sincronizar este espaço com o Google Drive? Os arquivos permanecem onde estão, neste computador e no Google Drive.</translation>
+    </message>
+    <message>
+        <source>Also sign out of Google ({email}) in this app?</source>
+        <translation>Também sair da conta do Google ({email}) neste aplicativo?</translation>
+    </message>
+    <message>
+        <source>Other Spaces that sync with Google Drive will stop syncing until you connect again.</source>
+        <translation>Outros espaços sincronizados com o Google Drive deixarão de sincronizar até você se conectar novamente.</translation>
+    </message>
+    <message>
+        <source>Google Drive: {count} file(s) were edited in both places; Drive&apos;s version was saved next to yours as a &quot;conflict&quot; copy.</source>
+        <translation>Google Drive: {count} arquivo(s) foram editados nos dois lugares; a versão do Drive foi salva ao lado da sua como cópia de &quot;conflito&quot;.</translation>
+    </message>
+    <message>
+        <source>Google Drive changed &quot;{name}&quot; while you were editing it; Drive&apos;s version was saved as &quot;{copy}&quot;.</source>
+        <translation>O Google Drive alterou &quot;{name}&quot; enquanto você o editava; a versão do Drive foi salva como &quot;{copy}&quot;.</translation>
+    </message>
+    <message>
+        <source>Nothing has been synced with Google Drive yet.</source>
+        <translation>Nada foi sincronizado com o Google Drive ainda.</translation>
+    </message>
+    <message>
+        <source>Recent Google Drive sync activity:</source>
+        <translation>Atividade recente de sincronização do Google Drive:</translation>
+    </message>
+    <message>
+        <source>Google Drive access wasn&apos;t granted. Please connect again and, on Google&apos;s permission screen, tick the box &quot;See, edit, create, and delete all of your Google Drive files&quot;.</source>
+        <translation>O acesso ao Google Drive não foi concedido. Conecte novamente e, na tela de permissões do Google, marque a caixa &quot;Ver, editar, criar e excluir todos os seus arquivos do Google Drive&quot;.</translation>
+    </message>
+    <message>
+        <source>Your Google sign-in doesn&apos;t include Drive access yet. Your browser will open again: on Google&apos;s permission screen, tick the box &quot;See, edit, create, and delete all of your Google Drive files&quot;.</source>
+        <translation>Seu login no Google ainda não inclui acesso ao Drive. O navegador abrirá novamente: na tela de permissões do Google, marque a caixa &quot;Ver, editar, criar e excluir todos os seus arquivos do Google Drive&quot;.</translation>
+    </message>
+</context>
 <context>
     <name>IncludeContainerWidget</name>
     <message>
@@ -763,6 +829,61 @@ Details: {error}</translation>
     <message>
         <source>Show diff highlights</source>
         <translation>Mostrar destaques de diferenças</translation>
+    </message>
+</context>
+<context>
+    <name>GoogleDriveFolderDialog</name>
+    <message>
+        <source>My Drive</source>
+        <translation>Meu Drive</translation>
+    </message>
+    <message>
+        <source>Choose a Google Drive folder</source>
+        <translation>Escolha uma pasta do Google Drive</translation>
+    </message>
+    <message>
+        <source>Google account: {email}</source>
+        <translation>Conta do Google: {email}</translation>
+    </message>
+    <message>
+        <source>The folder you open here, including all its subfolders, will be synced with this Space.</source>
+        <translation>A pasta que você abrir aqui, incluindo todas as subpastas, será sincronizada com este espaço.</translation>
+    </message>
+    <message>
+        <source>Up</source>
+        <translation>Acima</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>Abrir</translation>
+    </message>
+    <message>
+        <source>New folder…</source>
+        <translation>Nova pasta…</translation>
+    </message>
+    <message>
+        <source>Connect this folder</source>
+        <translation>Conectar esta pasta</translation>
+    </message>
+    <message>
+        <source>Could not list folders:
+{error}</source>
+        <translation>Não foi possível listar as pastas:
+{error}</translation>
+    </message>
+    <message>
+        <source>New folder</source>
+        <translation>Nova pasta</translation>
+    </message>
+    <message>
+        <source>Folder name:</source>
+        <translation>Nome da pasta:</translation>
+    </message>
+    <message>
+        <source>Could not create the folder:
+{error}</source>
+        <translation>Não foi possível criar a pasta:
+{error}</translation>
     </message>
 </context>
 </TS>

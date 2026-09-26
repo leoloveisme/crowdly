@@ -236,34 +236,6 @@ Details: {error}</translation>
       <translation>Sync with Google Drive</translation>
     </message>
     <message>
-      <source>You need to be logged in to the Crowdly web platform before changing Google Drive sync.</source>
-      <translation>You need to be logged in to the Crowdly web platform before changing Google Drive sync.</translation>
-    </message>
-    <message>
-      <source>This Space needs to be connected to a Google Drive folder first (use "Connect Google Drive" on the Space's page on the web platform, or Settings → Connect → Google Drive here), or the request failed.
-
-Details: {error}</source>
-      <translation>This Space needs to be connected to a Google Drive folder first (use "Connect Google Drive" on the Space's page on the web platform, or Settings → Connect → Google Drive here), or the request failed.
-
-Details: {error}</translation>
-    </message>
-    <message>
-      <source>You need to be logged in to the Crowdly web platform before connecting Google Drive.</source>
-      <translation>You need to be logged in to the Crowdly web platform before connecting Google Drive.</translation>
-    </message>
-    <message>
-      <source>This project space isn't linked to a Crowdly Space on the web yet. Sync with the web platform at least once before connecting Google Drive.
-
-Details: {error}</source>
-      <translation>This project space isn't linked to a Crowdly Space on the web yet. Sync with the web platform at least once before connecting Google Drive.
-
-Details: {error}</translation>
-    </message>
-    <message>
-      <source>Google Drive connect is either not configured on this server, or this Space is already connected to a Google Drive folder — use "Change folder" on the Space's page on the web platform instead.</source>
-      <translation>Google Drive connect is either not configured on this server, or this Space is already connected to a Google Drive folder — use "Change folder" on the Space's page on the web platform instead.</translation>
-    </message>
-    <message>
       <source>Not implemented</source>
       <translation>Not implemented</translation>
     </message>
@@ -519,7 +491,101 @@ Details: {error}</translation>
         <source>No name</source>
         <translation>名前なし</translation>
     </message>
-  </context>
+      <message>
+        <source>There is no active project space set. Please choose or create one first.</source>
+        <translation>アクティブなプロジェクトスペースが設定されていません。先に選択するか作成してください。</translation>
+    </message>
+    <message>
+        <source>Disconnect Google Drive</source>
+        <translation>Google ドライブとの接続を解除</translation>
+    </message>
+    <message>
+        <source>Sync with Google Drive now</source>
+        <translation>今すぐ Google ドライブと同期</translation>
+    </message>
+    <message>
+        <source>Google Drive sync log</source>
+        <translation>Google ドライブ同期ログ</translation>
+    </message>
+    <message>
+        <source>Drive: syncing…</source>
+        <translation>ドライブ: 同期中…</translation>
+    </message>
+    <message>
+        <source>Drive: on</source>
+        <translation>ドライブ: オン</translation>
+    </message>
+    <message>
+        <source>Drive: error</source>
+        <translation>ドライブ: エラー</translation>
+    </message>
+    <message>
+        <source>Drive: synced {time}</source>
+        <translation>ドライブ: {time} に同期済み</translation>
+    </message>
+    <message>
+        <source>Google Drive folder: {name}</source>
+        <translation>Google ドライブのフォルダ: {name}</translation>
+    </message>
+    <message>
+        <source>Connect Google Drive</source>
+        <translation>Google ドライブに接続</translation>
+    </message>
+    <message>
+        <source>Google Drive isn&apos;t configured in this build of the app (missing Google OAuth client). See Documentation/Google_Drive_OAuth_setup.md.</source>
+        <translation>このビルドのアプリでは Google ドライブが設定されていません（Google OAuth クライアントがありません）。Documentation/Google_Drive_OAuth_setup.md を参照してください。</translation>
+    </message>
+    <message>
+        <source>Waiting for you to sign in to Google in your browser…</source>
+        <translation>ブラウザで Google にサインインするのを待っています…</translation>
+    </message>
+    <message>
+        <source>Google sign-in did not complete:
+{error}</source>
+        <translation>Google へのサインインが完了しませんでした:
+{error}</translation>
+    </message>
+    <message>
+        <source>Connected this Space to Google Drive folder &quot;{name}&quot;. Syncing…</source>
+        <translation>このスペースを Google ドライブのフォルダ「{name}」に接続しました。同期中…</translation>
+    </message>
+    <message>
+        <source>Stop syncing this Space with Google Drive? Files stay where they are, both on this computer and on Google Drive.</source>
+        <translation>このスペースと Google ドライブの同期を停止しますか？ファイルはこのコンピュータと Google ドライブの両方にそのまま残ります。</translation>
+    </message>
+    <message>
+        <source>Also sign out of Google ({email}) in this app?</source>
+        <translation>このアプリで Google（{email}）からもサインアウトしますか？</translation>
+    </message>
+    <message>
+        <source>Other Spaces that sync with Google Drive will stop syncing until you connect again.</source>
+        <translation>Google ドライブと同期している他のスペースは、再度接続するまで同期が停止します。</translation>
+    </message>
+    <message>
+        <source>Google Drive: {count} file(s) were edited in both places; Drive&apos;s version was saved next to yours as a &quot;conflict&quot; copy.</source>
+        <translation>Google ドライブ: {count} 件のファイルが両方で編集されました。ドライブ側の版は「競合」コピーとしてあなたのファイルの隣に保存されました。</translation>
+    </message>
+    <message>
+        <source>Google Drive changed &quot;{name}&quot; while you were editing it; Drive&apos;s version was saved as &quot;{copy}&quot;.</source>
+        <translation>編集中に Google ドライブで「{name}」が変更されました。ドライブ側の版は「{copy}」として保存されました。</translation>
+    </message>
+    <message>
+        <source>Nothing has been synced with Google Drive yet.</source>
+        <translation>まだ Google ドライブと何も同期されていません。</translation>
+    </message>
+    <message>
+        <source>Recent Google Drive sync activity:</source>
+        <translation>最近の Google ドライブ同期アクティビティ:</translation>
+    </message>
+    <message>
+        <source>Google Drive access wasn&apos;t granted. Please connect again and, on Google&apos;s permission screen, tick the box &quot;See, edit, create, and delete all of your Google Drive files&quot;.</source>
+        <translation>Google ドライブへのアクセスが許可されませんでした。もう一度接続し、Google の許可画面で「Google ドライブのすべてのファイルの表示、編集、作成、削除」にチェックを入れてください。</translation>
+    </message>
+    <message>
+        <source>Your Google sign-in doesn&apos;t include Drive access yet. Your browser will open again: on Google&apos;s permission screen, tick the box &quot;See, edit, create, and delete all of your Google Drive files&quot;.</source>
+        <translation>Google へのサインインにはまだドライブへのアクセスが含まれていません。ブラウザがもう一度開きます。Google の許可画面で「Google ドライブのすべてのファイルの表示、編集、作成、削除」にチェックを入れてください。</translation>
+    </message>
+</context>
 <context>
     <name>IncludeContainerWidget</name>
     <message>
@@ -763,6 +829,61 @@ Details: {error}</translation>
     <message>
         <source>Show diff highlights</source>
         <translation>差分ハイライトを表示</translation>
+    </message>
+</context>
+<context>
+    <name>GoogleDriveFolderDialog</name>
+    <message>
+        <source>My Drive</source>
+        <translation>マイドライブ</translation>
+    </message>
+    <message>
+        <source>Choose a Google Drive folder</source>
+        <translation>Google ドライブのフォルダを選択</translation>
+    </message>
+    <message>
+        <source>Google account: {email}</source>
+        <translation>Google アカウント: {email}</translation>
+    </message>
+    <message>
+        <source>The folder you open here, including all its subfolders, will be synced with this Space.</source>
+        <translation>ここで開いたフォルダは、すべてのサブフォルダを含めてこのスペースと同期されます。</translation>
+    </message>
+    <message>
+        <source>Up</source>
+        <translation>上へ</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>開く</translation>
+    </message>
+    <message>
+        <source>New folder…</source>
+        <translation>新しいフォルダ…</translation>
+    </message>
+    <message>
+        <source>Connect this folder</source>
+        <translation>このフォルダを接続</translation>
+    </message>
+    <message>
+        <source>Could not list folders:
+{error}</source>
+        <translation>フォルダを一覧表示できませんでした:
+{error}</translation>
+    </message>
+    <message>
+        <source>New folder</source>
+        <translation>新しいフォルダ</translation>
+    </message>
+    <message>
+        <source>Folder name:</source>
+        <translation>フォルダ名:</translation>
+    </message>
+    <message>
+        <source>Could not create the folder:
+{error}</source>
+        <translation>フォルダを作成できませんでした:
+{error}</translation>
     </message>
 </context>
 </TS>

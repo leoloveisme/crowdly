@@ -236,34 +236,6 @@ Details: {error}</translation>
       <translation>Sync with Google Drive</translation>
     </message>
     <message>
-      <source>You need to be logged in to the Crowdly web platform before changing Google Drive sync.</source>
-      <translation>You need to be logged in to the Crowdly web platform before changing Google Drive sync.</translation>
-    </message>
-    <message>
-      <source>This Space needs to be connected to a Google Drive folder first (use "Connect Google Drive" on the Space's page on the web platform, or Settings → Connect → Google Drive here), or the request failed.
-
-Details: {error}</source>
-      <translation>This Space needs to be connected to a Google Drive folder first (use "Connect Google Drive" on the Space's page on the web platform, or Settings → Connect → Google Drive here), or the request failed.
-
-Details: {error}</translation>
-    </message>
-    <message>
-      <source>You need to be logged in to the Crowdly web platform before connecting Google Drive.</source>
-      <translation>You need to be logged in to the Crowdly web platform before connecting Google Drive.</translation>
-    </message>
-    <message>
-      <source>This project space isn't linked to a Crowdly Space on the web yet. Sync with the web platform at least once before connecting Google Drive.
-
-Details: {error}</source>
-      <translation>This project space isn't linked to a Crowdly Space on the web yet. Sync with the web platform at least once before connecting Google Drive.
-
-Details: {error}</translation>
-    </message>
-    <message>
-      <source>Google Drive connect is either not configured on this server, or this Space is already connected to a Google Drive folder — use "Change folder" on the Space's page on the web platform instead.</source>
-      <translation>Google Drive connect is either not configured on this server, or this Space is already connected to a Google Drive folder — use "Change folder" on the Space's page on the web platform instead.</translation>
-    </message>
-    <message>
       <source>Not implemented</source>
       <translation>Not implemented</translation>
     </message>
@@ -519,7 +491,101 @@ Details: {error}</translation>
         <source>No name</source>
         <translation>بدون اسم</translation>
     </message>
-  </context>
+      <message>
+        <source>There is no active project space set. Please choose or create one first.</source>
+        <translation>لم يتم تعيين مساحة مشروع نشطة. يرجى اختيار مساحة أو إنشاؤها أولاً.</translation>
+    </message>
+    <message>
+        <source>Disconnect Google Drive</source>
+        <translation>قطع الاتصال بـ Google Drive</translation>
+    </message>
+    <message>
+        <source>Sync with Google Drive now</source>
+        <translation>المزامنة مع Google Drive الآن</translation>
+    </message>
+    <message>
+        <source>Google Drive sync log</source>
+        <translation>سجل مزامنة Google Drive</translation>
+    </message>
+    <message>
+        <source>Drive: syncing…</source>
+        <translation>Drive: جارٍ المزامنة…</translation>
+    </message>
+    <message>
+        <source>Drive: on</source>
+        <translation>Drive: مفعّل</translation>
+    </message>
+    <message>
+        <source>Drive: error</source>
+        <translation>Drive: خطأ</translation>
+    </message>
+    <message>
+        <source>Drive: synced {time}</source>
+        <translation>Drive: تمت المزامنة {time}</translation>
+    </message>
+    <message>
+        <source>Google Drive folder: {name}</source>
+        <translation>مجلد Google Drive: {name}</translation>
+    </message>
+    <message>
+        <source>Connect Google Drive</source>
+        <translation>ربط Google Drive</translation>
+    </message>
+    <message>
+        <source>Google Drive isn&apos;t configured in this build of the app (missing Google OAuth client). See Documentation/Google_Drive_OAuth_setup.md.</source>
+        <translation>لم يتم إعداد Google Drive في هذا الإصدار من التطبيق (عميل Google OAuth مفقود). راجع Documentation/Google_Drive_OAuth_setup.md.</translation>
+    </message>
+    <message>
+        <source>Waiting for you to sign in to Google in your browser…</source>
+        <translation>في انتظار تسجيل دخولك إلى Google في المتصفح…</translation>
+    </message>
+    <message>
+        <source>Google sign-in did not complete:
+{error}</source>
+        <translation>لم يكتمل تسجيل الدخول إلى Google:
+{error}</translation>
+    </message>
+    <message>
+        <source>Connected this Space to Google Drive folder &quot;{name}&quot;. Syncing…</source>
+        <translation>تم ربط هذه المساحة بمجلد Google Drive &quot;{name}&quot;. جارٍ المزامنة…</translation>
+    </message>
+    <message>
+        <source>Stop syncing this Space with Google Drive? Files stay where they are, both on this computer and on Google Drive.</source>
+        <translation>هل تريد إيقاف مزامنة هذه المساحة مع Google Drive؟ ستبقى الملفات في مكانها، على هذا الكمبيوتر وعلى Google Drive.</translation>
+    </message>
+    <message>
+        <source>Also sign out of Google ({email}) in this app?</source>
+        <translation>هل تريد أيضًا تسجيل الخروج من Google ({email}) في هذا التطبيق؟</translation>
+    </message>
+    <message>
+        <source>Other Spaces that sync with Google Drive will stop syncing until you connect again.</source>
+        <translation>ستتوقف المساحات الأخرى التي تتزامن مع Google Drive عن المزامنة حتى تعيد الربط.</translation>
+    </message>
+    <message>
+        <source>Google Drive: {count} file(s) were edited in both places; Drive&apos;s version was saved next to yours as a &quot;conflict&quot; copy.</source>
+        <translation>Google Drive: تم تعديل {count} ملف(ات) في كلا المكانين؛ حُفظت نسخة Drive بجانب نسختك كنسخة &quot;تعارض&quot;.</translation>
+    </message>
+    <message>
+        <source>Google Drive changed &quot;{name}&quot; while you were editing it; Drive&apos;s version was saved as &quot;{copy}&quot;.</source>
+        <translation>تغيّر &quot;{name}&quot; على Google Drive أثناء تحريرك له؛ حُفظت نسخة Drive باسم &quot;{copy}&quot;.</translation>
+    </message>
+    <message>
+        <source>Nothing has been synced with Google Drive yet.</source>
+        <translation>لم تتم مزامنة أي شيء مع Google Drive بعد.</translation>
+    </message>
+    <message>
+        <source>Recent Google Drive sync activity:</source>
+        <translation>نشاط مزامنة Google Drive الأخير:</translation>
+    </message>
+    <message>
+        <source>Google Drive access wasn&apos;t granted. Please connect again and, on Google&apos;s permission screen, tick the box &quot;See, edit, create, and delete all of your Google Drive files&quot;.</source>
+        <translation>لم يتم منح الوصول إلى Google Drive. يرجى الربط مرة أخرى، وفي شاشة أذونات Google حدّد المربع &quot;عرض جميع ملفاتك على Google Drive وتعديلها وإنشاؤها وحذفها&quot;.</translation>
+    </message>
+    <message>
+        <source>Your Google sign-in doesn&apos;t include Drive access yet. Your browser will open again: on Google&apos;s permission screen, tick the box &quot;See, edit, create, and delete all of your Google Drive files&quot;.</source>
+        <translation>تسجيل دخولك إلى Google لا يتضمن الوصول إلى Drive بعد. سيفتح المتصفح مرة أخرى: في شاشة أذونات Google حدّد المربع &quot;عرض جميع ملفاتك على Google Drive وتعديلها وإنشاؤها وحذفها&quot;.</translation>
+    </message>
+</context>
 <context>
     <name>IncludeContainerWidget</name>
     <message>
@@ -763,6 +829,61 @@ Details: {error}</translation>
     <message>
         <source>Show diff highlights</source>
         <translation>إظهار تمييز الفروقات</translation>
+    </message>
+</context>
+<context>
+    <name>GoogleDriveFolderDialog</name>
+    <message>
+        <source>My Drive</source>
+        <translation>ملفاتي</translation>
+    </message>
+    <message>
+        <source>Choose a Google Drive folder</source>
+        <translation>اختر مجلدًا على Google Drive</translation>
+    </message>
+    <message>
+        <source>Google account: {email}</source>
+        <translation>حساب Google: {email}</translation>
+    </message>
+    <message>
+        <source>The folder you open here, including all its subfolders, will be synced with this Space.</source>
+        <translation>سيتم مزامنة المجلد الذي تفتحه هنا، بما في ذلك جميع مجلداته الفرعية، مع هذه المساحة.</translation>
+    </message>
+    <message>
+        <source>Up</source>
+        <translation>لأعلى</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>فتح</translation>
+    </message>
+    <message>
+        <source>New folder…</source>
+        <translation>مجلد جديد…</translation>
+    </message>
+    <message>
+        <source>Connect this folder</source>
+        <translation>ربط هذا المجلد</translation>
+    </message>
+    <message>
+        <source>Could not list folders:
+{error}</source>
+        <translation>تعذّر عرض المجلدات:
+{error}</translation>
+    </message>
+    <message>
+        <source>New folder</source>
+        <translation>مجلد جديد</translation>
+    </message>
+    <message>
+        <source>Folder name:</source>
+        <translation>اسم المجلد:</translation>
+    </message>
+    <message>
+        <source>Could not create the folder:
+{error}</source>
+        <translation>تعذّر إنشاء المجلد:
+{error}</translation>
     </message>
 </context>
 </TS>

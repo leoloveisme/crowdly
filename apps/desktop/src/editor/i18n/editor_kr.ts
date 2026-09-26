@@ -236,34 +236,6 @@ Details: {error}</translation>
       <translation>Sync with Google Drive</translation>
     </message>
     <message>
-      <source>You need to be logged in to the Crowdly web platform before changing Google Drive sync.</source>
-      <translation>You need to be logged in to the Crowdly web platform before changing Google Drive sync.</translation>
-    </message>
-    <message>
-      <source>This Space needs to be connected to a Google Drive folder first (use "Connect Google Drive" on the Space's page on the web platform, or Settings → Connect → Google Drive here), or the request failed.
-
-Details: {error}</source>
-      <translation>This Space needs to be connected to a Google Drive folder first (use "Connect Google Drive" on the Space's page on the web platform, or Settings → Connect → Google Drive here), or the request failed.
-
-Details: {error}</translation>
-    </message>
-    <message>
-      <source>You need to be logged in to the Crowdly web platform before connecting Google Drive.</source>
-      <translation>You need to be logged in to the Crowdly web platform before connecting Google Drive.</translation>
-    </message>
-    <message>
-      <source>This project space isn't linked to a Crowdly Space on the web yet. Sync with the web platform at least once before connecting Google Drive.
-
-Details: {error}</source>
-      <translation>This project space isn't linked to a Crowdly Space on the web yet. Sync with the web platform at least once before connecting Google Drive.
-
-Details: {error}</translation>
-    </message>
-    <message>
-      <source>Google Drive connect is either not configured on this server, or this Space is already connected to a Google Drive folder — use "Change folder" on the Space's page on the web platform instead.</source>
-      <translation>Google Drive connect is either not configured on this server, or this Space is already connected to a Google Drive folder — use "Change folder" on the Space's page on the web platform instead.</translation>
-    </message>
-    <message>
       <source>Not implemented</source>
       <translation>Not implemented</translation>
     </message>
@@ -519,7 +491,101 @@ Details: {error}</translation>
         <source>No name</source>
         <translation>이름 없음</translation>
     </message>
-  </context>
+      <message>
+        <source>There is no active project space set. Please choose or create one first.</source>
+        <translation>활성 프로젝트 공간이 설정되지 않았습니다. 먼저 선택하거나 만드세요.</translation>
+    </message>
+    <message>
+        <source>Disconnect Google Drive</source>
+        <translation>Google 드라이브 연결 해제</translation>
+    </message>
+    <message>
+        <source>Sync with Google Drive now</source>
+        <translation>지금 Google 드라이브와 동기화</translation>
+    </message>
+    <message>
+        <source>Google Drive sync log</source>
+        <translation>Google 드라이브 동기화 기록</translation>
+    </message>
+    <message>
+        <source>Drive: syncing…</source>
+        <translation>드라이브: 동기화 중…</translation>
+    </message>
+    <message>
+        <source>Drive: on</source>
+        <translation>드라이브: 켜짐</translation>
+    </message>
+    <message>
+        <source>Drive: error</source>
+        <translation>드라이브: 오류</translation>
+    </message>
+    <message>
+        <source>Drive: synced {time}</source>
+        <translation>드라이브: {time}에 동기화됨</translation>
+    </message>
+    <message>
+        <source>Google Drive folder: {name}</source>
+        <translation>Google 드라이브 폴더: {name}</translation>
+    </message>
+    <message>
+        <source>Connect Google Drive</source>
+        <translation>Google 드라이브 연결</translation>
+    </message>
+    <message>
+        <source>Google Drive isn&apos;t configured in this build of the app (missing Google OAuth client). See Documentation/Google_Drive_OAuth_setup.md.</source>
+        <translation>이 빌드의 앱에는 Google 드라이브가 구성되어 있지 않습니다(Google OAuth 클라이언트 없음). Documentation/Google_Drive_OAuth_setup.md를 참조하세요.</translation>
+    </message>
+    <message>
+        <source>Waiting for you to sign in to Google in your browser…</source>
+        <translation>브라우저에서 Google 로그인을 기다리는 중…</translation>
+    </message>
+    <message>
+        <source>Google sign-in did not complete:
+{error}</source>
+        <translation>Google 로그인이 완료되지 않았습니다:
+{error}</translation>
+    </message>
+    <message>
+        <source>Connected this Space to Google Drive folder &quot;{name}&quot;. Syncing…</source>
+        <translation>이 공간을 Google 드라이브 폴더 &quot;{name}&quot;에 연결했습니다. 동기화 중…</translation>
+    </message>
+    <message>
+        <source>Stop syncing this Space with Google Drive? Files stay where they are, both on this computer and on Google Drive.</source>
+        <translation>이 공간과 Google 드라이브의 동기화를 중지할까요? 파일은 이 컴퓨터와 Google 드라이브 모두에 그대로 남습니다.</translation>
+    </message>
+    <message>
+        <source>Also sign out of Google ({email}) in this app?</source>
+        <translation>이 앱에서 Google({email})에서도 로그아웃할까요?</translation>
+    </message>
+    <message>
+        <source>Other Spaces that sync with Google Drive will stop syncing until you connect again.</source>
+        <translation>Google 드라이브와 동기화하는 다른 공간은 다시 연결할 때까지 동기화가 중지됩니다.</translation>
+    </message>
+    <message>
+        <source>Google Drive: {count} file(s) were edited in both places; Drive&apos;s version was saved next to yours as a &quot;conflict&quot; copy.</source>
+        <translation>Google 드라이브: {count}개 파일이 양쪽에서 편집되었습니다. 드라이브 버전은 &quot;충돌&quot; 사본으로 내 파일 옆에 저장되었습니다.</translation>
+    </message>
+    <message>
+        <source>Google Drive changed &quot;{name}&quot; while you were editing it; Drive&apos;s version was saved as &quot;{copy}&quot;.</source>
+        <translation>편집하는 동안 Google 드라이브에서 &quot;{name}&quot;이(가) 변경되었습니다. 드라이브 버전은 &quot;{copy}&quot;(으)로 저장되었습니다.</translation>
+    </message>
+    <message>
+        <source>Nothing has been synced with Google Drive yet.</source>
+        <translation>아직 Google 드라이브와 동기화된 항목이 없습니다.</translation>
+    </message>
+    <message>
+        <source>Recent Google Drive sync activity:</source>
+        <translation>최근 Google 드라이브 동기화 활동:</translation>
+    </message>
+    <message>
+        <source>Google Drive access wasn&apos;t granted. Please connect again and, on Google&apos;s permission screen, tick the box &quot;See, edit, create, and delete all of your Google Drive files&quot;.</source>
+        <translation>Google 드라이브 접근 권한이 부여되지 않았습니다. 다시 연결하고 Google 권한 화면에서 &quot;모든 Google 드라이브 파일 보기, 수정, 생성, 삭제&quot; 항목을 선택하세요.</translation>
+    </message>
+    <message>
+        <source>Your Google sign-in doesn&apos;t include Drive access yet. Your browser will open again: on Google&apos;s permission screen, tick the box &quot;See, edit, create, and delete all of your Google Drive files&quot;.</source>
+        <translation>Google 로그인에 아직 드라이브 접근 권한이 없습니다. 브라우저가 다시 열리면 Google 권한 화면에서 &quot;모든 Google 드라이브 파일 보기, 수정, 생성, 삭제&quot; 항목을 선택하세요.</translation>
+    </message>
+</context>
 <context>
     <name>IncludeContainerWidget</name>
     <message>
@@ -763,6 +829,61 @@ Details: {error}</translation>
     <message>
         <source>Show diff highlights</source>
         <translation>차이점 강조 표시</translation>
+    </message>
+</context>
+<context>
+    <name>GoogleDriveFolderDialog</name>
+    <message>
+        <source>My Drive</source>
+        <translation>내 드라이브</translation>
+    </message>
+    <message>
+        <source>Choose a Google Drive folder</source>
+        <translation>Google 드라이브 폴더 선택</translation>
+    </message>
+    <message>
+        <source>Google account: {email}</source>
+        <translation>Google 계정: {email}</translation>
+    </message>
+    <message>
+        <source>The folder you open here, including all its subfolders, will be synced with this Space.</source>
+        <translation>여기서 연 폴더는 모든 하위 폴더를 포함해 이 공간과 동기화됩니다.</translation>
+    </message>
+    <message>
+        <source>Up</source>
+        <translation>위로</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>열기</translation>
+    </message>
+    <message>
+        <source>New folder…</source>
+        <translation>새 폴더…</translation>
+    </message>
+    <message>
+        <source>Connect this folder</source>
+        <translation>이 폴더 연결</translation>
+    </message>
+    <message>
+        <source>Could not list folders:
+{error}</source>
+        <translation>폴더 목록을 가져올 수 없습니다:
+{error}</translation>
+    </message>
+    <message>
+        <source>New folder</source>
+        <translation>새 폴더</translation>
+    </message>
+    <message>
+        <source>Folder name:</source>
+        <translation>폴더 이름:</translation>
+    </message>
+    <message>
+        <source>Could not create the folder:
+{error}</source>
+        <translation>폴더를 만들 수 없습니다:
+{error}</translation>
     </message>
 </context>
 </TS>

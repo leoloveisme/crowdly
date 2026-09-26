@@ -106,11 +106,34 @@ class MainWindow(QMainWindow):
         self._username = "username"
 
         # Simple in-memory flags for synchronisation preferences. These are
-        # placeholders and are not yet persisted. Google Drive sync state is
-        # no longer tracked locally — like GitHub sync, it now lives on the
-        # backend per Crowdly Space (see _toggle_sync_google_drive).
+        # placeholders and are not yet persisted. Google Drive sync is real
+        # and persisted per local Space in settings.gdrive_sync (see
+        # _connect_to_google_drive).
         self._sync_web_platform = False
         self._sync_dropbox = False
+
+        # Google Drive: the app signs in to Google itself (no Crowdly login
+        # needed) and syncs each connected local Space with its own Drive folder.
+        from ..gdrive.api import DriveClient
+        from ..gdrive.tokens import GoogleAccount
+
+        self._gdrive_account = GoogleAccount()
+        self._gdrive_client = DriveClient(self._gdrive_account.access_token)
+        self._gdrive_signin_thread: QThread | None = None
+        self._gdrive_sync_thread: QThread | None = None
+        self._gdrive_sync_in_progress = False
+        self._gdrive_last_state: dict[str, dict] = {}
+        self._gdrive_log: list[str] = []
+        self._gdrive_tab_snapshots: dict[str, str] = {}
+        self._gdrive_debounce_timer = QTimer(self)
+        self._gdrive_debounce_timer.setSingleShot(True)
+        self._gdrive_debounce_timer.timeout.connect(self._gdrive_sync_active_space)
+        # Drive can't push change notifications to a desktop app, so poll.
+        self._gdrive_poll_timer = QTimer(self)
+        self._gdrive_poll_timer.setInterval(60_000)
+        self._gdrive_poll_timer.timeout.connect(self._gdrive_poll)
+        self._gdrive_poll_timer.start()
+        QTimer.singleShot(3000, self._gdrive_poll)
 
         # Best-effort web sync debouncer.
         self._web_sync_timer = QTimer(self)
@@ -380,6 +403,15 @@ class MainWindow(QMainWindow):
         self._action_connect_gdrive = connect_menu.addAction(
             self.tr("Google Drive"), self._connect_to_google_drive
         )
+        self._action_disconnect_gdrive = connect_menu.addAction(
+            self.tr("Disconnect Google Drive"), self._disconnect_google_drive
+        )
+        self._action_gdrive_sync_now = connect_menu.addAction(
+            self.tr("Sync with Google Drive now"), self._gdrive_sync_active_space
+        )
+        self._action_gdrive_log = connect_menu.addAction(
+            self.tr("Google Drive sync log"), self._show_gdrive_log
+        )
         self._action_connect_github = connect_menu.addAction(
             self.tr("GitHub"), self._connect_to_github
         )
@@ -607,6 +639,10 @@ class MainWindow(QMainWindow):
         self._sync_status_label = QLabel(self)
         bar.addPermanentWidget(self._sync_status_label, 0)
 
+        # Google Drive sync state for the active Space ("Drive: synced 14:05").
+        self._gdrive_status_label = QLabel(self)
+        bar.addPermanentWidget(self._gdrive_status_label, 0)
+
         # Story / Screenplay ID link label. When a document is associated with
         # a Crowdly story or screenplay, this shows e.g. "Story ID: <uuid>" or
         # "Screenplay ID: <uuid>" as a clickable link.
@@ -709,6 +745,9 @@ class MainWindow(QMainWindow):
             bar = self.statusBar()
             if bar is not None:
                 bar.showMessage(text)
+
+        if hasattr(self, "_gdrive_account"):
+            self._update_gdrive_action_state()
 
     def _space_and_project_space_unset(self) -> bool:
         """Return True when there is no active project space configured.
@@ -2063,6 +2102,12 @@ class MainWindow(QMainWindow):
         if self._sync_web_platform:
             self._schedule_web_sync()
 
+        # ...and to Google Drive, if this Space is connected to a Drive folder.
+        try:
+            self._schedule_gdrive_sync()
+        except Exception:
+            pass
+
     def _guess_document_title(self) -> str | None:
         """Return a best-effort title for the current document, if any."""
 
@@ -2585,9 +2630,6 @@ class MainWindow(QMainWindow):
             self._action_sync_dropbox.setText(self.tr("Dropbox"))
             self._action_sync_dropbox.setChecked(self._sync_dropbox)
         if hasattr(self, "_action_sync_gdrive"):
-            # No local self._sync_google_drive flag to restore here (see
-            # _toggle_sync_github's identical note) — Google Drive sync
-            # state lives on the backend per Crowdly Space.
             self._action_sync_gdrive.setText(self.tr("Google Drive"))
         if hasattr(self, "_import_menu"):
             self._import_menu.setTitle(self.tr("Import"))
@@ -2599,6 +2641,14 @@ class MainWindow(QMainWindow):
             self._action_connect_dropbox.setText(self.tr("Dropbox"))
         if hasattr(self, "_action_connect_gdrive"):
             self._action_connect_gdrive.setText(self.tr("Google Drive"))
+        if hasattr(self, "_action_disconnect_gdrive"):
+            self._action_disconnect_gdrive.setText(self.tr("Disconnect Google Drive"))
+        if hasattr(self, "_action_gdrive_sync_now"):
+            self._action_gdrive_sync_now.setText(self.tr("Sync with Google Drive now"))
+        if hasattr(self, "_action_gdrive_log"):
+            self._action_gdrive_log.setText(self.tr("Google Drive sync log"))
+        if hasattr(self, "_gdrive_account"):
+            self._update_gdrive_action_state()
         if hasattr(self, "_action_connect_github"):
             self._action_connect_github.setText(self.tr("GitHub"))
         if hasattr(self, "_export_menu"):
@@ -4069,72 +4119,6 @@ class MainWindow(QMainWindow):
             self.tr("Connecting to Dropbox is not implemented yet."),
         )
 
-    def _connect_to_google_drive(self) -> None:  # pragma: no cover - UI wiring
-        """Connect to Google Drive.
-
-        Unlike GitHub (where connecting only ever happens on the web
-        platform), this opens the Google OAuth consent URL for the current
-        project space's linked Crowdly Space directly in the system browser
-        — websync.get_drive_auth_url asks the backend for that URL the same
-        way websync.get_github_sync_status asks for GitHub status.
-        """
-
-        import webbrowser
-
-        project_space = self._project_space_path
-        if project_space is None:
-            QMessageBox.information(
-                self,
-                self.tr("Connect"),
-                self.tr("There is no active project space set. Please choose or create one first."),
-            )
-            return
-
-        if not self._crowdly_user_id:
-            if self._username and self._username != "username":
-                try:
-                    self._crowdly_user_id = local_auth.get_user_id_for_email(self._username)
-                except Exception:
-                    self._crowdly_user_id = None
-
-        if not self._crowdly_user_id:
-            QMessageBox.warning(
-                self,
-                self.tr("Connect"),
-                self.tr("You need to be logged in to the Crowdly web platform before connecting Google Drive."),
-            )
-            return
-
-        try:
-            auth_url = websync.get_drive_auth_url(
-                self._settings, project_space, self._crowdly_user_id  # type: ignore[arg-type]
-            )
-        except Exception as exc:  # pragma: no cover - network dependent
-            QMessageBox.warning(
-                self,
-                self.tr("Connect"),
-                self.tr(
-                    "This project space isn't linked to a Crowdly Space on the web yet. "
-                    "Sync with the web platform at least once before connecting Google Drive."
-                    "\n\nDetails: {error}"
-                ).format(error=str(exc)),
-            )
-            return
-
-        if not auth_url:
-            QMessageBox.information(
-                self,
-                self.tr("Connect"),
-                self.tr(
-                    "Google Drive connect is either not configured on this server, "
-                    "or this Space is already connected to a Google Drive folder — "
-                    "use \"Change folder\" on the Space's page on the web platform instead."
-                ),
-            )
-            return
-
-        webbrowser.open(auth_url)
-
     def _connect_to_github(self) -> None:  # pragma: no cover - UI wiring
         """Connect to GitHub (placeholder)."""
 
@@ -4304,72 +4288,415 @@ class MainWindow(QMainWindow):
         self._sync_dropbox = not self._sync_dropbox
         self._retranslate_ui()
 
-    def _toggle_sync_google_drive(self) -> None:  # pragma: no cover - UI wiring
-        """Toggle Google Drive sync for the current project space's linked Crowdly Space.
+    # --- Google Drive (direct, per local Space — see editor.gdrive) -----------
 
-        Mirrors _toggle_sync_github above — backed by a real connector (see
-        backend/src/googleDriveSync.js), the backend owns sync state per
-        Crowdly Space, so this just flips it via
-        websync.set_drive_sync_enabled and reflects whatever the backend
-        confirms back, reverting the checkbox on any failure.
-        """
+    def _gdrive_root_key(self, root: Path | None) -> str | None:
+        if root is None:
+            return None
+        return str(Path(root).expanduser().resolve())
 
-        from PySide6.QtWidgets import QMessageBox
+    def _gdrive_mapping(self, root: Path | None) -> dict | None:
+        key = self._gdrive_root_key(root)
+        return self._settings.gdrive_sync.get(key) if key else None
 
-        desired = self._action_sync_gdrive.isChecked()
+    def _update_gdrive_action_state(self) -> None:
+        """Reflect the active Space's Drive mapping in the menu and status bar."""
 
-        def _revert(checked: bool) -> None:
+        mapping = self._gdrive_mapping(self._project_space_path)
+        if hasattr(self, "_action_sync_gdrive"):
             self._action_sync_gdrive.blockSignals(True)
-            self._action_sync_gdrive.setChecked(checked)
+            self._action_sync_gdrive.setChecked(bool(mapping and mapping.get("enabled")))
             self._action_sync_gdrive.blockSignals(False)
+        if hasattr(self, "_action_disconnect_gdrive"):
+            self._action_disconnect_gdrive.setEnabled(bool(mapping) or self._gdrive_account.is_signed_in())
+        self._update_gdrive_status_label()
+
+    def _update_gdrive_status_label(self) -> None:
+        label = getattr(self, "_gdrive_status_label", None)
+        if not isinstance(label, QLabel):
+            return
+        mapping = self._gdrive_mapping(self._project_space_path)
+        if not mapping or not mapping.get("enabled"):
+            label.setText("")
+            label.setToolTip("")
+            return
+        state = self._gdrive_last_state.get(self._gdrive_root_key(self._project_space_path) or "")
+        if self._gdrive_sync_in_progress:
+            text = self.tr("Drive: syncing…")
+        elif state is None:
+            text = self.tr("Drive: on")
+        elif state.get("error"):
+            text = self.tr("Drive: error")
+        else:
+            text = self.tr("Drive: synced {time}").format(time=state.get("time", ""))
+        label.setText(text)
+        tooltip = self.tr("Google Drive folder: {name}").format(name=mapping.get("folder_name") or "")
+        if state and state.get("error"):
+            tooltip += "\n" + state["error"]
+        label.setToolTip(tooltip)
+
+    def _ensure_gdrive_signed_in(self, on_ready) -> None:
+        """Call *on_ready()* once a Google account is available, running the browser sign-in if needed."""
+
+        from PySide6.QtWidgets import QMessageBox, QProgressDialog
+        from ..gdrive import oauth as gdrive_oauth
+
+        if self._gdrive_account.is_signed_in():
+            on_ready()
+            return
+
+        client_config = gdrive_oauth.load_client_config()
+        if client_config is None:
+            QMessageBox.warning(
+                self,
+                self.tr("Connect Google Drive"),
+                self.tr(
+                    "Google Drive isn't configured in this build of the app "
+                    "(missing Google OAuth client). See Documentation/Google_Drive_OAuth_setup.md."
+                ),
+            )
+            return
+        if self._gdrive_signin_thread is not None:
+            return
+
+        progress = QProgressDialog(
+            self.tr("Waiting for you to sign in to Google in your browser…"), self.tr("Cancel"), 0, 0, self
+        )
+        progress.setWindowTitle(self.tr("Connect Google Drive"))
+        progress.setMinimumDuration(0)
+        progress.setAutoClose(False)
+
+        thread = _GoogleSignInThread(client_config, parent=self)
+        self._gdrive_signin_thread = thread
+        progress.canceled.connect(thread.cancel)
+
+        def _finished_ok(tokens) -> None:
+            progress.close()
+            self._gdrive_signin_thread = None
+            try:
+                self._gdrive_account.store(tokens)
+            except Exception as exc:
+                QMessageBox.warning(self, self.tr("Connect Google Drive"), str(exc))
+                return
+            self._update_gdrive_action_state()
+            on_ready()
+
+        def _finished_error(message: str) -> None:
+            progress.close()
+            self._gdrive_signin_thread = None
+            if message == "missing_drive_scope":
+                QMessageBox.warning(
+                    self,
+                    self.tr("Connect Google Drive"),
+                    self.tr(
+                        "Google Drive access wasn't granted. Please connect again and, on Google's "
+                        "permission screen, tick the box \"See, edit, create, and delete all of your "
+                        "Google Drive files\"."
+                    ),
+                )
+            elif message != "cancelled":
+                QMessageBox.warning(
+                    self,
+                    self.tr("Connect Google Drive"),
+                    self.tr("Google sign-in did not complete:\n{error}").format(error=message),
+                )
+
+        thread.signedIn.connect(_finished_ok)
+        thread.signInFailed.connect(_finished_error)
+        thread.start()
+        progress.show()
+
+    def _connect_to_google_drive(self) -> None:  # pragma: no cover - UI wiring
+        """Connect the active local Space to a Google Drive folder.
+
+        Works without any Crowdly login: signs in to Google directly (browser
+        consent, tokens kept in the OS keychain), lets the user pick or create
+        a Drive folder, then syncs that folder and all its subfolders with the
+        local Space. Each local Space can use its own folder.
+        """
 
         project_space = self._project_space_path
         if project_space is None:
-            _revert(not desired)
+            QMessageBox.information(
+                self,
+                self.tr("Connect"),
+                self.tr("There is no active project space set. Please choose or create one first."),
+            )
+            return
+        self._ensure_gdrive_signed_in(lambda: self._choose_gdrive_folder(project_space))
+
+    def _choose_gdrive_folder(self, project_space: Path) -> None:
+        from .gdrive_folder_dialog import GoogleDriveFolderDialog
+        from ..gdrive.api import DriveError
+
+        # A sign-in stored earlier may lack Drive permission (unticked on
+        # Google's consent screen): detect that up front, forget it, and
+        # start a fresh sign-in instead of failing inside the folder picker.
+        try:
+            self._gdrive_client.list_child_folders("root")
+        except DriveError as exc:
+            if exc.missing_scope:
+                self._gdrive_account.sign_out()
+                QMessageBox.information(
+                    self,
+                    self.tr("Connect Google Drive"),
+                    self.tr(
+                        "Your Google sign-in doesn't include Drive access yet. Your browser will open again: "
+                        "on Google's permission screen, tick the box \"See, edit, create, and delete all of "
+                        "your Google Drive files\"."
+                    ),
+                )
+                self._ensure_gdrive_signed_in(lambda: self._choose_gdrive_folder(project_space))
+                return
+        except Exception:
+            pass  # the dialog reports other problems itself
+
+        dialog = GoogleDriveFolderDialog(
+            self._gdrive_client,
+            account_email=self._gdrive_account.email(),
+            default_new_name=Path(project_space).name,
+            parent=self,
+        )
+        if dialog.exec() != QDialog.Accepted or dialog.selected is None:
+            self._update_gdrive_action_state()
+            return
+        key = self._gdrive_root_key(project_space)
+        previous = self._settings.gdrive_sync.get(key or "")
+        if previous and previous.get("folder_id") != dialog.selected.id:
+            from ..gdrive import engine as gdrive_engine
+
+            gdrive_engine.forget_space(Path(project_space))
+        self._settings.gdrive_sync[key] = {  # type: ignore[index]
+            "folder_id": dialog.selected.id,
+            "folder_name": dialog.selected.name,
+            "enabled": True,
+        }
+        save_settings(self._settings)
+        self._update_gdrive_action_state()
+        self.statusBar().showMessage(
+            self.tr("Connected this Space to Google Drive folder \"{name}\". Syncing…").format(name=dialog.selected.name),
+            5000,
+        )
+        self._start_gdrive_sync([Path(project_space)])
+
+    def _disconnect_google_drive(self) -> None:  # pragma: no cover - UI wiring
+        """Stop syncing the active Space with Drive; optionally sign the Google account out."""
+
+        from ..gdrive import engine as gdrive_engine
+
+        project_space = self._project_space_path
+        key = self._gdrive_root_key(project_space)
+        if key and key in self._settings.gdrive_sync:
+            answer = QMessageBox.question(
+                self,
+                self.tr("Disconnect Google Drive"),
+                self.tr(
+                    "Stop syncing this Space with Google Drive? Files stay where they are, "
+                    "both on this computer and on Google Drive."
+                ),
+            )
+            if answer != QMessageBox.Yes:
+                return
+            self._settings.gdrive_sync.pop(key, None)
+            save_settings(self._settings)
+            gdrive_engine.forget_space(Path(project_space))  # type: ignore[arg-type]
+
+        if self._gdrive_account.is_signed_in():
+            others = [k for k in self._settings.gdrive_sync if k != key]
+            question = self.tr("Also sign out of Google ({email}) in this app?").format(
+                email=self._gdrive_account.email() or ""
+            )
+            if others:
+                question += "\n\n" + self.tr("Other Spaces that sync with Google Drive will stop syncing until you connect again.")
+            if QMessageBox.question(self, self.tr("Disconnect Google Drive"), question) == QMessageBox.Yes:
+                self._gdrive_account.sign_out()
+        self._update_gdrive_action_state()
+
+    def _toggle_sync_google_drive(self) -> None:  # pragma: no cover - UI wiring
+        """Turn Google Drive sync on/off for the active local Space (starts Connect if it has no folder yet)."""
+
+        desired = self._action_sync_gdrive.isChecked()
+        project_space = self._project_space_path
+        mapping = self._gdrive_mapping(project_space)
+        if project_space is None:
+            self._update_gdrive_action_state()
             QMessageBox.information(
                 self,
                 self.tr("Sync with Google Drive"),
                 self.tr("There is no active project space set. Please choose or create one first."),
             )
             return
+        if mapping is None:
+            self._update_gdrive_action_state()
+            if desired:
+                self._connect_to_google_drive()
+            return
+        mapping["enabled"] = desired
+        save_settings(self._settings)
+        self._update_gdrive_action_state()
+        if desired:
+            self._ensure_gdrive_signed_in(lambda: self._start_gdrive_sync([Path(project_space)]))
 
-        if not self._crowdly_user_id:
-            if self._username and self._username != "username":
-                try:
-                    self._crowdly_user_id = local_auth.get_user_id_for_email(self._username)
-                except Exception:
-                    self._crowdly_user_id = None
+    def _schedule_gdrive_sync(self) -> None:  # pragma: no cover - UI wiring
+        """Debounced Drive sync after a local save in a Drive-synced Space."""
 
-        if not self._crowdly_user_id:
-            _revert(not desired)
-            QMessageBox.warning(
-                self,
-                self.tr("Sync with Google Drive"),
-                self.tr("You need to be logged in to the Crowdly web platform before changing Google Drive sync."),
-            )
+        mapping = self._gdrive_mapping(self._project_space_path)
+        if mapping and mapping.get("enabled"):
+            self._gdrive_debounce_timer.start(3000)
+
+    def _gdrive_sync_active_space(self) -> None:  # pragma: no cover - UI wiring
+        if self._project_space_path is not None:
+            self._start_gdrive_sync([self._project_space_path])
+
+    def _gdrive_poll(self) -> None:  # pragma: no cover - UI wiring
+        """Periodic sync of every known Space that has Drive sync on (Drive can't push to a desktop app)."""
+
+        roots = []
+        for key, mapping in self._settings.gdrive_sync.items():
+            if mapping.get("enabled") and Path(key).is_dir():
+                roots.append(Path(key))
+        if roots:
+            self._start_gdrive_sync(roots)
+
+    def _start_gdrive_sync(self, roots: list[Path]) -> None:  # pragma: no cover - UI wiring
+        if self._gdrive_sync_in_progress or not self._gdrive_account.is_signed_in():
+            return
+        jobs = []
+        for root in roots:
+            mapping = self._gdrive_mapping(root)
+            if mapping and mapping.get("enabled"):
+                jobs.append((Path(root), mapping["folder_id"]))
+        if not jobs:
             return
 
+        # Put pending edits on disk first so the sync sees them, and remember
+        # what every open tab looked like so edits typed *during* the sync can
+        # be merged with whatever the sync writes (see _reload_tabs_after_gdrive_sync).
         try:
-            status = websync.set_drive_sync_enabled(
-                self._settings, project_space, self._crowdly_user_id, desired  # type: ignore[arg-type]
-            )
-        except Exception as exc:  # pragma: no cover - network dependent
-            _revert(not desired)
-            QMessageBox.warning(
-                self,
-                self.tr("Sync with Google Drive"),
-                self.tr(
-                    "This Space needs to be connected to a Google Drive folder first "
-                    "(use \"Connect Google Drive\" on the Space's page on the web platform, "
-                    "or Settings → Connect → Google Drive here), or the request failed."
-                    "\n\nDetails: {error}"
-                ).format(error=str(exc)),
-            )
-            return
+            if self._document.is_dirty:
+                self._perform_autosave()
+        except Exception:
+            pass
+        self._gdrive_tab_snapshots = {}
+        for doc in self._tab_documents:
+            if doc.path is not None:
+                self._gdrive_tab_snapshots[str(Path(doc.path).resolve())] = doc.content
 
-        confirmed = bool(status.get("enabled"))
-        if confirmed != desired:
-            _revert(confirmed)
+        self._gdrive_sync_in_progress = True
+        self._update_gdrive_status_label()
+        thread = _GoogleDriveSyncThread(self._gdrive_client, jobs, parent=self)
+        self._gdrive_sync_thread = thread
+        thread.syncFinished.connect(self._on_gdrive_sync_finished)
+        thread.start()
+
+    def _on_gdrive_sync_finished(self, outcomes: list) -> None:  # pragma: no cover - UI wiring
+        self._gdrive_sync_in_progress = False
+        self._gdrive_sync_thread = None
+        now = datetime.now().strftime("%H:%M")
+        changed_paths: set[str] = set()
+        messages: list[str] = []
+        for root, result, error in outcomes:
+            key = self._gdrive_root_key(root) or ""
+            if error:
+                self._gdrive_last_state[key] = {"error": error}
+                self._gdrive_log.append(f"{datetime.now():%Y-%m-%d %H:%M} [{Path(root).name}] {error}")
+                continue
+            state = {"time": now}
+            if result.errors:
+                state["error"] = "\n".join(result.errors[:5])
+            self._gdrive_last_state[key] = state
+            for line in result.log + result.errors:
+                self._gdrive_log.append(f"{datetime.now():%Y-%m-%d %H:%M} [{Path(root).name}] {line}")
+            changed_paths.update(str(Path(p).resolve()) for p in result.changed_local_paths)
+            if result.conflicts:
+                messages.append(
+                    self.tr(
+                        "Google Drive: {count} file(s) were edited in both places; "
+                        "Drive's version was saved next to yours as a \"conflict\" copy."
+                    ).format(count=result.conflicts)
+                )
+        self._gdrive_log = self._gdrive_log[-200:]
+        if changed_paths:
+            self._reload_tabs_after_gdrive_sync(changed_paths)
+        self._update_gdrive_status_label()
+        if messages:
+            self.statusBar().showMessage(" ".join(messages), 10000)
+
+    def _reload_tabs_after_gdrive_sync(self, changed_paths: set[str]) -> None:  # pragma: no cover - UI wiring
+        """Show what the sync wrote into files that are open in tabs, without losing anything typed meanwhile."""
+
+        from ..gdrive.merge import three_way_merge
+        from ..gdrive.engine import _conflict_name
+
+        for index, doc in enumerate(self._tab_documents):
+            if doc.path is None:
+                continue
+            path = Path(doc.path).resolve()
+            if str(path) not in changed_paths or not path.is_file():
+                continue
+            try:
+                disk_text = storage.read_text(path)
+            except Exception:
+                continue
+            if disk_text == doc.content:
+                continue
+
+            snapshot = self._gdrive_tab_snapshots.get(str(path))
+            if not doc.is_dirty or doc.content == snapshot:
+                new_text, keep_dirty = disk_text, False
+            else:
+                merged = None
+                if snapshot is not None:
+                    merged = three_way_merge(
+                        doc.content.encode("utf-8"), snapshot.encode("utf-8"), disk_text.encode("utf-8")
+                    )
+                if merged is None:
+                    # Can't combine safely: keep what's being typed, and keep
+                    # the synced version as a conflict copy so it isn't lost.
+                    rel = path.name
+                    conflict = path.with_name(_conflict_name(rel, lambda p: path.with_name(p).exists()))
+                    try:
+                        storage.write_text(conflict, disk_text)
+                    except Exception:
+                        pass
+                    self.statusBar().showMessage(
+                        self.tr("Google Drive changed \"{name}\" while you were editing it; Drive's version was saved as \"{copy}\".").format(
+                            name=path.name, copy=conflict.name
+                        ),
+                        10000,
+                    )
+                    continue
+                new_text, keep_dirty = merged.decode("utf-8"), True
+
+            editor, _preview = self._tab_widgets[index]
+            try:
+                cursor_state = editor.get_cursor_state()
+            except Exception:
+                cursor_state = None
+            doc.content = new_text
+            doc.is_dirty = keep_dirty
+            old_block = editor.blockSignals(True)
+            try:
+                editor.setPlainText(new_text)
+            finally:
+                editor.blockSignals(old_block)
+            try:
+                editor.restore_cursor_state(cursor_state)  # type: ignore[arg-type]
+            except Exception:
+                pass
+            if index == self._current_tab_index:
+                self._refresh_preview_from_document(source="document")
+                self._update_document_stats_label()
+                if keep_dirty:
+                    self._autosave_timer.start(self._autosave_interval_ms)
+
+    def _show_gdrive_log(self) -> None:  # pragma: no cover - UI wiring
+        text = "\n".join(reversed(self._gdrive_log)) or self.tr("Nothing has been synced with Google Drive yet.")
+        box = QMessageBox(self)
+        box.setWindowTitle(self.tr("Google Drive sync log"))
+        box.setText(self.tr("Recent Google Drive sync activity:"))
+        box.setDetailedText(text)
+        box.exec()
 
     def _pull_all_remote_spaces_if_no_project_space(self) -> None:  # pragma: no cover - UI wiring
         """Pull all remote Spaces owned by the current user when no project space is set.
@@ -8318,3 +8645,54 @@ class _ScreenplayFetchThread(QThread):
             self.fetchFailed.emit(
                 {"kind": "unknown", "message": f"Unexpected error: {exc}"}
             )
+
+
+class _GoogleSignInThread(QThread):
+    """Runs the blocking browser sign-in (editor.gdrive.oauth.sign_in) off the UI thread."""
+
+    signedIn = Signal(object)
+    signInFailed = Signal(str)
+
+    def __init__(self, client_config, parent: QObject | None = None) -> None:
+        super().__init__(parent)
+        self._client_config = client_config
+        self._cancelled = False
+
+    def cancel(self) -> None:
+        self._cancelled = True
+
+    def run(self) -> None:
+        from ..gdrive import oauth as gdrive_oauth
+
+        try:
+            tokens = gdrive_oauth.sign_in(self._client_config, cancelled=lambda: self._cancelled)
+        except gdrive_oauth.OAuthError as exc:
+            self.signInFailed.emit(str(exc))
+            return
+        except Exception as exc:  # pragma: no cover - network dependent
+            self.signInFailed.emit(str(exc))
+            return
+        self.signedIn.emit(tokens)
+
+
+class _GoogleDriveSyncThread(QThread):
+    """Runs editor.gdrive.engine for one or more (local root, Drive folder id) pairs."""
+
+    syncFinished = Signal(object)  # list of (root, SyncResult | None, error str | None)
+
+    def __init__(self, client, jobs: list[tuple[Path, str]], parent: QObject | None = None) -> None:
+        super().__init__(parent)
+        self._client = client
+        self._jobs = jobs
+
+    def run(self) -> None:
+        from ..gdrive.engine import SpaceSyncEngine
+
+        outcomes = []
+        for root, folder_id in self._jobs:
+            try:
+                result = SpaceSyncEngine(self._client, root, folder_id).run()
+                outcomes.append((root, result, None))
+            except Exception as exc:  # pragma: no cover - network dependent
+                outcomes.append((root, None, str(exc)))
+        self.syncFinished.emit(outcomes)
