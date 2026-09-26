@@ -17,6 +17,7 @@ import fs from 'fs';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { pool } from './db.js';
+import { getSessionUser, SESSION_COOKIE_NAME } from './sessions.js';
 import { scheduleGithubPush } from './githubSync.js';
 import { scheduleGoogleDrivePush } from './googleDriveSync.js';
 
@@ -58,12 +59,24 @@ async function loadItemWithSpace(spaceId, itemId) {
   return rows[0] || null;
 }
 
-function canRead(item, userId) {
+// A 'selected' Space ("Only for selected user(s)") is shared as a whole with
+// the users in creative_space_access, so they can read every item in it.
+// That grant is checked against the session user, like canViewSpace() in
+// server.js, rather than the client-supplied userId.
+async function canRead(item, userId, req) {
   const isOwner = Boolean(userId) && String(item.space_owner_id) === String(userId);
   if (isOwner) return true;
   const spaceVisibility = String(item.space_visibility || 'private').toLowerCase();
   const itemVisibility = String(item.visibility || 'private').toLowerCase();
-  return spaceVisibility === 'public' && itemVisibility === 'public';
+  if (spaceVisibility === 'public') return itemVisibility === 'public';
+  if (spaceVisibility !== 'selected') return false;
+  const viewer = await getSessionUser(req.cookies?.[SESSION_COOKIE_NAME]);
+  if (!viewer) return false;
+  const { rowCount } = await pool.query(
+    'SELECT 1 FROM creative_space_access WHERE space_id = $1 AND user_id = $2',
+    [item.space_id, viewer.id],
+  );
+  return rowCount > 0;
 }
 
 function canWrite(item, userId) {
@@ -189,7 +202,7 @@ router.get('/creative-spaces/:spaceId/items/:itemId/content', async (req, res) =
   try {
     const item = await loadItemWithSpace(spaceId, itemId);
     if (!item) return res.status(404).json({ error: 'Item not found' });
-    if (!canRead(item, userId)) {
+    if (!(await canRead(item, userId, req))) {
       return res.status(403).json({ error: 'You do not have access to this item' });
     }
     if (!item.storage_path) {

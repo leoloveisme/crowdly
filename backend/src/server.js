@@ -4834,13 +4834,48 @@ app.get('/creative-spaces', async (req, res) => {
   }
 });
 
-// Get a single creative space by id (for detail page / ownership checks)
-//
-// Access rules:
+// Space view access:
 // - Owner can always see their own Space.
-// - Non-owners and guests can only see Spaces that are explicitly
-//   marked as public. For now we treat any non-'public' visibility
-//   value as private/owner-only.
+// - 'public' Spaces are visible to everyone, including guests.
+// - 'selected' Spaces are visible to the users listed in
+//   creative_space_access. That grant is checked against the session user
+//   (not a client-supplied userId), so it can't be claimed by passing an id.
+// - Any other visibility value is treated as private/owner-only.
+async function canViewSpace(space, req, userId) {
+  if (userId && String(space.user_id) === String(userId)) return true;
+  const visibility = String(space.visibility ?? 'private').toLowerCase();
+  if (visibility === 'public') return true;
+  if (visibility !== 'selected') return false;
+  const viewer = await getSessionUser(req.cookies?.[SESSION_COOKIE_NAME]);
+  if (!viewer) return false;
+  const { rowCount } = await pool.query(
+    'SELECT 1 FROM creative_space_access WHERE space_id = $1 AND user_id = $2',
+    [space.id, viewer.id],
+  );
+  return rowCount > 0;
+}
+
+// Spaces other users have shared with the signed-in user via
+// "Only for selected user(s)". Declared before /creative-spaces/:spaceId
+// so the literal path isn't captured as a spaceId.
+app.get('/creative-spaces/shared-with-me', requireAuth, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT cs.* FROM creative_spaces cs
+       JOIN creative_space_access a ON a.space_id = cs.id
+       WHERE a.user_id = $1 AND cs.visibility = 'selected'
+       ORDER BY cs.name ASC`,
+      [req.user.id],
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('[GET /creative-spaces/shared-with-me] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch shared creative spaces' });
+  }
+});
+
+// Get a single creative space by id (for detail page / ownership checks).
+// Access rules: see canViewSpace().
 app.get('/creative-spaces/:spaceId', async (req, res) => {
   const { spaceId } = req.params;
   const userId = req.query.userId ?? null;
@@ -4856,25 +4891,14 @@ app.get('/creative-spaces/:spaceId', async (req, res) => {
     }
 
     const space = rows[0];
-    const visibilityRaw = space.visibility ?? 'private';
-    const visibility = String(visibilityRaw).toLowerCase();
-
-    // Owner can always view the Space regardless of visibility.
-    if (userId && String(space.user_id) === String(userId)) {
-      return res.json(space);
-    }
-
-    // Non-owners (including guests) may only view Spaces that are
-    // explicitly public. Any other visibility value is treated as
-    // private/owner-only for now.
-    if (visibility === 'public') {
+    if (await canViewSpace(space, req, userId)) {
       return res.json(space);
     }
 
     console.warn('[GET /creative-spaces/:spaceId] access denied for Space', {
       spaceId,
       userId,
-      visibility,
+      visibility: space.visibility,
     });
     return res
       .status(403)
@@ -4989,8 +5013,12 @@ app.patch('/creative-spaces/:spaceId', async (req, res) => {
     values.push(path || null);
   }
   if (visibility !== undefined) {
+    const nextVisibility = visibility || 'private';
+    if (!['public', 'private', 'selected'].includes(nextVisibility)) {
+      return res.status(400).json({ error: 'visibility must be public, private or selected' });
+    }
     fields.push(`visibility = $${idx++}`);
-    values.push(visibility || 'private');
+    values.push(nextVisibility);
   }
   if (published !== undefined) {
     fields.push(`published = $${idx++}`);
@@ -5024,6 +5052,66 @@ app.patch('/creative-spaces/:spaceId', async (req, res) => {
   } catch (err) {
     console.error('[PATCH /creative-spaces/:spaceId] failed:', err);
     res.status(500).json({ error: 'Failed to update creative space' });
+  }
+});
+
+// Users a Space is shared with when its visibility is 'selected'
+// ("Only for selected user(s)"). Owner-only via loadOwnedSpace().
+async function listSpaceAccessUsers(spaceId) {
+  const { rows } = await pool.query(
+    `SELECT u.id, u.email, p.username, p.first_name, p.last_name
+     FROM creative_space_access a
+     JOIN local_users u ON u.id = a.user_id
+     LEFT JOIN profiles p ON p.id = u.id
+     WHERE a.space_id = $1
+     ORDER BY COALESCE(p.username, u.email) ASC`,
+    [spaceId],
+  );
+  return rows;
+}
+
+app.get('/creative-spaces/:spaceId/access', requireAuth, async (req, res) => {
+  try {
+    const space = await loadOwnedSpace(req, res);
+    if (!space) return;
+    res.json({ users: await listSpaceAccessUsers(space.id) });
+  } catch (err) {
+    console.error('[GET /creative-spaces/:spaceId/access] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch Space access list' });
+  }
+});
+
+// Replaces the whole access list with body.userIds.
+app.put('/creative-spaces/:spaceId/access', requireAuth, async (req, res) => {
+  const rawIds = Array.isArray(req.body?.userIds) ? req.body.userIds : null;
+  if (!rawIds) {
+    return res.status(400).json({ error: 'userIds array is required' });
+  }
+  const userIds = [...new Set(rawIds.map((id) => String(id)).filter(Boolean))];
+
+  const client = await pool.connect();
+  try {
+    const space = await loadOwnedSpace(req, res);
+    if (!space) return;
+    await client.query('BEGIN');
+    await client.query('DELETE FROM creative_space_access WHERE space_id = $1', [space.id]);
+    if (userIds.length > 0) {
+      await client.query(
+        `INSERT INTO creative_space_access (space_id, user_id)
+         SELECT $1, u.id FROM local_users u
+         WHERE u.id::text = ANY($2::text[]) AND u.id::text <> $3
+         ON CONFLICT DO NOTHING`,
+        [space.id, userIds, String(space.user_id)],
+      );
+    }
+    await client.query('COMMIT');
+    res.json({ users: await listSpaceAccessUsers(space.id) });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('[PUT /creative-spaces/:spaceId/access] failed:', err);
+    res.status(500).json({ error: 'Failed to update Space access list' });
+  } finally {
+    client.release();
   }
 });
 
@@ -5125,16 +5213,11 @@ app.get('/creative-spaces/:spaceId/items', async (req, res) => {
       return res.status(404).json({ error: 'Creative space not found' });
     }
     const space = spaceRes.rows[0];
-    const visibilityRaw = space.visibility ?? 'private';
-    const visibility = String(visibilityRaw).toLowerCase();
-
-    const isOwner = userId && String(space.user_id) === String(userId);
-
-    if (!isOwner && visibility !== 'public') {
+    if (!(await canViewSpace(space, req, userId))) {
       console.warn('[GET /creative-spaces/:spaceId/items] access denied for Space', {
         spaceId,
         userId,
-        visibility,
+        visibility: space.visibility,
       });
       return res
         .status(403)
@@ -5187,13 +5270,13 @@ app.get('/creative-spaces/:spaceId/content-items', async (req, res) => {
   }
 
   try {
-    const spaceRes = await pool.query('SELECT user_id, visibility FROM creative_spaces WHERE id = $1', [spaceId]);
+    const spaceRes = await pool.query('SELECT id, user_id, visibility FROM creative_spaces WHERE id = $1', [spaceId]);
     if (spaceRes.rows.length === 0) {
       return res.status(404).json({ error: 'Creative space not found' });
     }
     const space = spaceRes.rows[0];
     const isOwner = userId && String(space.user_id) === String(userId);
-    if (!isOwner && String(space.visibility || 'private').toLowerCase() !== 'public') {
+    if (!(await canViewSpace(space, req, userId))) {
       return res.status(403).json({ error: 'You do not have access to this creative space.' });
     }
 
@@ -5739,15 +5822,11 @@ app.get('/creative-spaces/:spaceId/sync', async (req, res) => {
     }
 
     const space = spaceRes.rows[0];
-    const visibilityRaw = space.visibility ?? 'private';
-    const visibility = String(visibilityRaw).toLowerCase();
-    const isOwner = userId && String(space.user_id) === String(userId);
-
-    if (!isOwner && visibility !== 'public') {
+    if (!(await canViewSpace(space, req, userId))) {
       console.warn('[GET /creative-spaces/:spaceId/sync] access denied for Space', {
         spaceId,
         userId,
-        visibility,
+        visibility: space.visibility,
       });
       return res
         .status(403)

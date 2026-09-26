@@ -93,7 +93,7 @@ const CreativeSpacePage: React.FC = () => {
         const url = params.toString()
           ? `${API_BASE}/creative-spaces/${encodeURIComponent(spaceId)}?${params.toString()}`
           : `${API_BASE}/creative-spaces/${encodeURIComponent(spaceId)}`;
-        const res = await fetch(url);
+        const res = await fetch(url, { credentials: "include" });
         const body = await res.json().catch(() => ({}));
         if (!res.ok) {
           console.error("[CreativeSpacePage:web] Failed to load space", { status: res.status, body });
@@ -129,7 +129,7 @@ const CreativeSpacePage: React.FC = () => {
       const url = params.toString()
         ? `${API_BASE}/creative-spaces/${encodeURIComponent(spaceId)}/items?${params.toString()}`
         : `${API_BASE}/creative-spaces/${encodeURIComponent(spaceId)}/items`;
-      const res = await fetch(url);
+      const res = await fetch(url, { credentials: "include" });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
         console.error("[CreativeSpacePage:web] Failed to load items", { status: res.status, body });
