@@ -1100,6 +1100,41 @@
   },
   {
     "page_key": "/creative_space/:spaceId",
+    "element_id": "space-chapter-sync-activity",
+    "en": "Auto-sync activity",
+    "ru": "Журнал автосинхронизации",
+    "de": "Automatische Synchronisierungsaktivität"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-chapter-sync-activity-title",
+    "en": "Auto-sync activity",
+    "ru": "Журнал автосинхронизации",
+    "de": "Automatische Synchronisierungsaktivität"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-chapter-sync-activity-help",
+    "en": "Chapters linked to a file here stay in sync automatically — this is what that's done, including re-linking a chapter's file after the connected repo/folder was reorganized.",
+    "ru": "Главы, связанные с файлом здесь, синхронизируются автоматически — вот что было сделано, включая повторную привязку файла главы после реорганизации подключённого репозитория или папки.",
+    "de": "Mit einer Datei hier verknüpfte Kapitel bleiben automatisch synchron — hier ist, was dabei getan wurde, einschließlich der Neuverknüpfung der Datei eines Kapitels nach einer Reorganisation des verbundenen Repos/Ordners."
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-chapter-sync-activity-loading",
+    "en": "Loading…",
+    "ru": "Загрузка…",
+    "de": "Wird geladen…"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-chapter-sync-activity-empty",
+    "en": "Nothing to show yet.",
+    "ru": "Пока нечего показывать.",
+    "de": "Noch nichts anzuzeigen."
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
     "element_id": "space-drive-use-existing",
     "en": "Use existing Google Drive connection",
     "ru": "Использовать существующее подключение к Google Диску",

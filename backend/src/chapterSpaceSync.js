@@ -1,10 +1,12 @@
-// Bidirectional sync between a story chapter (`stories.paragraphs`, the
-// table the live chapter editor actually writes to) and a creative_space_items
-// file that's been explicitly linked to it (creative_space_items.linked_chapter_id
-// + chapter_sync_enabled). Deliberately built on the plain stories table, not
-// the CRDT-backed Phase 2 link in githubSync.js — the real chapter editor
-// (PATCH /chapters/:chapterId) never touches CRDT, so a mechanism built on it
-// would never fire for real edits.
+// Bidirectional sync between a story chapter and a creative_space_items
+// file that's been linked to it (creative_space_items.linked_chapter_id +
+// chapter_sync_enabled). Both directions go through the chapter's CRDT doc
+// (chapterCrdtSync.js) rather than the plain `stories` table directly, so
+// concurrent edits from the chapter editor and the connected GitHub repo /
+// Google Drive folder merge for real (Automerge) instead of one side
+// clobbering the other or a manual "skip and log" conflict gate. The
+// materialization listener in chapterCrdtSync.js persists the merged result
+// into `stories`/`chapter_revisions` after every doc change.
 //
 // Once an item's bytes are updated here, the EXISTING GitHub/Drive item-level
 // push (scheduleGithubPush/scheduleGoogleDrivePush) and pull
@@ -17,25 +19,20 @@ import { storeItemContent, guessMimeType } from './creativeSpaceFiles.js';
 import { chapterToMarkdown, markdownToChapter } from './chapterMarkdown.js';
 import { scheduleGithubPush } from './githubSync.js';
 import { scheduleGoogleDrivePush } from './googleDriveSync.js';
+import { getChapterCrdtHandle } from './chapterCrdtSync.js';
+import { applyContentToHandle } from './crdt/repo.js';
+
+const CHAPTER_SYNC_ACTOR = { id: null, email: 'chapter-sync@crowdly.internal' };
 
 function hashOf(buffer) {
   return crypto.createHash('sha256').update(buffer).digest('hex');
 }
 
-async function nextChapterRevisionNumber(queryable, chapterId) {
-  const { rows } = await queryable.query(
-    'SELECT revision_number FROM chapter_revisions WHERE chapter_id = $1 ORDER BY revision_number DESC LIMIT 1',
-    [chapterId],
-  );
-  if (rows.length === 0) return 1;
-  return Number(rows[0].revision_number) + 1;
-}
-
 /**
- * Renders a chapter's current content into its linked Space item (if sync is
- * enabled for it) and schedules the existing GitHub/Drive item push. Safe to
- * call after every chapter-content write; no-ops quickly when nothing is
- * linked or nothing actually changed.
+ * Renders a chapter's current (CRDT) content into its linked Space item(s)
+ * and schedules the existing GitHub/Drive item push. Safe to call after
+ * every chapter-content write; no-ops quickly when nothing is linked or
+ * nothing actually changed.
  */
 export async function pushChapterToLinkedItem(chapterId) {
   const { rows: itemRows } = await pool.query(
@@ -45,14 +42,11 @@ export async function pushChapterToLinkedItem(chapterId) {
   );
   if (itemRows.length === 0) return;
 
-  const { rows: chapterRows } = await pool.query(
-    'SELECT chapter_title, paragraphs FROM stories WHERE chapter_id = $1',
-    [chapterId],
-  );
-  if (chapterRows.length === 0) return;
-  const chapter = chapterRows[0];
+  const handle = await getChapterCrdtHandle(chapterId);
+  const doc = handle.doc();
+  if (!doc) return;
 
-  const buffer = Buffer.from(chapterToMarkdown({ title: chapter.chapter_title, paragraphs: chapter.paragraphs }), 'utf8');
+  const buffer = Buffer.from(chapterToMarkdown({ title: doc.title, paragraphs: doc.paragraphs }), 'utf8');
   const hash = hashOf(buffer);
 
   for (const item of itemRows) {
@@ -79,15 +73,17 @@ export async function pushChapterToLinkedItem(chapterId) {
 }
 
 /**
- * Folds a Space item's just-pulled bytes into its linked chapter, if any.
- * Called by githubSync.js/googleDriveSync.js right after they've written
- * pulled content to disk for a tracked item. Returns a status string the
+ * Folds a Space item's just-pulled bytes into its linked chapter's CRDT doc,
+ * if any. Called by githubSync.js/googleDriveSync.js right after they've
+ * written pulled content to disk for a tracked item, and by
+ * chapterSpaceReconcile.js when re-pointing a chapter at a renamed file.
+ * Automerge merges this against whatever the chapter editor has done since
+ * the last sync — no manual conflict gate. Returns a status string the
  * caller can log to its own (transport-specific) sync log:
- *   'not_linked'   — item has no enabled chapter link, nothing to do.
- *   'echo'         — this is just the file we ourselves last pushed.
- *   'unchanged'    — parsed content matches the chapter already; bookkeeping only.
- *   'conflict'     — the chapter changed locally since our last sync; skipped, needs manual resolution.
- *   'applied'      — the chapter was updated from this file's content.
+ *   'not_linked' — item has no enabled chapter link (or its chapter/doc is gone), nothing to do.
+ *   'echo'       — this is just the file we ourselves last pushed.
+ *   'unchanged'  — parsed content matches the chapter's doc already; bookkeeping only.
+ *   'applied'    — the chapter's doc was updated (merged) from this file's content.
  */
 export async function pullChapterFromLinkedItem(item, buffer) {
   if (!item.linked_chapter_id || !item.chapter_sync_enabled) return 'not_linked';
@@ -95,66 +91,28 @@ export async function pullChapterFromLinkedItem(item, buffer) {
   const hash = hashOf(buffer);
   if (item.chapter_content_hash === hash) return 'echo';
 
-  const { title, paragraphs } = markdownToChapter(buffer);
+  const parsed = markdownToChapter(buffer);
 
-  // SELECT ... FOR UPDATE holds the row lock across the read-check-write so a
-  // concurrent PATCH /chapters/:chapterId can't land between our staleness
-  // check and our write (same pattern already used for crdt_proposals in
-  // POST /proposals/:proposalId/approve).
-  const client = await pool.connect();
-  let chapter;
-  let status;
-  let nextChapterTitle;
+  let handle;
   try {
-    await client.query('BEGIN');
-
-    const { rows } = await client.query(
-      'SELECT story_title_id, chapter_title, paragraphs, content_updated_at FROM stories WHERE chapter_id = $1 FOR UPDATE',
-      [item.linked_chapter_id],
-    );
-    if (rows.length === 0) {
-      await client.query('ROLLBACK');
-      console.error('[chapterSpaceSync] pull skipped: linked chapter no longer exists', item.linked_chapter_id);
-      return 'not_linked';
-    }
-    chapter = rows[0];
-
-    const titleChanged = (title || '') !== (chapter.chapter_title || '');
-    const paragraphsChanged = JSON.stringify(paragraphs) !== JSON.stringify(chapter.paragraphs || []);
-    if (!titleChanged && !paragraphsChanged) {
-      await client.query('COMMIT');
-      status = 'unchanged';
-    } else {
-      // The chapter changed in Crowdly since we last synced this item —
-      // don't clobber a newer local edit with the incoming file content.
-      const lastSynced = item.chapter_last_synced_at || item.created_at;
-      if (chapter.content_updated_at && lastSynced && new Date(chapter.content_updated_at) > new Date(lastSynced)) {
-        await client.query('ROLLBACK');
-        return 'conflict';
-      }
-
-      nextChapterTitle = title || chapter.chapter_title;
-      await client.query(
-        'UPDATE stories SET chapter_title = $1, paragraphs = $2 WHERE chapter_id = $3',
-        [nextChapterTitle, paragraphs, item.linked_chapter_id],
-      );
-
-      const revisionNumber = await nextChapterRevisionNumber(client, item.linked_chapter_id);
-      await client.query(
-        `INSERT INTO chapter_revisions
-           (chapter_id, prev_chapter_title, new_chapter_title, prev_paragraphs, new_paragraphs, created_by, revision_number, revision_reason, language)
-         VALUES ($1, $2, $3, $4, $5, NULL, $6, $7, $8)`,
-        [item.linked_chapter_id, chapter.chapter_title, nextChapterTitle, chapter.paragraphs, paragraphs, revisionNumber, 'Synced from Space file', 'en'],
-      );
-
-      await client.query('COMMIT');
-      status = 'applied';
-    }
+    handle = await getChapterCrdtHandle(item.linked_chapter_id);
   } catch (err) {
-    await client.query('ROLLBACK');
-    throw err;
-  } finally {
-    client.release();
+    console.error('[chapterSpaceSync] pull skipped: could not load CRDT doc for chapter', item.linked_chapter_id, err);
+    return 'not_linked';
+  }
+  const before = handle.doc();
+  if (!before) return 'not_linked';
+
+  const unchanged = (parsed.title || '') === (before.title || '')
+    && JSON.stringify(parsed.paragraphs) === JSON.stringify(before.paragraphs || []);
+
+  if (!unchanged) {
+    applyContentToHandle(
+      handle,
+      { ...before, title: parsed.title || before.title, paragraphs: parsed.paragraphs },
+      CHAPTER_SYNC_ACTOR,
+      'external-sync',
+    );
   }
 
   await pool.query(
@@ -162,13 +120,5 @@ export async function pullChapterFromLinkedItem(item, buffer) {
     [hash, item.id],
   );
 
-  if (status === 'applied' && chapter.story_title_id) {
-    try {
-      await pool.query('UPDATE story_title SET updated_at = now() WHERE story_title_id = $1', [chapter.story_title_id]);
-    } catch (errTs) {
-      console.error('[chapterSpaceSync] failed to bump story_title.updated_at:', errTs);
-    }
-  }
-
-  return status;
+  return unchanged ? 'unchanged' : 'applied';
 }
