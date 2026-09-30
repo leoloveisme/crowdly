@@ -9385,5 +9385,124 @@
     "en": "Page",
     "ru": "Страница",
     "de": "Seite"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-sync-badge-syncing",
+    "en": "Syncing with",
+    "ru": "Синхронизируется с",
+    "de": "Synchronisiert mit"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-sync-badge-not-syncing",
+    "en": "not syncing",
+    "ru": "не синхронизируется",
+    "de": "keine Synchronisierung"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-sync-type-chapter",
+    "en": "Chapter",
+    "ru": "Глава",
+    "de": "Kapitel"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-sync-type-scene",
+    "en": "Scene",
+    "ru": "Сцена",
+    "de": "Szene"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-sync-type-page",
+    "en": "Page",
+    "ru": "Страница",
+    "de": "Seite"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-sync-action-stop",
+    "en": "Stop syncing",
+    "ru": "Остановить синхронизацию",
+    "de": "Synchronisierung beenden"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-sync-action-start",
+    "en": "Start syncing",
+    "ru": "Начать синхронизацию",
+    "de": "Synchronisierung starten"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-sync-action-change",
+    "en": "Change…",
+    "ru": "Изменить…",
+    "de": "Ändern…"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-sync-action-connect",
+    "en": "Sync with a chapter…",
+    "ru": "Синхронизировать с главой…",
+    "de": "Mit einem Kapitel synchronisieren…"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-sync-dialog-title",
+    "en": "Sync this file with a chapter, scene or page",
+    "ru": "Синхронизировать файл с главой, сценой или страницей",
+    "de": "Diese Datei mit einem Kapitel, einer Szene oder Seite synchronisieren"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-sync-dialog-explainer",
+    "en": "Edits made in either place will be copied to the other. For a chapter or scene, this file is first replaced with its current text. For a comic page, a new version of this image will replace the page.",
+    "ru": "Изменения, сделанные в одном месте, будут копироваться в другое. Для главы или сцены этот файл сначала заменяется её текущим текстом. Для страницы комикса новая версия этого изображения заменит страницу.",
+    "de": "Änderungen an einer Stelle werden in die andere übernommen. Bei einem Kapitel oder einer Szene wird diese Datei zuerst durch deren aktuellen Text ersetzt. Bei einer Comic-Seite ersetzt eine neue Version dieses Bildes die Seite."
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-sync-dialog-confirm",
+    "en": "Start syncing",
+    "ru": "Начать синхронизацию",
+    "de": "Synchronisierung starten"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-outline-heading",
+    "en": "Scene order",
+    "ru": "Порядок сцен",
+    "de": "Reihenfolge der Szenen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-outline-hint",
+    "en": "Drag the handle or use the arrows to reorder",
+    "ru": "Перетащите за маркер или используйте стрелки, чтобы изменить порядок",
+    "de": "Am Griff ziehen oder die Pfeile nutzen, um die Reihenfolge zu ändern"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "screenplay-outline-heading",
+    "en": "Scene order",
+    "ru": "Порядок сцен",
+    "de": "Reihenfolge der Szenen"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "screenplay-outline-hint",
+    "en": "Drag the handle or use the arrows to reorder",
+    "ru": "Перетащите за маркер или используйте стрелки, чтобы изменить порядок",
+    "de": "Am Griff ziehen oder die Pfeile nutzen, um die Reihenfolge zu ändern"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-reader-reorder-hint",
+    "en": "Drag a page thumbnail, or use the arrows under it, to change the page order.",
+    "ru": "Перетащите миниатюру страницы или используйте стрелки под ней, чтобы изменить порядок страниц.",
+    "de": "Ziehe eine Seitenvorschau oder nutze die Pfeile darunter, um die Seitenreihenfolge zu ändern."
   }
 ]

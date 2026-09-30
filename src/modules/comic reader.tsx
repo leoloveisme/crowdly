@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, Trash2, ArrowUp, ArrowDown, Upload, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Trash2, Upload, Loader2 } from "lucide-react";
 import EditableText from "@/components/EditableText";
 import TagBadge from "@/components/TagBadge";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import {
   getComic,
   uploadComicPages,
@@ -18,7 +20,10 @@ interface ComicReaderProps {
 
 const ComicReader: React.FC<ComicReaderProps> = ({ comicId }) => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [comic, setComic] = useState<ComicWithPages | null>(null);
+  const [draggedPageId, setDraggedPageId] = useState<string | null>(null);
+  const [dropTargetPageId, setDropTargetPageId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pageIndex, setPageIndex] = useState(0);
@@ -76,25 +81,55 @@ const ComicReader: React.FC<ComicReaderProps> = ({ comicId }) => {
     }
   };
 
-  const movePage = async (idx: number, direction: -1 | 1) => {
-    const target = idx + direction;
-    if (target < 0 || target >= pages.length) return;
-    const reordered = [...pages];
-    [reordered[idx], reordered[target]] = [reordered[target], reordered[idx]];
+  // Saves a new page order: updates the screen first (keeping the reader on
+  // the page it was showing), then persists; on failure reloads the real
+  // order. Same approach as chapter/scene reordering.
+  const applyPageOrder = async (ordered: typeof pages): Promise<boolean> => {
+    const viewingId = pages[pageIndex]?.page_id;
+    const keepViewing = (list: typeof pages) => {
+      const i = list.findIndex((p) => p.page_id === viewingId);
+      if (i !== -1) setPageIndex(i);
+    };
+    setComic((prev) => (prev ? { ...prev, pages: ordered } : prev));
+    keepViewing(ordered);
     try {
-      const updated = await reorderComicPages(comicId, reordered.map((p) => p.page_id));
+      const updated = await reorderComicPages(comicId, ordered.map((p) => p.page_id));
       setComic((prev) => (prev ? { ...prev, pages: updated } : prev));
-    } catch {
-      // Best-effort; a failed reorder click just leaves the order as-is.
+      keepViewing(updated);
+      return true;
+    } catch (err) {
+      toast({ title: "Error", description: errorMessage(err) || "Failed to reorder pages", variant: "destructive" });
+      load();
+      return false;
     }
   };
 
-  const removePage = async (pageId: string) => {
+  const movePage = async (from: number, to: number) => {
+    if (from === to || from < 0 || to < 0 || from >= pages.length || to >= pages.length) return;
+    const previous = pages;
+    const next = [...pages];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    const ok = await applyPageOrder(next);
+    if (!ok) return;
+    toast({
+      title: "Page moved",
+      description: `Now page ${to + 1} of ${pages.length}.`,
+      action: (
+        <ToastAction altText="Undo page move" onClick={() => applyPageOrder(previous)}>
+          Undo
+        </ToastAction>
+      ),
+    });
+  };
+
+  const removePage = async (pageId: string, pageNumber: number) => {
+    if (!window.confirm(`Delete page ${pageNumber}? This can't be undone.`)) return;
     try {
       await deleteComicPage(pageId);
       load();
-    } catch {
-      // Best-effort, same as movePage.
+    } catch (err) {
+      toast({ title: "Error", description: errorMessage(err) || "Failed to delete page", variant: "destructive" });
     }
   };
 
@@ -171,33 +206,84 @@ const ComicReader: React.FC<ComicReaderProps> = ({ comicId }) => {
             <EditableText id="comic-reader-page-of">Page</EditableText> {pageIndex + 1} / {pages.length}
           </div>
 
+          {canManage && pages.length > 1 && (
+            <EditableText id="comic-reader-reorder-hint" as="div" className="text-[11px] text-gray-400">
+              Drag a page thumbnail, or use the arrows under it, to change the page order.
+            </EditableText>
+          )}
           <div className={`flex gap-2 overflow-x-auto pb-2 ${isRtl ? "flex-row-reverse" : ""}`}>
-            {pages.map((page, idx) => (
-              <div key={page.page_id} className="flex flex-col items-center gap-1 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setPageIndex(idx)}
-                  className={`h-16 w-12 rounded overflow-hidden ring-2 transition ${
-                    idx === pageIndex ? "ring-blue-500" : "ring-transparent opacity-70 hover:opacity-100"
-                  }`}
+            {pages.map((page, idx) => {
+              // The strip is reversed for right-to-left comics, so "move left"
+              // means later in the reading order there, earlier otherwise.
+              const leftTarget = isRtl ? idx + 1 : idx - 1;
+              const rightTarget = isRtl ? idx - 1 : idx + 1;
+              return (
+                <div
+                  key={page.page_id}
+                  onDragOver={(e) => {
+                    if (!canManage || !draggedPageId) return;
+                    e.preventDefault();
+                    setDropTargetPageId(page.page_id);
+                  }}
+                  onDragLeave={() => setDropTargetPageId((cur) => (cur === page.page_id ? null : cur))}
+                  onDrop={() => {
+                    const from = pages.findIndex((p) => p.page_id === draggedPageId);
+                    setDraggedPageId(null);
+                    setDropTargetPageId(null);
+                    if (from !== -1) movePage(from, idx);
+                  }}
+                  className={`flex flex-col items-center gap-1 shrink-0 rounded p-0.5 ${
+                    draggedPageId === page.page_id ? "opacity-40" : ""
+                  } ${dropTargetPageId === page.page_id && draggedPageId !== page.page_id ? "outline outline-2 outline-dashed outline-blue-400" : ""}`}
                 >
-                  <img src={page.image_url} alt="" className="h-full w-full object-cover" />
-                </button>
-                {canManage && (
-                  <div className="flex items-center gap-0.5">
-                    <button type="button" onClick={() => movePage(idx, -1)} disabled={idx === 0} className="disabled:opacity-30">
-                      <ArrowUp className="h-3 w-3" />
-                    </button>
-                    <button type="button" onClick={() => movePage(idx, 1)} disabled={idx === pages.length - 1} className="disabled:opacity-30">
-                      <ArrowDown className="h-3 w-3" />
-                    </button>
-                    <button type="button" onClick={() => removePage(page.page_id)}>
-                      <Trash2 className="h-3 w-3 text-red-500" />
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
+                  <button
+                    type="button"
+                    onClick={() => setPageIndex(idx)}
+                    draggable={canManage && pages.length > 1}
+                    onDragStart={(e) => {
+                      e.dataTransfer.effectAllowed = "move";
+                      setDraggedPageId(page.page_id);
+                    }}
+                    onDragEnd={() => {
+                      setDraggedPageId(null);
+                      setDropTargetPageId(null);
+                    }}
+                    title={canManage && pages.length > 1 ? `Page ${idx + 1} — drag to reorder` : `Page ${idx + 1}`}
+                    className={`h-16 w-12 rounded overflow-hidden ring-2 transition ${
+                      idx === pageIndex ? "ring-blue-500" : "ring-transparent opacity-70 hover:opacity-100"
+                    } ${canManage && pages.length > 1 ? "cursor-grab active:cursor-grabbing" : ""}`}
+                  >
+                    <img src={page.image_url} alt="" draggable={false} className="h-full w-full object-cover" />
+                  </button>
+                  <span className="text-[10px] text-gray-400">{idx + 1}</span>
+                  {canManage && (
+                    <div className="flex items-center gap-0.5">
+                      <button
+                        type="button"
+                        onClick={() => movePage(idx, leftTarget)}
+                        disabled={leftTarget < 0 || leftTarget >= pages.length}
+                        className="disabled:opacity-30"
+                        aria-label="Move page left"
+                      >
+                        <ChevronLeft className="h-3 w-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => movePage(idx, rightTarget)}
+                        disabled={rightTarget < 0 || rightTarget >= pages.length}
+                        className="disabled:opacity-30"
+                        aria-label="Move page right"
+                      >
+                        <ChevronRight className="h-3 w-3" />
+                      </button>
+                      <button type="button" onClick={() => removePage(page.page_id, idx + 1)} aria-label="Delete page">
+                        <Trash2 className="h-3 w-3 text-red-500" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </>
       )}

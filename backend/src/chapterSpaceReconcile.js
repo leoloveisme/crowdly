@@ -78,9 +78,12 @@ async function relinkOrphan(spaceId, entityType, linkedColumn, pullFn, orphan, c
     }
   }
 
+  // Carry the orphan's sync on/off state over rather than forcing it on —
+  // a file whose sync the user stopped shouldn't resume just because the
+  // connected repo renamed it.
   await pool.query(
-    `UPDATE creative_space_items SET ${linkedColumn} = $1, content_sync_enabled = true WHERE id = $2`,
-    [orphan[linkedColumn], candidate.id],
+    `UPDATE creative_space_items SET ${linkedColumn} = $1, content_sync_enabled = $2 WHERE id = $3`,
+    [orphan[linkedColumn], Boolean(orphan.content_sync_enabled), candidate.id],
   );
   await pool.query(
     `UPDATE creative_space_items SET ${linkedColumn} = NULL, content_sync_enabled = false, deleted = true WHERE id = $1`,

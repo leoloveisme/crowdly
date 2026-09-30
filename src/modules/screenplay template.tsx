@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Heart, Download } from "lucide-react";
+import { ToastAction } from "@/components/ui/toast";
+import { Heart, Download, GripVertical, ArrowUp, ArrowDown } from "lucide-react";
 import InteractionsWidget from "@/modules/InteractionsWidget";
 import { ExportDialog } from "@/modules/import-export";
 import CompareRevisionsContainer from "@/modules/compare revisions";
@@ -125,6 +126,12 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
   const [accessError, setAccessError] = useState<string | null>(null);
 
   const canEdit = !!user;
+  // Scene reordering is owner-only, matching chapter reordering for novels
+  // (and the backend's PATCH /screenplays/:id/scenes/reorder check).
+  const [creatorId, setCreatorId] = useState<string | null>(null);
+  const isOwner = !!user && !!creatorId && user.id === creatorId;
+  const [draggedSceneId, setDraggedSceneId] = useState<string | null>(null);
+  const [dropTargetSceneId, setDropTargetSceneId] = useState<string | null>(null);
 
   const loadScreenplayStructure = async (id: string) => {
     setLoading(true);
@@ -135,6 +142,7 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
       if (metaRes.ok) {
         const meta = await metaRes.json();
         setTitle(meta.title ?? "Untitled Screenplay");
+        setCreatorId(meta.creator_id ?? null);
         setFormatType(meta.format_type ?? null);
       }
 
@@ -810,6 +818,59 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
     (a, b) => (a.scene_index ?? 0) - (b.scene_index ?? 0),
   );
 
+  // Saves a new scene order: updates the screen first, then persists; on
+  // failure reloads the real order. Same approach as Story.tsx's
+  // applyChapterOrder for novels.
+  const applySceneOrder = async (ordered: ScreenplayScene[]): Promise<boolean> => {
+    if (!screenplayId) return false;
+    const renumbered = ordered.map((s, i) => ({ ...s, scene_index: i + 1 }));
+    setScenes(renumbered);
+    try {
+      const res = await fetch(`${API_BASE}/screenplays/${screenplayId}/scenes/reorder`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sceneIds: renumbered.map((s) => s.scene_id) }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Failed to reorder scenes");
+      }
+      return true;
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to reorder scenes",
+        variant: "destructive",
+      });
+      await loadScreenplayStructure(screenplayId);
+      return false;
+    }
+  };
+
+  const moveScene = async (from: number, to: number) => {
+    if (from === to || from < 0 || to < 0 || from >= sortedScenes.length || to >= sortedScenes.length) return;
+    const previous = sortedScenes;
+    const next = [...sortedScenes];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    const ok = await applySceneOrder(next);
+    if (!ok) return;
+    toast({
+      title: "Scene moved",
+      description: `"${moved.slugline || "Untitled scene"}" is now scene ${to + 1}.`,
+      action: (
+        <ToastAction altText="Undo scene move" onClick={() => applySceneOrder(previous)}>
+          Undo
+        </ToastAction>
+      ),
+    });
+  };
+
+  const scrollToScene = (sceneId: string) => {
+    document.getElementById(`scene-${sceneId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   const blocksByScene = new Map<string | null, ScreenplayBlock[]>();
   for (const block of blocks) {
     const key = block.scene_id ?? "__none__";
@@ -1010,6 +1071,97 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
               <EditableText id="screenplay-add-scene">Add scene</EditableText>
             </button>
           </div>
+          {!loading && sortedScenes.length > 0 && (
+            <nav className="mb-6 rounded-md border bg-gray-50 p-2" aria-label="Scene order">
+              <div className="flex items-baseline justify-between px-1 pb-1">
+                <span className="text-xs font-semibold text-gray-600">
+                  <EditableText id="screenplay-outline-heading">Scene order</EditableText>
+                </span>
+                {isOwner && sortedScenes.length > 1 && (
+                  <span className="text-[11px] text-gray-400">
+                    <EditableText id="screenplay-outline-hint">Drag the handle or use the arrows to reorder</EditableText>
+                  </span>
+                )}
+              </div>
+              <ol className="space-y-0.5">
+                {sortedScenes.map((scene, index) => (
+                  <li
+                    key={scene.scene_id}
+                    onDragOver={(e) => {
+                      if (!isOwner || !draggedSceneId) return;
+                      e.preventDefault();
+                      setDropTargetSceneId(scene.scene_id);
+                    }}
+                    onDragLeave={() => setDropTargetSceneId((cur) => (cur === scene.scene_id ? null : cur))}
+                    onDrop={() => {
+                      const from = sortedScenes.findIndex((s) => s.scene_id === draggedSceneId);
+                      setDraggedSceneId(null);
+                      setDropTargetSceneId(null);
+                      if (from !== -1) moveScene(from, index);
+                    }}
+                    className={`flex items-center gap-1 rounded px-1 py-0.5 text-xs ${
+                      draggedSceneId === scene.scene_id ? "opacity-40" : ""
+                    } ${dropTargetSceneId === scene.scene_id && draggedSceneId !== scene.scene_id ? "border border-dashed border-blue-400" : "border border-transparent"}`}
+                  >
+                    {isOwner && sortedScenes.length > 1 && (
+                      <button
+                        type="button"
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.effectAllowed = "move";
+                          setDraggedSceneId(scene.scene_id);
+                        }}
+                        onDragEnd={() => {
+                          setDraggedSceneId(null);
+                          setDropTargetSceneId(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (!e.altKey) return;
+                          if (e.key === "ArrowUp") { e.preventDefault(); moveScene(index, index - 1); }
+                          if (e.key === "ArrowDown") { e.preventDefault(); moveScene(index, index + 1); }
+                        }}
+                        className="cursor-grab text-gray-400 hover:text-gray-600 active:cursor-grabbing"
+                        title="Drag to reorder (or Alt + ↑/↓)"
+                        aria-label={`Reorder scene ${index + 1}`}
+                      >
+                        <GripVertical className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                    <span className="w-6 shrink-0 text-right text-gray-400">{index + 1}.</span>
+                    <button
+                      type="button"
+                      onClick={() => scrollToScene(scene.scene_id)}
+                      className="flex-1 truncate text-left text-gray-700 hover:text-blue-700 hover:underline"
+                    >
+                      {scene.slugline || "Untitled scene"}
+                    </button>
+                    {isOwner && sortedScenes.length > 1 && (
+                      <span className="flex shrink-0 gap-0.5">
+                        <button
+                          type="button"
+                          onClick={() => moveScene(index, index - 1)}
+                          disabled={index === 0}
+                          className="rounded p-0.5 text-gray-400 hover:bg-gray-200 hover:text-gray-700 disabled:opacity-30"
+                          aria-label="Move scene up"
+                        >
+                          <ArrowUp className="h-3 w-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveScene(index, index + 1)}
+                          disabled={index === sortedScenes.length - 1}
+                          className="rounded p-0.5 text-gray-400 hover:bg-gray-200 hover:text-gray-700 disabled:opacity-30"
+                          aria-label="Move scene down"
+                        >
+                          <ArrowDown className="h-3 w-3" />
+                        </button>
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            </nav>
+          )}
           {loading ? (
             <div className="text-sm text-gray-500"><EditableText id="screenplay-loading">Loading screenplay...</EditableText></div>
           ) : sortedScenes.length === 0 ? (
@@ -1023,7 +1175,7 @@ const ScreenplayTemplate: React.FC<ScreenplayTemplateProps> = ({
                 const key = scene.scene_id ?? "__none__";
                 const sceneBlocks = blocksByScene.get(key) ?? [];
                 return (
-                  <section key={scene.scene_id} className="space-y-3">
+                  <section key={scene.scene_id} id={`scene-${scene.scene_id}`} className="space-y-3 scroll-mt-4">
                     <div className="flex items-center justify-between gap-2">
                       <div>
                         <div className="uppercase tracking-wide text-xs text-gray-500">

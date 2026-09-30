@@ -2910,6 +2910,58 @@ app.post('/screenplays/:screenplayId/scenes', async (req, res) => {
   }
 });
 
+// Reorder a screenplay's scenes — same shape as
+// PATCH /stories/:storyTitleId/chapters/reorder: the full list of scene ids
+// in their new order, renumbered 1..N in one transaction. Owner-only (the
+// creator, or a screenplay_access 'owner' row), like chapter reordering.
+app.patch('/screenplays/:screenplayId/scenes/reorder', requireAuth, async (req, res) => {
+  const { screenplayId } = req.params;
+  const { sceneIds } = req.body ?? {};
+
+  if (!Array.isArray(sceneIds) || sceneIds.length === 0) {
+    return res.status(400).json({ error: 'sceneIds[] is required' });
+  }
+
+  const client = await pool.connect();
+  try {
+    const titleRes = await client.query('SELECT creator_id FROM screenplay_title WHERE screenplay_id = $1', [screenplayId]);
+    if (titleRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Screenplay not found' });
+    }
+    let isOwner = titleRes.rows[0].creator_id === req.user.id;
+    if (!isOwner) {
+      const accessRes = await client.query(
+        "SELECT 1 FROM screenplay_access WHERE screenplay_id = $1 AND user_id = $2 AND role = 'owner' LIMIT 1",
+        [screenplayId, req.user.id],
+      );
+      isOwner = accessRes.rows.length > 0;
+    }
+    if (!isOwner) {
+      return res.status(403).json({ error: 'Only the screenplay owner may reorder scenes' });
+    }
+
+    await client.query('BEGIN');
+    let idx = 1;
+    for (const sceneId of sceneIds) {
+      if (!sceneId) continue;
+      await client.query(
+        'UPDATE screenplay_scene SET scene_index = $1, updated_at = now() WHERE scene_id = $2 AND screenplay_id = $3',
+        [idx, sceneId, screenplayId],
+      );
+      idx += 1;
+    }
+    await client.query('UPDATE screenplay_title SET updated_at = now() WHERE screenplay_id = $1', [screenplayId]);
+    await client.query('COMMIT');
+    res.status(204).send();
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('[PATCH /screenplays/:screenplayId/scenes/reorder] failed:', err);
+    res.status(500).json({ error: 'Failed to reorder scenes' });
+  } finally {
+    client.release();
+  }
+});
+
 // If sceneId is linked to a Space file, folds the scene's CURRENT DB state
 // (slugline + ordered blocks) into its CRDT doc, then pushes the doc's
 // content out to the linked file/GitHub/Drive — same pattern as
@@ -5284,8 +5336,24 @@ app.get('/creative-spaces/:spaceId/items', async (req, res) => {
         .json({ error: 'You do not have access to this creative space.' });
     }
 
+    // Also say what each file is linked to (chapter/scene/page + its book/
+    // screenplay/comic), so the file browser can show it in plain words.
     const { rows } = await pool.query(
-      'SELECT * FROM creative_space_items WHERE space_id = $1 AND deleted = false',
+      `SELECT ci.*,
+              CASE WHEN ci.linked_chapter_id IS NOT NULL THEN 'chapter'
+                   WHEN ci.linked_scene_id IS NOT NULL THEN 'scene'
+                   WHEN ci.linked_page_id IS NOT NULL THEN 'page' END AS linked_type,
+              COALESCE(s.chapter_title, sc.slugline, 'Page ' || (cp.page_index + 1)) AS linked_title,
+              COALESCE(st.title, spt.title, ct.title) AS linked_parent_title,
+              COALESCE(st.story_title_id, spt.screenplay_id, ct.comic_id) AS linked_parent_id
+       FROM creative_space_items ci
+       LEFT JOIN stories s ON s.chapter_id = ci.linked_chapter_id
+       LEFT JOIN story_title st ON st.story_title_id = s.story_title_id
+       LEFT JOIN screenplay_scene sc ON sc.scene_id = ci.linked_scene_id
+       LEFT JOIN screenplay_title spt ON spt.screenplay_id = sc.screenplay_id
+       LEFT JOIN comic_page cp ON cp.page_id = ci.linked_page_id
+       LEFT JOIN comic_title ct ON ct.comic_id = cp.comic_id
+       WHERE ci.space_id = $1 AND ci.deleted = false`,
       [spaceId],
     );
 
@@ -5694,11 +5762,9 @@ app.post('/creative-spaces/:spaceId/items/:itemId/content-link', requireAuth, as
     if (itemRes.rows.length === 0) {
       return res.status(404).json({ error: 'File item not found in this Space' });
     }
-    const item = itemRes.rows[0];
-    const existingLink = currentContentLink(item);
-    if (existingLink && (existingLink.entityType !== entityType || existingLink.entityId !== entityId)) {
-      return res.status(400).json({ error: 'This file is already linked to different content' });
-    }
+    // A file that's already linked elsewhere is simply re-pointed: the UI's
+    // "Change…" action does this deliberately, and the dialog warns that the
+    // file will be overwritten from the new chapter/scene.
 
     if (entityType === 'chapter') {
       const chapterRes = await pool.query(
@@ -5777,7 +5843,10 @@ app.post('/creative-spaces/:spaceId/items/:itemId/content-link', requireAuth, as
   }
 });
 
-// Stops sync (does not delete the file's last-synced content).
+// Stops sync but keeps the link, so the file still shows which chapter/
+// scene/page it belongs to — and so chapterSpaceReconcile.js's gap-filling
+// doesn't see an unlinked chapter and auto-create a duplicate file for it.
+// The file's last-synced content is left as-is.
 app.delete('/creative-spaces/:spaceId/items/:itemId/content-link', requireAuth, async (req, res) => {
   const { spaceId, itemId } = req.params;
 
@@ -5792,7 +5861,7 @@ app.delete('/creative-spaces/:spaceId/items/:itemId/content-link', requireAuth, 
 
     const { rows } = await pool.query(
       `UPDATE creative_space_items
-       SET linked_chapter_id = NULL, linked_scene_id = NULL, linked_page_id = NULL, content_sync_enabled = false
+       SET content_sync_enabled = false
        WHERE id = $1 AND space_id = $2
        RETURNING *`,
       [itemId, spaceId],
