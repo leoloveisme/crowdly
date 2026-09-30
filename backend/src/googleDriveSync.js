@@ -49,6 +49,7 @@ import {
 } from './googleDriveApp.js';
 import { merge as mergeLines } from 'node-diff3';
 import { storeItemContent, guessMimeType, CREATIVE_SPACE_FILES_ROOT } from './creativeSpaceFiles.js';
+import { pullChapterFromLinkedItem } from './chapterSpaceSync.js';
 
 export async function ensureGoogleDriveSyncTables() {
   try {
@@ -269,13 +270,28 @@ async function markSynced(itemId, { fileId, md5Checksum, content }) {
 }
 
 async function storeLocal(ctx, item, buffer) {
-  return storeItemContent({
+  const updated = await storeItemContent({
     spaceId: ctx.space.id,
     itemId: item.id,
     buffer,
     mimeType: item.mime_type || guessMimeType(item.name),
     updatedBy: SYNC_ACTOR,
   });
+
+  if (item.linked_chapter_id && item.chapter_sync_enabled) {
+    try {
+      const chapterStatus = await pullChapterFromLinkedItem(item, buffer);
+      if (chapterStatus === 'conflict') {
+        await logSync(ctx.space.id, 'pull', 'warn', `Skipped chapter sync for ${item.relative_path}: chapter has unsynced local edits`, item.relative_path);
+      } else if (chapterStatus === 'applied') {
+        await logSync(ctx.space.id, 'pull', 'info', `Applied ${item.relative_path} to its linked chapter`, item.relative_path);
+      }
+    } catch (err) {
+      console.error('[googleDriveSync] chapter pull failed for', item.relative_path, err);
+    }
+  }
+
+  return updated;
 }
 
 async function uploadToDrive(ctx, item, buffer, existingFileId) {

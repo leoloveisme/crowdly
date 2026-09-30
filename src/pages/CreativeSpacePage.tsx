@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import EditableText from "@/components/EditableText";
 import SpaceUserPicker from "@/modules/space-user-picker";
+import { linkChapterToSpaceItem, unlinkChapterFromSpaceItem } from "@/lib/chapterSpaceSyncApi";
 
 const IMAGE_EXTENSIONS = /\.(png|jpe?g|webp|gif|svg)$/i;
 const TEXT_EXTENSIONS = /\.(md|markdown|txt|json|jsonl|csv|html)$/i;
@@ -63,6 +64,7 @@ interface CreativeSpaceItem {
   created_at?: string | null;
   updated_at?: string | null;
   linked_chapter_id?: string | null;
+  chapter_sync_enabled?: boolean | null;
 }
 
 interface SpaceStoryRow {
@@ -837,6 +839,64 @@ const CreativeSpacePage: React.FC = () => {
     } catch (err) {
       console.error("[CreativeSpacePage] Error renaming item", err);
       setError("Failed to rename item.");
+    }
+  };
+
+  // --- Link a file to a chapter for continuous bidirectional sync ---
+  const [linkChapterItem, setLinkChapterItem] = useState<CreativeSpaceItem | null>(null);
+  const [linkStoryId, setLinkStoryId] = useState("");
+  const [linkChapterOptions, setLinkChapterOptions] = useState<{ chapter_id: string; chapter_title: string }[]>([]);
+  const [linkChapterId, setLinkChapterId] = useState("");
+  const [linkChaptersLoading, setLinkChaptersLoading] = useState(false);
+  const [linkSubmitting, setLinkSubmitting] = useState(false);
+  const [unlinkingItemId, setUnlinkingItemId] = useState<string | null>(null);
+
+  const openLinkChapterDialog = (item: CreativeSpaceItem) => {
+    setLinkChapterItem(item);
+    setLinkStoryId("");
+    setLinkChapterOptions([]);
+    setLinkChapterId("");
+  };
+
+  useEffect(() => {
+    if (!linkStoryId) {
+      setLinkChapterOptions([]);
+      return;
+    }
+    setLinkChaptersLoading(true);
+    fetch(`${API_BASE}/story-titles/${linkStoryId}`)
+      .then((res) => res.json())
+      .then((body) => setLinkChapterOptions(Array.isArray(body?.chapters) ? body.chapters : []))
+      .catch(() => setLinkChapterOptions([]))
+      .finally(() => setLinkChaptersLoading(false));
+  }, [linkStoryId]);
+
+  const handleConfirmLinkChapter = async () => {
+    if (!linkChapterItem || !linkChapterId || !spaceId) return;
+    setLinkSubmitting(true);
+    try {
+      const updated = await linkChapterToSpaceItem(spaceId, linkChapterItem.id, linkChapterId);
+      setItems((prev) => prev.map((it) => (it.id === linkChapterItem.id ? { ...it, ...(updated as CreativeSpaceItem) } : it)));
+      setLinkChapterItem(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to link chapter.");
+    } finally {
+      setLinkSubmitting(false);
+    }
+  };
+
+  const handleUnlinkChapter = async (item: CreativeSpaceItem) => {
+    if (!spaceId) return;
+    const ok = window.confirm(`Stop syncing "${item.name}" with its chapter? The file's current content stays as-is.`);
+    if (!ok) return;
+    setUnlinkingItemId(item.id);
+    try {
+      const updated = await unlinkChapterFromSpaceItem(spaceId, item.id);
+      setItems((prev) => prev.map((it) => (it.id === item.id ? { ...it, ...(updated as CreativeSpaceItem) } : it)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to unlink chapter.");
+    } finally {
+      setUnlinkingItemId(null);
     }
   };
 
@@ -1672,7 +1732,7 @@ const CreativeSpacePage: React.FC = () => {
               <div className="flex-1"><EditableText id="space-th-name">Name</EditableText></div>
               <div className="w-24 text-right"><EditableText id="space-th-type">Type</EditableText></div>
               <div className="w-40 text-right"><EditableText id="space-th-updated">Updated</EditableText></div>
-              <div className="w-32 text-right"><EditableText id="space-th-actions">Actions</EditableText></div>
+              <div className="w-56 text-right"><EditableText id="space-th-actions">Actions</EditableText></div>
             </div>
             {itemsLoading ? (
               <div className="px-4 py-4 text-sm text-slate-500"><EditableText id="space-loading-items">Loading items...</EditableText></div>
@@ -1715,14 +1775,21 @@ const CreativeSpacePage: React.FC = () => {
                           {item.name}
                         </button>
                       )}
-                      {item.linked_chapter_id && (
+                      {item.chapter_sync_enabled ? (
+                        <span
+                          className="text-[10px] rounded-full bg-blue-50 text-blue-700 px-1.5 py-0.5 whitespace-nowrap"
+                          title="Continuously synced with a chapter"
+                        >
+                          ⇄ <EditableText id="space-badge-synced">Synced</EditableText>
+                        </span>
+                      ) : item.linked_chapter_id ? (
                         <span
                           className="text-[10px] rounded-full bg-emerald-50 text-emerald-700 px-1.5 py-0.5 whitespace-nowrap"
                           title="Already structured into a chapter"
                         >
                           ✓ Chapter
                         </span>
-                      )}
+                      ) : null}
                     </div>
                     <div className="w-24 text-right text-[11px] text-slate-500">
                       <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5">
@@ -1732,7 +1799,27 @@ const CreativeSpacePage: React.FC = () => {
                     <div className="w-40 text-right text-xs text-slate-500">
                       {item.updated_at ? new Date(item.updated_at).toLocaleString() : ""}
                     </div>
-                    <div className="w-32 text-right flex justify-end gap-3 text-xs">
+                    <div className="w-56 text-right flex flex-wrap justify-end gap-x-3 gap-y-1 text-xs">
+                      {isOwner && item.kind === "file" && (
+                        item.chapter_sync_enabled ? (
+                          <button
+                            type="button"
+                            disabled={unlinkingItemId === item.id}
+                            className="text-slate-500 hover:text-slate-700 disabled:opacity-50"
+                            onClick={() => handleUnlinkChapter(item)}
+                          >
+                            <EditableText id="space-unlink-chapter">Unsync</EditableText>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            className="text-slate-500 hover:text-slate-700"
+                            onClick={() => openLinkChapterDialog(item)}
+                          >
+                            <EditableText id="space-link-chapter">Link to chapter</EditableText>
+                          </button>
+                        )
+                      )}
                       <button
                         type="button"
                         className="text-slate-500 hover:text-slate-700"
@@ -1840,6 +1927,65 @@ const CreativeSpacePage: React.FC = () => {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!linkChapterItem} onOpenChange={(open) => { if (!open) setLinkChapterItem(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              <EditableText id="space-link-chapter-title">Link to a chapter</EditableText>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-slate-600">
+              <EditableText id="space-link-chapter-warning">
+                This will overwrite this file's current content with the chapter's text, then keep both in sync going forward.
+              </EditableText>
+            </p>
+            <div>
+              <label className="text-xs font-medium text-slate-600 block mb-1">
+                <EditableText id="space-link-chapter-story-label">Story</EditableText>
+              </label>
+              <Select value={linkStoryId} onValueChange={setLinkStoryId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a story" />
+                </SelectTrigger>
+                <SelectContent>
+                  {contentItems.stories.map((s) => (
+                    <SelectItem key={s.story_title_id} value={s.story_title_id}>
+                      {s.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-600 block mb-1">
+                <EditableText id="space-link-chapter-chapter-label">Chapter</EditableText>
+              </label>
+              <Select value={linkChapterId} onValueChange={setLinkChapterId} disabled={!linkStoryId || linkChaptersLoading}>
+                <SelectTrigger>
+                  <SelectValue placeholder={linkChaptersLoading ? "Loading..." : "Select a chapter"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {linkChapterOptions.map((c) => (
+                    <SelectItem key={c.chapter_id} value={c.chapter_id}>
+                      {c.chapter_title || "Untitled chapter"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => setLinkChapterItem(null)}>
+                <EditableText id="space-link-chapter-cancel">Cancel</EditableText>
+              </Button>
+              <Button disabled={!linkChapterId || linkSubmitting} onClick={handleConfirmLinkChapter}>
+                <EditableText id="space-link-chapter-confirm">Link &amp; sync</EditableText>
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 

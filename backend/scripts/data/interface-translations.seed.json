@@ -1254,6 +1254,69 @@
   },
   {
     "page_key": "/creative_space/:spaceId",
+    "element_id": "space-badge-synced",
+    "en": "Synced",
+    "ru": "Синхронизировано",
+    "de": "Synchronisiert"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-link-chapter",
+    "en": "Link to chapter",
+    "ru": "Связать с главой",
+    "de": "Mit Kapitel verknüpfen"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-unlink-chapter",
+    "en": "Unsync",
+    "ru": "Отвязать",
+    "de": "Synchronisierung aufheben"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-link-chapter-title",
+    "en": "Link to a chapter",
+    "ru": "Связать с главой",
+    "de": "Mit einem Kapitel verknüpfen"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-link-chapter-warning",
+    "en": "This will overwrite this file's current content with the chapter's text, then keep both in sync going forward.",
+    "ru": "Это перезапишет текущее содержимое файла текстом главы, а затем будет поддерживать их синхронизацию.",
+    "de": "Dadurch wird der aktuelle Inhalt dieser Datei mit dem Text des Kapitels überschrieben, und beide werden danach synchron gehalten."
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-link-chapter-story-label",
+    "en": "Story",
+    "ru": "История",
+    "de": "Geschichte"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-link-chapter-chapter-label",
+    "en": "Chapter",
+    "ru": "Глава",
+    "de": "Kapitel"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-link-chapter-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-link-chapter-confirm",
+    "en": "Link & sync",
+    "ru": "Связать и синхронизировать",
+    "de": "Verknüpfen & synchronisieren"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
     "element_id": "space-rename",
     "en": "Rename",
     "ru": "Переименовать",
@@ -7887,6 +7950,34 @@
     "en": "Mark as up to date",
     "ru": "Отметить как актуальный",
     "de": "Als aktuell markieren"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-editor-space-sync-conflict",
+    "en": "This chapter has local edits that haven't synced to its Space file yet.",
+    "ru": "В этой главе есть локальные изменения, которые ещё не синхронизированы с файлом в Пространстве.",
+    "de": "Dieses Kapitel enthält lokale Änderungen, die noch nicht mit der Space-Datei synchronisiert wurden."
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-editor-space-sync-label",
+    "en": "Synced to Space file:",
+    "ru": "Синхронизировано с файлом в Пространстве:",
+    "de": "Synchronisiert mit Space-Datei:"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-editor-space-sync-open",
+    "en": "Open in Space",
+    "ru": "Открыть в Пространстве",
+    "de": "In Space öffnen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-editor-space-sync-unlink",
+    "en": "Stop syncing",
+    "ru": "Остановить синхронизацию",
+    "de": "Synchronisierung stoppen"
   },
   {
     "page_key": "/story/:story_id",

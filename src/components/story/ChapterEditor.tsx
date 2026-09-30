@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, Columns2, FileAudio, FileText, GitBranch, Image as ImageIcon, ImagePlus, Loader2, Settings2, Sparkles, StickyNote, Video } from "lucide-react";
+import { AlertTriangle, Columns2, FileAudio, FileText, FolderSync, GitBranch, Image as ImageIcon, ImagePlus, Loader2, Settings2, Sparkles, StickyNote, Video } from "lucide-react";
 import { Link } from "react-router-dom";
 import EditableText from "@/components/EditableText";
 import BranchSettingsDialog from "./BranchSettingsDialog";
@@ -9,6 +9,11 @@ import TagInput from "@/components/TagInput";
 import { cn } from "@/lib/utils";
 import type { GalleryImage } from "@/lib/galleryApi";
 import { fetchSourceChapter, markChapterSourceSynced, type SourceChapter } from "@/lib/translationsApi";
+import {
+  fetchChapterSpaceLink,
+  unlinkChapterFromSpaceItem,
+  type ChapterSpaceLink,
+} from "@/lib/chapterSpaceSyncApi";
 import { useLocales, localeName } from "./LanguageSwitcher";
 import type { ChapterMediaList, MediaKind } from "@/lib/mediaApi";
 import ChapterMediaEditor from "./media/ChapterMediaEditor";
@@ -178,6 +183,28 @@ const ChapterEditor: React.FC<ChapterEditorProps> = (props) => {
       onSourceSynced();
     } finally {
       setMarkingSynced(false);
+    }
+  };
+
+  // --- Space file sync: is this chapter linked to a Creative Space file? ---
+  const [spaceLink, setSpaceLink] = useState<ChapterSpaceLink | null>(null);
+  const [unlinkingSpace, setUnlinkingSpace] = useState(false);
+  const loadSpaceLink = useCallback(() => {
+    fetchChapterSpaceLink(chapter.chapter_id)
+      .then(setSpaceLink)
+      .catch(() => setSpaceLink(null));
+  }, [chapter.chapter_id]);
+  useEffect(loadSpaceLink, [loadSpaceLink]);
+
+  const handleUnlinkSpace = async () => {
+    if (!spaceLink?.spaceId || !spaceLink.itemId) return;
+    if (!window.confirm("Stop syncing this chapter with its Space file? The file itself won't be deleted.")) return;
+    setUnlinkingSpace(true);
+    try {
+      await unlinkChapterFromSpaceItem(spaceLink.spaceId, spaceLink.itemId);
+      loadSpaceLink();
+    } finally {
+      setUnlinkingSpace(false);
     }
   };
 
@@ -402,6 +429,42 @@ const ChapterEditor: React.FC<ChapterEditorProps> = (props) => {
           ))}
         </div>
       ) : null}
+
+      {spaceLink?.linked && spaceLink.syncEnabled && (
+        <div
+          className={cn(
+            "mb-4 flex flex-wrap items-center gap-2 rounded border px-2 py-1.5 text-xs",
+            spaceLink.pendingConflict ? "border-amber-200 bg-amber-50 text-amber-900" : "border-gray-200 bg-gray-50 text-gray-700",
+          )}
+        >
+          {spaceLink.pendingConflict ? <AlertTriangle className="h-3.5 w-3.5" /> : <FolderSync className="h-3.5 w-3.5" />}
+          {spaceLink.pendingConflict ? (
+            <span>
+              <EditableText id="story-editor-space-sync-conflict">
+                This chapter has local edits that haven't synced to its Space file yet.
+              </EditableText>
+            </span>
+          ) : (
+            <span>
+              <EditableText id="story-editor-space-sync-label">Synced to Space file:</EditableText>{" "}
+              {spaceLink.relativePath}
+            </span>
+          )}
+          <Link to={`/creative_space/${spaceLink.spaceId}`} className="text-blue-700 hover:underline">
+            <EditableText id="story-editor-space-sync-open">Open in Space</EditableText>
+          </Link>
+          {isOwner && (
+            <button
+              type="button"
+              disabled={unlinkingSpace}
+              onClick={handleUnlinkSpace}
+              className="ml-auto text-gray-500 hover:text-gray-800 disabled:opacity-50"
+            >
+              <EditableText id="story-editor-space-sync-unlink">Stop syncing</EditableText>
+            </button>
+          )}
+        </div>
+      )}
 
       {Array.from({ length: rowCount }, (_, idx) => {
         const paragraph = slotChapter.paragraphs[idx];
