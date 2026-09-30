@@ -9385,5 +9385,89 @@
     "en": "Page",
     "ru": "Страница",
     "de": "Seite"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-sync-badge-syncing",
+    "en": "Syncing with",
+    "ru": "Синхронизируется с",
+    "de": "Synchronisiert mit"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-sync-badge-not-syncing",
+    "en": "not syncing",
+    "ru": "не синхронизируется",
+    "de": "keine Synchronisierung"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-sync-type-chapter",
+    "en": "Chapter",
+    "ru": "Глава",
+    "de": "Kapitel"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-sync-type-scene",
+    "en": "Scene",
+    "ru": "Сцена",
+    "de": "Szene"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-sync-type-page",
+    "en": "Page",
+    "ru": "Страница",
+    "de": "Seite"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-sync-action-stop",
+    "en": "Stop syncing",
+    "ru": "Остановить синхронизацию",
+    "de": "Synchronisierung beenden"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-sync-action-start",
+    "en": "Start syncing",
+    "ru": "Начать синхронизацию",
+    "de": "Synchronisierung starten"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-sync-action-change",
+    "en": "Change…",
+    "ru": "Изменить…",
+    "de": "Ändern…"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-sync-action-connect",
+    "en": "Sync with a chapter…",
+    "ru": "Синхронизировать с главой…",
+    "de": "Mit einem Kapitel synchronisieren…"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-sync-dialog-title",
+    "en": "Sync this file with a chapter, scene or page",
+    "ru": "Синхронизировать файл с главой, сценой или страницей",
+    "de": "Diese Datei mit einem Kapitel, einer Szene oder Seite synchronisieren"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-sync-dialog-explainer",
+    "en": "Edits made in either place will be copied to the other. For a chapter or scene, this file is first replaced with its current text. For a comic page, a new version of this image will replace the page.",
+    "ru": "Изменения, сделанные в одном месте, будут копироваться в другое. Для главы или сцены этот файл сначала заменяется её текущим текстом. Для страницы комикса новая версия этого изображения заменит страницу.",
+    "de": "Änderungen an einer Stelle werden in die andere übernommen. Bei einem Kapitel oder einer Szene wird diese Datei zuerst durch deren aktuellen Text ersetzt. Bei einer Comic-Seite ersetzt eine neue Version dieses Bildes die Seite."
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-sync-dialog-confirm",
+    "en": "Start syncing",
+    "ru": "Начать синхронизацию",
+    "de": "Synchronisierung starten"
   }
 ]

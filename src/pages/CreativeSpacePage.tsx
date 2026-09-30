@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import EditableText from "@/components/EditableText";
+import { cn } from "@/lib/utils";
 import SpaceUserPicker from "@/modules/space-user-picker";
 import { linkContentToSpaceItem, unlinkContentFromSpaceItem } from "@/lib/chapterSpaceSyncApi";
 
@@ -19,6 +20,17 @@ const TEXT_EXTENSIONS = /\.(md|markdown|txt|json|jsonl|csv|html)$/i;
 function isImageItem(item: { mime_type?: string | null; name: string }): boolean {
   if (item.mime_type) return item.mime_type.startsWith("image/");
   return IMAGE_EXTENSIONS.test(item.name);
+}
+
+/** Where clicking a file's "Chapter · …" / "Scene · …" / "Page · …" badge takes you. */
+function linkedContentPath(item: {
+  linked_type?: "chapter" | "scene" | "page" | null;
+  linked_parent_id?: string | null;
+  linked_chapter_id?: string | null;
+}): string {
+  if (item.linked_type === "chapter") return `/story/${item.linked_parent_id}/chapter/${item.linked_chapter_id}`;
+  if (item.linked_type === "scene") return `/screenplay/${item.linked_parent_id}`;
+  return `/comic/${item.linked_parent_id}`;
 }
 
 function isTextItem(item: { mime_type?: string | null; name: string }): boolean {
@@ -67,6 +79,11 @@ interface CreativeSpaceItem {
   linked_scene_id?: string | null;
   linked_page_id?: string | null;
   content_sync_enabled?: boolean | null;
+  // What the file is linked to, joined in by GET /creative-spaces/:spaceId/items.
+  linked_type?: "chapter" | "scene" | "page" | null;
+  linked_title?: string | null;
+  linked_parent_title?: string | null;
+  linked_parent_id?: string | null;
 }
 
 interface SpaceStoryRow {
@@ -1009,24 +1026,47 @@ const CreativeSpacePage: React.FC = () => {
     const entityType = linkContentType === "story" ? "chapter" : linkContentType === "screenplay" ? "scene" : "page";
     setLinkSubmitting(true);
     try {
-      const updated = await linkContentToSpaceItem(spaceId, linkItem.id, entityType, linkEntityId);
-      setItems((prev) => prev.map((it) => (it.id === linkItem.id ? { ...it, ...(updated as CreativeSpaceItem) } : it)));
+      await linkContentToSpaceItem(spaceId, linkItem.id, entityType, linkEntityId);
+      // Reload rather than merge: only the list endpoint returns what the file is linked to.
+      await loadItems(currentPath);
       setLinkItem(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to link content.");
+      setError(err instanceof Error ? err.message : "Failed to start syncing.");
     } finally {
       setLinkSubmitting(false);
     }
   };
 
+  // One click for a file that already made a chapter/scene/page but isn't syncing.
+  const handleStartSyncing = async (item: CreativeSpaceItem) => {
+    if (!spaceId || !item.linked_type) return;
+    const entityId = item.linked_chapter_id || item.linked_scene_id || item.linked_page_id;
+    if (!entityId) return;
+    if (item.linked_type !== "page") {
+      const ok = window.confirm(
+        `Start syncing? "${item.name}" will be updated to match the ${item.linked_type}'s current text, and edits in either place will be copied to the other.`,
+      );
+      if (!ok) return;
+    }
+    setUnlinkingItemId(item.id);
+    try {
+      await linkContentToSpaceItem(spaceId, item.id, item.linked_type, entityId);
+      await loadItems(currentPath);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to start syncing.");
+    } finally {
+      setUnlinkingItemId(null);
+    }
+  };
+
   const handleUnlinkContent = async (item: CreativeSpaceItem) => {
     if (!spaceId) return;
-    const ok = window.confirm(`Stop syncing "${item.name}"? The file's current content stays as-is.`);
+    const ok = window.confirm(`Stop syncing "${item.name}"? The file keeps its current content; changes will no longer be copied either way.`);
     if (!ok) return;
     setUnlinkingItemId(item.id);
     try {
-      const updated = await unlinkContentFromSpaceItem(spaceId, item.id);
-      setItems((prev) => prev.map((it) => (it.id === item.id ? { ...it, ...(updated as CreativeSpaceItem) } : it)));
+      await unlinkContentFromSpaceItem(spaceId, item.id);
+      await loadItems(currentPath);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to unlink content.");
     } finally {
@@ -1955,21 +1995,33 @@ const CreativeSpacePage: React.FC = () => {
                           {item.name}
                         </button>
                       )}
-                      {item.content_sync_enabled ? (
-                        <span
-                          className="text-[10px] rounded-full bg-blue-50 text-blue-700 px-1.5 py-0.5 whitespace-nowrap"
-                          title="Continuously synced with a chapter, scene, or comic page"
+                      {item.linked_type && (
+                        <button
+                          type="button"
+                          onClick={() => navigate(linkedContentPath(item))}
+                          className={cn(
+                            "text-[10px] rounded-full px-1.5 py-0.5 truncate max-w-[22rem] text-left hover:underline",
+                            item.content_sync_enabled ? "bg-blue-50 text-blue-700" : "bg-slate-100 text-slate-600",
+                          )}
+                          title={item.linked_parent_title ? `in ${item.linked_parent_title}` : undefined}
                         >
-                          ⇄ <EditableText id="space-badge-synced">Synced</EditableText>
-                        </span>
-                      ) : (item.linked_chapter_id || item.linked_scene_id || item.linked_page_id) ? (
-                        <span
-                          className="text-[10px] rounded-full bg-emerald-50 text-emerald-700 px-1.5 py-0.5 whitespace-nowrap"
-                          title="Already structured into content"
-                        >
-                          ✓ <EditableText id="space-badge-linked">Linked</EditableText>
-                        </span>
-                      ) : null}
+                          {item.content_sync_enabled ? (
+                            <>⇄ <EditableText id="space-sync-badge-syncing">Syncing with</EditableText>{" "}</>
+                          ) : "📖 "}
+                          {item.linked_type === "chapter"
+                            ? <EditableText id="space-sync-type-chapter">Chapter</EditableText>
+                            : item.linked_type === "scene"
+                              ? <EditableText id="space-sync-type-scene">Scene</EditableText>
+                              : <EditableText id="space-sync-type-page">Page</EditableText>}
+                          {" · "}
+                          {item.linked_type === "page" && item.linked_parent_title
+                            ? `${item.linked_title} · ${item.linked_parent_title}`
+                            : item.linked_title}
+                          {!item.content_sync_enabled && (
+                            <> — <EditableText id="space-sync-badge-not-syncing">not syncing</EditableText></>
+                          )}
+                        </button>
+                      )}
                     </div>
                     <div className="w-24 text-right text-[11px] text-slate-500">
                       <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5">
@@ -1988,15 +2040,33 @@ const CreativeSpacePage: React.FC = () => {
                             className="text-slate-500 hover:text-slate-700 disabled:opacity-50"
                             onClick={() => handleUnlinkContent(item)}
                           >
-                            <EditableText id="space-unlink-chapter">Unsync</EditableText>
+                            <EditableText id="space-sync-action-stop">Stop syncing</EditableText>
                           </button>
+                        ) : item.linked_type ? (
+                          <>
+                            <button
+                              type="button"
+                              disabled={unlinkingItemId === item.id}
+                              className="text-slate-500 hover:text-slate-700 disabled:opacity-50"
+                              onClick={() => handleStartSyncing(item)}
+                            >
+                              <EditableText id="space-sync-action-start">Start syncing</EditableText>
+                            </button>
+                            <button
+                              type="button"
+                              className="text-slate-500 hover:text-slate-700"
+                              onClick={() => openLinkDialog(item)}
+                            >
+                              <EditableText id="space-sync-action-change">Change…</EditableText>
+                            </button>
+                          </>
                         ) : (
                           <button
                             type="button"
                             className="text-slate-500 hover:text-slate-700"
                             onClick={() => openLinkDialog(item)}
                           >
-                            <EditableText id="space-link-content">Link to content</EditableText>
+                            <EditableText id="space-sync-action-connect">Sync with a chapter…</EditableText>
                           </button>
                         )
                       )}
@@ -2114,13 +2184,13 @@ const CreativeSpacePage: React.FC = () => {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
-              <EditableText id="space-link-chapter-title">Link to content</EditableText>
+              <EditableText id="space-sync-dialog-title">Sync this file with a chapter, scene or page</EditableText>
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <p className="text-sm text-slate-600">
-              <EditableText id="space-link-chapter-warning">
-                Chapters and scenes: this overwrites the file's current content with the linked text, then keeps both in sync going forward. Comic pages: the file's content is not touched now, but future updates to it will replace the page's image.
+              <EditableText id="space-sync-dialog-explainer">
+                Edits made in either place will be copied to the other. For a chapter or scene, this file is first replaced with its current text. For a comic page, a new version of this image will replace the page.
               </EditableText>
             </p>
             <div>
@@ -2204,7 +2274,7 @@ const CreativeSpacePage: React.FC = () => {
                 <EditableText id="space-link-chapter-cancel">Cancel</EditableText>
               </Button>
               <Button disabled={!linkEntityId || linkSubmitting} onClick={handleConfirmLink}>
-                <EditableText id="space-link-chapter-confirm">Link &amp; sync</EditableText>
+                <EditableText id="space-sync-dialog-confirm">Start syncing</EditableText>
               </Button>
             </div>
           </div>
