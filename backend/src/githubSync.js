@@ -28,6 +28,8 @@ import { storeItemContent, guessMimeType, CREATIVE_SPACE_FILES_ROOT, MAX_UPLOAD_
 import { applyContentToHandle } from './crdt/repo.js';
 import { chapterToMarkdown, markdownToChapter } from './chapterMarkdown.js';
 import { pullChapterFromLinkedItem } from './chapterSpaceSync.js';
+import { pullSceneFromLinkedItem } from './screenplaySpaceSync.js';
+import { pullPageFromLinkedItem } from './comicPageSpaceSync.js';
 import { reconcileSpaceChapterLinks } from './chapterSpaceReconcile.js';
 
 export async function ensureGithubSyncTables() {
@@ -238,10 +240,22 @@ async function pullChangedPaths(space, token, owner, repo, branch, candidatePath
         pulled += 1;
         await logSync(space.id, 'pull', 'info', `Pulled ${entry.path} from GitHub`, entry.path);
 
-        if (item.linked_chapter_id && item.chapter_sync_enabled) {
+        if (item.linked_chapter_id && item.content_sync_enabled) {
           const chapterStatus = await pullChapterFromLinkedItem(item, buffer);
           if (chapterStatus === 'applied') {
             await logSync(space.id, 'pull', 'info', `Merged ${entry.path} into its linked chapter`, entry.path);
+          }
+        }
+        if (item.linked_scene_id && item.content_sync_enabled) {
+          const sceneStatus = await pullSceneFromLinkedItem(item, buffer);
+          if (sceneStatus === 'applied') {
+            await logSync(space.id, 'pull', 'info', `Merged ${entry.path} into its linked scene`, entry.path);
+          }
+        }
+        if (item.linked_page_id && item.content_sync_enabled) {
+          const pageStatus = await pullPageFromLinkedItem(item, buffer);
+          if (pageStatus === 'applied') {
+            await logSync(space.id, 'pull', 'info', `Updated comic page image from ${entry.path}`, entry.path);
           }
         }
       } catch (err) {

@@ -11,7 +11,7 @@ import type { GalleryImage } from "@/lib/galleryApi";
 import { fetchSourceChapter, markChapterSourceSynced, type SourceChapter } from "@/lib/translationsApi";
 import {
   fetchChapterSpaceLink,
-  unlinkChapterFromSpaceItem,
+  unlinkContentFromSpaceItem,
   type ChapterSpaceLink,
 } from "@/lib/chapterSpaceSyncApi";
 import { useLocales, localeName } from "./LanguageSwitcher";
@@ -201,7 +201,7 @@ const ChapterEditor: React.FC<ChapterEditorProps> = (props) => {
     if (!window.confirm("Stop syncing this chapter with its Space file? The file itself won't be deleted.")) return;
     setUnlinkingSpace(true);
     try {
-      await unlinkChapterFromSpaceItem(spaceLink.spaceId, spaceLink.itemId);
+      await unlinkContentFromSpaceItem(spaceLink.spaceId, spaceLink.itemId);
       loadSpaceLink();
     } finally {
       setUnlinkingSpace(false);

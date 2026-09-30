@@ -1,6 +1,6 @@
 // Bidirectional sync between a story chapter and a creative_space_items
 // file that's been linked to it (creative_space_items.linked_chapter_id +
-// chapter_sync_enabled). Both directions go through the chapter's CRDT doc
+// content_sync_enabled). Both directions go through the chapter's CRDT doc
 // (chapterCrdtSync.js) rather than the plain `stories` table directly, so
 // concurrent edits from the chapter editor and the connected GitHub repo /
 // Google Drive folder merge for real (Automerge) instead of one side
@@ -37,7 +37,7 @@ function hashOf(buffer) {
 export async function pushChapterToLinkedItem(chapterId) {
   const { rows: itemRows } = await pool.query(
     `SELECT * FROM creative_space_items
-     WHERE linked_chapter_id = $1 AND chapter_sync_enabled = true AND deleted = false`,
+     WHERE linked_chapter_id = $1 AND content_sync_enabled = true AND deleted = false`,
     [chapterId],
   );
   if (itemRows.length === 0) return;
@@ -50,7 +50,7 @@ export async function pushChapterToLinkedItem(chapterId) {
   const hash = hashOf(buffer);
 
   for (const item of itemRows) {
-    if (item.chapter_content_hash === hash) continue; // already in sync
+    if (item.content_hash === hash) continue; // already in sync
 
     try {
       await storeItemContent({
@@ -61,7 +61,7 @@ export async function pushChapterToLinkedItem(chapterId) {
         updatedBy: 'chapter-sync',
       });
       await pool.query(
-        'UPDATE creative_space_items SET chapter_content_hash = $1, chapter_last_synced_at = now() WHERE id = $2',
+        'UPDATE creative_space_items SET content_hash = $1, content_last_synced_at = now() WHERE id = $2',
         [hash, item.id],
       );
       scheduleGithubPush(item.space_id, item.id);
@@ -86,10 +86,10 @@ export async function pushChapterToLinkedItem(chapterId) {
  *   'applied'    — the chapter's doc was updated (merged) from this file's content.
  */
 export async function pullChapterFromLinkedItem(item, buffer) {
-  if (!item.linked_chapter_id || !item.chapter_sync_enabled) return 'not_linked';
+  if (!item.linked_chapter_id || !item.content_sync_enabled) return 'not_linked';
 
   const hash = hashOf(buffer);
-  if (item.chapter_content_hash === hash) return 'echo';
+  if (item.content_hash === hash) return 'echo';
 
   const parsed = markdownToChapter(buffer);
 
@@ -116,7 +116,7 @@ export async function pullChapterFromLinkedItem(item, buffer) {
   }
 
   await pool.query(
-    'UPDATE creative_space_items SET chapter_content_hash = $1, chapter_last_synced_at = now() WHERE id = $2',
+    'UPDATE creative_space_items SET content_hash = $1, content_last_synced_at = now() WHERE id = $2',
     [hash, item.id],
   );
 

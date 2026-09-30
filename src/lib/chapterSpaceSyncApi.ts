@@ -1,4 +1,5 @@
-// Client for chapter <-> Space file bidirectional sync (backend/src/chapterSpaceSync.js).
+// Client for chapter/scene/page <-> Space file bidirectional sync
+// (backend/src/chapterSpaceSync.js, screenplaySpaceSync.js, comicPageSpaceSync.js).
 
 const API_BASE = import.meta.env.PROD ? (import.meta.env.VITE_API_BASE_URL ?? "") : "";
 
@@ -13,6 +14,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
+export type ContentEntityType = "chapter" | "scene" | "page";
+
 export interface ChapterSpaceLink {
   linked: boolean;
   itemId?: string;
@@ -24,27 +27,32 @@ export interface ChapterSpaceLink {
   pendingConflict?: boolean;
 }
 
-export interface ItemChapterLink {
-  chapterId: string | null;
-  chapterTitle?: string | null;
+export interface ItemContentLink {
+  entityType: ContentEntityType | null;
+  entityId: string | null;
+  title: string | null;
   syncEnabled: boolean;
   lastSyncedAt: string | null;
   pendingConflict: boolean;
 }
 
-/** For the chapter/story editor side of the UI: is this chapter linked to a Space file? */
+/** For the chapter editor side of the UI: is this chapter linked to a Space file? */
 export const fetchChapterSpaceLink = (chapterId: string) =>
   request<ChapterSpaceLink>(`/chapters/${chapterId}/space-link`);
 
-/** For the Creative Space file browser side of the UI: is this file linked to a chapter? */
-export const fetchItemChapterLink = (spaceId: string, itemId: string) =>
-  request<ItemChapterLink>(`/creative-spaces/${spaceId}/items/${itemId}/chapter-link`);
+/** For the screenplay scene editor side of the UI: is this scene linked to a Space file? */
+export const fetchSceneSpaceLink = (sceneId: string) =>
+  request<ChapterSpaceLink>(`/screenplay-scenes/${sceneId}/space-link`);
 
-export const linkChapterToSpaceItem = (spaceId: string, itemId: string, chapterId: string) =>
-  request(`/creative-spaces/${spaceId}/items/${itemId}/link-chapter`, {
+/** For the Creative Space file browser side of the UI: is this file linked to a chapter/scene/page? */
+export const fetchItemContentLink = (spaceId: string, itemId: string) =>
+  request<ItemContentLink>(`/creative-spaces/${spaceId}/items/${itemId}/content-link`);
+
+export const linkContentToSpaceItem = (spaceId: string, itemId: string, entityType: ContentEntityType, entityId: string) =>
+  request(`/creative-spaces/${spaceId}/items/${itemId}/content-link`, {
     method: "POST",
-    body: JSON.stringify({ chapterId }),
+    body: JSON.stringify({ entityType, entityId }),
   });
 
-export const unlinkChapterFromSpaceItem = (spaceId: string, itemId: string) =>
-  request(`/creative-spaces/${spaceId}/items/${itemId}/link-chapter`, { method: "DELETE" });
+export const unlinkContentFromSpaceItem = (spaceId: string, itemId: string) =>
+  request(`/creative-spaces/${spaceId}/items/${itemId}/content-link`, { method: "DELETE" });

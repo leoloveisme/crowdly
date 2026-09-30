@@ -80,6 +80,9 @@ import {
 import { pushChapterToLinkedItem } from './chapterSpaceSync.js';
 import { getChapterCrdtHandle, initChapterCrdtSync } from './chapterCrdtSync.js';
 import { reconcileSpaceChapterLinks } from './chapterSpaceReconcile.js';
+import { pushSceneToLinkedItem } from './screenplaySpaceSync.js';
+import { getSceneCrdtHandle, initSceneCrdtSync } from './screenplaySceneCrdtSync.js';
+import { inferBlockType } from './screenplayMarkdown.js';
 import path from 'path';
 import fs from 'fs';
 import http from 'http';
@@ -2907,6 +2910,47 @@ app.post('/screenplays/:screenplayId/scenes', async (req, res) => {
   }
 });
 
+// If sceneId is linked to a Space file, folds the scene's CURRENT DB state
+// (slugline + ordered blocks) into its CRDT doc, then pushes the doc's
+// content out to the linked file/GitHub/Drive — same pattern as
+// PATCH /chapters/:chapterId's inline CRDT-apply-then-push block, since all
+// four scene/block write routes below need to trigger it identically.
+async function syncSceneToLinkedSpaceItem(sceneId, user) {
+  try {
+    const linkRes = await pool.query(
+      'SELECT 1 FROM creative_space_items WHERE linked_scene_id = $1 AND content_sync_enabled = true AND deleted = false LIMIT 1',
+      [sceneId],
+    );
+    if (linkRes.rows.length > 0) {
+      const sceneRes = await pool.query('SELECT slugline FROM screenplay_scene WHERE scene_id = $1', [sceneId]);
+      if (sceneRes.rows.length > 0) {
+        const blocksRes = await pool.query(
+          'SELECT block_type, text, metadata FROM screenplay_block WHERE scene_id = $1 ORDER BY block_index ASC',
+          [sceneId],
+        );
+        const handle = await getSceneCrdtHandle(sceneId);
+        applyContentToHandle(
+          handle,
+          {
+            ...handle.doc(),
+            slugline: sceneRes.rows[0].slugline,
+            blocks: blocksRes.rows.map((b) => ({ blockType: b.block_type, text: b.text, metadata: b.metadata })),
+          },
+          user,
+        );
+      }
+    }
+  } catch (errCrdt) {
+    console.error('[syncSceneToLinkedSpaceItem] failed to apply edit to linked CRDT doc:', errCrdt);
+  }
+
+  try {
+    await pushSceneToLinkedItem(sceneId);
+  } catch (errSync) {
+    console.error('[syncSceneToLinkedSpaceItem] failed to sync linked Space item:', errSync);
+  }
+}
+
 // Update a scene
 app.patch('/screenplay-scenes/:sceneId', async (req, res) => {
   const { sceneId } = req.params;
@@ -2996,6 +3040,8 @@ app.patch('/screenplay-scenes/:sceneId', async (req, res) => {
       }
     }
 
+    await syncSceneToLinkedSpaceItem(sceneId, { id: userId || null });
+
     res.json(updated);
   } catch (err) {
     console.error('[PATCH /screenplay-scenes/:sceneId] failed:', err);
@@ -3043,6 +3089,8 @@ app.post('/screenplays/:screenplayId/blocks', async (req, res) => {
     if (userId) {
       await ensureScreenplayAccessRow(screenplayId, userId, 'contributor');
     }
+
+    if (sceneId) await syncSceneToLinkedSpaceItem(sceneId, { id: userId || null });
 
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -3136,6 +3184,8 @@ app.patch('/screenplay-blocks/:blockId', async (req, res) => {
       }
     }
 
+    if (updated.scene_id) await syncSceneToLinkedSpaceItem(updated.scene_id, { id: userId || null });
+
     res.json(updated);
   } catch (err) {
     console.error('[PATCH /screenplay-blocks/:blockId] failed:', err);
@@ -3148,6 +3198,9 @@ app.delete('/screenplay-blocks/:blockId', async (req, res) => {
   const { blockId } = req.params;
 
   try {
+    const existingRes = await pool.query('SELECT scene_id FROM screenplay_block WHERE block_id = $1', [blockId]);
+    const sceneId = existingRes.rows[0]?.scene_id || null;
+
     const { rowCount } = await pool.query(
       'DELETE FROM screenplay_block WHERE block_id = $1',
       [blockId],
@@ -3155,6 +3208,9 @@ app.delete('/screenplay-blocks/:blockId', async (req, res) => {
     if (rowCount === 0) {
       return res.status(404).json({ error: 'Block not found' });
     }
+
+    if (sceneId) await syncSceneToLinkedSpaceItem(sceneId, { id: req.body?.userId || null });
+
     res.status(204).send();
   } catch (err) {
     console.error('[DELETE /screenplay-blocks/:blockId] failed:', err);
@@ -3303,20 +3359,11 @@ app.post('/screenplays/:screenplayId/sync-desktop', async (req, res) => {
         nextBlockIndex += 1;
 
         // Best-effort block type inference based on common screenplay
-        // conventions so that the web UI can render richer element types.
-        let blockType = 'action';
-        const trimmed = text.trim();
-        if (trimmed) {
-          const isAllCaps = trimmed === trimmed.toUpperCase() && /[A-Z]/.test(trimmed);
-          if (isAllCaps && !trimmed.endsWith(':')) {
-            // CHARACTER NAME or similar.
-            blockType = 'character';
-          } else if (trimmed.startsWith('(') && trimmed.endsWith(')')) {
-            blockType = 'parenthetical';
-          } else if (isAllCaps && trimmed.endsWith(':')) {
-            blockType = 'transition';
-          }
-        }
+        // conventions so that the web UI can render richer element types —
+        // shared with screenplayMarkdown.js's scene<->Space-file sync so
+        // both places agree on what a CHARACTER cue / (parenthetical) /
+        // TRANSITION: / action line looks like.
+        const blockType = inferBlockType(text);
 
         await client.query(
           'INSERT INTO screenplay_block (screenplay_id, scene_id, block_index, block_type, text, metadata) VALUES ($1, $2, $3, $4, $5, $6)',
@@ -5603,18 +5650,32 @@ app.post('/creative-spaces/:spaceId/import-wizard/structure-chapter', requireAut
   }
 });
 
-// Links a Space file item to a chapter for continuous bidirectional content
-// sync (see backend/src/chapterSpaceSync.js) — distinct from the import
-// wizard above, which only stamps linked_chapter_id once as provenance.
-// Chapter content wins on link: this seeds/overwrites the file with the
-// chapter's current text, since the action is initiated from the chapter
-// side of the UI.
-app.post('/creative-spaces/:spaceId/items/:itemId/link-chapter', requireAuth, async (req, res) => {
-  const { spaceId, itemId } = req.params;
-  const { chapterId } = req.body ?? {};
+const CONTENT_LINK_COLUMN = { chapter: 'linked_chapter_id', scene: 'linked_scene_id', page: 'linked_page_id' };
 
-  if (!chapterId) {
-    return res.status(400).json({ error: 'chapterId is required' });
+/** Which of the three link columns (if any) is currently set on an item, as `{entityType, entityId}` or null. */
+function currentContentLink(item) {
+  if (item.linked_chapter_id) return { entityType: 'chapter', entityId: item.linked_chapter_id };
+  if (item.linked_scene_id) return { entityType: 'scene', entityId: item.linked_scene_id };
+  if (item.linked_page_id) return { entityType: 'page', entityId: item.linked_page_id };
+  return null;
+}
+
+// Links a Space file item to a chapter/scene/page for continuous
+// bidirectional content sync (see chapterSpaceSync.js/screenplaySpaceSync.js/
+// comicPageSpaceSync.js) — distinct from the import wizard above, which only
+// stamps the linked_*_id column once as provenance. For chapter/scene, the
+// entity's current content wins on link: this seeds/overwrites the file,
+// since the action is initiated from the chapter/scene side of the UI. Page
+// links don't seed anything (comic-page sync is pull-direction only).
+app.post('/creative-spaces/:spaceId/items/:itemId/content-link', requireAuth, async (req, res) => {
+  const { spaceId, itemId } = req.params;
+  const { entityType, entityId } = req.body ?? {};
+
+  if (!CONTENT_LINK_COLUMN[entityType]) {
+    return res.status(400).json({ error: "entityType must be 'chapter', 'scene', or 'page'" });
+  }
+  if (!entityId) {
+    return res.status(400).json({ error: 'entityId is required' });
   }
 
   try {
@@ -5623,7 +5684,7 @@ app.post('/creative-spaces/:spaceId/items/:itemId/link-chapter', requireAuth, as
       return res.status(404).json({ error: 'Creative space not found' });
     }
     if (spaceRes.rows[0].user_id !== req.user.id) {
-      return res.status(403).json({ error: 'Only the Space owner may link chapters to Space files' });
+      return res.status(403).json({ error: 'Only the Space owner may link content to Space files' });
     }
 
     const itemRes = await pool.query(
@@ -5634,45 +5695,90 @@ app.post('/creative-spaces/:spaceId/items/:itemId/link-chapter', requireAuth, as
       return res.status(404).json({ error: 'File item not found in this Space' });
     }
     const item = itemRes.rows[0];
-    if (item.linked_chapter_id && item.linked_chapter_id !== chapterId) {
-      return res.status(400).json({ error: 'This file is already linked to a different chapter' });
+    const existingLink = currentContentLink(item);
+    if (existingLink && (existingLink.entityType !== entityType || existingLink.entityId !== entityId)) {
+      return res.status(400).json({ error: 'This file is already linked to different content' });
     }
 
-    const chapterRes = await pool.query(
-      `SELECT s.chapter_title, st.story_title_id, st.creative_space_id
-       FROM stories s JOIN story_title st ON st.story_title_id = s.story_title_id
-       WHERE s.chapter_id = $1`,
-      [chapterId],
-    );
-    if (chapterRes.rows.length === 0) {
-      return res.status(404).json({ error: 'Chapter not found' });
-    }
-    const chapter = chapterRes.rows[0];
-    if (chapter.creative_space_id !== spaceId) {
-      return res.status(400).json({ error: "This chapter's story does not belong to this Space" });
-    }
-    const role = await getStoryAccessRole(chapter.story_title_id, req.user.id);
-    if (!role) {
-      return res.status(403).json({ error: 'Not authorized to link this chapter' });
+    if (entityType === 'chapter') {
+      const chapterRes = await pool.query(
+        `SELECT s.story_title_id, st.creative_space_id
+         FROM stories s JOIN story_title st ON st.story_title_id = s.story_title_id
+         WHERE s.chapter_id = $1`,
+        [entityId],
+      );
+      if (chapterRes.rows.length === 0) return res.status(404).json({ error: 'Chapter not found' });
+      if (chapterRes.rows[0].creative_space_id !== spaceId) {
+        return res.status(400).json({ error: "This chapter's story does not belong to this Space" });
+      }
+      const role = await getStoryAccessRole(chapterRes.rows[0].story_title_id, req.user.id);
+      if (!role) return res.status(403).json({ error: 'Not authorized to link this chapter' });
+    } else if (entityType === 'scene') {
+      const sceneRes = await pool.query(
+        `SELECT sc.screenplay_id, st.creative_space_id, st.creator_id
+         FROM screenplay_scene sc JOIN screenplay_title st ON st.screenplay_id = sc.screenplay_id
+         WHERE sc.scene_id = $1`,
+        [entityId],
+      );
+      if (sceneRes.rows.length === 0) return res.status(404).json({ error: 'Scene not found' });
+      if (sceneRes.rows[0].creative_space_id !== spaceId) {
+        return res.status(400).json({ error: "This scene's screenplay does not belong to this Space" });
+      }
+      let allowed = sceneRes.rows[0].creator_id === req.user.id;
+      if (!allowed) {
+        const accessRes = await pool.query(
+          'SELECT 1 FROM screenplay_access WHERE screenplay_id = $1 AND user_id = $2 LIMIT 1',
+          [sceneRes.rows[0].screenplay_id, req.user.id],
+        );
+        allowed = accessRes.rows.length > 0;
+      }
+      if (!allowed) return res.status(403).json({ error: 'Not authorized to link this scene' });
+    } else {
+      const pageRes = await pool.query(
+        `SELECT cp.comic_id, ct.creative_space_id, ct.creator_id
+         FROM comic_page cp JOIN comic_title ct ON ct.comic_id = cp.comic_id
+         WHERE cp.page_id = $1`,
+        [entityId],
+      );
+      if (pageRes.rows.length === 0) return res.status(404).json({ error: 'Page not found' });
+      if (pageRes.rows[0].creative_space_id !== spaceId) {
+        return res.status(400).json({ error: "This page's comic does not belong to this Space" });
+      }
+      let allowed = pageRes.rows[0].creator_id === req.user.id;
+      if (!allowed) {
+        const accessRes = await pool.query(
+          "SELECT 1 FROM comic_access WHERE comic_id = $1 AND user_id = $2 AND role IN ('owner', 'contributor') LIMIT 1",
+          [pageRes.rows[0].comic_id, req.user.id],
+        );
+        allowed = accessRes.rows.length > 0;
+      }
+      if (!allowed) return res.status(403).json({ error: 'Not authorized to link this page' });
     }
 
+    const column = CONTENT_LINK_COLUMN[entityType];
+    const otherColumns = Object.values(CONTENT_LINK_COLUMN).filter((c) => c !== column);
     await pool.query(
-      'UPDATE creative_space_items SET linked_chapter_id = $1, chapter_sync_enabled = true WHERE id = $2',
-      [chapterId, itemId],
+      `UPDATE creative_space_items
+       SET ${otherColumns.map((c) => `${c} = NULL`).join(', ')},
+           ${column} = $1, content_sync_enabled = true
+       WHERE id = $2`,
+      [entityId, itemId],
     );
 
-    await pushChapterToLinkedItem(chapterId);
+    if (entityType === 'chapter') await pushChapterToLinkedItem(entityId);
+    else if (entityType === 'scene') await pushSceneToLinkedItem(entityId);
+    // 'page' links seed nothing — comic-page sync is pull-direction only.
 
     const { rows } = await pool.query('SELECT * FROM creative_space_items WHERE id = $1', [itemId]);
     res.json(rows[0]);
   } catch (err) {
-    console.error('[POST /creative-spaces/:spaceId/items/:itemId/link-chapter] failed:', err);
-    res.status(500).json({ error: 'Failed to link chapter to Space file' });
+    console.error('[POST /creative-spaces/:spaceId/items/:itemId/content-link] failed:', err);
+    res.status(500).json({ error: 'Failed to link content to Space file' });
   }
 });
 
 // Stops sync (does not delete the file's last-synced content).
-app.delete('/creative-spaces/:spaceId/items/:itemId/link-chapter', requireAuth, async (req, res) => {
+app.delete('/creative-spaces/:spaceId/items/:itemId/content-link', requireAuth, async (req, res) => {
   const { spaceId, itemId } = req.params;
 
   try {
@@ -5685,7 +5791,8 @@ app.delete('/creative-spaces/:spaceId/items/:itemId/link-chapter', requireAuth, 
     }
 
     const { rows } = await pool.query(
-      `UPDATE creative_space_items SET linked_chapter_id = NULL, chapter_sync_enabled = false
+      `UPDATE creative_space_items
+       SET linked_chapter_id = NULL, linked_scene_id = NULL, linked_page_id = NULL, content_sync_enabled = false
        WHERE id = $1 AND space_id = $2
        RETURNING *`,
       [itemId, spaceId],
@@ -5695,51 +5802,68 @@ app.delete('/creative-spaces/:spaceId/items/:itemId/link-chapter', requireAuth, 
     }
     res.json(rows[0]);
   } catch (err) {
-    console.error('[DELETE /creative-spaces/:spaceId/items/:itemId/link-chapter] failed:', err);
-    res.status(500).json({ error: 'Failed to unlink chapter from Space file' });
+    console.error('[DELETE /creative-spaces/:spaceId/items/:itemId/content-link] failed:', err);
+    res.status(500).json({ error: 'Failed to unlink content from Space file' });
   }
 });
 
-app.get('/creative-spaces/:spaceId/items/:itemId/chapter-link', requireAuth, async (req, res) => {
+app.get('/creative-spaces/:spaceId/items/:itemId/content-link', requireAuth, async (req, res) => {
   const { spaceId, itemId } = req.params;
 
   try {
-    const { rows } = await pool.query(
-      `SELECT ci.linked_chapter_id, ci.chapter_sync_enabled, ci.chapter_last_synced_at,
-              s.chapter_title, s.content_updated_at
-       FROM creative_space_items ci
-       LEFT JOIN stories s ON s.chapter_id = ci.linked_chapter_id
-       WHERE ci.id = $1 AND ci.space_id = $2`,
+    const itemRes = await pool.query(
+      'SELECT * FROM creative_space_items WHERE id = $1 AND space_id = $2',
       [itemId, spaceId],
     );
-    if (rows.length === 0) {
+    if (itemRes.rows.length === 0) {
       return res.status(404).json({ error: 'File item not found in this Space' });
     }
-    const row = rows[0];
-    const pendingConflict = Boolean(
-      row.linked_chapter_id
-      && row.chapter_sync_enabled
-      && row.content_updated_at
-      && row.chapter_last_synced_at
-      && new Date(row.content_updated_at) > new Date(row.chapter_last_synced_at),
-    );
+    const item = itemRes.rows[0];
+    const link = currentContentLink(item);
+    if (!link) {
+      return res.json({ entityType: null, entityId: null, title: null, syncEnabled: false, lastSyncedAt: null, pendingConflict: false });
+    }
+
+    let title = null;
+    let pendingConflict = false;
+    if (link.entityType === 'chapter') {
+      const r = await pool.query('SELECT chapter_title, content_updated_at FROM stories WHERE chapter_id = $1', [link.entityId]);
+      title = r.rows[0]?.chapter_title ?? null;
+      pendingConflict = Boolean(
+        item.content_sync_enabled && r.rows[0]?.content_updated_at && item.content_last_synced_at
+        && new Date(r.rows[0].content_updated_at) > new Date(item.content_last_synced_at),
+      );
+    } else if (link.entityType === 'scene') {
+      const r = await pool.query('SELECT slugline, updated_at FROM screenplay_scene WHERE scene_id = $1', [link.entityId]);
+      title = r.rows[0]?.slugline ?? null;
+      pendingConflict = Boolean(
+        item.content_sync_enabled && r.rows[0]?.updated_at && item.content_last_synced_at
+        && new Date(r.rows[0].updated_at) > new Date(item.content_last_synced_at),
+      );
+    } else {
+      const r = await pool.query('SELECT page_index FROM comic_page WHERE page_id = $1', [link.entityId]);
+      title = r.rows[0] ? `Page ${Number(r.rows[0].page_index) + 1}` : null;
+      // No staleness signal for pages — push is a no-op stub (see comicPageSpaceSync.js).
+    }
+
     res.json({
-      chapterId: row.linked_chapter_id,
-      chapterTitle: row.chapter_title,
-      syncEnabled: row.chapter_sync_enabled,
-      lastSyncedAt: row.chapter_last_synced_at,
+      entityType: link.entityType,
+      entityId: link.entityId,
+      title,
+      syncEnabled: item.content_sync_enabled,
+      lastSyncedAt: item.content_last_synced_at,
       pendingConflict,
     });
   } catch (err) {
-    console.error('[GET /creative-spaces/:spaceId/items/:itemId/chapter-link] failed:', err);
-    res.status(500).json({ error: 'Failed to load chapter link status' });
+    console.error('[GET /creative-spaces/:spaceId/items/:itemId/content-link] failed:', err);
+    res.status(500).json({ error: 'Failed to load content link status' });
   }
 });
 
 // What chapterSpaceReconcile.js has done automatically for this Space, most
 // recent first — surfaced in the UI since linking/re-linking now happens
 // without anyone clicking anything.
-app.get('/creative-spaces/:spaceId/chapter-link-events', async (req, res) => {
+app.get('/creative-spaces/:spaceId/content-link-events', async (req, res) => {
   const { spaceId } = req.params;
   const userId = req.query.userId ?? null;
   const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
@@ -5753,18 +5877,28 @@ app.get('/creative-spaces/:spaceId/chapter-link-events', async (req, res) => {
     }
 
     const { rows } = await pool.query(
-      `SELECT e.event_type, e.detail, e.created_at, s.chapter_title
-       FROM chapter_link_events e
-       LEFT JOIN stories s ON s.chapter_id = e.chapter_id
+      `SELECT e.event_type, e.detail, e.created_at, e.entity_type,
+              s.chapter_title, sc.slugline, cp.page_index
+       FROM content_link_events e
+       LEFT JOIN stories s ON e.entity_type = 'chapter' AND s.chapter_id = e.entity_id
+       LEFT JOIN screenplay_scene sc ON e.entity_type = 'scene' AND sc.scene_id = e.entity_id
+       LEFT JOIN comic_page cp ON e.entity_type = 'page' AND cp.page_id = e.entity_id
        WHERE e.space_id = $1
        ORDER BY e.created_at DESC
        LIMIT $2`,
       [spaceId, limit],
     );
-    res.json(rows);
+    const withTitles = rows.map((r) => ({
+      event_type: r.event_type,
+      detail: r.detail,
+      created_at: r.created_at,
+      entity_type: r.entity_type,
+      title: r.chapter_title ?? r.slugline ?? (r.page_index != null ? `Page ${Number(r.page_index) + 1}` : null),
+    }));
+    res.json(withTitles);
   } catch (err) {
-    console.error('[GET /creative-spaces/:spaceId/chapter-link-events] failed:', err);
-    res.status(500).json({ error: 'Failed to load chapter link activity' });
+    console.error('[GET /creative-spaces/:spaceId/content-link-events] failed:', err);
+    res.status(500).json({ error: 'Failed to load content link activity' });
   }
 });
 
@@ -5775,7 +5909,7 @@ app.get('/chapters/:chapterId/space-link', requireAuth, async (req, res) => {
 
   try {
     const { rows } = await pool.query(
-      `SELECT ci.id AS item_id, ci.space_id, ci.relative_path, ci.chapter_sync_enabled, ci.chapter_last_synced_at,
+      `SELECT ci.id AS item_id, ci.space_id, ci.relative_path, ci.content_sync_enabled, ci.content_last_synced_at,
               cs.name AS space_name, s.content_updated_at
        FROM creative_space_items ci
        JOIN creative_spaces cs ON cs.id = ci.space_id
@@ -5788,10 +5922,10 @@ app.get('/chapters/:chapterId/space-link', requireAuth, async (req, res) => {
     }
     const row = rows[0];
     const pendingConflict = Boolean(
-      row.chapter_sync_enabled
+      row.content_sync_enabled
       && row.content_updated_at
-      && row.chapter_last_synced_at
-      && new Date(row.content_updated_at) > new Date(row.chapter_last_synced_at),
+      && row.content_last_synced_at
+      && new Date(row.content_updated_at) > new Date(row.content_last_synced_at),
     );
     res.json({
       linked: true,
@@ -5799,13 +5933,53 @@ app.get('/chapters/:chapterId/space-link', requireAuth, async (req, res) => {
       spaceId: row.space_id,
       spaceName: row.space_name,
       relativePath: row.relative_path,
-      syncEnabled: row.chapter_sync_enabled,
-      lastSyncedAt: row.chapter_last_synced_at,
+      syncEnabled: row.content_sync_enabled,
+      lastSyncedAt: row.content_last_synced_at,
       pendingConflict,
     });
   } catch (err) {
     console.error('[GET /chapters/:chapterId/space-link] failed:', err);
     res.status(500).json({ error: 'Failed to load chapter link status' });
+  }
+});
+
+// Same as GET /chapters/:chapterId/space-link, for a screenplay scene.
+app.get('/screenplay-scenes/:sceneId/space-link', requireAuth, async (req, res) => {
+  const { sceneId } = req.params;
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT ci.id AS item_id, ci.space_id, ci.relative_path, ci.content_sync_enabled, ci.content_last_synced_at,
+              cs.name AS space_name, sc.updated_at AS entity_updated_at
+       FROM creative_space_items ci
+       JOIN creative_spaces cs ON cs.id = ci.space_id
+       JOIN screenplay_scene sc ON sc.scene_id = ci.linked_scene_id
+       WHERE ci.linked_scene_id = $1 AND ci.deleted = false`,
+      [sceneId],
+    );
+    if (rows.length === 0) {
+      return res.json({ linked: false });
+    }
+    const row = rows[0];
+    const pendingConflict = Boolean(
+      row.content_sync_enabled
+      && row.entity_updated_at
+      && row.content_last_synced_at
+      && new Date(row.entity_updated_at) > new Date(row.content_last_synced_at),
+    );
+    res.json({
+      linked: true,
+      itemId: row.item_id,
+      spaceId: row.space_id,
+      spaceName: row.space_name,
+      relativePath: row.relative_path,
+      syncEnabled: row.content_sync_enabled,
+      lastSyncedAt: row.content_last_synced_at,
+      pendingConflict,
+    });
+  } catch (err) {
+    console.error('[GET /screenplay-scenes/:sceneId/space-link] failed:', err);
+    res.status(500).json({ error: 'Failed to load scene link status' });
   }
 });
 
@@ -7255,7 +7429,7 @@ app.patch('/chapters/:chapterId', requireAuth, async (req, res) => {
     // doc's current content out to the linked file/GitHub/Drive.
     try {
       const linkRes = await pool.query(
-        "SELECT 1 FROM creative_space_items WHERE linked_chapter_id = $1 AND chapter_sync_enabled = true AND deleted = false LIMIT 1",
+        "SELECT 1 FROM creative_space_items WHERE linked_chapter_id = $1 AND content_sync_enabled = true AND deleted = false LIMIT 1",
         [chapterId],
       );
       if (linkRes.rows.length > 0) {
@@ -10685,20 +10859,39 @@ const { repo, wss } = createCrdtRepo({
 crdtRepo = repo;
 attachCrdtWebSocketServer(httpServer, { wss, getSessionUser });
 
-// Phase 2 GitHub sync: attach live push listeners for every already-linked
-// chapter. Safe to run regardless of whether a GitHub App is configured —
-// it only touches the CRDT repo, not the GitHub API.
-initGithubCrdtLinks(crdtRepo).catch((err) => {
-  console.error('[init] initGithubCrdtLinks unhandled error:', err);
-});
+// These three each bulk-load every existing doc of their kind and attach a
+// listener to it — run one after another, not concurrently, so a server
+// with a lot of linked content doesn't have two/three loops racing to pull
+// from the same automerge-repo/Postgres storage adapter at once during the
+// heaviest part of boot.
+(async () => {
+  // Phase 2 GitHub sync: attach live push listeners for every already-linked
+  // chapter. Safe to run regardless of whether a GitHub App is configured —
+  // it only touches the CRDT repo, not the GitHub API.
+  try {
+    await initGithubCrdtLinks(crdtRepo);
+  } catch (err) {
+    console.error('[init] initGithubCrdtLinks unhandled error:', err);
+  }
 
-// Chapter <-> Space file sync backbone: attach the materialization listener
-// (CRDT doc changes -> stories/chapter_revisions) for every chapter doc that
-// already exists. New docs get their listener attached the moment
-// ensureChapterCrdtDoc() creates them, so this only needs to run once here.
-initChapterCrdtSync(crdtRepo).catch((err) => {
-  console.error('[init] initChapterCrdtSync unhandled error:', err);
-});
+  // Chapter <-> Space file sync backbone: attach the materialization listener
+  // (CRDT doc changes -> stories/chapter_revisions) for every chapter doc that
+  // already exists. New docs get their listener attached the moment
+  // ensureChapterCrdtDoc() creates them, so this only needs to run once here.
+  try {
+    await initChapterCrdtSync(crdtRepo);
+  } catch (err) {
+    console.error('[init] initChapterCrdtSync unhandled error:', err);
+  }
+
+  // Scene <-> Space file sync backbone — same idea as initChapterCrdtSync,
+  // for screenplay scenes.
+  try {
+    await initSceneCrdtSync(crdtRepo);
+  } catch (err) {
+    console.error('[init] initSceneCrdtSync unhandled error:', err);
+  }
+})();
 
 httpServer.listen(port, host, () => {
   console.log(`Crowdly backend listening on http://${host === '0.0.0.0' ? 'localhost' : host}:${port}`);

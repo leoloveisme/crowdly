@@ -293,7 +293,18 @@ function restoreValueInPlace(root, live, historical, path) {
     const liveValue = live[key];
     const keyPath = [...path, key];
     if (typeof historicalValue === 'string') {
-      if (liveValue !== historicalValue) Automerge.updateText(root, keyPath, historicalValue);
+      // updateText diffs against an EXISTING text value — it can't create one
+      // from scratch. liveValue is undefined exactly when this key has never
+      // been set on this object before (e.g. a field on a freshly-inserted
+      // array element, see the array branch above, which only ever seeds new
+      // object items as `{}`) — a plain assign seeds it as real CRDT text
+      // (Automerge 3.x treats every plain string as Text by default, per the
+      // module header), and every subsequent call diffs against it normally.
+      if (liveValue === undefined) {
+        live[key] = historicalValue;
+      } else if (liveValue !== historicalValue) {
+        Automerge.updateText(root, keyPath, historicalValue);
+      }
     } else if (historicalValue && typeof historicalValue === 'object') {
       if (liveValue == null || typeof liveValue !== 'object') {
         live[key] = Array.isArray(historicalValue) ? [] : {};
