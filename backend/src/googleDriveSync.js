@@ -53,6 +53,7 @@ import { pullChapterFromLinkedItem } from './chapterSpaceSync.js';
 import { pullSceneFromLinkedItem } from './screenplaySpaceSync.js';
 import { pullPageFromLinkedItem } from './comicPageSpaceSync.js';
 import { reconcileSpaceChapterLinks } from './chapterSpaceReconcile.js';
+import { applyIgnoreFlags, gitignoreEntries, isDotPath, loadSpaceIgnoreCheck, saveSpaceIgnoreRules } from './spaceSyncIgnore.js';
 
 export async function ensureGoogleDriveSyncTables() {
   try {
@@ -528,19 +529,52 @@ async function withItemErrorLogging(ctx, relPath, fn) {
 }
 
 /** Full two-way reconcile of the connected Drive folder tree with the Space's items. */
+const gitignoreDriveCache = new Map(); // Drive file id -> { md5, content }
+
+/** Reads every .gitignore in the Drive tree and stores them as the Space's Drive ignore rules; returns the combined ignore check. */
+async function loadDriveIgnoreCheck(ctx, files) {
+  const rules = [];
+  for (const { dir, entry } of gitignoreEntries(files)) {
+    try {
+      const cached = gitignoreDriveCache.get(entry.id);
+      let content = cached && cached.md5 && cached.md5 === entry.md5Checksum ? cached.content : null;
+      if (content === null) {
+        content = (await getFileContent({ token: ctx.token, fileId: entry.id })).toString('utf8');
+        gitignoreDriveCache.set(entry.id, { md5: entry.md5Checksum, content });
+      }
+      rules.push({ dir, content });
+    } catch (err) {
+      console.error('[googleDriveSync] failed to read', entry.path, err);
+    }
+  }
+  return saveSpaceIgnoreRules(ctx.space.id, 'drive', rules);
+}
+
 async function syncWholeSpace(ctx) {
   const { space, token } = ctx;
-  const tree = await listFolderTree({ token, rootId: space.google_drive_folder_id });
+  // Never descend into .git/ or any other dot-folder on Drive.
+  const fullTree = await listFolderTree({ token, rootId: space.google_drive_folder_id, skipFolder: isDotPath });
 
   ctx.folderIdsByPath = new Map([['', space.google_drive_folder_id]]);
-  for (const folder of tree.folders) ctx.folderIdsByPath.set(folder.path, folder.id);
+  for (const folder of fullTree.folders) ctx.folderIdsByPath.set(folder.path, folder.id);
+
+  // Dot-files and git-ignored paths are hidden in Crowdly (sync_ignored) and
+  // filtered out of BOTH sides before pairing: they are never imported,
+  // pushed, or — crucially — reach reconcileFile's "deleted in Crowdly →
+  // trash on Drive" branch. See spaceSyncIgnore.js.
+  const isIgnored = await loadDriveIgnoreCheck(ctx, fullTree.files);
+  await applyIgnoreFlags(space.id, isIgnored);
+  const tree = {
+    folders: fullTree.folders.filter((f) => !isIgnored(f.path, 'folder')),
+    files: fullTree.files.filter((f) => !isIgnored(f.path, 'file')),
+  };
 
   for (const folder of tree.folders) {
     await withItemErrorLogging(ctx, folder.path, () => ensureLocalFolder(ctx, folder.path, folder.id));
   }
 
   const itemsRes = await pool.query(
-    "SELECT * FROM creative_space_items WHERE space_id = $1 AND deleted = false AND kind = 'file' ORDER BY relative_path",
+    "SELECT * FROM creative_space_items WHERE space_id = $1 AND deleted = false AND sync_ignored = false AND kind = 'file' ORDER BY relative_path",
     [space.id],
   );
   const remoteById = new Map(tree.files.map((f) => [f.id, f]));
@@ -583,7 +617,7 @@ async function syncWholeSpace(ctx) {
   // empty folders round-trip too); previously-synced ones that vanished from
   // Drive are removed in Crowdly if nothing live remains inside them.
   const foldersRes = await pool.query(
-    "SELECT * FROM creative_space_items WHERE space_id = $1 AND deleted = false AND kind = 'folder' ORDER BY relative_path DESC",
+    "SELECT * FROM creative_space_items WHERE space_id = $1 AND deleted = false AND sync_ignored = false AND kind = 'folder' ORDER BY relative_path DESC",
     [space.id],
   );
   for (const folder of foldersRes.rows) {
@@ -685,6 +719,8 @@ async function pushItemToDrive(spaceId, itemId) {
   );
   const item = itemRes.rows[0];
   if (!item || !item.storage_path) return;
+  // Never push dot-files or git-ignored paths out to Drive.
+  if (item.sync_ignored || (await loadSpaceIgnoreCheck(spaceId))(item.relative_path, item.kind)) return;
 
   const ctx = await loadSyncContext(space);
   if (!ctx) return;

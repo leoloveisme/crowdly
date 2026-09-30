@@ -17,6 +17,7 @@ from urllib import request, error
 from urllib.parse import quote as _urlquote
 
 from .settings import Settings, save_settings, write_spaces_status_log
+from .sync_ignore import SyncIgnore
 
 
 DEFAULT_API_BASE = "http://localhost:4000"
@@ -163,6 +164,8 @@ def build_space_snapshot(root: Path) -> Dict[str, Any]:
     raise ValueError(f"Project space does not exist or is not a directory: {root}")
 
   items: List[Dict[str, Any]] = []
+  # Never send dot-files/folders (.git/, .crowdly/, ...) or git-ignored paths.
+  ignore = SyncIgnore(root)
 
   for dirpath, dirnames, filenames in os.walk(root):
     base = Path(dirpath)
@@ -171,6 +174,10 @@ def build_space_snapshot(root: Path) -> Dict[str, Any]:
     except ValueError:
       # Should not happen, but guard against it.
       rel_dir = Path(".")
+
+    rel_prefix = "" if rel_dir == Path(".") else rel_dir.as_posix() + "/"
+    dirnames[:] = [d for d in dirnames if not ignore.ignores(rel_prefix + d, is_dir=True)]
+    filenames = [f for f in filenames if not ignore.ignores(rel_prefix + f)]
 
     # For the root directory we do not emit an explicit folder item; the
     # backend treats the space itself as the root.
