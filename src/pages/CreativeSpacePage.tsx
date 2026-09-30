@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import EditableText from "@/components/EditableText";
 import SpaceUserPicker from "@/modules/space-user-picker";
-import { linkChapterToSpaceItem, unlinkChapterFromSpaceItem } from "@/lib/chapterSpaceSyncApi";
+import { linkContentToSpaceItem, unlinkContentFromSpaceItem } from "@/lib/chapterSpaceSyncApi";
 
 const IMAGE_EXTENSIONS = /\.(png|jpe?g|webp|gif|svg)$/i;
 const TEXT_EXTENSIONS = /\.(md|markdown|txt|json|jsonl|csv|html)$/i;
@@ -64,7 +64,9 @@ interface CreativeSpaceItem {
   created_at?: string | null;
   updated_at?: string | null;
   linked_chapter_id?: string | null;
-  chapter_sync_enabled?: boolean | null;
+  linked_scene_id?: string | null;
+  linked_page_id?: string | null;
+  content_sync_enabled?: boolean | null;
 }
 
 interface SpaceStoryRow {
@@ -124,7 +126,8 @@ interface ChapterLinkEvent {
   event_type: string;
   detail: string | null;
   created_at: string;
-  chapter_title: string | null;
+  entity_type: "chapter" | "scene" | "page";
+  title: string | null;
 }
 
 interface GoogleDriveSyncLogEntry {
@@ -532,7 +535,7 @@ const CreativeSpacePage: React.FC = () => {
     setChapterLinkEventsLoading(true);
     try {
       const params = new URLSearchParams({ userId: authUser.id });
-      const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/chapter-link-events?${params.toString()}`);
+      const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/content-link-events?${params.toString()}`);
       const body = await res.json().catch(() => []);
       if (res.ok && Array.isArray(body)) setChapterLinkEvents(body as ChapterLinkEvent[]);
     } catch (err) {
@@ -928,61 +931,100 @@ const CreativeSpacePage: React.FC = () => {
     }
   };
 
-  // --- Link a file to a chapter for continuous bidirectional sync ---
-  const [linkChapterItem, setLinkChapterItem] = useState<CreativeSpaceItem | null>(null);
-  const [linkStoryId, setLinkStoryId] = useState("");
-  const [linkChapterOptions, setLinkChapterOptions] = useState<{ chapter_id: string; chapter_title: string }[]>([]);
-  const [linkChapterId, setLinkChapterId] = useState("");
-  const [linkChaptersLoading, setLinkChaptersLoading] = useState(false);
+  // --- Link a file to a chapter/scene/page for continuous bidirectional sync ---
+  const [linkItem, setLinkItem] = useState<CreativeSpaceItem | null>(null);
+  const [linkContentType, setLinkContentType] = useState<"story" | "screenplay" | "comic">("story");
+  const [linkTargetId, setLinkTargetId] = useState(""); // story_title_id / screenplay_id / comic_id
+  const [linkEntityId, setLinkEntityId] = useState(""); // chapter_id / scene_id / page_id
+  const [linkEntityOptions, setLinkEntityOptions] = useState<{ id: string; label: string }[]>([]);
+  const [linkEntityOptionsLoading, setLinkEntityOptionsLoading] = useState(false);
   const [linkSubmitting, setLinkSubmitting] = useState(false);
   const [unlinkingItemId, setUnlinkingItemId] = useState<string | null>(null);
 
-  const openLinkChapterDialog = (item: CreativeSpaceItem) => {
-    setLinkChapterItem(item);
-    setLinkStoryId("");
-    setLinkChapterOptions([]);
-    setLinkChapterId("");
+  const linkTargetOptions: { id: string; title: string }[] =
+    linkContentType === "story"
+      ? contentItems.stories.map((s) => ({ id: s.story_title_id, title: s.title }))
+      : linkContentType === "screenplay"
+        ? contentItems.screenplays.map((s) => ({ id: s.screenplay_id, title: s.title }))
+        : contentItems.comics.map((c) => ({ id: c.comic_id, title: c.title }));
+
+  const openLinkDialog = (item: CreativeSpaceItem) => {
+    setLinkItem(item);
+    setLinkContentType("story");
+    setLinkTargetId("");
+    setLinkEntityId("");
+    setLinkEntityOptions([]);
+  };
+
+  const handleLinkContentTypeChange = (nextType: "story" | "screenplay" | "comic") => {
+    setLinkContentType(nextType);
+    setLinkTargetId("");
+    setLinkEntityId("");
+    setLinkEntityOptions([]);
   };
 
   useEffect(() => {
-    if (!linkStoryId) {
-      setLinkChapterOptions([]);
+    if (!linkTargetId) {
+      setLinkEntityOptions([]);
       return;
     }
-    setLinkChaptersLoading(true);
-    const params = new URLSearchParams({ storyTitleId: linkStoryId });
-    if (authUser?.id) params.set("userId", authUser.id);
-    fetch(`${API_BASE}/chapters?${params.toString()}`)
-      .then((res) => res.json())
-      .then((body) => setLinkChapterOptions(Array.isArray(body) ? body : []))
-      .catch(() => setLinkChapterOptions([]))
-      .finally(() => setLinkChaptersLoading(false));
-  }, [linkStoryId, authUser?.id]);
+    setLinkEntityOptionsLoading(true);
+    setLinkEntityId("");
 
-  const handleConfirmLinkChapter = async () => {
-    if (!linkChapterItem || !linkChapterId || !spaceId) return;
+    if (linkContentType === "story") {
+      const params = new URLSearchParams({ storyTitleId: linkTargetId });
+      if (authUser?.id) params.set("userId", authUser.id);
+      fetch(`${API_BASE}/chapters?${params.toString()}`)
+        .then((res) => res.json())
+        .then((body) => setLinkEntityOptions(Array.isArray(body)
+          ? body.map((c: { chapter_id: string; chapter_title: string }) => ({ id: c.chapter_id, label: c.chapter_title || "Untitled chapter" }))
+          : []))
+        .catch(() => setLinkEntityOptions([]))
+        .finally(() => setLinkEntityOptionsLoading(false));
+    } else if (linkContentType === "screenplay") {
+      fetch(`${API_BASE}/screenplays/${linkTargetId}/scenes`)
+        .then((res) => res.json())
+        .then((body) => setLinkEntityOptions(Array.isArray(body)
+          ? body.map((s: { scene_id: string; slugline: string }) => ({ id: s.scene_id, label: s.slugline || "Untitled scene" }))
+          : []))
+        .catch(() => setLinkEntityOptions([]))
+        .finally(() => setLinkEntityOptionsLoading(false));
+    } else {
+      fetch(`${API_BASE}/comics/${linkTargetId}`)
+        .then((res) => res.json())
+        .then((body) => setLinkEntityOptions(Array.isArray(body?.pages)
+          ? body.pages.map((p: { page_id: string; page_index: number }) => ({ id: p.page_id, label: `Page ${p.page_index + 1}` }))
+          : []))
+        .catch(() => setLinkEntityOptions([]))
+        .finally(() => setLinkEntityOptionsLoading(false));
+    }
+  }, [linkContentType, linkTargetId, authUser?.id]);
+
+  const handleConfirmLink = async () => {
+    if (!linkItem || !linkEntityId || !spaceId) return;
+    const entityType = linkContentType === "story" ? "chapter" : linkContentType === "screenplay" ? "scene" : "page";
     setLinkSubmitting(true);
     try {
-      const updated = await linkChapterToSpaceItem(spaceId, linkChapterItem.id, linkChapterId);
-      setItems((prev) => prev.map((it) => (it.id === linkChapterItem.id ? { ...it, ...(updated as CreativeSpaceItem) } : it)));
-      setLinkChapterItem(null);
+      const updated = await linkContentToSpaceItem(spaceId, linkItem.id, entityType, linkEntityId);
+      setItems((prev) => prev.map((it) => (it.id === linkItem.id ? { ...it, ...(updated as CreativeSpaceItem) } : it)));
+      setLinkItem(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to link chapter.");
+      setError(err instanceof Error ? err.message : "Failed to link content.");
     } finally {
       setLinkSubmitting(false);
     }
   };
 
-  const handleUnlinkChapter = async (item: CreativeSpaceItem) => {
+  const handleUnlinkContent = async (item: CreativeSpaceItem) => {
     if (!spaceId) return;
-    const ok = window.confirm(`Stop syncing "${item.name}" with its chapter? The file's current content stays as-is.`);
+    const ok = window.confirm(`Stop syncing "${item.name}"? The file's current content stays as-is.`);
     if (!ok) return;
     setUnlinkingItemId(item.id);
     try {
-      const updated = await unlinkChapterFromSpaceItem(spaceId, item.id);
+      const updated = await unlinkContentFromSpaceItem(spaceId, item.id);
       setItems((prev) => prev.map((it) => (it.id === item.id ? { ...it, ...(updated as CreativeSpaceItem) } : it)));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to unlink chapter.");
+      setError(err instanceof Error ? err.message : "Failed to unlink content.");
     } finally {
       setUnlinkingItemId(null);
     }
@@ -1693,7 +1735,7 @@ const CreativeSpacePage: React.FC = () => {
                             className={event.event_type === "unmatched_orphan" ? "text-amber-700" : "text-slate-600"}
                           >
                             <span className="text-slate-400">{new Date(event.created_at).toLocaleString()}</span>{" "}
-                            {event.chapter_title && <span className="font-medium">{event.chapter_title}: </span>}
+                            {event.title && <span className="font-medium">{event.title}: </span>}
                             {event.detail}
                           </li>
                         ))}
@@ -1909,19 +1951,19 @@ const CreativeSpacePage: React.FC = () => {
                           {item.name}
                         </button>
                       )}
-                      {item.chapter_sync_enabled ? (
+                      {item.content_sync_enabled ? (
                         <span
                           className="text-[10px] rounded-full bg-blue-50 text-blue-700 px-1.5 py-0.5 whitespace-nowrap"
-                          title="Continuously synced with a chapter"
+                          title="Continuously synced with a chapter, scene, or comic page"
                         >
                           ⇄ <EditableText id="space-badge-synced">Synced</EditableText>
                         </span>
-                      ) : item.linked_chapter_id ? (
+                      ) : (item.linked_chapter_id || item.linked_scene_id || item.linked_page_id) ? (
                         <span
                           className="text-[10px] rounded-full bg-emerald-50 text-emerald-700 px-1.5 py-0.5 whitespace-nowrap"
-                          title="Already structured into a chapter"
+                          title="Already structured into content"
                         >
-                          ✓ Chapter
+                          ✓ <EditableText id="space-badge-linked">Linked</EditableText>
                         </span>
                       ) : null}
                     </div>
@@ -1935,12 +1977,12 @@ const CreativeSpacePage: React.FC = () => {
                     </div>
                     <div className="w-56 text-right flex flex-wrap justify-end gap-x-3 gap-y-1 text-xs">
                       {isOwner && item.kind === "file" && (
-                        item.chapter_sync_enabled ? (
+                        item.content_sync_enabled ? (
                           <button
                             type="button"
                             disabled={unlinkingItemId === item.id}
                             className="text-slate-500 hover:text-slate-700 disabled:opacity-50"
-                            onClick={() => handleUnlinkChapter(item)}
+                            onClick={() => handleUnlinkContent(item)}
                           >
                             <EditableText id="space-unlink-chapter">Unsync</EditableText>
                           </button>
@@ -1948,9 +1990,9 @@ const CreativeSpacePage: React.FC = () => {
                           <button
                             type="button"
                             className="text-slate-500 hover:text-slate-700"
-                            onClick={() => openLinkChapterDialog(item)}
+                            onClick={() => openLinkDialog(item)}
                           >
-                            <EditableText id="space-link-chapter">Link to chapter</EditableText>
+                            <EditableText id="space-link-content">Link to content</EditableText>
                           </button>
                         )
                       )}
@@ -2064,31 +2106,69 @@ const CreativeSpacePage: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!linkChapterItem} onOpenChange={(open) => { if (!open) setLinkChapterItem(null); }}>
+      <Dialog open={!!linkItem} onOpenChange={(open) => { if (!open) setLinkItem(null); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
-              <EditableText id="space-link-chapter-title">Link to a chapter</EditableText>
+              <EditableText id="space-link-chapter-title">Link to content</EditableText>
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <p className="text-sm text-slate-600">
               <EditableText id="space-link-chapter-warning">
-                This will overwrite this file's current content with the chapter's text, then keep both in sync going forward.
+                Chapters and scenes: this overwrites the file's current content with the linked text, then keeps both in sync going forward. Comic pages: the file's content is not touched now, but future updates to it will replace the page's image.
               </EditableText>
             </p>
             <div>
               <label className="text-xs font-medium text-slate-600 block mb-1">
-                <EditableText id="space-link-chapter-story-label">Story</EditableText>
+                <EditableText id="space-link-content-type-label">Content type</EditableText>
               </label>
-              <Select value={linkStoryId} onValueChange={setLinkStoryId}>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={linkContentType === "story" ? "secondary" : "outline"}
+                  disabled={contentItems.stories.length === 0}
+                  onClick={() => handleLinkContentTypeChange("story")}
+                >
+                  <EditableText id="space-link-content-type-story">Story</EditableText>
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={linkContentType === "screenplay" ? "secondary" : "outline"}
+                  disabled={contentItems.screenplays.length === 0}
+                  onClick={() => handleLinkContentTypeChange("screenplay")}
+                >
+                  <EditableText id="space-link-content-type-screenplay">Screenplay</EditableText>
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={linkContentType === "comic" ? "secondary" : "outline"}
+                  disabled={contentItems.comics.length === 0}
+                  onClick={() => handleLinkContentTypeChange("comic")}
+                >
+                  <EditableText id="space-link-content-type-comic">Comic</EditableText>
+                </Button>
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-slate-600 block mb-1">
+                {linkContentType === "story"
+                  ? <EditableText id="space-link-chapter-story-label">Story</EditableText>
+                  : linkContentType === "screenplay"
+                    ? <EditableText id="space-link-target-label-screenplay">Screenplay</EditableText>
+                    : <EditableText id="space-link-target-label-comic">Comic</EditableText>}
+              </label>
+              <Select value={linkTargetId} onValueChange={setLinkTargetId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a story" />
+                  <SelectValue placeholder="Select one" />
                 </SelectTrigger>
                 <SelectContent>
-                  {contentItems.stories.map((s) => (
-                    <SelectItem key={s.story_title_id} value={s.story_title_id}>
-                      {s.title}
+                  {linkTargetOptions.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>
+                      {o.title}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -2096,26 +2176,30 @@ const CreativeSpacePage: React.FC = () => {
             </div>
             <div>
               <label className="text-xs font-medium text-slate-600 block mb-1">
-                <EditableText id="space-link-chapter-chapter-label">Chapter</EditableText>
+                {linkContentType === "story"
+                  ? <EditableText id="space-link-chapter-chapter-label">Chapter</EditableText>
+                  : linkContentType === "screenplay"
+                    ? <EditableText id="space-link-entity-label-scene">Scene</EditableText>
+                    : <EditableText id="space-link-entity-label-page">Page</EditableText>}
               </label>
-              <Select value={linkChapterId} onValueChange={setLinkChapterId} disabled={!linkStoryId || linkChaptersLoading}>
+              <Select value={linkEntityId} onValueChange={setLinkEntityId} disabled={!linkTargetId || linkEntityOptionsLoading}>
                 <SelectTrigger>
-                  <SelectValue placeholder={linkChaptersLoading ? "Loading..." : "Select a chapter"} />
+                  <SelectValue placeholder={linkEntityOptionsLoading ? "Loading..." : "Select one"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {linkChapterOptions.map((c) => (
-                    <SelectItem key={c.chapter_id} value={c.chapter_id}>
-                      {c.chapter_title || "Untitled chapter"}
+                  {linkEntityOptions.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>
+                      {o.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" onClick={() => setLinkChapterItem(null)}>
+              <Button variant="outline" onClick={() => setLinkItem(null)}>
                 <EditableText id="space-link-chapter-cancel">Cancel</EditableText>
               </Button>
-              <Button disabled={!linkChapterId || linkSubmitting} onClick={handleConfirmLinkChapter}>
+              <Button disabled={!linkEntityId || linkSubmitting} onClick={handleConfirmLink}>
                 <EditableText id="space-link-chapter-confirm">Link &amp; sync</EditableText>
               </Button>
             </div>

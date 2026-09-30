@@ -1311,16 +1311,16 @@
   {
     "page_key": "/creative_space/:spaceId",
     "element_id": "space-link-chapter-title",
-    "en": "Link to a chapter",
-    "ru": "Связать с главой",
-    "de": "Mit einem Kapitel verknüpfen"
+    "en": "Link to content",
+    "ru": "Связать с контентом",
+    "de": "Mit Inhalt verknüpfen"
   },
   {
     "page_key": "/creative_space/:spaceId",
     "element_id": "space-link-chapter-warning",
-    "en": "This will overwrite this file's current content with the chapter's text, then keep both in sync going forward.",
-    "ru": "Это перезапишет текущее содержимое файла текстом главы, а затем будет поддерживать их синхронизацию.",
-    "de": "Dadurch wird der aktuelle Inhalt dieser Datei mit dem Text des Kapitels überschrieben, und beide werden danach synchron gehalten."
+    "en": "Chapters and scenes: this overwrites the file's current content with the linked text, then keeps both in sync going forward. Comic pages: the file's content is not touched now, but future updates to it will replace the page's image.",
+    "ru": "Главы и сцены: это перезапишет текущее содержимое файла связанным текстом, а затем будет поддерживать их синхронизацию. Страницы комикса: содержимое файла сейчас не изменяется, но последующие обновления файла заменят изображение страницы.",
+    "de": "Kapitel und Szenen: Dies überschreibt den aktuellen Inhalt der Datei mit dem verknüpften Text und hält beide danach synchron. Comic-Seiten: Der Dateiinhalt wird jetzt nicht verändert, aber künftige Aktualisierungen ersetzen das Bild der Seite."
   },
   {
     "page_key": "/creative_space/:spaceId",
@@ -9315,5 +9315,75 @@
     "en": "Cancel",
     "ru": "Отмена",
     "de": "Abbrechen"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-link-content",
+    "en": "Link to content",
+    "ru": "Связать с контентом",
+    "de": "Mit Inhalt verknüpfen"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-badge-linked",
+    "en": "Linked",
+    "ru": "Связано",
+    "de": "Verknüpft"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-link-content-type-label",
+    "en": "Content type",
+    "ru": "Тип контента",
+    "de": "Inhaltstyp"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-link-content-type-story",
+    "en": "Story",
+    "ru": "История",
+    "de": "Geschichte"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-link-content-type-screenplay",
+    "en": "Screenplay",
+    "ru": "Сценарий",
+    "de": "Drehbuch"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-link-content-type-comic",
+    "en": "Comic",
+    "ru": "Комикс",
+    "de": "Comic"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-link-target-label-screenplay",
+    "en": "Screenplay",
+    "ru": "Сценарий",
+    "de": "Drehbuch"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-link-target-label-comic",
+    "en": "Comic",
+    "ru": "Комикс",
+    "de": "Comic"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-link-entity-label-scene",
+    "en": "Scene",
+    "ru": "Сцена",
+    "de": "Szene"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-link-entity-label-page",
+    "en": "Page",
+    "ru": "Страница",
+    "de": "Seite"
   }
 ]

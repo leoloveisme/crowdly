@@ -50,6 +50,8 @@ import {
 import { merge as mergeLines } from 'node-diff3';
 import { storeItemContent, guessMimeType, CREATIVE_SPACE_FILES_ROOT } from './creativeSpaceFiles.js';
 import { pullChapterFromLinkedItem } from './chapterSpaceSync.js';
+import { pullSceneFromLinkedItem } from './screenplaySpaceSync.js';
+import { pullPageFromLinkedItem } from './comicPageSpaceSync.js';
 import { reconcileSpaceChapterLinks } from './chapterSpaceReconcile.js';
 
 export async function ensureGoogleDriveSyncTables() {
@@ -279,7 +281,7 @@ async function storeLocal(ctx, item, buffer) {
     updatedBy: SYNC_ACTOR,
   });
 
-  if (item.linked_chapter_id && item.chapter_sync_enabled) {
+  if (item.linked_chapter_id && item.content_sync_enabled) {
     try {
       const chapterStatus = await pullChapterFromLinkedItem(item, buffer);
       if (chapterStatus === 'applied') {
@@ -287,6 +289,26 @@ async function storeLocal(ctx, item, buffer) {
       }
     } catch (err) {
       console.error('[googleDriveSync] chapter pull failed for', item.relative_path, err);
+    }
+  }
+  if (item.linked_scene_id && item.content_sync_enabled) {
+    try {
+      const sceneStatus = await pullSceneFromLinkedItem(item, buffer);
+      if (sceneStatus === 'applied') {
+        await logSync(ctx.space.id, 'pull', 'info', `Merged ${item.relative_path} into its linked scene`, item.relative_path);
+      }
+    } catch (err) {
+      console.error('[googleDriveSync] scene pull failed for', item.relative_path, err);
+    }
+  }
+  if (item.linked_page_id && item.content_sync_enabled) {
+    try {
+      const pageStatus = await pullPageFromLinkedItem(item, buffer);
+      if (pageStatus === 'applied') {
+        await logSync(ctx.space.id, 'pull', 'info', `Updated comic page image from ${item.relative_path}`, item.relative_path);
+      }
+    } catch (err) {
+      console.error('[googleDriveSync] page pull failed for', item.relative_path, err);
     }
   }
 
