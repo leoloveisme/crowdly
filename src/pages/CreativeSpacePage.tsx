@@ -982,11 +982,15 @@ const CreativeSpacePage: React.FC = () => {
         .catch(() => setLinkEntityOptions([]))
         .finally(() => setLinkEntityOptionsLoading(false));
     } else if (linkContentType === "screenplay") {
-      fetch(`${API_BASE}/screenplays/${linkTargetId}/scenes`)
+      const params = new URLSearchParams();
+      if (authUser?.id) params.set("userId", authUser.id);
+      fetch(`${API_BASE}/screenplays/${linkTargetId}/scenes?${params.toString()}`)
         .then((res) => res.json())
-        .then((body) => setLinkEntityOptions(Array.isArray(body)
-          ? body.map((s: { scene_id: string; slugline: string }) => ({ id: s.scene_id, label: s.slugline || "Untitled scene" }))
-          : []))
+        .then((body) => {
+          // The route responds with { scenes: [...] }, not a bare array.
+          const scenes = Array.isArray(body) ? body : Array.isArray(body?.scenes) ? body.scenes : [];
+          setLinkEntityOptions(scenes.map((s: { scene_id: string; slugline: string }) => ({ id: s.scene_id, label: s.slugline || "Untitled scene" })));
+        })
         .catch(() => setLinkEntityOptions([]))
         .finally(() => setLinkEntityOptionsLoading(false));
     } else {
