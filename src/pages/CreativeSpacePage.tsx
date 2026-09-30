@@ -890,12 +890,14 @@ const CreativeSpacePage: React.FC = () => {
       return;
     }
     setLinkChaptersLoading(true);
-    fetch(`${API_BASE}/story-titles/${linkStoryId}`)
+    const params = new URLSearchParams({ storyTitleId: linkStoryId });
+    if (authUser?.id) params.set("userId", authUser.id);
+    fetch(`${API_BASE}/chapters?${params.toString()}`)
       .then((res) => res.json())
-      .then((body) => setLinkChapterOptions(Array.isArray(body?.chapters) ? body.chapters : []))
+      .then((body) => setLinkChapterOptions(Array.isArray(body) ? body : []))
       .catch(() => setLinkChapterOptions([]))
       .finally(() => setLinkChaptersLoading(false));
-  }, [linkStoryId]);
+  }, [linkStoryId, authUser?.id]);
 
   const handleConfirmLinkChapter = async () => {
     if (!linkChapterItem || !linkChapterId || !spaceId) return;
