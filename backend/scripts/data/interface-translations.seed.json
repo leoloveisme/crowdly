@@ -9469,5 +9469,40 @@
     "en": "Start syncing",
     "ru": "Начать синхронизацию",
     "de": "Synchronisierung starten"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-outline-heading",
+    "en": "Scene order",
+    "ru": "Порядок сцен",
+    "de": "Reihenfolge der Szenen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-outline-hint",
+    "en": "Drag the handle or use the arrows to reorder",
+    "ru": "Перетащите за маркер или используйте стрелки, чтобы изменить порядок",
+    "de": "Am Griff ziehen oder die Pfeile nutzen, um die Reihenfolge zu ändern"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "screenplay-outline-heading",
+    "en": "Scene order",
+    "ru": "Порядок сцен",
+    "de": "Reihenfolge der Szenen"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "screenplay-outline-hint",
+    "en": "Drag the handle or use the arrows to reorder",
+    "ru": "Перетащите за маркер или используйте стрелки, чтобы изменить порядок",
+    "de": "Am Griff ziehen oder die Pfeile nutzen, um die Reihenfolge zu ändern"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-reader-reorder-hint",
+    "en": "Drag a page thumbnail, or use the arrows under it, to change the page order.",
+    "ru": "Перетащите миниатюру страницы или используйте стрелки под ней, чтобы изменить порядок страниц.",
+    "de": "Ziehe eine Seitenvorschau oder nutze die Pfeile darunter, um die Seitenreihenfolge zu ändern."
   }
 ]

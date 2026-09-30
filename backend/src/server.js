@@ -2910,6 +2910,58 @@ app.post('/screenplays/:screenplayId/scenes', async (req, res) => {
   }
 });
 
+// Reorder a screenplay's scenes — same shape as
+// PATCH /stories/:storyTitleId/chapters/reorder: the full list of scene ids
+// in their new order, renumbered 1..N in one transaction. Owner-only (the
+// creator, or a screenplay_access 'owner' row), like chapter reordering.
+app.patch('/screenplays/:screenplayId/scenes/reorder', requireAuth, async (req, res) => {
+  const { screenplayId } = req.params;
+  const { sceneIds } = req.body ?? {};
+
+  if (!Array.isArray(sceneIds) || sceneIds.length === 0) {
+    return res.status(400).json({ error: 'sceneIds[] is required' });
+  }
+
+  const client = await pool.connect();
+  try {
+    const titleRes = await client.query('SELECT creator_id FROM screenplay_title WHERE screenplay_id = $1', [screenplayId]);
+    if (titleRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Screenplay not found' });
+    }
+    let isOwner = titleRes.rows[0].creator_id === req.user.id;
+    if (!isOwner) {
+      const accessRes = await client.query(
+        "SELECT 1 FROM screenplay_access WHERE screenplay_id = $1 AND user_id = $2 AND role = 'owner' LIMIT 1",
+        [screenplayId, req.user.id],
+      );
+      isOwner = accessRes.rows.length > 0;
+    }
+    if (!isOwner) {
+      return res.status(403).json({ error: 'Only the screenplay owner may reorder scenes' });
+    }
+
+    await client.query('BEGIN');
+    let idx = 1;
+    for (const sceneId of sceneIds) {
+      if (!sceneId) continue;
+      await client.query(
+        'UPDATE screenplay_scene SET scene_index = $1, updated_at = now() WHERE scene_id = $2 AND screenplay_id = $3',
+        [idx, sceneId, screenplayId],
+      );
+      idx += 1;
+    }
+    await client.query('UPDATE screenplay_title SET updated_at = now() WHERE screenplay_id = $1', [screenplayId]);
+    await client.query('COMMIT');
+    res.status(204).send();
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('[PATCH /screenplays/:screenplayId/scenes/reorder] failed:', err);
+    res.status(500).json({ error: 'Failed to reorder scenes' });
+  } finally {
+    client.release();
+  }
+});
+
 // If sceneId is linked to a Space file, folds the scene's CURRENT DB state
 // (slugline + ordered blocks) into its CRDT doc, then pushes the doc's
 // content out to the linked file/GitHub/Drive — same pattern as
