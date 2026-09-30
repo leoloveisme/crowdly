@@ -20,6 +20,7 @@ dependencies = [
     "keyring",
     "merge3",
     "truststore",
+    "pathspec",
 ]
 
 [tool.setuptools]

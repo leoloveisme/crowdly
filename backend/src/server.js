@@ -34,6 +34,7 @@ import aiRouter from './ai/router.js';
 import { startAiWorker } from './ai/jobs.js';
 import creativeSpaceFilesRouter, { CREATIVE_SPACE_FILES_ROOT, guessMimeType } from './creativeSpaceFiles.js';
 import { adoptLocalFile, LOCAL_UPLOADS_ROOT } from './storage.js';
+import { loadSpaceIgnoreCheck } from './spaceSyncIgnore.js';
 import { eventsHandler } from './events.js';
 import {
   isGithubAppConfigured,
@@ -5353,7 +5354,7 @@ app.get('/creative-spaces/:spaceId/items', async (req, res) => {
        LEFT JOIN screenplay_title spt ON spt.screenplay_id = sc.screenplay_id
        LEFT JOIN comic_page cp ON cp.page_id = ci.linked_page_id
        LEFT JOIN comic_title ct ON ct.comic_id = cp.comic_id
-       WHERE ci.space_id = $1 AND ci.deleted = false`,
+       WHERE ci.space_id = $1 AND ci.deleted = false AND ci.sync_ignored = false`,
       [spaceId],
     );
 
@@ -6431,7 +6432,9 @@ app.get('/creative-spaces/:spaceId/sync', async (req, res) => {
     }
 
     const params = [spaceId];
-    let where = 'space_id = $1';
+    // Rows hidden as dot-files/git-ignored are never sent to the desktop app,
+    // so it can't mirror them (see spaceSyncIgnore.js).
+    let where = 'space_id = $1 AND sync_ignored = false';
 
     if (sinceRaw) {
       const since = new Date(sinceRaw);
@@ -6486,10 +6489,22 @@ app.post('/creative-spaces/:spaceId/sync', async (req, res) => {
     return res.status(500).json({ error: 'Failed to prepare sync' });
   }
 
+  // Dot-files/folders (.git/, .crowdly/, ...) and the Space's known
+  // .gitignore rules are skipped entirely — neither created, updated nor
+  // deleted from a desktop snapshot. See spaceSyncIgnore.js.
+  let isIgnored;
+  try {
+    isIgnored = await loadSpaceIgnoreCheck(spaceId);
+  } catch (err) {
+    console.error('[POST /creative-spaces/:spaceId/sync] failed to load ignore rules:', err);
+    return res.status(500).json({ error: 'Failed to prepare sync' });
+  }
+
   const client = await pool.connect();
   let created = 0;
   let updated = 0;
   let deletedCount = 0;
+  let ignoredCount = 0;
 
   try {
     await client.query('BEGIN');
@@ -6500,6 +6515,10 @@ app.post('/creative-spaces/:spaceId/sync', async (req, res) => {
       if (!rel) continue;
 
       const kind = raw.kind === 'folder' ? 'folder' : 'file';
+      if (isIgnored(rel, kind)) {
+        ignoredCount += 1;
+        continue;
+      }
       const name = rel.includes('/') ? rel.slice(rel.lastIndexOf('/') + 1) : rel;
       const sizeBytes =
         typeof raw.sizeBytes === 'number' && Number.isFinite(raw.sizeBytes)
@@ -6580,6 +6599,7 @@ app.post('/creative-spaces/:spaceId/sync', async (req, res) => {
       created,
       updated,
       deleted: deletedCount,
+      ignored: ignoredCount,
       snapshotGeneratedAt: snapshotGeneratedAt || null,
     });
   } catch (err) {

@@ -40,6 +40,7 @@ from PySide6.QtCore import QFile
 from .. import settings as settings_module
 from .api import DriveClient, DriveError, DriveFile
 from .merge import is_mergeable_text, three_way_merge
+from ..sync_ignore import SyncIgnore
 
 
 @dataclass
@@ -90,10 +91,6 @@ def forget_space(root: Path) -> None:
         pass
 
 
-def _is_hidden(rel_path: str) -> bool:
-    return any(part.startswith(".") for part in rel_path.split("/"))
-
-
 def _conflict_name(rel_path: str, taken: Callable[[str], bool]) -> str:
     parent, _, name = rel_path.rpartition("/")
     stem, dot, ext = name.rpartition(".")
@@ -120,6 +117,14 @@ class SpaceSyncEngine:
         self.base_dir = self.state_dir / "base"
         self.result = SyncResult()
         self._folders: dict[str, str] = {}
+        # Dot-paths + the space's .gitignore rules (see sync_ignore.py). Must
+        # be applied identically to the local scan, the Drive listing AND the
+        # index: filtering only one side would look like "deleted on the
+        # other side" and trash the file there.
+        self._ignore = SyncIgnore(self.root)
+
+    def _ignored(self, rel: str, is_dir: bool = False) -> bool:
+        return self._ignore.ignores(rel, is_dir=is_dir)
 
     # --- index / base copies ---------------------------------------------------
 
@@ -169,15 +174,16 @@ class SpaceSyncEngine:
         files: dict[str, os.stat_result] = {}
         dirs: set[str] = set()
         for dirpath, dirnames, filenames in os.walk(self.root):
-            dirnames[:] = [d for d in dirnames if not d.startswith(".")]
             rel_dir = Path(dirpath).relative_to(self.root).as_posix()
             rel_dir = "" if rel_dir == "." else rel_dir
+            prefix = f"{rel_dir}/" if rel_dir else ""
+            dirnames[:] = [d for d in dirnames if not self._ignored(prefix + d, is_dir=True)]
             if rel_dir:
                 dirs.add(rel_dir)
             for name in filenames:
-                if name.startswith("."):
-                    continue
                 rel = f"{rel_dir}/{name}" if rel_dir else name
+                if self._ignored(rel):
+                    continue
                 try:
                     files[rel] = os.stat(self._abs(rel))
                 except OSError:
@@ -225,10 +231,14 @@ class SpaceSyncEngine:
         index = self._load_index()
         tree = self.client.list_tree(self.folder_id)
         self._folders = dict(tree.folders)
-        remote_by_path: dict[str, DriveFile] = {f.path: f for f in tree.files if not _is_hidden(f.path)}
+        remote_by_path: dict[str, DriveFile] = {f.path: f for f in tree.files if not self._ignored(f.path)}
         remote_by_id: dict[str, DriveFile] = {f.id: f for f in remote_by_path.values()}
         local_files, _ = self._scan_local()
         files_index: dict[str, dict] = index["files"]
+        # Forget (never act on) previously-synced paths that are now ignored,
+        # so they're neither pulled, pushed nor treated as deleted anywhere.
+        for rel in [r for r in files_index if self._ignored(r)]:
+            files_index.pop(rel, None)
 
         self._apply_drive_moves(files_index, remote_by_id, local_files)
 
@@ -373,7 +383,9 @@ class SpaceSyncEngine:
         synced: dict[str, str] = index["folders"]
         # Refresh the local view: files pulled above may have created directories.
         _, local_dirs = self._scan_local()
-        remote_paths = {p for p in remote_dirs if p and not _is_hidden(p)}
+        remote_paths = {p for p in remote_dirs if p and not self._ignored(p, is_dir=True)}
+        for rel in [r for r in synced if self._ignored(r, is_dir=True)]:
+            synced.pop(rel, None)
 
         for rel in sorted(remote_paths - local_dirs):
             if rel in synced:
@@ -405,4 +417,6 @@ class SpaceSyncEngine:
             except Exception as exc:
                 self.result.errors.append(f"{rel}: {exc}")
 
-        index["folders"] = {p: i for p, i in self._folders.items() if p and self._abs(p).is_dir()}
+        index["folders"] = {
+            p: i for p, i in self._folders.items() if p and not self._ignored(p, is_dir=True) and self._abs(p).is_dir()
+        }

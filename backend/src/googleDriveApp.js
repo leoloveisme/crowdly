@@ -232,7 +232,8 @@ export async function createFolder({ token, parentId = 'root', name }) {
  * with `path` relative to the root ("Chapter 1/notes.md"). Google-native
  * documents (Docs/Sheets/...) have no downloadable bytes and are skipped.
  */
-export async function listFolderTree({ token, rootId }) {
+/** `skipFolder(path)`, when given, prunes a folder and everything under it from the walk (used to never descend into .git/ and other dot-folders). */
+export async function listFolderTree({ token, rootId, skipFolder = null }) {
   const folders = [];
   const files = [];
   const queue = [{ id: rootId, path: '' }];
@@ -246,6 +247,7 @@ export async function listFolderTree({ token, rootId }) {
     for (const child of children) {
       const childPath = current.path ? `${current.path}/${child.name}` : child.name;
       if (child.mimeType === FOLDER_MIME) {
+        if (skipFolder && skipFolder(childPath)) continue;
         folders.push({ id: child.id, path: childPath });
         queue.push({ id: child.id, path: childPath });
       } else if (!String(child.mimeType || '').startsWith('application/vnd.google-apps.')) {

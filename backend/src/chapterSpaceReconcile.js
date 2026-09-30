@@ -100,7 +100,7 @@ async function relinkOrphan(spaceId, entityType, linkedColumn, pullFn, orphan, c
 async function reconcileOrphansForType(spaceId, remotePaths, { entityType, linkedColumn, pullFn }) {
   const orphansRes = await pool.query(
     `SELECT * FROM creative_space_items
-     WHERE space_id = $1 AND ${linkedColumn} IS NOT NULL AND deleted = false`,
+     WHERE space_id = $1 AND ${linkedColumn} IS NOT NULL AND deleted = false AND sync_ignored = false`,
     [spaceId],
   );
   const orphans = orphansRes.rows.filter((item) => !remotePaths.has(item.relative_path));
@@ -108,7 +108,7 @@ async function reconcileOrphansForType(spaceId, remotePaths, { entityType, linke
 
   const candidatesRes = await pool.query(
     `SELECT * FROM creative_space_items
-     WHERE space_id = $1 AND kind = 'file' AND deleted = false
+     WHERE space_id = $1 AND kind = 'file' AND deleted = false AND sync_ignored = false
        AND linked_chapter_id IS NULL AND linked_scene_id IS NULL AND linked_page_id IS NULL`,
     [spaceId],
   );

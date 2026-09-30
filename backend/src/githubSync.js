@@ -31,6 +31,7 @@ import { pullChapterFromLinkedItem } from './chapterSpaceSync.js';
 import { pullSceneFromLinkedItem } from './screenplaySpaceSync.js';
 import { pullPageFromLinkedItem } from './comicPageSpaceSync.js';
 import { reconcileSpaceChapterLinks } from './chapterSpaceReconcile.js';
+import { applyIgnoreFlags, gitignoreEntries, loadSpaceIgnoreCheck, saveSpaceIgnoreRules } from './spaceSyncIgnore.js';
 
 export async function ensureGithubSyncTables() {
   try {
@@ -123,12 +124,23 @@ export async function recentSyncLog(spaceId, limit = 20) {
   return rows;
 }
 
-// Paths we never auto-import as new items, even though GitHub's tree lists
-// them like any other blob: internal/tool-generated dotfiles and dotfolders
-// (.github/, .crowdly/, .obsidian/, etc.) that were never meant to become
-// visible Crowdly content.
-function isSyncExcludedPath(relativePath) {
-  return relativePath.split('/').some((segment) => segment.startsWith('.'));
+const gitignoreBlobCache = new Map(); // blob sha -> .gitignore text (content-addressed, so never stale)
+
+/** Reads every .gitignore in the fetched tree (root and nested) and stores them as the Space's GitHub ignore rules. Returns the combined ignore check (dot-paths + all stored rules). */
+async function loadGithubIgnoreCheck(space, tree, token, owner, repo) {
+  const rules = [];
+  for (const { dir, entry } of gitignoreEntries(tree.paths)) {
+    try {
+      if (!gitignoreBlobCache.has(entry.sha)) {
+        const buffer = await fetchBlobContent({ token, owner, repo, sha: entry.sha });
+        gitignoreBlobCache.set(entry.sha, buffer.toString('utf8'));
+      }
+      rules.push({ dir, content: gitignoreBlobCache.get(entry.sha) });
+    } catch (err) {
+      console.error('[githubSync] failed to read', entry.path, err);
+    }
+  }
+  return saveSpaceIgnoreRules(space.id, 'github', rules);
 }
 
 /**
@@ -139,7 +151,6 @@ function isSyncExcludedPath(relativePath) {
  * becomes a linked chapter through the explicit /github-sync/link action.
  */
 async function createItemFromGithub(space, entry, token, owner, repo) {
-  if (isSyncExcludedPath(entry.path)) return false;
   if (typeof entry.size === 'number' && entry.size > MAX_UPLOAD_BYTES) {
     await logSync(space.id, 'pull', 'warning', `Skipped ${entry.path}: file exceeds the size limit`, entry.path);
     return false;
@@ -194,7 +205,7 @@ async function createItemFromGithub(space, entry, token, owner, repo) {
  */
 async function pullChangedPaths(space, token, owner, repo, branch, candidatePaths) {
   const itemsRes = await pool.query(
-    "SELECT * FROM creative_space_items WHERE space_id = $1 AND deleted = false AND kind = 'file'",
+    "SELECT * FROM creative_space_items WHERE space_id = $1 AND deleted = false AND sync_ignored = false AND kind = 'file'",
     [space.id],
   );
   const itemsByPath = new Map(itemsRes.rows.map((item) => [item.relative_path, item]));
@@ -203,10 +214,14 @@ async function pullChangedPaths(space, token, owner, repo, branch, candidatePath
   const linksByPath = new Map(linksRes.rows.map((link) => [link.relative_path, link]));
 
   const tree = await fetchRepoTree({ token, owner, repo, branch });
+  // Dot-files/folders and anything the repo's .gitignore files list are
+  // never imported or updated (see spaceSyncIgnore.js).
+  const isIgnored = await loadGithubIgnoreCheck(space, tree, token, owner, repo);
   let pulled = 0;
 
   for (const entry of tree.paths) {
     if (candidatePaths && !candidatePaths.has(entry.path)) continue;
+    if (isIgnored(entry.path, 'file')) continue;
     const item = itemsByPath.get(entry.path);
     const link = linksByPath.get(entry.path);
     if (!item && !link) {
@@ -283,6 +298,12 @@ async function pullChangedPaths(space, token, owner, repo, branch, candidatePath
   );
 
   try {
+    await applyIgnoreFlags(space.id, isIgnored);
+  } catch (err) {
+    console.error('[githubSync] failed to apply ignore rules for space', space.id, err);
+  }
+
+  try {
     await reconcileSpaceChapterLinks(space.id, { remotePaths: new Set(tree.paths.map((entry) => entry.path)) });
   } catch (err) {
     console.error('[githubSync] chapter link reconciliation failed for space', space.id, err);
@@ -343,6 +364,8 @@ async function pushItemToGithub(spaceId, itemId) {
   );
   const item = itemRes.rows[0];
   if (!item || !item.storage_path) return;
+  // Never push dot-files or git-ignored paths out to the repo.
+  if (item.sync_ignored || (await loadSpaceIgnoreCheck(spaceId))(item.relative_path, item.kind)) return;
 
   const { owner, repo } = parseRepoFullName(space.github_repo);
   if (!owner || !repo) return;
