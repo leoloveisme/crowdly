@@ -113,6 +113,13 @@ interface GoogleDriveSyncStatus {
   recentLog?: GoogleDriveSyncLogEntry[];
 }
 
+interface ChapterLinkEvent {
+  event_type: string;
+  detail: string | null;
+  created_at: string;
+  chapter_title: string | null;
+}
+
 interface GoogleDriveSyncLogEntry {
   direction: string;
   level: string;
@@ -170,6 +177,9 @@ const CreativeSpacePage: React.FC = () => {
   const [disconnectingDrive, setDisconnectingDrive] = useState(false);
   const [syncingDrive, setSyncingDrive] = useState(false);
   const [driveLogOpen, setDriveLogOpen] = useState(false);
+  const [chapterLinkEventsOpen, setChapterLinkEventsOpen] = useState(false);
+  const [chapterLinkEvents, setChapterLinkEvents] = useState<ChapterLinkEvent[]>([]);
+  const [chapterLinkEventsLoading, setChapterLinkEventsLoading] = useState(false);
 
   const [previewItem, setPreviewItem] = useState<CreativeSpaceItem | null>(null);
   const [previewText, setPreviewText] = useState<string>("");
@@ -455,6 +465,22 @@ const CreativeSpacePage: React.FC = () => {
     loadGithubStatus();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spaceId, space?.id, authUser?.id, isOwner]);
+
+  const openChapterLinkEvents = async () => {
+    setChapterLinkEventsOpen(true);
+    if (!spaceId || !authUser?.id) return;
+    setChapterLinkEventsLoading(true);
+    try {
+      const params = new URLSearchParams({ userId: authUser.id });
+      const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/chapter-link-events?${params.toString()}`);
+      const body = await res.json().catch(() => []);
+      if (res.ok && Array.isArray(body)) setChapterLinkEvents(body as ChapterLinkEvent[]);
+    } catch (err) {
+      console.error("[CreativeSpacePage] Error loading chapter link activity", err);
+    } finally {
+      setChapterLinkEventsLoading(false);
+    }
+  };
 
   const openInstallationRepoPicker = async (installationId: string) => {
     if (!spaceId || !authUser?.id) return;
@@ -1367,6 +1393,13 @@ const CreativeSpacePage: React.FC = () => {
                       <EditableText id="space-drive-connect">Connect Google Drive</EditableText>
                     </a>
                   ) : null}
+                  <button
+                    type="button"
+                    onClick={openChapterLinkEvents}
+                    className="text-xs text-slate-500 hover:underline px-1"
+                  >
+                    <EditableText id="space-chapter-sync-activity">Auto-sync activity</EditableText>
+                  </button>
                 </>
               )}
               {isOwner && (
@@ -1561,6 +1594,45 @@ const CreativeSpacePage: React.FC = () => {
                           >
                             <span className="text-slate-400">{new Date(entry.created_at).toLocaleString()}</span>{" "}
                             {entry.message}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </DialogContent>
+                </Dialog>
+              )}
+              {isOwner && (
+                <Dialog open={chapterLinkEventsOpen} onOpenChange={setChapterLinkEventsOpen}>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>
+                        <EditableText id="space-chapter-sync-activity-title">Auto-sync activity</EditableText>
+                      </DialogTitle>
+                    </DialogHeader>
+                    <p className="text-xs text-slate-500 -mt-2">
+                      <EditableText id="space-chapter-sync-activity-help">
+                        Chapters linked to a file here stay in sync automatically — this is what that's done, including
+                        re-linking a chapter's file after the connected repo/folder was reorganized.
+                      </EditableText>
+                    </p>
+                    {chapterLinkEventsLoading ? (
+                      <p className="text-sm text-slate-500">
+                        <EditableText id="space-chapter-sync-activity-loading">Loading…</EditableText>
+                      </p>
+                    ) : chapterLinkEvents.length === 0 ? (
+                      <p className="text-sm text-slate-500">
+                        <EditableText id="space-chapter-sync-activity-empty">Nothing to show yet.</EditableText>
+                      </p>
+                    ) : (
+                      <ul className="max-h-80 space-y-1 overflow-y-auto text-xs">
+                        {chapterLinkEvents.map((event, idx) => (
+                          <li
+                            key={`${event.created_at}-${idx}`}
+                            className={event.event_type === "unmatched_orphan" ? "text-amber-700" : "text-slate-600"}
+                          >
+                            <span className="text-slate-400">{new Date(event.created_at).toLocaleString()}</span>{" "}
+                            {event.chapter_title && <span className="font-medium">{event.chapter_title}: </span>}
+                            {event.detail}
                           </li>
                         ))}
                       </ul>

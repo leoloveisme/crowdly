@@ -28,6 +28,7 @@ import { storeItemContent, guessMimeType, CREATIVE_SPACE_FILES_ROOT, MAX_UPLOAD_
 import { applyContentToHandle } from './crdt/repo.js';
 import { chapterToMarkdown, markdownToChapter } from './chapterMarkdown.js';
 import { pullChapterFromLinkedItem } from './chapterSpaceSync.js';
+import { reconcileSpaceChapterLinks } from './chapterSpaceReconcile.js';
 
 export async function ensureGithubSyncTables() {
   try {
@@ -239,10 +240,8 @@ async function pullChangedPaths(space, token, owner, repo, branch, candidatePath
 
         if (item.linked_chapter_id && item.chapter_sync_enabled) {
           const chapterStatus = await pullChapterFromLinkedItem(item, buffer);
-          if (chapterStatus === 'conflict') {
-            await logSync(space.id, 'pull', 'warn', `Skipped chapter sync for ${entry.path}: chapter has unsynced local edits`, entry.path);
-          } else if (chapterStatus === 'applied') {
-            await logSync(space.id, 'pull', 'info', `Applied ${entry.path} to its linked chapter`, entry.path);
+          if (chapterStatus === 'applied') {
+            await logSync(space.id, 'pull', 'info', `Merged ${entry.path} into its linked chapter`, entry.path);
           }
         }
       } catch (err) {
@@ -268,6 +267,12 @@ async function pullChangedPaths(space, token, owner, repo, branch, candidatePath
     'UPDATE creative_spaces SET github_last_commit_sha = $1, last_synced_at = now() WHERE id = $2',
     [tree.sha, space.id],
   );
+
+  try {
+    await reconcileSpaceChapterLinks(space.id, { remotePaths: new Set(tree.paths.map((entry) => entry.path)) });
+  } catch (err) {
+    console.error('[githubSync] chapter link reconciliation failed for space', space.id, err);
+  }
 
   return { pulled, treeSha: tree.sha };
 }

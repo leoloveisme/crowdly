@@ -77,6 +77,8 @@ import {
   ensureChannelArmed,
 } from './googleDriveSync.js';
 import { pushChapterToLinkedItem } from './chapterSpaceSync.js';
+import { getChapterCrdtHandle, initChapterCrdtSync } from './chapterCrdtSync.js';
+import { reconcileSpaceChapterLinks } from './chapterSpaceReconcile.js';
 import path from 'path';
 import fs from 'fs';
 import http from 'http';
@@ -3813,6 +3815,15 @@ app.patch('/story-titles/:storyTitleId/space', async (req, res) => {
       } catch (errSpaces) {
         console.error('[PATCH /story-titles/:storyTitleId/space] failed to upsert story_spaces row:', errSpaces);
       }
+
+      // Best-effort: link any of this story's chapters that don't already
+      // have a Space file, so pointing a story at a Space is enough on its
+      // own — no separate manual "Link to chapter" step per chapter.
+      try {
+        await reconcileSpaceChapterLinks(creativeSpaceId, {});
+      } catch (errLink) {
+        console.error('[PATCH /story-titles/:storyTitleId/space] failed to auto-link chapters:', errLink);
+      }
     }
 
     // Attachments are additive metadata; include them for convenience so the
@@ -5589,6 +5600,38 @@ app.get('/creative-spaces/:spaceId/items/:itemId/chapter-link', requireAuth, asy
   }
 });
 
+// What chapterSpaceReconcile.js has done automatically for this Space, most
+// recent first — surfaced in the UI since linking/re-linking now happens
+// without anyone clicking anything.
+app.get('/creative-spaces/:spaceId/chapter-link-events', async (req, res) => {
+  const { spaceId } = req.params;
+  const userId = req.query.userId ?? null;
+  const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+
+  try {
+    const spaceRes = await pool.query('SELECT user_id FROM creative_spaces WHERE id = $1', [spaceId]);
+    const space = spaceRes.rows[0];
+    if (!space) return res.status(404).json({ error: 'Creative space not found' });
+    if (!userId || String(space.user_id) !== String(userId)) {
+      return res.status(403).json({ error: 'You do not have access to this creative space' });
+    }
+
+    const { rows } = await pool.query(
+      `SELECT e.event_type, e.detail, e.created_at, s.chapter_title
+       FROM chapter_link_events e
+       LEFT JOIN stories s ON s.chapter_id = e.chapter_id
+       WHERE e.space_id = $1
+       ORDER BY e.created_at DESC
+       LIMIT $2`,
+      [spaceId, limit],
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('[GET /creative-spaces/:spaceId/chapter-link-events] failed:', err);
+    res.status(500).json({ error: 'Failed to load chapter link activity' });
+  }
+});
+
 // Reverse lookup of the route above, for the chapter/story editor side of the
 // UI, which knows a chapterId but not which Space item (if any) it's linked to.
 app.get('/chapters/:chapterId/space-link', requireAuth, async (req, res) => {
@@ -6936,6 +6979,17 @@ app.post('/chapters', requireAuth, async (req, res) => {
       console.error('[POST /chapters] failed to bump story_title.updated_at:', errTs);
     }
 
+    // Best-effort: if this story already has a Space, give the new chapter a
+    // linked Space file right away instead of waiting for a sync cycle.
+    try {
+      const spaceRes = await pool.query('SELECT creative_space_id FROM story_title WHERE story_title_id = $1', [storyTitleId]);
+      if (spaceRes.rows[0]?.creative_space_id) {
+        await reconcileSpaceChapterLinks(spaceRes.rows[0].creative_space_id, {});
+      }
+    } catch (errLink) {
+      console.error('[POST /chapters] failed to auto-link new chapter to its Space:', errLink);
+    }
+
     res.status(201).json(chapterRow);
   } catch (err) {
     console.error('[POST /chapters] failed:', err);
@@ -7057,6 +7111,23 @@ app.patch('/chapters/:chapterId', requireAuth, async (req, res) => {
       }
     } catch (errTs) {
       console.error('[PATCH /chapters/:chapterId] failed to bump story_title.updated_at:', errTs);
+    }
+
+    // If this chapter is linked to a Space file, fold this edit into its
+    // CRDT doc too (not just `stories` above) so the doc — and any merge
+    // against a concurrent external edit — reflects it, then push the
+    // doc's current content out to the linked file/GitHub/Drive.
+    try {
+      const linkRes = await pool.query(
+        "SELECT 1 FROM creative_space_items WHERE linked_chapter_id = $1 AND chapter_sync_enabled = true AND deleted = false LIMIT 1",
+        [chapterId],
+      );
+      if (linkRes.rows.length > 0) {
+        const handle = await getChapterCrdtHandle(chapterId);
+        applyContentToHandle(handle, { ...handle.doc(), title: updated.chapter_title, paragraphs: updated.paragraphs }, req.user);
+      }
+    } catch (errCrdt) {
+      console.error('[PATCH /chapters/:chapterId] failed to apply edit to linked CRDT doc:', errCrdt);
     }
 
     try {
@@ -10483,6 +10554,14 @@ attachCrdtWebSocketServer(httpServer, { wss, getSessionUser });
 // it only touches the CRDT repo, not the GitHub API.
 initGithubCrdtLinks(crdtRepo).catch((err) => {
   console.error('[init] initGithubCrdtLinks unhandled error:', err);
+});
+
+// Chapter <-> Space file sync backbone: attach the materialization listener
+// (CRDT doc changes -> stories/chapter_revisions) for every chapter doc that
+// already exists. New docs get their listener attached the moment
+// ensureChapterCrdtDoc() creates them, so this only needs to run once here.
+initChapterCrdtSync(crdtRepo).catch((err) => {
+  console.error('[init] initChapterCrdtSync unhandled error:', err);
 });
 
 httpServer.listen(port, host, () => {

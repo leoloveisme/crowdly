@@ -143,13 +143,16 @@ export function changeAttribution(user, source) {
   });
 }
 
-function parseAttribution(message) {
-  if (!message) return { userId: null, userName: null };
+// Exported so chapterCrdtSync.js's materialization listener can decode the
+// same `source` tag (e.g. 'external-sync') that changeAttribution embeds,
+// without duplicating the JSON.parse/try-catch here.
+export function parseAttribution(message) {
+  if (!message) return { userId: null, userName: null, source: null };
   try {
     const parsed = JSON.parse(message);
-    return { userId: parsed?.userId ?? null, userName: parsed?.userName ?? null };
+    return { userId: parsed?.userId ?? null, userName: parsed?.userName ?? null, source: parsed?.source ?? null };
   } catch {
-    return { userId: null, userName: null };
+    return { userId: null, userName: null, source: null };
   }
 }
 
