@@ -26,7 +26,8 @@ import {
 } from './githubApp.js';
 import { storeItemContent, guessMimeType, CREATIVE_SPACE_FILES_ROOT, MAX_UPLOAD_BYTES } from './creativeSpaceFiles.js';
 import { applyContentToHandle } from './crdt/repo.js';
-import { stripLeadingTitleLine, splitParagraphs } from '../scripts/lib/happybeingsSource.js';
+import { chapterToMarkdown, markdownToChapter } from './chapterMarkdown.js';
+import { pullChapterFromLinkedItem } from './chapterSpaceSync.js';
 
 export async function ensureGithubSyncTables() {
   try {
@@ -235,6 +236,15 @@ async function pullChangedPaths(space, token, owner, repo, branch, candidatePath
         await pool.query('UPDATE creative_space_items SET github_blob_sha = $1 WHERE id = $2', [entry.sha, item.id]);
         pulled += 1;
         await logSync(space.id, 'pull', 'info', `Pulled ${entry.path} from GitHub`, entry.path);
+
+        if (item.linked_chapter_id && item.chapter_sync_enabled) {
+          const chapterStatus = await pullChapterFromLinkedItem(item, buffer);
+          if (chapterStatus === 'conflict') {
+            await logSync(space.id, 'pull', 'warn', `Skipped chapter sync for ${entry.path}: chapter has unsynced local edits`, entry.path);
+          } else if (chapterStatus === 'applied') {
+            await logSync(space.id, 'pull', 'info', `Applied ${entry.path} to its linked chapter`, entry.path);
+          }
+        }
       } catch (err) {
         console.error('[githubSync] pull failed for', entry.path, err);
         await logSync(space.id, 'pull', 'error', `Failed to pull ${entry.path}: ${err.message}`, entry.path);
@@ -442,10 +452,6 @@ const GITHUB_SYNC_ACTOR = { id: 'github-sync', email: 'github-sync@crowdly.inter
 // below can reach it without server.js threading it through every call.
 let phase2CrdtRepo = null;
 
-function chapterToMarkdown({ title, paragraphs }) {
-  return `# ${title || ''}\n\n${(paragraphs || []).filter(Boolean).join('\n\n')}\n`;
-}
-
 /** True if the doc's most recent change was one of our own pulls (see applyContentToHandle's 'github' extraMessage below) — distinguishes that from a real user edit so the push listener doesn't echo it straight back to GitHub. */
 function lastChangeWasFromGithub(doc) {
   const history = Automerge.getHistory(doc);
@@ -463,8 +469,7 @@ function lastChangeWasFromGithub(doc) {
 async function pullChapterFromGithub(link, buffer) {
   if (!phase2CrdtRepo) throw new Error('CRDT repo is not yet initialized');
 
-  const { title: parsedTitle, body } = stripLeadingTitleLine(buffer.toString('utf8'));
-  const paragraphs = splitParagraphs(body);
+  const { title: parsedTitle, paragraphs } = markdownToChapter(buffer);
 
   const handle = await phase2CrdtRepo.find(link.doc_key);
   await handle.whenReady();

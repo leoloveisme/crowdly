@@ -76,6 +76,7 @@ import {
   getValidDriveAccessToken,
   ensureChannelArmed,
 } from './googleDriveSync.js';
+import { pushChapterToLinkedItem } from './chapterSpaceSync.js';
 import path from 'path';
 import fs from 'fs';
 import http from 'http';
@@ -5455,6 +5456,180 @@ app.post('/creative-spaces/:spaceId/import-wizard/structure-chapter', requireAut
   }
 });
 
+// Links a Space file item to a chapter for continuous bidirectional content
+// sync (see backend/src/chapterSpaceSync.js) — distinct from the import
+// wizard above, which only stamps linked_chapter_id once as provenance.
+// Chapter content wins on link: this seeds/overwrites the file with the
+// chapter's current text, since the action is initiated from the chapter
+// side of the UI.
+app.post('/creative-spaces/:spaceId/items/:itemId/link-chapter', requireAuth, async (req, res) => {
+  const { spaceId, itemId } = req.params;
+  const { chapterId } = req.body ?? {};
+
+  if (!chapterId) {
+    return res.status(400).json({ error: 'chapterId is required' });
+  }
+
+  try {
+    const spaceRes = await pool.query('SELECT user_id FROM creative_spaces WHERE id = $1', [spaceId]);
+    if (spaceRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Creative space not found' });
+    }
+    if (spaceRes.rows[0].user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Only the Space owner may link chapters to Space files' });
+    }
+
+    const itemRes = await pool.query(
+      "SELECT * FROM creative_space_items WHERE id = $1 AND space_id = $2 AND deleted = false AND kind = 'file'",
+      [itemId, spaceId],
+    );
+    if (itemRes.rows.length === 0) {
+      return res.status(404).json({ error: 'File item not found in this Space' });
+    }
+    const item = itemRes.rows[0];
+    if (item.linked_chapter_id && item.linked_chapter_id !== chapterId) {
+      return res.status(400).json({ error: 'This file is already linked to a different chapter' });
+    }
+
+    const chapterRes = await pool.query(
+      `SELECT s.chapter_title, st.story_title_id, st.creative_space_id
+       FROM stories s JOIN story_title st ON st.story_title_id = s.story_title_id
+       WHERE s.chapter_id = $1`,
+      [chapterId],
+    );
+    if (chapterRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Chapter not found' });
+    }
+    const chapter = chapterRes.rows[0];
+    if (chapter.creative_space_id !== spaceId) {
+      return res.status(400).json({ error: "This chapter's story does not belong to this Space" });
+    }
+    const role = await getStoryAccessRole(chapter.story_title_id, req.user.id);
+    if (!role) {
+      return res.status(403).json({ error: 'Not authorized to link this chapter' });
+    }
+
+    await pool.query(
+      'UPDATE creative_space_items SET linked_chapter_id = $1, chapter_sync_enabled = true WHERE id = $2',
+      [chapterId, itemId],
+    );
+
+    await pushChapterToLinkedItem(chapterId);
+
+    const { rows } = await pool.query('SELECT * FROM creative_space_items WHERE id = $1', [itemId]);
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('[POST /creative-spaces/:spaceId/items/:itemId/link-chapter] failed:', err);
+    res.status(500).json({ error: 'Failed to link chapter to Space file' });
+  }
+});
+
+// Stops sync (does not delete the file's last-synced content).
+app.delete('/creative-spaces/:spaceId/items/:itemId/link-chapter', requireAuth, async (req, res) => {
+  const { spaceId, itemId } = req.params;
+
+  try {
+    const spaceRes = await pool.query('SELECT user_id FROM creative_spaces WHERE id = $1', [spaceId]);
+    if (spaceRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Creative space not found' });
+    }
+    if (spaceRes.rows[0].user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Only the Space owner may unlink Space files' });
+    }
+
+    const { rows } = await pool.query(
+      `UPDATE creative_space_items SET linked_chapter_id = NULL, chapter_sync_enabled = false
+       WHERE id = $1 AND space_id = $2
+       RETURNING *`,
+      [itemId, spaceId],
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'File item not found in this Space' });
+    }
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('[DELETE /creative-spaces/:spaceId/items/:itemId/link-chapter] failed:', err);
+    res.status(500).json({ error: 'Failed to unlink chapter from Space file' });
+  }
+});
+
+app.get('/creative-spaces/:spaceId/items/:itemId/chapter-link', requireAuth, async (req, res) => {
+  const { spaceId, itemId } = req.params;
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT ci.linked_chapter_id, ci.chapter_sync_enabled, ci.chapter_last_synced_at,
+              s.chapter_title, s.content_updated_at
+       FROM creative_space_items ci
+       LEFT JOIN stories s ON s.chapter_id = ci.linked_chapter_id
+       WHERE ci.id = $1 AND ci.space_id = $2`,
+      [itemId, spaceId],
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'File item not found in this Space' });
+    }
+    const row = rows[0];
+    const pendingConflict = Boolean(
+      row.linked_chapter_id
+      && row.chapter_sync_enabled
+      && row.content_updated_at
+      && row.chapter_last_synced_at
+      && new Date(row.content_updated_at) > new Date(row.chapter_last_synced_at),
+    );
+    res.json({
+      chapterId: row.linked_chapter_id,
+      chapterTitle: row.chapter_title,
+      syncEnabled: row.chapter_sync_enabled,
+      lastSyncedAt: row.chapter_last_synced_at,
+      pendingConflict,
+    });
+  } catch (err) {
+    console.error('[GET /creative-spaces/:spaceId/items/:itemId/chapter-link] failed:', err);
+    res.status(500).json({ error: 'Failed to load chapter link status' });
+  }
+});
+
+// Reverse lookup of the route above, for the chapter/story editor side of the
+// UI, which knows a chapterId but not which Space item (if any) it's linked to.
+app.get('/chapters/:chapterId/space-link', requireAuth, async (req, res) => {
+  const { chapterId } = req.params;
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT ci.id AS item_id, ci.space_id, ci.relative_path, ci.chapter_sync_enabled, ci.chapter_last_synced_at,
+              cs.name AS space_name, s.content_updated_at
+       FROM creative_space_items ci
+       JOIN creative_spaces cs ON cs.id = ci.space_id
+       JOIN stories s ON s.chapter_id = ci.linked_chapter_id
+       WHERE ci.linked_chapter_id = $1 AND ci.deleted = false`,
+      [chapterId],
+    );
+    if (rows.length === 0) {
+      return res.json({ linked: false });
+    }
+    const row = rows[0];
+    const pendingConflict = Boolean(
+      row.chapter_sync_enabled
+      && row.content_updated_at
+      && row.chapter_last_synced_at
+      && new Date(row.content_updated_at) > new Date(row.chapter_last_synced_at),
+    );
+    res.json({
+      linked: true,
+      itemId: row.item_id,
+      spaceId: row.space_id,
+      spaceName: row.space_name,
+      relativePath: row.relative_path,
+      syncEnabled: row.chapter_sync_enabled,
+      lastSyncedAt: row.chapter_last_synced_at,
+      pendingConflict,
+    });
+  } catch (err) {
+    console.error('[GET /chapters/:chapterId/space-link] failed:', err);
+    res.status(500).json({ error: 'Failed to load chapter link status' });
+  }
+});
+
 // Owner-only per-chapter publish toggle (distinct from the book-level
 // PATCH /story-titles/:storyTitleId/settings, which controls the whole book).
 app.patch('/chapters/:chapterId/publish', requireAuth, async (req, res) => {
@@ -6884,6 +7059,12 @@ app.patch('/chapters/:chapterId', requireAuth, async (req, res) => {
       console.error('[PATCH /chapters/:chapterId] failed to bump story_title.updated_at:', errTs);
     }
 
+    try {
+      await pushChapterToLinkedItem(chapterId);
+    } catch (errSync) {
+      console.error('[PATCH /chapters/:chapterId] failed to sync linked Space item:', errSync);
+    }
+
     res.json(updated);
   } catch (err) {
     console.error('[PATCH /chapters/:chapterId] failed:', err);
@@ -8025,6 +8206,8 @@ app.post('/proposals/:proposalId/approve', requireAuth, async (req, res) => {
         return res.status(400).json({ error: 'Proposal already approved' });
       }
 
+      let syncedChapterId = null;
+
       if (proposal.target_type === 'chapter_title') {
         const chapterId = proposal.target_chapter_id;
         if (!chapterId) {
@@ -8035,6 +8218,7 @@ app.post('/proposals/:proposalId/approve', requireAuth, async (req, res) => {
           'UPDATE stories SET chapter_title = $1 WHERE chapter_id = $2',
           [proposal.proposed_text, chapterId],
         );
+        syncedChapterId = chapterId;
       } else if (proposal.target_type === 'paragraph') {
         const chapterId = proposal.target_chapter_id;
         const idx = proposal.target_path ? parseInt(proposal.target_path, 10) : null;
@@ -8073,6 +8257,7 @@ app.post('/proposals/:proposalId/approve', requireAuth, async (req, res) => {
           'UPDATE stories SET paragraphs = $1 WHERE chapter_id = $2',
           [paragraphs, chapterId],
         );
+        syncedChapterId = chapterId;
       } else if (proposal.target_type === 'branch') {
         const branchId = proposal.target_branch_id;
         if (!branchId) {
@@ -8107,6 +8292,15 @@ app.post('/proposals/:proposalId/approve', requireAuth, async (req, res) => {
       }
 
       await client.query('COMMIT');
+
+      if (syncedChapterId) {
+        try {
+          await pushChapterToLinkedItem(syncedChapterId);
+        } catch (errSync) {
+          console.error('[POST /proposals/:proposalId/approve] failed to sync linked Space item:', errSync);
+        }
+      }
+
       res.status(204).send();
     } catch (err) {
       await client.query('ROLLBACK');
