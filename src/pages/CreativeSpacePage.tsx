@@ -81,6 +81,13 @@ interface SpaceScreenplayRow {
   published?: boolean | null;
 }
 
+interface SpaceComicRow {
+  comic_id: string;
+  title: string;
+  visibility?: string | null;
+  published?: boolean | null;
+}
+
 interface GithubSyncStatus {
   configured: boolean;
   connected: boolean;
@@ -150,9 +157,10 @@ const CreativeSpacePage: React.FC = () => {
   const [notAuthorized, setNotAuthorized] = useState<boolean>(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
-  const [contentItems, setContentItems] = useState<{ stories: SpaceStoryRow[]; screenplays: SpaceScreenplayRow[] }>({
+  const [contentItems, setContentItems] = useState<{ stories: SpaceStoryRow[]; screenplays: SpaceScreenplayRow[]; comics: SpaceComicRow[] }>({
     stories: [],
     screenplays: [],
+    comics: [],
   });
 
   const [githubStatus, setGithubStatus] = useState<GithubSyncStatus | null>(null);
@@ -196,12 +204,34 @@ const CreativeSpacePage: React.FC = () => {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
   const [wizardOpen, setWizardOpen] = useState(false);
-  const [wizardBookMode, setWizardBookMode] = useState<"new_book" | "existing_book">("new_book");
+  const [wizardContentType, setWizardContentType] = useState<"story" | "screenplay" | "comic">("story");
+  type WizardMode = "new_book" | "existing_book" | "new_screenplay" | "existing_screenplay" | "new_comic" | "existing_comic";
+  const [wizardBookMode, setWizardBookMode] = useState<WizardMode>("new_book");
   const [wizardBookTitle, setWizardBookTitle] = useState("");
-  const [wizardStoryTitleId, setWizardStoryTitleId] = useState("");
+  const [wizardTargetId, setWizardTargetId] = useState("");
   const [wizardChapterTitle, setWizardChapterTitle] = useState("");
   const [wizardSubmitting, setWizardSubmitting] = useState(false);
   const [wizardError, setWizardError] = useState<string | null>(null);
+
+  // Mode-string / existing-target-list pairs per content type — keeps the
+  // dialog and submit handler from repeating this mapping inline.
+  const WIZARD_NEW_MODE: Record<typeof wizardContentType, WizardMode> = {
+    story: "new_book", screenplay: "new_screenplay", comic: "new_comic",
+  };
+  const WIZARD_EXISTING_MODE: Record<typeof wizardContentType, WizardMode> = {
+    story: "existing_book", screenplay: "existing_screenplay", comic: "existing_comic",
+  };
+  const wizardIsNewMode = wizardBookMode === WIZARD_NEW_MODE[wizardContentType];
+  const wizardExistingOptions: { id: string; title: string }[] =
+    wizardContentType === "story"
+      ? contentItems.stories.map((s) => ({ id: s.story_title_id, title: s.title }))
+      : wizardContentType === "screenplay"
+        ? contentItems.screenplays.map((s) => ({ id: s.screenplay_id, title: s.title }))
+        : contentItems.comics.map((c) => ({ id: c.comic_id, title: c.title }));
+  const wizardAllSelectedAreImages = Array.from(selectedItemIds).every((id) => {
+    const item = items.find((it) => it.id === id);
+    return item ? isImageItem(item) : false;
+  });
 
   const toggleItemSelected = (itemId: string) => {
     setSelectedItemIds((prev) => {
@@ -227,49 +257,70 @@ const CreativeSpacePage: React.FC = () => {
 
   const openStructureWizard = () => {
     setWizardError(null);
+    setWizardContentType("story");
     setWizardBookMode("new_book");
     setWizardBookTitle("");
-    setWizardStoryTitleId(contentItems.stories[0]?.story_title_id ?? "");
+    setWizardTargetId(contentItems.stories[0]?.story_title_id ?? "");
     const firstSelected = items.find((it) => selectedItemIds.has(it.id));
     setWizardChapterTitle(firstSelected ? firstSelected.name.replace(/\.[^./]+$/, "") : "");
     setWizardOpen(true);
   };
 
-  // One file = one chapter (confirmed design — no multi-file merge). When
-  // several files are selected, each becomes its own chapter, titled after
-  // its own filename; the manual "Chapter title" field only applies (and
-  // only renders) for a single-file selection. All chapters land in the
-  // same book: the first file creates it (mode: "new_book") if that's the
-  // chosen mode, and every subsequent file — plus every file at all when
-  // mode is "existing_book" — is added to that one book via one
-  // structure-chapter call each, in selection order.
+  // Switching content type resets mode/target to that type's defaults —
+  // "new X" plus whichever existing item (if any) is first in its list.
+  const handleWizardContentTypeChange = (nextType: "story" | "screenplay" | "comic") => {
+    setWizardContentType(nextType);
+    setWizardBookMode(WIZARD_NEW_MODE[nextType]);
+    const options =
+      nextType === "story"
+        ? contentItems.stories.map((s) => s.story_title_id)
+        : nextType === "screenplay"
+          ? contentItems.screenplays.map((s) => s.screenplay_id)
+          : contentItems.comics.map((c) => c.comic_id);
+    setWizardTargetId(options[0] ?? "");
+  };
+
+  // One file = one chapter/scene/page (confirmed design — no multi-file
+  // merge). When several files are selected, each becomes its own
+  // chapter/scene, titled after its own filename (comic pages have no
+  // per-item title at all); the manual title field only applies (and only
+  // renders) for a single-file, non-comic selection. Everything lands in
+  // the same book/screenplay/comic: the first file creates it if "new" is
+  // the chosen mode, and every subsequent file — plus every file at all
+  // when an "existing" mode is chosen — is added to that one target via
+  // one structure-chapter call each, in selection order.
   const handleSubmitStructureWizard = async () => {
     if (!spaceId || selectedItemIds.size === 0) return;
-    if (wizardBookMode === "new_book" && !wizardBookTitle.trim()) {
-      setWizardError("A book title is required.");
+    if (wizardIsNewMode && !wizardBookTitle.trim()) {
+      setWizardError("A title is required.");
       return;
     }
-    if (wizardBookMode === "existing_book" && !wizardStoryTitleId) {
-      setWizardError("Choose which book this chapter belongs to.");
+    if (!wizardIsNewMode && !wizardTargetId) {
+      setWizardError("Choose which existing item this content belongs to.");
       return;
     }
     const selectedItems = Array.from(selectedItemIds)
       .map((id) => items.find((it) => it.id === id))
       .filter((it): it is CreativeSpaceItem => Boolean(it));
     if (selectedItems.length === 0) return;
-    if (selectedItems.length === 1 && !wizardChapterTitle.trim()) return;
+    if (wizardContentType !== "comic" && selectedItems.length === 1 && !wizardChapterTitle.trim()) return;
 
     setWizardSubmitting(true);
     setWizardError(null);
     try {
-      let targetStoryTitleId = wizardBookMode === "existing_book" ? wizardStoryTitleId : "";
+      let targetId = wizardIsNewMode ? "" : wizardTargetId;
       const errors: string[] = [];
 
       for (let i = 0; i < selectedItems.length; i++) {
         const item = selectedItems[i];
         const chapterTitle =
-          selectedItems.length === 1 ? wizardChapterTitle.trim() : item.name.replace(/\.[^./]+$/, "");
-        const useNewBook = wizardBookMode === "new_book" && i === 0;
+          wizardContentType === "comic"
+            ? undefined
+            : selectedItems.length === 1
+              ? wizardChapterTitle.trim()
+              : item.name.replace(/\.[^./]+$/, "");
+        const useNewTarget = wizardIsNewMode && i === 0;
+        const mode = useNewTarget ? WIZARD_NEW_MODE[wizardContentType] : WIZARD_EXISTING_MODE[wizardContentType];
 
         const res = await fetch(`${API_BASE}/creative-spaces/${spaceId}/import-wizard/structure-chapter`, {
           method: "POST",
@@ -277,9 +328,12 @@ const CreativeSpacePage: React.FC = () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             itemIds: [item.id],
-            mode: useNewBook ? "new_book" : "existing_book",
-            bookTitle: useNewBook ? wizardBookTitle.trim() : undefined,
-            storyTitleId: useNewBook ? undefined : targetStoryTitleId,
+            contentType: wizardContentType,
+            mode,
+            bookTitle: useNewTarget ? wizardBookTitle.trim() : undefined,
+            storyTitleId: wizardContentType === "story" && !useNewTarget ? targetId : undefined,
+            screenplayId: wizardContentType === "screenplay" && !useNewTarget ? targetId : undefined,
+            comicId: wizardContentType === "comic" && !useNewTarget ? targetId : undefined,
             chapterTitle,
           }),
         });
@@ -288,7 +342,12 @@ const CreativeSpacePage: React.FC = () => {
           errors.push(`"${item.name}": ${body.error || "failed to structure"}`);
           continue;
         }
-        if (useNewBook) targetStoryTitleId = body.storyTitleId;
+        if (useNewTarget) {
+          targetId =
+            wizardContentType === "story" ? body.storyTitleId
+              : wizardContentType === "screenplay" ? body.screenplayId
+                : body.comicId;
+        }
       }
 
       if (errors.length > 0) {
@@ -404,6 +463,7 @@ const CreativeSpacePage: React.FC = () => {
       setContentItems({
         stories: Array.isArray(body.stories) ? body.stories : [],
         screenplays: Array.isArray(body.screenplays) ? body.screenplays : [],
+        comics: Array.isArray(body.comics) ? body.comics : [],
       });
     } catch (err) {
       console.error("[CreativeSpacePage] Error loading stories/screenplays", err);
@@ -2067,59 +2127,117 @@ const CreativeSpacePage: React.FC = () => {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {selectedItemIds.size === 1 ? "Structure into chapter" : `Structure ${selectedItemIds.size} files into chapters`}
+              {selectedItemIds.size === 1
+                ? `Structure into ${wizardContentType === "comic" ? "page" : wizardContentType === "screenplay" ? "scene" : "chapter"}`
+                : `Structure ${selectedItemIds.size} files into ${wizardContentType === "comic" ? "pages" : wizardContentType === "screenplay" ? "scenes" : "chapters"}`}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
+            <div>
+              <label className="text-xs font-semibold text-slate-600 block mb-1">
+                <EditableText id="space-wizard-content-type-label">Content type</EditableText>
+              </label>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={wizardContentType === "story" ? "secondary" : "outline"}
+                  onClick={() => handleWizardContentTypeChange("story")}
+                >
+                  <EditableText id="space-wizard-type-story">Regular story (novel)</EditableText>
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={wizardContentType === "screenplay" ? "secondary" : "outline"}
+                  onClick={() => handleWizardContentTypeChange("screenplay")}
+                >
+                  <EditableText id="space-wizard-type-screenplay">Screenplay story</EditableText>
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={wizardContentType === "comic" ? "secondary" : "outline"}
+                  disabled={!wizardAllSelectedAreImages}
+                  title={wizardAllSelectedAreImages ? undefined : "Comics can only be structured from image files"}
+                  onClick={() => handleWizardContentTypeChange("comic")}
+                >
+                  <EditableText id="space-wizard-type-comic">Comic / manga</EditableText>
+                </Button>
+              </div>
+            </div>
+
             <div className="flex gap-2">
               <Button
                 type="button"
                 size="sm"
-                variant={wizardBookMode === "new_book" ? "secondary" : "outline"}
-                onClick={() => setWizardBookMode("new_book")}
+                variant={wizardIsNewMode ? "secondary" : "outline"}
+                onClick={() => setWizardBookMode(WIZARD_NEW_MODE[wizardContentType])}
               >
-                New book
+                <EditableText id="space-wizard-mode-new">New</EditableText>
               </Button>
               <Button
                 type="button"
                 size="sm"
-                variant={wizardBookMode === "existing_book" ? "secondary" : "outline"}
-                disabled={contentItems.stories.length === 0}
-                onClick={() => setWizardBookMode("existing_book")}
+                variant={!wizardIsNewMode ? "secondary" : "outline"}
+                disabled={wizardExistingOptions.length === 0}
+                onClick={() => setWizardBookMode(WIZARD_EXISTING_MODE[wizardContentType])}
               >
-                Existing book
+                <EditableText id="space-wizard-mode-existing">Existing</EditableText>
               </Button>
             </div>
 
-            {wizardBookMode === "new_book" ? (
+            {wizardIsNewMode ? (
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-600">Book title</label>
+                <label className="text-xs font-semibold text-slate-600">
+                  {wizardContentType === "comic"
+                    ? <EditableText id="space-wizard-title-label-comic">Comic title</EditableText>
+                    : wizardContentType === "screenplay"
+                      ? <EditableText id="space-wizard-title-label-screenplay">Screenplay title</EditableText>
+                      : <EditableText id="space-wizard-title-label-story">Book title</EditableText>}
+                </label>
                 <Input value={wizardBookTitle} onChange={(e) => setWizardBookTitle(e.target.value)} placeholder="e.g. Book I — Episode IV: New horizons" />
               </div>
             ) : (
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-600">Book</label>
-                <Select value={wizardStoryTitleId} onValueChange={setWizardStoryTitleId}>
+                <label className="text-xs font-semibold text-slate-600">
+                  <EditableText id="space-wizard-existing-label">Existing item</EditableText>
+                </label>
+                <Select value={wizardTargetId} onValueChange={setWizardTargetId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Choose a book" />
+                    <SelectValue placeholder="Choose one" />
                   </SelectTrigger>
                   <SelectContent>
-                    {contentItems.stories.map((s) => (
-                      <SelectItem key={s.story_title_id} value={s.story_title_id}>{s.title}</SelectItem>
+                    {wizardExistingOptions.map((o) => (
+                      <SelectItem key={o.id} value={o.id}>{o.title}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
             )}
 
-            {selectedItemIds.size === 1 ? (
+            {wizardContentType === "comic" ? (
+              <p className="text-xs text-slate-500">
+                <EditableText id="space-wizard-comic-hint">
+                  Each selected image becomes its own page, in selection order.
+                </EditableText>
+              </p>
+            ) : selectedItemIds.size === 1 ? (
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-600">Chapter title</label>
-                <Input value={wizardChapterTitle} onChange={(e) => setWizardChapterTitle(e.target.value)} placeholder="Chapter title" />
+                <label className="text-xs font-semibold text-slate-600">
+                  {wizardContentType === "screenplay"
+                    ? <EditableText id="space-wizard-item-title-label-screenplay">Scene title</EditableText>
+                    : <EditableText id="space-wizard-item-title-label-story">Chapter title</EditableText>}
+                </label>
+                <Input
+                  value={wizardChapterTitle}
+                  onChange={(e) => setWizardChapterTitle(e.target.value)}
+                  placeholder={wizardContentType === "screenplay" ? "Scene title" : "Chapter title"}
+                />
               </div>
             ) : (
               <p className="text-xs text-slate-500">
-                Each of the {selectedItemIds.size} selected files will become its own chapter, titled after its file name (in
+                Each of the {selectedItemIds.size} selected files will become its own {wizardContentType === "screenplay" ? "scene" : "chapter"}, titled after its file name (in
                 selection order).
               </p>
             )}
@@ -2128,19 +2246,17 @@ const CreativeSpacePage: React.FC = () => {
 
             <div className="flex justify-end gap-2 pt-2">
               <Button type="button" size="sm" variant="outline" onClick={() => setWizardOpen(false)} disabled={wizardSubmitting}>
-                Cancel
+                <EditableText id="space-wizard-cancel">Cancel</EditableText>
               </Button>
               <Button
                 type="button"
                 size="sm"
                 onClick={handleSubmitStructureWizard}
-                disabled={wizardSubmitting || (selectedItemIds.size === 1 && !wizardChapterTitle.trim())}
+                disabled={wizardSubmitting || (wizardContentType !== "comic" && selectedItemIds.size === 1 && !wizardChapterTitle.trim())}
               >
                 {wizardSubmitting
                   ? "Structuring…"
-                  : selectedItemIds.size === 1
-                    ? "Structure chapter"
-                    : `Structure ${selectedItemIds.size} chapters`}
+                  : `Structure ${selectedItemIds.size} ${wizardContentType === "comic" ? "page" : wizardContentType === "screenplay" ? "scene" : "chapter"}${selectedItemIds.size === 1 ? "" : "s"}`}
               </Button>
             </div>
           </div>

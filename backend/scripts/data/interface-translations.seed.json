@@ -9217,5 +9217,103 @@
     "en": "Manage selected users",
     "ru": "Управлять выбранными пользователями",
     "de": "Ausgewählte Nutzer verwalten"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-wizard-content-type-label",
+    "en": "Content type",
+    "ru": "Тип контента",
+    "de": "Inhaltstyp"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-wizard-type-story",
+    "en": "Regular story (novel)",
+    "ru": "Обычная история (роман)",
+    "de": "Normale Geschichte (Roman)"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-wizard-type-screenplay",
+    "en": "Screenplay story",
+    "ru": "Сценарий",
+    "de": "Drehbuch-Geschichte"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-wizard-type-comic",
+    "en": "Comic / manga",
+    "ru": "Комикс / манга",
+    "de": "Comic / Manga"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-wizard-mode-new",
+    "en": "New",
+    "ru": "Новый",
+    "de": "Neu"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-wizard-mode-existing",
+    "en": "Existing",
+    "ru": "Существующий",
+    "de": "Vorhanden"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-wizard-title-label-comic",
+    "en": "Comic title",
+    "ru": "Название комикса",
+    "de": "Comic-Titel"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-wizard-title-label-screenplay",
+    "en": "Screenplay title",
+    "ru": "Название сценария",
+    "de": "Titel des Drehbuchs"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-wizard-title-label-story",
+    "en": "Book title",
+    "ru": "Название книги",
+    "de": "Buchtitel"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-wizard-existing-label",
+    "en": "Existing item",
+    "ru": "Существующий элемент",
+    "de": "Vorhandenes Element"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-wizard-comic-hint",
+    "en": "Each selected image becomes its own page, in selection order.",
+    "ru": "Каждое выбранное изображение становится отдельной страницей в порядке выбора.",
+    "de": "Jedes ausgewählte Bild wird zu einer eigenen Seite, in der Reihenfolge der Auswahl."
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-wizard-item-title-label-screenplay",
+    "en": "Scene title",
+    "ru": "Название сцены",
+    "de": "Szenentitel"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-wizard-item-title-label-story",
+    "en": "Chapter title",
+    "ru": "Название главы",
+    "de": "Kapiteltitel"
+  },
+  {
+    "page_key": "/creative_space/:spaceId",
+    "element_id": "space-wizard-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
   }
 ]

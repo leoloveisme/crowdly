@@ -33,6 +33,7 @@ import chapterMediaRouter from './chapterMedia.js';
 import aiRouter from './ai/router.js';
 import { startAiWorker } from './ai/jobs.js';
 import creativeSpaceFilesRouter, { CREATIVE_SPACE_FILES_ROOT, guessMimeType } from './creativeSpaceFiles.js';
+import { adoptLocalFile, LOCAL_UPLOADS_ROOT } from './storage.js';
 import { eventsHandler } from './events.js';
 import {
   isGithubAppConfigured,
@@ -5301,8 +5302,12 @@ app.get('/creative-spaces/:spaceId/content-items', async (req, res) => {
       `SELECT screenplay_id, title, visibility, published FROM screenplay_title WHERE creative_space_id = $1${storyFilter} ORDER BY title`,
       [spaceId],
     );
+    const { rows: comics } = await pool.query(
+      `SELECT comic_id, title, visibility, published FROM comic_title WHERE creative_space_id = $1${storyFilter} ORDER BY title`,
+      [spaceId],
+    );
 
-    res.json({ stories, screenplays });
+    res.json({ stories, screenplays, comics });
   } catch (err) {
     console.error('[GET /creative-spaces/:spaceId/content-items] failed:', err);
     res.status(500).json({ error: 'Failed to load stories/screenplays for this creative space' });
@@ -5352,19 +5357,35 @@ function readCreativeSpaceItemText(item) {
 // — the owner explicitly publishes afterward via PATCH /chapters/:id/publish.
 app.post('/creative-spaces/:spaceId/import-wizard/structure-chapter', requireAuth, async (req, res) => {
   const { spaceId } = req.params;
-  const { itemIds, mode, bookTitle, storyTitleId, chapterTitle } = req.body ?? {};
+  const {
+    itemIds, mode, bookTitle, storyTitleId, chapterTitle,
+    screenplayId, comicId,
+  } = req.body ?? {};
+  const contentType = req.body?.contentType || 'story';
 
-  if (!Array.isArray(itemIds) || itemIds.length === 0 || !chapterTitle) {
-    return res.status(400).json({ error: 'itemIds[] and chapterTitle are required' });
+  if (!['story', 'screenplay', 'comic'].includes(contentType)) {
+    return res.status(400).json({ error: "contentType must be 'story', 'screenplay', or 'comic'" });
   }
-  if (mode !== 'new_book' && mode !== 'existing_book') {
-    return res.status(400).json({ error: "mode must be 'new_book' or 'existing_book'" });
+  if (!Array.isArray(itemIds) || itemIds.length === 0) {
+    return res.status(400).json({ error: 'itemIds[] is required' });
   }
-  if (mode === 'new_book' && !bookTitle) {
-    return res.status(400).json({ error: 'bookTitle is required for mode "new_book"' });
+  if (contentType !== 'comic' && !chapterTitle) {
+    return res.status(400).json({ error: 'chapterTitle is required' });
   }
-  if (mode === 'existing_book' && !storyTitleId) {
-    return res.status(400).json({ error: 'storyTitleId is required for mode "existing_book"' });
+
+  const newModeByType = { story: 'new_book', screenplay: 'new_screenplay', comic: 'new_comic' };
+  const existingModeByType = { story: 'existing_book', screenplay: 'existing_screenplay', comic: 'existing_comic' };
+  const isNewMode = mode === newModeByType[contentType];
+  const isExistingMode = mode === existingModeByType[contentType];
+  if (!isNewMode && !isExistingMode) {
+    return res.status(400).json({ error: `mode must be '${newModeByType[contentType]}' or '${existingModeByType[contentType]}'` });
+  }
+  if (isNewMode && !bookTitle) {
+    return res.status(400).json({ error: `bookTitle is required for mode "${newModeByType[contentType]}"` });
+  }
+  const existingTargetId = contentType === 'story' ? storyTitleId : contentType === 'screenplay' ? screenplayId : comicId;
+  if (isExistingMode && !existingTargetId) {
+    return res.status(400).json({ error: `Target id is required for mode "${existingModeByType[contentType]}"` });
   }
 
   try {
@@ -5374,25 +5395,41 @@ app.post('/creative-spaces/:spaceId/import-wizard/structure-chapter', requireAut
     }
     const isSpaceOwner = spaceRes.rows[0].user_id === req.user.id;
 
-    if (mode === 'existing_book') {
-      const storyRes = await pool.query(
-        'SELECT creative_space_id FROM story_title WHERE story_title_id = $1',
-        [storyTitleId],
-      );
-      if (storyRes.rows.length === 0) {
-        return res.status(404).json({ error: 'Target book not found' });
-      }
-      if (storyRes.rows[0].creative_space_id !== spaceId) {
-        return res.status(400).json({ error: 'Target book does not belong to this Space' });
-      }
-      const role = await getStoryAccessRole(storyTitleId, req.user.id);
-      if (!role) {
-        return res.status(403).json({ error: 'Not authorized to add chapters to this book' });
+    if (isExistingMode) {
+      if (contentType === 'story') {
+        const storyRes = await pool.query('SELECT creative_space_id FROM story_title WHERE story_title_id = $1', [existingTargetId]);
+        if (storyRes.rows.length === 0) return res.status(404).json({ error: 'Target book not found' });
+        if (storyRes.rows[0].creative_space_id !== spaceId) return res.status(400).json({ error: 'Target book does not belong to this Space' });
+        const role = await getStoryAccessRole(existingTargetId, req.user.id);
+        if (!role) return res.status(403).json({ error: 'Not authorized to add chapters to this book' });
+      } else if (contentType === 'screenplay') {
+        const spRes = await pool.query('SELECT creative_space_id, creator_id FROM screenplay_title WHERE screenplay_id = $1', [existingTargetId]);
+        if (spRes.rows.length === 0) return res.status(404).json({ error: 'Target screenplay not found' });
+        if (spRes.rows[0].creative_space_id !== spaceId) return res.status(400).json({ error: 'Target screenplay does not belong to this Space' });
+        let allowed = spRes.rows[0].creator_id === req.user.id;
+        if (!allowed) {
+          const accessRes = await pool.query('SELECT 1 FROM screenplay_access WHERE screenplay_id = $1 AND user_id = $2 LIMIT 1', [existingTargetId, req.user.id]);
+          allowed = accessRes.rows.length > 0;
+        }
+        if (!allowed) return res.status(403).json({ error: 'Not authorized to add scenes to this screenplay' });
+      } else {
+        const comicRes = await pool.query('SELECT creative_space_id, creator_id FROM comic_title WHERE comic_id = $1', [existingTargetId]);
+        if (comicRes.rows.length === 0) return res.status(404).json({ error: 'Target comic not found' });
+        if (comicRes.rows[0].creative_space_id !== spaceId) return res.status(400).json({ error: 'Target comic does not belong to this Space' });
+        let allowed = comicRes.rows[0].creator_id === req.user.id;
+        if (!allowed) {
+          const accessRes = await pool.query(
+            "SELECT 1 FROM comic_access WHERE comic_id = $1 AND user_id = $2 AND role IN ('owner', 'contributor') LIMIT 1",
+            [existingTargetId, req.user.id],
+          );
+          allowed = accessRes.rows.length > 0;
+        }
+        if (!allowed) return res.status(403).json({ error: 'Not authorized to add pages to this comic' });
       }
     } else if (!isSpaceOwner) {
-      // Creating a brand-new book in someone else's Space isn't part of this
-      // wizard's scope — only the Space owner may do that.
-      return res.status(403).json({ error: 'Only the Space owner may create a new book here' });
+      // Creating a brand-new book/screenplay/comic in someone else's Space
+      // isn't part of this wizard's scope — only the Space owner may do that.
+      return res.status(403).json({ error: 'Only the Space owner may create new content here' });
     }
 
     const itemsRes = await pool.query(
@@ -5405,65 +5442,164 @@ app.post('/creative-spaces/:spaceId/import-wizard/structure-chapter', requireAut
       return res.status(404).json({ error: `Item(s) not found in this Space: ${missing.join(', ')}` });
     }
 
-    let combinedText;
-    try {
-      combinedText = itemIds.map((id) => readCreativeSpaceItemText(itemsById.get(id))).join('\n\n');
-    } catch (readErr) {
-      return res.status(400).json({ error: readErr.message });
-    }
-
-    const paragraphs = splitTextIntoParagraphs(combinedText);
-    if (paragraphs.length === 0) {
-      return res.status(400).json({ error: 'Selected file(s) contained no text to import' });
-    }
-
-    let resultStoryTitleId;
-    let chapterId;
-
-    if (mode === 'new_book') {
-      const { storyTitleRow, chapterRow } = await createStoryFromTemplate({
-        title: bookTitle,
-        chapterTitle,
-        paragraphs,
-        userId: req.user.id,
-        creativeSpaceId: spaceId,
-      });
-      resultStoryTitleId = storyTitleRow.story_title_id;
-      chapterId = chapterRow.chapter_id;
-    } else {
-      const countRes = await pool.query(
-        'SELECT COALESCE(MAX(chapter_index), 0) AS max_idx FROM stories WHERE story_title_id = $1',
-        [storyTitleId],
-      );
-      const nextIdx = (countRes.rows[0]?.max_idx || 0) + 1;
-      const insertRes = await pool.query(
-        'INSERT INTO stories (story_title_id, chapter_index, chapter_title, paragraphs) VALUES ($1, $2, $3, $4) RETURNING chapter_id',
-        [storyTitleId, nextIdx, chapterTitle, paragraphs],
-      );
-      chapterId = insertRes.rows[0].chapter_id;
-      resultStoryTitleId = storyTitleId;
-
-      try {
-        await pool.query(
-          `INSERT INTO story_access (story_title_id, user_id, role)
-           VALUES ($1, $2, 'contributor')
-           ON CONFLICT (story_title_id, user_id) DO NOTHING`,
-          [storyTitleId, req.user.id],
-        );
-      } catch (accessErr) {
-        console.error('[import-wizard/structure-chapter] failed to insert story_access row:', accessErr);
+    if (contentType === 'comic') {
+      const selected = itemIds.map((id) => itemsById.get(id));
+      const nonImage = selected.find((item) => !String(item.mime_type || guessMimeType(item.name)).startsWith('image/'));
+      if (nonImage) {
+        return res.status(400).json({ error: `"${nonImage.name}" is not an image — only image files can become comic pages` });
+      }
+      const noContent = selected.find((item) => !item.storage_path);
+      if (noContent) {
+        return res.status(400).json({ error: `"${noContent.name}" has no content stored yet` });
       }
     }
 
+    let resultStoryTitleId;
+    let resultChapterId;
+    let resultScreenplayId;
+    let resultComicId;
+    let linkedEntityColumn;
+    let linkedEntityId;
+
+    if (contentType === 'story') {
+      let combinedText;
+      try {
+        combinedText = itemIds.map((id) => readCreativeSpaceItemText(itemsById.get(id))).join('\n\n');
+      } catch (readErr) {
+        return res.status(400).json({ error: readErr.message });
+      }
+      const paragraphs = splitTextIntoParagraphs(combinedText);
+      if (paragraphs.length === 0) {
+        return res.status(400).json({ error: 'Selected file(s) contained no text to import' });
+      }
+
+      let chapterId;
+      if (isNewMode) {
+        const { storyTitleRow, chapterRow } = await createStoryFromTemplate({
+          title: bookTitle,
+          chapterTitle,
+          paragraphs,
+          userId: req.user.id,
+          creativeSpaceId: spaceId,
+        });
+        resultStoryTitleId = storyTitleRow.story_title_id;
+        chapterId = chapterRow.chapter_id;
+      } else {
+        const countRes = await pool.query('SELECT COALESCE(MAX(chapter_index), 0) AS max_idx FROM stories WHERE story_title_id = $1', [existingTargetId]);
+        const nextIdx = (countRes.rows[0]?.max_idx || 0) + 1;
+        const insertRes = await pool.query(
+          'INSERT INTO stories (story_title_id, chapter_index, chapter_title, paragraphs) VALUES ($1, $2, $3, $4) RETURNING chapter_id',
+          [existingTargetId, nextIdx, chapterTitle, paragraphs],
+        );
+        chapterId = insertRes.rows[0].chapter_id;
+        resultStoryTitleId = existingTargetId;
+
+        try {
+          await pool.query(
+            `INSERT INTO story_access (story_title_id, user_id, role)
+             VALUES ($1, $2, 'contributor')
+             ON CONFLICT (story_title_id, user_id) DO NOTHING`,
+            [existingTargetId, req.user.id],
+          );
+        } catch (accessErr) {
+          console.error('[import-wizard/structure-chapter] failed to insert story_access row:', accessErr);
+        }
+      }
+      resultChapterId = chapterId;
+      linkedEntityColumn = 'linked_chapter_id';
+      linkedEntityId = chapterId;
+    } else if (contentType === 'screenplay') {
+      let combinedText;
+      try {
+        combinedText = itemIds.map((id) => readCreativeSpaceItemText(itemsById.get(id))).join('\n\n');
+      } catch (readErr) {
+        return res.status(400).json({ error: readErr.message });
+      }
+      const paragraphs = splitTextIntoParagraphs(combinedText);
+      if (paragraphs.length === 0) {
+        return res.status(400).json({ error: 'Selected file(s) contained no text to import' });
+      }
+
+      if (isNewMode) {
+        const screenplayRes = await pool.query(
+          `INSERT INTO screenplay_title (title, creator_id, creative_space_id) VALUES ($1, $2, $3) RETURNING screenplay_id`,
+          [bookTitle, req.user.id, spaceId],
+        );
+        resultScreenplayId = screenplayRes.rows[0].screenplay_id;
+        await ensureScreenplayAccessRow(resultScreenplayId, req.user.id, 'owner');
+      } else {
+        resultScreenplayId = existingTargetId;
+        await ensureScreenplayAccessRow(resultScreenplayId, req.user.id, 'contributor');
+      }
+
+      const sceneIdxRes = await pool.query('SELECT COALESCE(MAX(scene_index), 0) AS max_idx FROM screenplay_scene WHERE screenplay_id = $1', [resultScreenplayId]);
+      const sceneIndex = (sceneIdxRes.rows[0]?.max_idx || 0) + 1;
+      const sceneRes = await pool.query(
+        `INSERT INTO screenplay_scene (screenplay_id, scene_index, slugline) VALUES ($1, $2, $3) RETURNING scene_id`,
+        [resultScreenplayId, sceneIndex, chapterTitle],
+      );
+      const sceneId = sceneRes.rows[0].scene_id;
+      for (let i = 0; i < paragraphs.length; i++) {
+        await pool.query(
+          `INSERT INTO screenplay_block (screenplay_id, scene_id, block_index, block_type, text) VALUES ($1, $2, $3, 'action', $4)`,
+          [resultScreenplayId, sceneId, i, paragraphs[i]],
+        );
+      }
+      linkedEntityColumn = 'linked_scene_id';
+      linkedEntityId = sceneId;
+    } else {
+      if (isNewMode) {
+        const comicRes = await pool.query(
+          `INSERT INTO comic_title (title, creator_id, creative_space_id) VALUES ($1, $2, $3) RETURNING comic_id`,
+          [bookTitle, req.user.id, spaceId],
+        );
+        resultComicId = comicRes.rows[0].comic_id;
+      } else {
+        resultComicId = existingTargetId;
+      }
+
+      const pageIdxRes = await pool.query('SELECT COALESCE(MAX(page_index), -1) AS max_idx FROM comic_page WHERE comic_id = $1', [resultComicId]);
+      let nextPageIndex = Number(pageIdxRes.rows[0]?.max_idx ?? -1) + 1;
+      let lastPageId;
+      for (const id of itemIds) {
+        const item = itemsById.get(id);
+        const sourcePath = path.join(CREATIVE_SPACE_FILES_ROOT, item.storage_path);
+        // adoptLocalFile derives its storage key from the file's path relative
+        // to LOCAL_UPLOADS_ROOT (it mirrors that layout into the bucket/local
+        // URL), so the Space file must be copied under uploads/comics/<id>/
+        // first — exactly where the real multipart upload route in comics.js
+        // already writes new pages. This copies, not moves: the Space item
+        // keeps its own on-disk file independently of the comic page's.
+        const destDir = path.join(LOCAL_UPLOADS_ROOT, 'comics', resultComicId);
+        fs.mkdirSync(destDir, { recursive: true });
+        const destPath = path.join(destDir, `${randomUUID()}${path.extname(item.name) || ''}`);
+        fs.copyFileSync(sourcePath, destPath);
+        const imageUrl = await adoptLocalFile(destPath, item.mime_type || guessMimeType(item.name));
+        const pageRes = await pool.query(
+          `INSERT INTO comic_page (comic_id, page_index, image_url) VALUES ($1, $2, $3) RETURNING page_id`,
+          [resultComicId, nextPageIndex, imageUrl],
+        );
+        lastPageId = pageRes.rows[0].page_id;
+        nextPageIndex += 1;
+      }
+      linkedEntityColumn = 'linked_page_id';
+      linkedEntityId = lastPageId;
+    }
+
     await pool.query(
-      'UPDATE creative_space_items SET linked_chapter_id = $1 WHERE id = ANY($2::uuid[])',
-      [chapterId, itemIds],
+      `UPDATE creative_space_items SET ${linkedEntityColumn} = $1 WHERE id = ANY($2::uuid[])`,
+      [linkedEntityId, itemIds],
     );
 
-    res.status(201).json({ storyTitleId: resultStoryTitleId, chapterId });
+    res.status(201).json({
+      storyTitleId: resultStoryTitleId,
+      chapterId: resultChapterId,
+      screenplayId: resultScreenplayId,
+      comicId: resultComicId,
+    });
   } catch (err) {
     console.error('[POST /creative-spaces/:spaceId/import-wizard/structure-chapter] failed:', err);
-    res.status(500).json({ error: 'Failed to structure chapter' });
+    res.status(500).json({ error: 'Failed to structure content' });
   }
 });
 
