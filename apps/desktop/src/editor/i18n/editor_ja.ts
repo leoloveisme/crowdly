@@ -1598,8 +1598,8 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
         <translation>本棚に追加</translation>
     </message>
     <message>
-        <source>Turn on Synchronisation with web platform to put library books on shelves</source>
-        <translation>ライブラリの本を本棚に入れるには Web プラットフォームとの同期をオンにしてください</translation>
+        <source>This item can&apos;t be put on a shelf.</source>
+        <translation>この項目は本棚に入れられません。</translation>
     </message>
     <message>
         <source>Loading…</source>

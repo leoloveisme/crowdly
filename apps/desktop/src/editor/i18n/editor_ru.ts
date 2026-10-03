@@ -1842,8 +1842,8 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
         <translation>Добавить на полку</translation>
     </message>
     <message>
-        <source>Turn on Synchronisation with web platform to put library books on shelves</source>
-        <translation>Включите синхронизацию с веб-платформой, чтобы ставить книги из библиотеки на полки</translation>
+        <source>This item can&apos;t be put on a shelf.</source>
+        <translation>Этот элемент нельзя поставить на полку.</translation>
     </message>
     <message>
         <source>Loading…</source>

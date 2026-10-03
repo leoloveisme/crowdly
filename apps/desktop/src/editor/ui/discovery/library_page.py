@@ -5,9 +5,9 @@ Sidebar:
   Crowdly: Favorites / Living / Lived                           (account)
   My shelves: manual and ⚙ smart shelves                        (account)
 
-Built-in views come from the local library; shelves come from the account
-(backend/src/shelves.js) and are cached in ``shelves-cache.json`` so they
-can be browsed read-only offline. Cards can be dropped on a manual shelf in
+Built-in views come from the local library; shelves come from the local
+shelf store (``library.shelf_store``), a mirror of the account's shelves that
+works without sync or a connection and is synced by ``library.shelf_sync``. Cards can be dropped on a manual shelf in
 the sidebar, files can be dropped on the page to import them, and a manual
 shelf in "My order" can be reordered by dragging.
 """
@@ -15,8 +15,6 @@ shelf in "My order" can be reordered by dragging.
 from __future__ import annotations
 
 import json
-from pathlib import Path
-from typing import Callable
 
 from PySide6.QtCore import QPoint, Qt, Signal
 from PySide6.QtWidgets import (
@@ -39,38 +37,20 @@ from PySide6.QtWidgets import (
 )
 
 from ...library.store import KIND_CROWDLY, KIND_IMPORTED, LibraryItem, LocalLibrary
-from ...library.sync import LibrarySyncClient, LibrarySyncError
+from ...library.shelf_store import LocalShelfStore, item_card
 from .cards import CARD_MIME, CardView, CoverProvider
 from .shelves_page import STATUS_SYSTEM_KEYS, system_shelf_name
 from .smart_shelf_dialog import SORTS, SmartShelfDialog, sort_label
-from .tasks import run_in_background
 
 LOCAL_VIEWS = ("local:continue", "local:books", "local:audio", "local:crowdly")
 FINISHED_PERCENT = 98
 KEY_ROLE = Qt.ItemDataRole.UserRole
 KIND_ROLE = Qt.ItemDataRole.UserRole + 1
 
-ClientFactory = Callable[[], "LibrarySyncClient | None"]
-
-
 def local_card(item: LibraryItem) -> dict:
     """Card dict for an item of the local library."""
 
-    crowdly = item.kind == KIND_CROWDLY
-    return {
-        "key": f"local:{item.id}",
-        "local_id": item.id,
-        "type": "story" if crowdly else "library_item",
-        "id": item.story_title_id if crowdly else item.remote_id,
-        "title": item.title,
-        "subtitle": None,
-        "author": item.author,
-        "language": item.language,
-        "format": "story" if crowdly else item.format,
-        "progress": float((item.position or {}).get("percent") or 0),
-        "added_at": item.added_at,
-        "last_read_at": item.last_opened_at,
-    }
+    return item_card(item)
 
 
 class ShelfSidebar(QListWidget):
@@ -155,22 +135,18 @@ class LibraryPage(QWidget):
         self,
         library: LocalLibrary,
         covers: CoverProvider,
-        client_factory: ClientFactory,
-        cache_path: Path,
+        store: LocalShelfStore,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
         self._library = library
         self._covers = covers
-        self._client_factory = client_factory
-        self._cache_path = cache_path
-        self._cache = self._read_cache()
+        self._store = store
         self._system: list[dict] = []
         self._custom: list[dict] = []
         self._current = "local:books"
         self._items: list[dict] = []
         self._filter = ""
-        self._offline = False
         self._local_sort = "last_read"
 
         root = QHBoxLayout(self)
@@ -304,19 +280,6 @@ class LibraryPage(QWidget):
 
     # -- data ------------------------------------------------------------------
 
-    def _read_cache(self) -> dict:
-        try:
-            return json.loads(self._cache_path.read_text(encoding="utf-8"))
-        except Exception:
-            return {"shelves": None, "items": {}}
-
-    def _write_cache(self) -> None:
-        try:
-            self._cache_path.parent.mkdir(parents=True, exist_ok=True)
-            self._cache_path.write_text(json.dumps(self._cache), encoding="utf-8")
-        except OSError:
-            pass
-
     def _shelf(self, key: str) -> dict | None:
         return next((s for s in self._custom if s.get("id") == key), None)
 
@@ -324,99 +287,31 @@ class LibraryPage(QWidget):
         return self._current
 
     def refresh(self, select: str | None = None) -> None:
-        """Reload the account's shelves, then the selected view."""
+        """Re-read the shelves (and the selected view) from the store."""
 
         if select:
             self._current = select
-        cached = self._cache.get("shelves")
-        if cached and not self._custom and not self._system:
-            self._system = list(cached.get("system") or [])
-            self._custom = list(cached.get("custom") or [])
-        self._render_sidebar()
-        self.select(self._current)
-
-        def work():
-            client = self._client_factory()
-            if client is None:
-                raise LibrarySyncError(self.tr("Log in to Crowdly to use shelves."))
-            return client.list_shelves()
-
-        run_in_background(work, self.show_shelves, self._shelves_failed)
-
-    def show_shelves(self, data: dict) -> None:
-        self._set_offline(False)
+        data = self._store.list_shelves()
         self._system = [s for s in data.get("system") or [] if s.get("key") in STATUS_SYSTEM_KEYS]
         self._custom = list(data.get("custom") or [])
-        self._cache["shelves"] = {"system": self._system, "custom": self._custom}
-        self._write_cache()
-        self._render_sidebar()
         if self._current not in LOCAL_VIEWS and self._current not in STATUS_SYSTEM_KEYS and not self._shelf(self._current):
             self._current = "local:books"
+        self._render_sidebar()
         self.select(self._current)
 
-    def _shelves_failed(self, message: str) -> None:
-        if self._cache.get("shelves"):
-            self._set_offline(True)
-        self.statusMessage.emit(self.tr("Shelves are not available: {error}").format(error=message))
-
-    def _set_offline(self, offline: bool) -> None:
-        self._offline = offline
-        self._btn_new.setEnabled(not offline)
-        self._btn_new_smart.setEnabled(not offline)
-        self.sidebar.read_only = offline
-
     def reload_local(self) -> None:
-        """Refresh after the local library changed (import, sync, removal)."""
+        """Refresh after the library or the shelves changed (import, sync, removal)."""
 
-        self._render_sidebar()
-        if self._current in LOCAL_VIEWS:
-            self.select(self._current)
+        self.refresh()
 
     def select(self, key: str) -> None:
         self._current = key
         self._mark_selected()
         if key in LOCAL_VIEWS:
             self._items = self._local_items(key)
-            self._render()
-            return
-        self._items = list((self._cache.get("items") or {}).get(key) or [])
-        self._render(loading=not self._items)
-
-        def work():
-            client = self._client_factory()
-            if client is None:
-                raise LibrarySyncError(self.tr("Log in to Crowdly to use shelves."))
-            return client.shelf_items(key)
-
-        def done(data: dict) -> None:
-            if key != self._current:
-                return
-            items = [self._link_local(i) for i in data.get("items") or []]
-            self._cache.setdefault("items", {})[key] = items
-            self._write_cache()
-            self._items = items
-            self._render()
-
-        def failed(message: str) -> None:
-            if key == self._current:
-                self._render()
-            self.statusMessage.emit(self.tr("Shelves are not available: {error}").format(error=message))
-
-        run_in_background(work, done, failed)
-
-    def _link_local(self, item: dict) -> dict:
-        """Point account items at the local copy (for covers and opening)."""
-
-        if item.get("type") == "library_item":
-            local = self._library.find_by_remote(item.get("id") or "")
-            if local is not None:
-                return {**item, "local_id": local.id, "key": f"local:{local.id}"}
-        elif item.get("type") == "story":
-            local = self._library.find_story(item.get("id") or "")
-            if local is not None:
-                progress = float((local.position or {}).get("percent") or 0)
-                return {**item, "local_id": local.id, "progress": max(progress, float(item.get("progress") or 0))}
-        return item
+        else:
+            self._items = list(self._store.shelf_items(key).get("items") or [])
+        self._render()
 
     def _local_items(self, key: str) -> list[dict]:
         items = self._library.items()
@@ -427,7 +322,9 @@ class LibraryPage(QWidget):
             ]
             return [local_card(i) for i in sorted(chosen, key=lambda i: i.last_opened_at or "", reverse=True)]
         if key == "local:books":
-            chosen = [i for i in items if i.kind == KIND_IMPORTED and i.format != "audio"]
+            # Everything in My Library: imported books, audiobooks and the
+            # Crowdly stories read here.
+            chosen = list(items)
         elif key == "local:audio":
             chosen = [i for i in items if i.kind == KIND_IMPORTED and i.format == "audio"]
         else:
@@ -504,7 +401,7 @@ class LibraryPage(QWidget):
         header(self.tr("My shelves"))
         for shelf in self._custom:
             mark = "⚙ " if shelf.get("kind") == "smart" else ""
-            entry(shelf["id"], mark + (shelf.get("name") or ""), shelf.get("kind") or "manual", shelf.get("count"), drag=not self._offline)
+            entry(shelf["id"], mark + (shelf.get("name") or ""), shelf.get("kind") or "manual", shelf.get("count"), drag=True)
         self.sidebar.blockSignals(False)
         self._mark_selected()
 
@@ -515,14 +412,14 @@ class LibraryPage(QWidget):
                 self.sidebar.setCurrentItem(item)
                 return
 
-    def _render(self, loading: bool = False) -> None:
+    def _render(self) -> None:
         key = self._current
         shelf = self._shelf(key)
         self._title.setText(self.view_name(key))
         items = self._filtered()
         self.view.set_items(items)
         self.view.reorder_enabled = bool(
-            shelf and shelf.get("kind") == "manual" and shelf.get("sort") == "manual" and not self._offline and not self._filter
+            shelf and shelf.get("kind") == "manual" and shelf.get("sort") == "manual" and not self._filter
         )
 
         # Sort options: local views sort here; account shelves keep their own.
@@ -541,11 +438,7 @@ class LibraryPage(QWidget):
         self._sort.setVisible(has_sort)
         self._sort_label.setVisible(has_sort)
 
-        if loading:
-            hint = self.tr("Loading…")
-        elif self._offline and key not in LOCAL_VIEWS:
-            hint = self.tr("Offline - showing the shelves as they were last loaded.")
-        elif shelf is not None and shelf.get("kind") == "smart":
+        if shelf is not None and shelf.get("kind") == "smart":
             hint = self.tr("This smart shelf fills itself from its rules.")
         elif not items and self._filter:
             hint = self.tr("Nothing here matches your search.")
@@ -600,18 +493,12 @@ class LibraryPage(QWidget):
             self._call(lambda c: c.update_shelf(shelf_id, sort=value), select=shelf_id)
 
     def _call(self, fn, *, reload: bool = True, select=None) -> None:
-        def work():
-            client = self._client_factory()
-            if client is None:
-                raise LibrarySyncError(self.tr("Log in to Crowdly to use shelves."))
-            return fn(client)
+        """Apply *fn* to the shelf store, then re-render."""
 
-        def done(result) -> None:
-            if reload:
-                target = select(result) if callable(select) else select
-                self.refresh(target)
-
-        run_in_background(work, done, lambda m: self.statusMessage.emit(self.tr("Shelves: {error}").format(error=m)))
+        result = fn(self._store)
+        if reload:
+            target = select(result) if callable(select) else select
+            self.refresh(target)
 
     def new_shelf(self) -> None:
         name, ok = QInputDialog.getText(self, self.tr("New shelf"), self.tr("Shelf name:"))
@@ -630,7 +517,7 @@ class LibraryPage(QWidget):
 
     def _shelf_context_menu(self, pos) -> None:
         item = self.sidebar.itemAt(pos)
-        if item is None or self._offline:
+        if item is None:
             return
         shelf = self._shelf(item.data(KEY_ROLE))
         if shelf is None:
@@ -677,30 +564,19 @@ class LibraryPage(QWidget):
 
     def current_shelf_is_manual(self) -> bool:
         shelf = self._shelf(self._current)
-        return bool(shelf and shelf.get("kind") == "manual" and not self._offline)
+        return bool(shelf and shelf.get("kind") == "manual")
 
     def _card_dropped_on_shelf(self, shelf_id: str, payload: dict) -> None:
-        item_type, item_id = payload.get("type"), payload.get("id")
-        if item_type == "library_item" and not item_id:
-            self.statusMessage.emit(
-                self.tr("Turn on Synchronisation with web platform to put library books on shelves.")
-            )
+        item_type = payload.get("type")
+        # Books go on shelves by their local id, so they can be shelved
+        # before they are synced.
+        ref = payload.get("local_id") if item_type == "library_item" else payload.get("id")
+        if not item_type or not ref:
             return
-        if not item_type or not item_id:
-            return
+        self._store.add_to_shelf(shelf_id, item_type, ref, title=payload.get("title") or "")
         name = (self._shelf(shelf_id) or {}).get("name", "")
-
-        def work():
-            client = self._client_factory()
-            if client is None:
-                raise LibrarySyncError(self.tr("Log in to Crowdly to use shelves."))
-            client.add_to_shelf(shelf_id, item_type, item_id)
-
-        def done(_r) -> None:
-            self.statusMessage.emit(self.tr("Added to \"{shelf}\"").format(shelf=name))
-            self.refresh()
-
-        run_in_background(work, done, lambda m: self.statusMessage.emit(self.tr("Shelves: {error}").format(error=m)))
+        self.statusMessage.emit(self.tr("Added to \"{shelf}\"").format(shelf=name))
+        self.refresh()
 
     def _shelves_reordered(self, ids: list) -> None:
         order = {sid: i for i, sid in enumerate(ids)}

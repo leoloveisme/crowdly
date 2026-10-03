@@ -735,8 +735,8 @@ Seuls vos propres œuvres, les livres du domaine public ou sous Creative Commons
         <translation>Ajouter à une étagère</translation>
     </message>
     <message>
-        <source>Turn on Synchronisation with web platform to put library books on shelves</source>
-        <translation>Activez la synchronisation avec la plateforme web pour ranger les livres de la bibliothèque sur des étagères</translation>
+        <source>This item can&apos;t be put on a shelf.</source>
+        <translation>Cet élément ne peut pas être placé sur une étagère.</translation>
     </message>
     <message>
         <source>Loading…</source>

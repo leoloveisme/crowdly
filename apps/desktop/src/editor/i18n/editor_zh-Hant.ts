@@ -1598,8 +1598,8 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
         <translation>加入書架</translation>
     </message>
     <message>
-        <source>Turn on Synchronisation with web platform to put library books on shelves</source>
-        <translation>開啟與網頁平台同步，才能把書庫中的書籍放到書架上</translation>
+        <source>This item can&apos;t be put on a shelf.</source>
+        <translation>此項目無法放到書架上。</translation>
     </message>
     <message>
         <source>Loading…</source>

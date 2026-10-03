@@ -1598,8 +1598,8 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
         <translation>책장에 추가</translation>
     </message>
     <message>
-        <source>Turn on Synchronisation with web platform to put library books on shelves</source>
-        <translation>서재의 책을 책장에 넣으려면 웹 플랫폼 동기화를 켜세요</translation>
+        <source>This item can&apos;t be put on a shelf.</source>
+        <translation>이 항목은 책장에 넣을 수 없습니다.</translation>
     </message>
     <message>
         <source>Loading…</source>

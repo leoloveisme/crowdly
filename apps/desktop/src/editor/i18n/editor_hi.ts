@@ -735,8 +735,8 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
         <translation>शेल्फ़ में जोड़ें</translation>
     </message>
     <message>
-        <source>Turn on Synchronisation with web platform to put library books on shelves</source>
-        <translation>लाइब्रेरी की किताबें शेल्फ़ पर रखने के लिए वेब प्लेटफ़ॉर्म के साथ सिंक चालू करें</translation>
+        <source>This item can&apos;t be put on a shelf.</source>
+        <translation>इस आइटम को शेल्फ़ पर नहीं रखा जा सकता।</translation>
     </message>
     <message>
         <source>Loading…</source>

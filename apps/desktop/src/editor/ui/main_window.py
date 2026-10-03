@@ -6877,6 +6877,19 @@ class MainWindow(QMainWindow):
                 setattr(app, "_crowdly_library", library)
         return library
 
+    def _shared_shelf_store(self):
+        """One LocalShelfStore per app, next to the shared library."""
+
+        from ..library.shelf_store import LocalShelfStore
+
+        app = QCoreApplication.instance()
+        store = getattr(app, "_crowdly_shelf_store", None) if app is not None else None
+        if store is None:
+            store = LocalShelfStore(get_config_dir() / "library" / "shelves.json", self._shared_library())
+            if app is not None:
+                setattr(app, "_crowdly_shelf_store", store)
+        return store
+
     def _ensure_discovery_view(self):
         if self._discovery_view is not None:
             return self._discovery_view
@@ -6889,6 +6902,7 @@ class MainWindow(QMainWindow):
             credentials=self._discovery_credentials,
             sync_enabled=lambda: bool(getattr(self, "_sync_web_platform", False)),
             on_rights_confirmed=self._confirm_library_rights,
+            shelf_store=self._shared_shelf_store(),
             parent=self._mode_stack,
         )
         view.titleChanged.connect(lambda _title: self._update_window_title())

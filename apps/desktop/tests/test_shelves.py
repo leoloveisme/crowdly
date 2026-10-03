@@ -1,59 +1,17 @@
 """Discovery: rule editor, My Library (shelves sidebar), Browse and covers."""
 
-import time
 import zipfile
 
-from PySide6.QtCore import QCoreApplication, QSize
+from PySide6.QtCore import QSize
 
 
-def wait_until(predicate, timeout=5.0):
-    end = time.time() + timeout
-    while time.time() < end:
-        QCoreApplication.processEvents()
-        if predicate():
-            return True
-        time.sleep(0.01)
-    return predicate()
+UNREAD_RULES = {"match": "all", "rules": [{"field": "progress", "op": "is", "value": "unread"}]}
 
 
-SUMMER = "11111111-1111-4111-8111-111111111111"
-UNREAD = "22222222-2222-4222-8222-222222222222"
+def _store(tmp_path, library):
+    from editor.library.shelf_store import LocalShelfStore
 
-
-class StubClient:
-    def __init__(self):
-        self.calls = []
-
-    def list_shelves(self):
-        self.calls.append("list")
-        return {
-            "system": [{"key": k, "count": 1 if k == "favorites" else None} for k in (
-                "favorites", "living", "lived", "newest", "most_active", "most_popular")],
-            "custom": [
-                {"id": SUMMER, "name": "Summer", "kind": "manual", "sort": "manual", "count": 1},
-                {"id": UNREAD, "name": "Unread", "kind": "smart", "sort": "title", "count": 0,
-                 "rules": {"match": "all", "rules": [{"field": "progress", "op": "is", "value": "unread"}]}},
-            ],
-        }
-
-    def shelf_items(self, key):
-        self.calls.append(("items", key))
-        return {"items": [{"type": "story", "id": "s1", "title": "A story", "author": "Leo", "format": "story",
-                           "progress": 40, "entry_id": "e1"}]}
-
-    def membership(self, item_type, item_id):
-        return {"shelves": [{"id": SUMMER, "name": "Summer", "contains": True}],
-                "status": {"favorite": True, "living": False, "lived": False}}
-
-    def add_to_shelf(self, shelf_id, item_type, item_id):
-        self.calls.append(("add", shelf_id, item_type, item_id))
-
-    def remove_from_shelf(self, shelf_id, item_id, item_type=None):
-        self.calls.append(("remove", shelf_id, item_id, item_type))
-
-    def set_story_status(self, content_type, content_id, **flags):
-        self.calls.append(("status", content_type, content_id, flags))
-        return {}
+    return LocalShelfStore(tmp_path / "shelves.json", library)
 
 
 def _covers(tmp_path):
@@ -94,19 +52,25 @@ def test_library_page_sidebar_and_shelves(qapp, tmp_path):
     book.write_text("# Moby\n\nCall me Ishmael.\n", encoding="utf-8")
     item = library.add_file(book)
     library.update_position(item.id, 30.0, {"text_pos": 3})
+    library.ensure_story("s1", "A story")
 
-    client = StubClient()
-    page = LibraryPage(library, _covers(tmp_path), lambda: client, tmp_path / "cache.json")
+    store = _store(tmp_path, library)
+    summer = store.create_shelf("Summer")["id"]
+    store.add_to_shelf(summer, "story", "s1", title="A story")
+    store.create_shelf("Unread", kind="smart", rules=UNREAD_RULES, sort="title")
+    store.set_story_status("story", "s1", title="A story", favorite=True)
+
+    page = LibraryPage(library, _covers(tmp_path), store)
     page.refresh("local:books")
-    assert wait_until(lambda: any(page.sidebar.item(i).text().startswith("Summer") for i in range(page.sidebar.count())))
     texts = [page.sidebar.item(i).text() for i in range(page.sidebar.count())]
     assert "THIS COMPUTER" in texts and "MY SHELVES" in texts
-    assert "All books  (1)" in texts and "Continue reading  (1)" in texts
-    assert "Favorites  (1)" in texts and "⚙ Unread  (0)" in texts
-    assert [i["title"] for i in page.view.items()] == ["Moby"]
+    # All books = every library item (imported books and Crowdly stories).
+    assert "All books  (2)" in texts and "Continue reading  (1)" in texts
+    assert "Favorites  (1)" in texts and "Summer  (1)" in texts and "⚙ Unread  (1)" in texts
+    assert sorted(i["title"] for i in page.view.items()) == ["A story", "Moby"]
 
-    page.select(SUMMER)
-    assert wait_until(lambda: page.view.items() and page.view.items()[0]["title"] == "A story")
+    page.select(summer)
+    assert [i["title"] for i in page.view.items()] == ["A story"]
     assert page.view.reorder_enabled
     assert page.current_shelf_is_manual()
 
@@ -115,29 +79,6 @@ def test_library_page_sidebar_and_shelves(qapp, tmp_path):
     assert page.view.items() == []
     page.set_filter("mob")
     assert [i["title"] for i in page.view.items()] == ["Moby"]
-
-
-def test_library_page_uses_cache_when_offline(qapp, tmp_path):
-    from editor.library.store import LocalLibrary
-    from editor.ui.discovery.library_page import LibraryPage
-
-    library = LocalLibrary(tmp_path / "lib")
-    online = LibraryPage(library, _covers(tmp_path), lambda: StubClient(), tmp_path / "cache.json")
-    online.refresh(SUMMER)
-    assert wait_until(lambda: len(online.view.items()) == 1 and online._custom)
-
-    class Offline:
-        def list_shelves(self):
-            raise OSError("no network")
-
-        def shelf_items(self, key):
-            raise OSError("no network")
-
-    offline = LibraryPage(library, _covers(tmp_path), lambda: Offline(), tmp_path / "cache.json")
-    offline.refresh(SUMMER)
-    assert wait_until(lambda: offline._offline)
-    assert len(offline.view.items()) == 1
-    assert not offline._btn_new.isEnabled()
 
 
 def test_browse_page_rows_and_grid(qapp, tmp_path):
@@ -170,12 +111,18 @@ def test_search_cards_maps_results():
     assert [(c["type"], c["id"]) for c in cards] == [("story", "x1"), ("screenplay", "y1")]
 
 
-def test_add_to_shelf_menu_reflects_membership(qapp):
+def test_add_to_shelf_menu_reflects_membership(qapp, tmp_path):
+    from editor.library.store import LocalLibrary
     from editor.ui.discovery.shelves_page import AddToShelfMenu
 
-    client = StubClient()
-    menu = AddToShelfMenu(lambda: client, "story", "s1")
-    menu.populate(client.membership("story", "s1"))
+    library = LocalLibrary(tmp_path / "lib")
+    store = _store(tmp_path, library)
+    summer = store.create_shelf("Summer")["id"]
+    store.add_to_shelf(summer, "story", "s1")
+    store.set_story_status("story", "s1", favorite=True)
+
+    menu = AddToShelfMenu(store, "story", "s1")
+    menu._load()
     actions = {a.text(): a for a in menu.actions() if a.text()}
     assert actions["Favorite"].isChecked()
     assert not actions["Living"].isChecked()
@@ -183,18 +130,30 @@ def test_add_to_shelf_menu_reflects_membership(qapp):
 
     actions["Summer"].setChecked(False)
     actions["Living"].setChecked(True)
-    assert wait_until(lambda: len(client.calls) >= 2)
-    assert ("remove", SUMMER, "s1", "story") in client.calls
-    assert ("status", "story", "s1", {"living": True}) in client.calls
+    assert store.membership("story", "s1")["shelves"][0]["contains"] is False
+    assert store.membership("story", "s1")["status"]["living"] is True
 
 
-def test_unsynced_library_book_shows_sync_hint(qapp):
+def test_library_book_goes_on_a_shelf_without_sync(qapp, tmp_path):
+    from editor.library.store import LocalLibrary
     from editor.ui.discovery.shelves_page import AddToShelfMenu
 
-    menu = AddToShelfMenu(lambda: StubClient(), "library_item", None)
+    library = LocalLibrary(tmp_path / "lib")
+    book = tmp_path / "Book.md"
+    book.write_text("# Moby\n", encoding="utf-8")
+    item = library.add_file(book)  # never uploaded
+    store = _store(tmp_path, library)
+    store.create_shelf("Summer")
+
+    menu = AddToShelfMenu(store, "library_item", item.id)
     menu._load()
-    texts = [a.text() for a in menu.actions()]
-    assert texts == ["Turn on Synchronisation with web platform to put library books on shelves"]
+    actions = {a.text(): a for a in menu.actions() if a.text()}
+    actions["Summer"].setChecked(True)
+    assert store.membership("library_item", item.id)["shelves"][0]["contains"] is True
+
+    empty = AddToShelfMenu(store, "library_item", None)
+    empty._load()
+    assert [a.text() for a in empty.actions()] == ["This item can't be put on a shelf."]
 
 
 def test_covers_extraction_and_placeholder(qapp, tmp_path):

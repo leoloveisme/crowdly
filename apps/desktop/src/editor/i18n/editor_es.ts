@@ -735,8 +735,8 @@ Solo tu propia obra, los libros de dominio público o con licencia Creative Comm
         <translation>Añadir a una estantería</translation>
     </message>
     <message>
-        <source>Turn on Synchronisation with web platform to put library books on shelves</source>
-        <translation>Activa la sincronización con la plataforma web para poner libros de la biblioteca en estanterías</translation>
+        <source>This item can&apos;t be put on a shelf.</source>
+        <translation>Este elemento no se puede poner en una estantería.</translation>
     </message>
     <message>
         <source>Loading…</source>

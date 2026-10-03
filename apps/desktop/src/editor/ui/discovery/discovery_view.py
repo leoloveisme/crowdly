@@ -63,6 +63,8 @@ from ...library.store import (
     LibraryItem,
     LocalLibrary,
 )
+from ...library.shelf_store import LocalShelfStore
+from ...library.shelf_sync import sync_shelves
 from ...library.sync import LibrarySyncClient, sync_library
 from .browse_page import BrowsePage
 from .cards import CoverProvider
@@ -83,6 +85,7 @@ PAGE_READER = "reader"
 
 AUTO_SYNC_INTERVAL_MS = 2 * 60 * 1000
 SEARCH_DELAY_MS = 350
+SHELF_SYNC_DELAY_MS = 1000
 
 
 def _http_get_json(url: str, timeout: float = 15.0):
@@ -166,6 +169,7 @@ class DiscoveryView(QWidget):
     convertRequested = Signal(str)  # library item id
     changeStoryRequested = Signal(str, str)  # story_title_id, title
     changeBookRequested = Signal(str)  # library item id of an imported book
+    _shelvesChanged = Signal()  # emitted from any thread; handled on the UI thread
 
     def __init__(
         self,
@@ -176,6 +180,7 @@ class DiscoveryView(QWidget):
         credentials: Callable[[bool], tuple[str, str] | None],
         sync_enabled: Callable[[], bool],
         on_rights_confirmed: Callable[[], None],
+        shelf_store: LocalShelfStore | None = None,
         parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent)
@@ -196,6 +201,15 @@ class DiscoveryView(QWidget):
         self._sync_state = ""
 
         library_dir = get_config_dir() / "library"
+        # Shelves live on this computer and sync to the account when sync is on.
+        self._shelves = shelf_store or LocalShelfStore(library_dir / "shelves.json", library)
+        self._shelf_sync_timer = QTimer(self)
+        self._shelf_sync_timer.setSingleShot(True)
+        self._shelf_sync_timer.setInterval(SHELF_SYNC_DELAY_MS)
+        self._shelf_sync_timer.timeout.connect(lambda: self.sync_now(interactive=False))
+        self._shelvesChanged.connect(self._on_shelves_changed)
+        self._shelves.listeners.append(self._emit_shelves_changed)
+        self.destroyed.connect(lambda *_: self._detach_store())
         self.covers = CoverProvider(
             RemoteCoverCache(library_dir / "remote-covers"), api_base, self._local_cover, self
         )
@@ -274,7 +288,7 @@ class DiscoveryView(QWidget):
         self._stack.addWidget(self.browse)
 
         self.library_page = LibraryPage(
-            library, self.covers, self._client_for_shelves, library_dir / "shelves-cache.json", self._stack
+            library, self.covers, self._shelves, self._stack
         )
         self._wire_cards(self.library_page)
         self.library_page.filesDropped.connect(self.import_paths)
@@ -561,7 +575,7 @@ class DiscoveryView(QWidget):
         item_id = card.get("id")
         if card.get("type") == "library_item":
             local = self._local_item(card)
-            item_id = local.remote_id if local is not None else item_id
+            item_id = local.id if local is not None else None
         return self._shelf_menu(card["type"], item_id, parent)
 
     def _card_context_menu(self, card: dict, pos: QPoint) -> None:
@@ -659,7 +673,12 @@ class DiscoveryView(QWidget):
             data["continue"] = self._continue_cards()
             self.browse.set_rows(data)
 
-        run_in_background(work, done, self.browse.set_error)
+        def failed(message: str) -> None:
+            # Offline: Favorites / Living / Lived as last seen (plus changes made here).
+            self.browse.set_rows({key: self._shelves.shelf_items(key)["items"] for key in ("favorites", "living", "lived")})
+            self.browse.set_error(message)
+
+        run_in_background(work, done, failed)
 
     # -- search ------------------------------------------------------------------
 
@@ -781,7 +800,7 @@ class DiscoveryView(QWidget):
         self._reader_story = None
         self._reader_book = item.id if item.format != "audio" else None
         self._reader.set_change_enabled(self._reader_book is not None)
-        self._reader.set_shelf_menu(self._shelf_menu("library_item", item.remote_id, self._reader))
+        self._reader.set_shelf_menu(self._shelf_menu("library_item", item.id, self._reader))
         if item.format == "pdf":
             self._reader.open_pdf(item.id, item.title, path, item.position)
         elif item.format == "audio":
@@ -874,7 +893,7 @@ class DiscoveryView(QWidget):
             self._reader.set_change_enabled(True)
             self._reader.open_text(item.id, item.title, html, item.position, self._library.visible_highlights(item.id))
             self.show_page(PAGE_READER)
-            self._mark_living(story_title_id)
+            self._mark_living(story_title_id, item.title)
 
         self.statusMessage.emit(self.tr("Opening \"{title}\"…").format(title=title))
         run_in_background(work, done, self._network_error)
@@ -895,27 +914,30 @@ class DiscoveryView(QWidget):
         return self._shelf_client
 
     def _shelf_menu(self, item_type: str, item_id: str | None, parent) -> AddToShelfMenu:
-        menu = AddToShelfMenu(
-            self._client_for_shelves, item_type, item_id, parent, status_message=self.statusMessage.emit
-        )
+        menu = AddToShelfMenu(self._shelves, item_type, item_id, parent, status_message=self.statusMessage.emit)
         menu.changed.connect(lambda: self.library_page.refresh() if self._page == PAGE_LIBRARY else None)
-        if item_type == "library_item" and not item_id:
-            menu.aboutToShow.connect(
-                lambda: self.statusMessage.emit(
-                    self.tr("Turn on Synchronisation with web platform to put library books on shelves.")
-                )
-            )
         return menu
 
-    def _mark_living(self, story_title_id: str) -> None:
-        """Reading a story marks it "living", as on the web platform."""
+    def _mark_living(self, story_title_id: str, title: str = "") -> None:
+        """Reading a story marks it "living", as on the web platform (queued offline)."""
 
-        def work():
-            client = self._client_for_shelves()
-            if client is not None:
-                client.set_story_status("story", story_title_id, living=True)
+        self._shelves.set_story_status("story", story_title_id, title=title, living=True)
 
-        run_in_background(work, None, None)
+    def _emit_shelves_changed(self) -> None:
+        try:
+            self._shelvesChanged.emit()
+        except RuntimeError:
+            pass  # this window is gone
+
+    def _detach_store(self) -> None:
+        try:
+            self._shelves.listeners.remove(self._emit_shelves_changed)
+        except ValueError:
+            pass
+
+    def _on_shelves_changed(self) -> None:
+        if self._sync_enabled():
+            self._shelf_sync_timer.start()
 
     def _network_error(self, message: str) -> None:
         self.statusMessage.emit(self.tr("Crowdly could not be reached: {error}").format(error=message))
@@ -980,11 +1002,15 @@ class DiscoveryView(QWidget):
         self._update_sync_button()
         base = self._api_base()
         device_id = getattr(self._settings, "device_id", None) or "desktop"
+        shelves = self._shelves
         library = self._library
 
         def work():
             client = LibrarySyncClient(base, creds)
-            return sync_library(library, client, device_id)
+            report = sync_library(library, client, device_id)
+            # Shelves after books, so books on shelves already have account ids.
+            report.errors.extend(sync_shelves(shelves, client).errors)
+            return report
 
         def done(report) -> None:
             self._sync_running = False
@@ -995,8 +1021,7 @@ class DiscoveryView(QWidget):
                 self._sync_state = self.tr("Library synced")
                 self._btn_sync.setToolTip(self.tr("Click to sync now"))
             self._update_sync_button()
-            if self._page == PAGE_LIBRARY:
-                self.library_page.reload_local()
+            self.library_page.refresh()
             if self._page == PAGE_READER and self._reader.current_item_id():
                 self._reader.set_highlights(self._library.visible_highlights(self._reader.current_item_id()))
 

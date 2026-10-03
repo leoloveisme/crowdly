@@ -735,8 +735,8 @@ Nur eigene Werke, gemeinfreie Bücher oder Creative-Commons-Bücher (ohne „kei
         <translation>Zum Regal hinzufügen</translation>
     </message>
     <message>
-        <source>Turn on Synchronisation with web platform to put library books on shelves</source>
-        <translation>Aktivieren Sie die Synchronisierung mit der Webplattform, um Bücher aus der Bibliothek in Regale zu stellen</translation>
+        <source>This item can&apos;t be put on a shelf.</source>
+        <translation>Dieses Element kann nicht in ein Regal gestellt werden.</translation>
     </message>
     <message>
         <source>Loading…</source>

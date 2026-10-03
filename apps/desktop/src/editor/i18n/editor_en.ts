@@ -1778,8 +1778,8 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
         <translation>Add to shelf</translation>
     </message>
     <message>
-        <source>Turn on Synchronisation with web platform to put library books on shelves</source>
-        <translation>Turn on Synchronisation with web platform to put library books on shelves</translation>
+        <source>This item can&apos;t be put on a shelf.</source>
+        <translation>This item can&apos;t be put on a shelf.</translation>
     </message>
     <message>
         <source>Loading…</source>

@@ -231,8 +231,11 @@ class LibrarySyncClient:
         data = self._request("GET", f"/shelves/{key}/items")
         return data if isinstance(data, dict) else {"items": []}
 
-    def add_to_shelf(self, shelf_id: str, item_type: str, item_id: str) -> None:
-        self._request("POST", f"/shelves/{shelf_id}/items", payload={"type": item_type, "id": item_id})
+    def add_to_shelf(self, shelf_id: str, item_type: str, item_id: str) -> str | None:
+        """Put an item on a manual shelf; returns the shelf entry id."""
+
+        data = self._request("POST", f"/shelves/{shelf_id}/items", payload={"type": item_type, "id": item_id})
+        return data.get("entry_id") if isinstance(data, dict) else None
 
     def remove_from_shelf(self, shelf_id: str, item_id: str, item_type: str | None = None) -> None:
         """Remove by shelf entry id, or by item id when *item_type* is given."""

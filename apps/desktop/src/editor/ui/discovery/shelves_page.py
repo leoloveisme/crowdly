@@ -15,14 +15,11 @@ from typing import Callable
 from PySide6.QtCore import QCoreApplication, Qt, Signal
 from PySide6.QtWidgets import QInputDialog, QMenu, QWidget
 
-from ...library.sync import LibrarySyncClient, LibrarySyncError
-from .tasks import run_in_background
 
 SYSTEM_KEYS = ("favorites", "living", "lived", "newest", "most_active", "most_popular")
 STATUS_SYSTEM_KEYS = ("favorites", "living", "lived")
 STATUS_KEYS = ("favorite", "living", "lived")
 
-ClientFactory = Callable[[], "LibrarySyncClient | None"]
 
 
 def _tr(text: str) -> str:
@@ -68,58 +65,44 @@ def item_details(item: dict) -> str:
 
 
 class AddToShelfMenu(QMenu):
-    """Submenu that loads shelf membership when it opens."""
+    """Favorite / Living / Lived and the manual shelves, from the local store.
+
+    Works with sync off: changes go to the local shelf store and are sent to
+    the account by the next sync (see library.shelf_sync). Library books are
+    identified by their *local* library item id.
+    """
 
     changed = Signal()
 
     def __init__(
         self,
-        client_factory: ClientFactory,
+        store,
         item_type: str,
         item_id: str | None,
         parent: QWidget | None = None,
         *,
+        title: str = "",
         status_message: Callable[[str], None] | None = None,
     ) -> None:
         super().__init__(_tr("Add to shelf"), parent)
-        self._client_factory = client_factory
+        self._store = store
         self._item_type = item_type
         self._item_id = item_id
+        self._title = title
         self._status_message = status_message or (lambda _m: None)
-        self._loaded = False
         self.aboutToShow.connect(self._load)
 
     def _load(self) -> None:
-        if self._loaded:
-            return
         self.clear()
         if not self._item_id:
-            hint = self.addAction(
-                _tr("Turn on Synchronisation with web platform to put library books on shelves")
-            )
+            hint = self.addAction(_tr("This item can't be put on a shelf."))
             hint.setEnabled(False)
             return
-        loading = self.addAction(_tr("Loading…"))
-        loading.setEnabled(False)
-        item_type, item_id = self._item_type, self._item_id
-
-        def work():
-            client = self._client_factory()
-            if client is None:
-                raise LibrarySyncError(_tr("Log in to Crowdly to use shelves."))
-            return client.membership(item_type, item_id)
-
-        run_in_background(work, self.populate, self._failed)
-
-    def _failed(self, message: str) -> None:
-        self.clear()
-        action = self.addAction(_tr("Shelves are not available: {error}").format(error=message))
-        action.setEnabled(False)
+        self.populate(self._store.membership(self._item_type, self._item_id))
 
     def populate(self, data: dict) -> None:
-        """Fill the menu from a ``/shelves/membership`` response."""
+        """Fill the menu from a membership result (``LocalShelfStore.membership``)."""
 
-        self._loaded = True
         self.clear()
         if self._item_type in ("story", "screenplay"):
             status = data.get("status") or {}
@@ -139,40 +122,27 @@ class AddToShelfMenu(QMenu):
         new = self.addAction(_tr("New shelf…"))
         new.triggered.connect(self._new_shelf)
 
-    def _run(self, fn, done_message: str) -> None:
-        def work():
-            client = self._client_factory()
-            if client is None:
-                raise LibrarySyncError(_tr("Log in to Crowdly to use shelves."))
-            fn(client)
-
-        def done(_result) -> None:
-            self._loaded = False  # reload membership next time
-            self._status_message(done_message)
-            self.changed.emit()
-
-        run_in_background(work, done, lambda m: self._status_message(_tr("Shelves: {error}").format(error=m)))
+    def _done(self, message: str) -> None:
+        self._status_message(message)
+        self.changed.emit()
 
     def _set_status(self, key: str, on: bool) -> None:
-        item_type, item_id = self._item_type, self._item_id
-        self._run(lambda c: c.set_story_status(item_type, item_id, **{key: on}), _tr("Saved"))
+        self._store.set_story_status(self._item_type, self._item_id, title=self._title, **{key: on})
+        self._done(_tr("Saved"))
 
     def _toggle_shelf(self, shelf_id: str, on: bool) -> None:
-        item_type, item_id = self._item_type, self._item_id
         if on:
-            self._run(lambda c: c.add_to_shelf(shelf_id, item_type, item_id), _tr("Added to the shelf"))
+            self._store.add_to_shelf(shelf_id, self._item_type, self._item_id, title=self._title)
+            self._done(_tr("Added to the shelf"))
         else:
-            self._run(lambda c: c.remove_from_shelf(shelf_id, item_id, item_type), _tr("Removed from the shelf"))
+            self._store.remove_from_shelf(shelf_id, self._item_id, self._item_type)
+            self._done(_tr("Removed from the shelf"))
 
     def _new_shelf(self) -> None:
         name, ok = QInputDialog.getText(self.parentWidget(), _tr("New shelf"), _tr("Shelf name:"))
         name = (name or "").strip()
         if not ok or not name:
             return
-        item_type, item_id = self._item_type, self._item_id
-
-        def create(client: LibrarySyncClient) -> None:
-            shelf = client.create_shelf(name)
-            client.add_to_shelf(shelf["id"], item_type, item_id)
-
-        self._run(create, _tr("Added to the shelf"))
+        shelf = self._store.create_shelf(name)
+        self._store.add_to_shelf(shelf["id"], self._item_type, self._item_id, title=self._title)
+        self._done(_tr("Added to the shelf"))

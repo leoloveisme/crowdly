@@ -1598,8 +1598,8 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
         <translation>إضافة إلى رف</translation>
     </message>
     <message>
-        <source>Turn on Synchronisation with web platform to put library books on shelves</source>
-        <translation>فعّل المزامنة مع منصة الويب لوضع كتب المكتبة على الرفوف</translation>
+        <source>This item can&apos;t be put on a shelf.</source>
+        <translation>لا يمكن وضع هذا العنصر على رف.</translation>
     </message>
     <message>
         <source>Loading…</source>

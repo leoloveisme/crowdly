@@ -1598,8 +1598,8 @@ Somente obras próprias, livros em domínio público ou Creative Commons (sem &q
         <translation>Adicionar a uma estante</translation>
     </message>
     <message>
-        <source>Turn on Synchronisation with web platform to put library books on shelves</source>
-        <translation>Ative a sincronização com a plataforma web para colocar livros da biblioteca em estantes</translation>
+        <source>This item can&apos;t be put on a shelf.</source>
+        <translation>Este item não pode ser colocado numa estante.</translation>
     </message>
     <message>
         <source>Loading…</source>
