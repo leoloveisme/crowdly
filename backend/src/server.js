@@ -29,6 +29,19 @@ import galleryRouter, { ensureStoryGalleryImagesTable, UPLOADS_ROOT } from './ga
 import comicsRouter, { ensureComicTables } from './comics.js';
 import translationsRouter from './translations.js';
 import editionsRouter from './editions.js';
+import libraryRouter, { deleteUserLibraryFiles } from './library.js';
+import shelvesRouter from './shelves.js';
+import collaborationRouter from './collaboration.js';
+import {
+  fetchNewestStories,
+  fetchMostActiveStories,
+  fetchMostPopularStories,
+  fetchNewestScreenplays,
+  fetchMostActiveScreenplays,
+  fetchMostPopularScreenplays,
+  fetchUserExperienceItems,
+  setUserStoryStatus,
+} from './storyLists.js';
 import chapterMediaRouter from './chapterMedia.js';
 import aiRouter from './ai/router.js';
 import { startAiWorker } from './ai/jobs.js';
@@ -162,6 +175,15 @@ app.use(galleryRouter);
 app.use(comicsRouter);
 app.use(translationsRouter);
 app.use(editionsRouter);
+// Discovery mode (desktop): private library + reading data. Must come after
+// express.json; the file upload route parses its own raw body.
+app.use(libraryRouter);
+app.use(shelvesRouter);
+// The web app reaches shelves under /api (its /shelves page shares the path).
+app.use('/api', shelvesRouter);
+// "Ask to collaborate" requests (desktop and web).
+app.use(collaborationRouter);
+app.use('/api', collaborationRouter);
 app.use(chapterMediaRouter);
 app.use(aiRouter);
 // Not statically served (unlike /uploads below) — Space items can be
@@ -218,6 +240,30 @@ async function getStoryAccessRole(storyTitleId, userId) {
     return null;
   }
 }
+
+// Desktop sync (POST .../sync-desktop) replaces a story's or screenplay's
+// whole text, so only its own team may use it: the creator, or a user with an
+// explicit story_access / screenplay_access row (an invited collaborator).
+// Other readers suggest changes (proposals), clone or translate instead.
+// Returns true / false, or null when the story / screenplay does not exist.
+async function canDesktopSync(kind, contentId, userId) {
+  const table = kind === 'screenplay' ? 'screenplay_title' : 'story_title';
+  const idColumn = kind === 'screenplay' ? 'screenplay_id' : 'story_title_id';
+  const accessTable = kind === 'screenplay' ? 'screenplay_access' : 'story_access';
+  const { rows } = await pool.query(`SELECT creator_id FROM ${table} WHERE ${idColumn} = $1`, [contentId]);
+  if (rows.length === 0) return null;
+  if (rows[0].creator_id === userId) return true;
+  const access = await pool.query(`SELECT 1 FROM ${accessTable} WHERE ${idColumn} = $1 AND user_id = $2`, [
+    contentId,
+    userId,
+  ]);
+  return access.rows.length > 0;
+}
+
+const DESKTOP_SYNC_FORBIDDEN = {
+  error: 'not_permitted',
+  message: "You can't change this story directly. Suggest changes instead, or ask the author to invite you.",
+};
 
 // Mirrors the frontend's hasRole("platform_admin") / hasRole("editor")
 // checks — platform staff can moderate any story regardless of story_access.
@@ -1836,6 +1882,13 @@ app.post('/auth/delete-account', async (req, res) => {
 
   try {
     await deleteAccountWithPassword(userId, password);
+    // Imported library books are deleted with the account (their rows go
+    // with it through ON DELETE CASCADE; the files live on disk).
+    try {
+      await deleteUserLibraryFiles(userId);
+    } catch (cleanupErr) {
+      console.error('[auth/delete-account] failed to delete library files:', cleanupErr);
+    }
     return res.status(204).send();
   } catch (err) {
     console.error('[auth/delete-account] failed:', err);
@@ -2527,27 +2580,7 @@ app.get('/screenplays/newest', async (req, res) => {
   const limit = Number.isFinite(parsed) && parsed > 0 && parsed <= 50 ? parsed : 10;
 
   try {
-    const { rows } = await pool.query(
-      `SELECT
-         st.screenplay_id,
-         st.title,
-         st.created_at,
-         fs.slugline
-       FROM screenplay_title st
-       LEFT JOIN LATERAL (
-         SELECT slugline
-         FROM screenplay_scene ss
-         WHERE ss.screenplay_id = st.screenplay_id
-         ORDER BY ss.scene_index ASC, ss.created_at ASC
-         LIMIT 1
-       ) fs ON TRUE
-       LEFT JOIN creative_spaces cs ON cs.id = st.creative_space_id
-       WHERE st.visibility = 'public' AND st.published = true
-         AND (st.creative_space_id IS NULL OR cs.visibility = 'public')
-       ORDER BY st.created_at DESC
-       LIMIT $1`,
-      [limit],
-    );
+    const rows = await fetchNewestScreenplays(limit);
 
     res.json(rows);
   } catch (err) {
@@ -2564,64 +2597,7 @@ app.get('/screenplays/most-active', async (req, res) => {
   const limit = Number.isFinite(parsed) && parsed > 0 && parsed <= 50 ? parsed : 10;
 
   try {
-    const { rows } = await pool.query(
-      `WITH screenplay_stats AS (
-         SELECT
-           st.screenplay_id,
-           st.title,
-           GREATEST(
-             MAX(st.created_at),
-             MAX(st.updated_at),
-             MAX(ss.created_at),
-             MAX(ss.updated_at),
-             MAX(sb.created_at),
-             MAX(sb.updated_at)
-           ) AS last_activity_at,
-           COUNT(DISTINCT ss.scene_id) AS scene_count,
-           COUNT(DISTINCT sb.block_id) AS block_count
-         FROM screenplay_title st
-         LEFT JOIN screenplay_scene ss ON ss.screenplay_id = st.screenplay_id
-         LEFT JOIN screenplay_block sb ON sb.screenplay_id = st.screenplay_id
-         LEFT JOIN creative_spaces cs ON cs.id = st.creative_space_id
-         WHERE st.visibility = 'public' AND st.published = true
-           AND (st.creative_space_id IS NULL OR cs.visibility = 'public')
-         GROUP BY st.screenplay_id, st.title
-       ),
-       scored AS (
-         SELECT
-           screenplay_id,
-           title,
-           last_activity_at,
-           scene_count,
-           block_count,
-           (scene_count + block_count) AS content_score
-         FROM screenplay_stats
-       ),
-       first_scene AS (
-         SELECT
-           ss.screenplay_id,
-           ss.slugline,
-           ss.created_at,
-           ROW_NUMBER() OVER (
-             PARTITION BY ss.screenplay_id
-             ORDER BY ss.scene_index ASC, ss.created_at ASC
-           ) AS rn
-         FROM screenplay_scene ss
-       )
-       SELECT
-         sc.screenplay_id,
-         sc.title,
-         sc.last_activity_at,
-         fs.slugline,
-         st.created_at
-       FROM scored sc
-       JOIN screenplay_title st ON st.screenplay_id = sc.screenplay_id
-       LEFT JOIN first_scene fs ON fs.screenplay_id = sc.screenplay_id AND fs.rn = 1
-       WHERE sc.last_activity_at IS NOT NULL
-       ORDER BY sc.last_activity_at DESC, sc.content_score DESC, sc.title ASC
-       LIMIT $1`,
-      [limit],
-    );
+    const rows = await fetchMostActiveScreenplays(limit);
 
     res.json(rows);
   } catch (err) {
@@ -2638,68 +2614,7 @@ app.get('/screenplays/most-popular', async (req, res) => {
   const limit = Number.isFinite(parsed) && parsed > 0 && parsed <= 50 ? parsed : 10;
 
   try {
-    const { rows } = await pool.query(
-      `WITH reaction_counts AS (
-         SELECT
-           COALESCE(r.screenplay_id, ss.screenplay_id) AS screenplay_id,
-           COUNT(*) FILTER (WHERE r.reaction_type = 'like') AS like_count
-         FROM reactions r
-         LEFT JOIN screenplay_scene ss ON ss.scene_id = r.screenplay_scene_id
-         GROUP BY COALESCE(r.screenplay_id, ss.screenplay_id)
-       ),
-       favorite_counts AS (
-         SELECT
-           us.screenplay_id,
-           COUNT(*) AS favorite_count
-         FROM user_story_status us
-         WHERE us.content_type = 'screenplay'
-           AND us.is_favorite = true
-         GROUP BY us.screenplay_id
-       ),
-       scores AS (
-         SELECT
-           st.screenplay_id,
-           st.title,
-           st.created_at,
-           COALESCE(rc.like_count, 0) AS like_count,
-           COALESCE(fc.favorite_count, 0) AS favorite_count,
-           (COALESCE(rc.like_count, 0) * 2 + COALESCE(fc.favorite_count, 0)) AS popularity_score
-         FROM screenplay_title st
-         LEFT JOIN reaction_counts rc ON rc.screenplay_id = st.screenplay_id
-         LEFT JOIN favorite_counts fc ON fc.screenplay_id = st.screenplay_id
-         LEFT JOIN creative_spaces cs ON cs.id = st.creative_space_id
-         WHERE st.visibility = 'public' AND st.published = true
-           AND (st.creative_space_id IS NULL OR cs.visibility = 'public')
-       ),
-       first_scene AS (
-         SELECT
-           ss.screenplay_id,
-           ss.slugline,
-           ss.created_at,
-           ROW_NUMBER() OVER (
-             PARTITION BY ss.screenplay_id
-             ORDER BY ss.scene_index ASC, ss.created_at ASC
-           ) AS rn
-         FROM screenplay_scene ss
-       )
-       SELECT
-         sc.screenplay_id,
-         sc.title,
-         sc.created_at,
-         sc.like_count,
-         sc.favorite_count,
-         sc.popularity_score,
-         fs.slugline
-       FROM scores sc
-       LEFT JOIN first_scene fs ON fs.screenplay_id = sc.screenplay_id AND fs.rn = 1
-       WHERE sc.popularity_score > 0
-       ORDER BY sc.popularity_score DESC,
-                sc.like_count DESC,
-                sc.favorite_count DESC,
-                sc.title ASC
-       LIMIT $1`,
-      [limit],
-    );
+    const rows = await fetchMostPopularScreenplays(limit);
 
     res.json(rows);
   } catch (err) {
@@ -3299,15 +3214,24 @@ app.post('/screenplays/import/pdf', async (_req, res) => {
 // from the desktop editor. The operation is transactional: on success the
 // database state matches the payload; on failure the previous state is
 // preserved.
-app.post('/screenplays/:screenplayId/sync-desktop', async (req, res) => {
+app.post('/screenplays/:screenplayId/sync-desktop', requireAuth, async (req, res) => {
   const { screenplayId } = req.params;
-  const { userId, title, formatType, scenes, remoteUpdatedAt } = req.body ?? {};
-
-  if (!userId) {
-    return res.status(400).json({ error: 'userId is required' });
+  const { userId: bodyUserId, title, formatType, scenes, remoteUpdatedAt } = req.body ?? {};
+  // The session decides who is syncing; a different body userId is refused.
+  const userId = req.user.id;
+  if (bodyUserId && bodyUserId !== userId) {
+    return res.status(403).json(DESKTOP_SYNC_FORBIDDEN);
   }
+
   if (!screenplayId) {
     return res.status(400).json({ error: 'screenplayId is required' });
+  }
+  const allowed = await canDesktopSync('screenplay', screenplayId, userId);
+  if (allowed === null) {
+    return res.status(404).json({ error: 'Screenplay not found' });
+  }
+  if (!allowed) {
+    return res.status(403).json(DESKTOP_SYNC_FORBIDDEN);
   }
   if (typeof title !== 'string' || !title.trim()) {
     return res.status(400).json({ error: 'title is required' });
@@ -3454,23 +3378,8 @@ app.post('/screenplays/:screenplayId/sync-desktop', async (req, res) => {
 
     await client.query('COMMIT');
 
-    // Best-effort: ensure the syncing user shows up as a collaborator.
-    // Must run AFTER commit, not before: ensureScreenplayAccessRow uses the
-    // plain `pool` (a different connection than `client`), and its INSERT
-    // needs a FOR KEY SHARE lock on the screenplay_title row to validate the
-    // FK — which deadlocks against this same request's own `FOR UPDATE` lock
-    // on that row (taken above) for as long as this transaction stays open.
-    // This was a pre-existing bug (every real desktop sync call hung here
-    // indefinitely) surfaced while adding the revision-trail write above;
-    // fixed as part of the same change since both touch this call site.
-    try {
-      await ensureScreenplayAccessRow(screenplayId, userId, 'contributor');
-    } catch (errAccess) {
-      console.error(
-        '[POST /screenplays/:screenplayId/sync-desktop] failed to insert screenplay_access row:',
-        errAccess,
-      );
-    }
+    // Syncing no longer grants collaborator access: only the screenplay's
+    // own team gets this far (see canDesktopSync).
 
     return res.json({
       ok: true,
@@ -4175,38 +4084,7 @@ app.get('/stories/newest', async (req, res) => {
   const limit = Number.isFinite(parsed) && parsed > 0 && parsed <= 50 ? parsed : 10;
 
   try {
-    const { rows } = await pool.query(
-      `WITH latest_chapter AS (
-         SELECT
-           s.chapter_id,
-           s.chapter_title,
-           s.created_at,
-           s.story_title_id,
-           ROW_NUMBER() OVER (
-             PARTITION BY s.story_title_id
-             ORDER BY s.created_at DESC, s.chapter_index DESC
-           ) AS rn
-         FROM stories s
-         JOIN story_title st ON st.story_title_id = s.story_title_id
-         LEFT JOIN creative_spaces cs ON cs.id = st.creative_space_id
-         WHERE st.visibility = 'public' AND st.published = true
-           AND (st.creative_space_id IS NULL OR cs.visibility = 'public')
-       )
-       SELECT
-         lc.chapter_id,
-         lc.chapter_title,
-         lc.created_at,
-         lc.story_title_id,
-         st.title AS story_title,
-         st.language,
-         st.cover_image_url
-       FROM latest_chapter lc
-       JOIN story_title st ON st.story_title_id = lc.story_title_id
-       WHERE lc.rn = 1
-       ORDER BY lc.created_at DESC
-       LIMIT $1`,
-      [limit],
-    );
+    const rows = await fetchNewestStories(limit);
     res.json(rows);
   } catch (err) {
     console.error('[GET /stories/newest] failed:', err);
@@ -4222,83 +4100,7 @@ app.get('/stories/most-active', async (req, res) => {
   const limit = Number.isFinite(parsed) && parsed > 0 && parsed <= 50 ? parsed : 10;
 
   try {
-    const { rows } = await pool.query(
-      `WITH story_stats AS (
-         SELECT
-           st.story_title_id,
-           st.title,
-           st.language,
-           st.cover_image_url,
-           GREATEST(
-             MAX(s.created_at),
-             MAX(s.updated_at),
-             MAX(cr.created_at),
-             MAX(pr.created_at),
-             MAX(cc.created_at),
-             MAX(cl.created_at),
-             MAX(r.created_at)
-           ) AS last_activity_at,
-           COUNT(DISTINCT s.chapter_id) AS chapter_count,
-           COALESCE(SUM(COALESCE(cardinality(s.paragraphs), 0)), 0) AS paragraph_count,
-           COUNT(DISTINCT pb.id) AS branch_count
-         FROM story_title st
-         JOIN stories s ON s.story_title_id = st.story_title_id
-         LEFT JOIN chapter_revisions cr ON cr.chapter_id = s.chapter_id
-         LEFT JOIN paragraph_revisions pr ON pr.chapter_id = s.chapter_id
-         LEFT JOIN chapter_comments cc ON cc.chapter_id = s.chapter_id
-         LEFT JOIN chapter_likes cl ON cl.chapter_id = s.chapter_id
-         LEFT JOIN reactions r ON r.chapter_id = s.chapter_id
-         LEFT JOIN paragraph_branches pb ON pb.chapter_id = s.chapter_id
-         LEFT JOIN creative_spaces cs ON cs.id = st.creative_space_id
-         WHERE st.visibility = 'public' AND st.published = true
-           AND (st.creative_space_id IS NULL OR cs.visibility = 'public')
-         GROUP BY st.story_title_id, st.title, st.language, st.cover_image_url
-       ),
-       scored AS (
-         SELECT
-           story_title_id,
-           title,
-           language,
-           cover_image_url,
-           last_activity_at,
-           chapter_count,
-           paragraph_count,
-           branch_count,
-           (chapter_count + paragraph_count + branch_count) AS content_score
-         FROM story_stats
-       ),
-       latest_chapter AS (
-         SELECT
-           s.story_title_id,
-           s.chapter_id,
-           s.chapter_title,
-           s.created_at,
-           ROW_NUMBER() OVER (
-             PARTITION BY s.story_title_id
-             ORDER BY s.created_at DESC, s.chapter_index DESC
-           ) AS rn
-         FROM stories s
-       )
-       SELECT
-         sc.story_title_id,
-         sc.title AS story_title,
-         lc.chapter_id,
-         lc.chapter_title,
-         lc.created_at,
-         sc.last_activity_at,
-         sc.chapter_count,
-         sc.paragraph_count,
-         sc.branch_count,
-         sc.content_score,
-         sc.language,
-         sc.cover_image_url
-       FROM scored sc
-       JOIN latest_chapter lc ON lc.story_title_id = sc.story_title_id AND lc.rn = 1
-       WHERE sc.last_activity_at IS NOT NULL
-       ORDER BY sc.last_activity_at DESC, sc.content_score DESC, sc.title ASC
-       LIMIT $1`,
-      [limit],
-    );
+    const rows = await fetchMostActiveStories(limit);
 
     res.json(rows);
   } catch (err) {
@@ -4315,73 +4117,7 @@ app.get('/stories/most-popular', async (req, res) => {
   const limit = Number.isFinite(parsed) && parsed > 0 && parsed <= 50 ? parsed : 10;
 
   try {
-    const { rows } = await pool.query(
-      `WITH reaction_counts AS (
-         SELECT
-           COALESCE(r.story_title_id, s.story_title_id) AS story_title_id,
-           COUNT(*) FILTER (WHERE r.reaction_type = 'like') AS like_count
-         FROM reactions r
-         LEFT JOIN stories s ON s.chapter_id = r.chapter_id
-         GROUP BY COALESCE(r.story_title_id, s.story_title_id)
-       ),
-       favorite_counts AS (
-         SELECT
-           us.story_title_id,
-           COUNT(*) AS favorite_count
-         FROM user_story_status us
-         WHERE us.content_type = 'story'
-           AND us.is_favorite = true
-         GROUP BY us.story_title_id
-       ),
-       scores AS (
-         SELECT
-           st.story_title_id,
-           st.title,
-           st.language,
-           st.cover_image_url,
-           COALESCE(rc.like_count, 0) AS like_count,
-           COALESCE(fc.favorite_count, 0) AS favorite_count,
-           (COALESCE(rc.like_count, 0) * 2 + COALESCE(fc.favorite_count, 0)) AS popularity_score
-         FROM story_title st
-         LEFT JOIN reaction_counts rc ON rc.story_title_id = st.story_title_id
-         LEFT JOIN favorite_counts fc ON fc.story_title_id = st.story_title_id
-         LEFT JOIN creative_spaces cs ON cs.id = st.creative_space_id
-         WHERE st.visibility = 'public' AND st.published = true
-           AND (st.creative_space_id IS NULL OR cs.visibility = 'public')
-       ),
-       latest_chapter AS (
-         SELECT
-           s.story_title_id,
-           s.chapter_id,
-           s.chapter_title,
-           s.created_at,
-           ROW_NUMBER() OVER (
-             PARTITION BY s.story_title_id
-             ORDER BY s.created_at DESC, s.chapter_index DESC
-           ) AS rn
-         FROM stories s
-       )
-       SELECT
-         sc.story_title_id,
-         sc.title AS story_title,
-         lc.chapter_id,
-         lc.chapter_title,
-         lc.created_at,
-         sc.like_count,
-         sc.favorite_count,
-         sc.popularity_score,
-         sc.language,
-         sc.cover_image_url
-       FROM scores sc
-       JOIN latest_chapter lc ON lc.story_title_id = sc.story_title_id AND lc.rn = 1
-       WHERE sc.popularity_score > 0
-       ORDER BY sc.popularity_score DESC,
-                sc.like_count DESC,
-                sc.favorite_count DESC,
-                sc.title ASC
-       LIMIT $1`,
-      [limit],
-    );
+    const rows = await fetchMostPopularStories(limit);
 
     res.json(rows);
   } catch (err) {
@@ -4717,147 +4453,21 @@ app.post('/users/:userId/story-status', async (req, res) => {
   }
 
   try {
-    const result = await pool.query(
-      `INSERT INTO user_story_status (user_id, content_type, story_title_id, screenplay_id,
-                                      is_favorite, is_living, is_lived)
-       VALUES ($1, $2, $3, $4,
-               COALESCE($5, false), COALESCE($6, false), COALESCE($7, false))
-       ON CONFLICT (user_id, content_type, story_title_id, screenplay_id)
-       DO UPDATE SET
-         is_favorite = COALESCE(EXCLUDED.is_favorite, user_story_status.is_favorite),
-         is_living   = COALESCE(EXCLUDED.is_living,   user_story_status.is_living),
-         is_lived    = COALESCE(EXCLUDED.is_lived,    user_story_status.is_lived),
-         updated_at  = now()
-       RETURNING *`,
-      [
-        userId,
-        contentType,
-        contentType === 'story' ? storyTitleId : null,
-        contentType === 'screenplay' ? screenplayId : null,
-        isFavorite,
-        isLiving,
-        isLived,
-      ],
-    );
+    const row = await setUserStoryStatus(pool, userId, {
+      contentType,
+      storyTitleId,
+      screenplayId,
+      isFavorite,
+      isLiving,
+      isLived,
+    });
 
-    return res.json(result.rows[0]);
+    return res.json(row);
   } catch (err) {
     console.error('[POST /users/:userId/story-status] failed:', err);
     return res.status(500).json({ error: 'Failed to update story status' });
   }
 });
-
-async function fetchUserExperienceItems(userId, flagColumn) {
-  // Stories
-  const storyRowsPromise = pool.query(
-    `SELECT
-       us.id,
-       us.content_type,
-       us.story_title_id,
-       st.title,
-       st.created_at,
-       us.is_favorite,
-       us.is_living,
-       us.is_lived
-     FROM user_story_status us
-     JOIN story_title st ON st.story_title_id = us.story_title_id
-     LEFT JOIN creative_spaces cs ON cs.id = st.creative_space_id
-     WHERE us.user_id = $1
-       AND us.content_type = 'story'
-       AND us.${flagColumn} = true
-       AND st.visibility = 'public'
-       AND st.published = true
-       AND (st.creative_space_id IS NULL OR cs.visibility = 'public')`,
-    [userId],
-  );
-
-  // Screenplays (include first scene slugline for context)
-  const screenplayRowsPromise = pool.query(
-    `SELECT
-       us.id,
-       us.content_type,
-       us.screenplay_id,
-       st.title,
-       st.created_at,
-       us.is_favorite,
-       us.is_living,
-       us.is_lived,
-       fs.slugline
-     FROM user_story_status us
-     JOIN screenplay_title st ON st.screenplay_id = us.screenplay_id
-     LEFT JOIN LATERAL (
-       SELECT slugline
-       FROM screenplay_scene ss
-       WHERE ss.screenplay_id = st.screenplay_id
-       ORDER BY ss.scene_index ASC, ss.created_at ASC
-       LIMIT 1
-     ) fs ON TRUE
-     LEFT JOIN creative_spaces cs ON cs.id = st.creative_space_id
-     WHERE us.user_id = $1
-       AND us.content_type = 'screenplay'
-       AND us.${flagColumn} = true
-       AND st.visibility = 'public'
-       AND st.published = true
-       AND (st.creative_space_id IS NULL OR cs.visibility = 'public')`,
-    [userId],
-  );
-
-  const [storyRowsResult, screenplayRowsResult] = await Promise.all([
-    storyRowsPromise,
-    screenplayRowsPromise,
-  ]);
-
-  // Build a flat list of items from stories + screenplays first.
-  const rawItems = [];
-
-  for (const row of storyRowsResult.rows) {
-    rawItems.push({
-      id: row.id,
-      content_type: 'story',
-      content_id: row.story_title_id,
-      title: row.title,
-      created_at: row.created_at,
-      is_favorite: row.is_favorite,
-      is_living: row.is_living,
-      is_lived: row.is_lived,
-      kind: 'novel',
-    });
-  }
-
-  for (const row of screenplayRowsResult.rows) {
-    rawItems.push({
-      id: row.id,
-      content_type: 'screenplay',
-      content_id: row.screenplay_id,
-      title: row.title,
-      created_at: row.created_at,
-      is_favorite: row.is_favorite,
-      is_living: row.is_living,
-      is_lived: row.is_lived,
-      slugline: row.slugline,
-      kind: 'screenplay',
-    });
-  }
-
-  // Deduplicate by (content_type, content_id) so each story/screenplay
-  // appears at most once per user and flag (favorites / living / lived).
-  const uniqueMap = new Map();
-  for (const item of rawItems) {
-    const key = `${item.content_type}:${item.content_id}`;
-    if (!uniqueMap.has(key)) {
-      uniqueMap.set(key, item);
-    }
-  }
-
-  const items = Array.from(uniqueMap.values());
-
-  // Sort newest first by created_at
-  items.sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-  );
-
-  return items;
-}
 
 app.get('/users/:userId/favorites', async (req, res) => {
   const { userId } = req.params;
@@ -9468,15 +9078,24 @@ app.patch('/story-titles/:storyTitleId/settings', async (req, res) => {
 //   metadata?: { author_id?: uuid, initiator_id?: uuid, genre?: string|null, tags?: string[]|null },
 //   chapters: [{ chapterTitle: string, paragraphs: string[] }]
 // }
-app.post('/story-titles/:storyTitleId/sync-desktop', async (req, res) => {
+app.post('/story-titles/:storyTitleId/sync-desktop', requireAuth, async (req, res) => {
   const { storyTitleId } = req.params;
-  const { userId, title, metadata, chapters, bodyType, creativeSpaceId, spaceId } = req.body ?? {};
-
-  if (!userId) {
-    return res.status(400).json({ error: 'userId is required' });
+  const { userId: bodyUserId, title, metadata, chapters, bodyType, creativeSpaceId, spaceId } = req.body ?? {};
+  // The session decides who is syncing; a different body userId is refused.
+  const userId = req.user.id;
+  if (bodyUserId && bodyUserId !== userId) {
+    return res.status(403).json(DESKTOP_SYNC_FORBIDDEN);
   }
+
   if (!storyTitleId) {
     return res.status(400).json({ error: 'storyTitleId is required' });
+  }
+  const allowed = await canDesktopSync('story', storyTitleId, userId);
+  if (allowed === null) {
+    return res.status(404).json({ error: 'Story not found' });
+  }
+  if (!allowed) {
+    return res.status(403).json(DESKTOP_SYNC_FORBIDDEN);
   }
   if (typeof title !== 'string' || !title.trim()) {
     return res.status(400).json({ error: 'title is required' });
@@ -9732,18 +9351,6 @@ app.post('/story-titles/:storyTitleId/sync-desktop', async (req, res) => {
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
         [chapterId, null, inc.chapterTitle, null, inc.paragraphs, userId, nextRev, 'Desktop sync (created)', 'en'],
       );
-
-      // Ensure story_access contributor row exists (best-effort)
-      try {
-        await client.query(
-          `INSERT INTO story_access (story_title_id, user_id, role)
-           VALUES ($1, $2, $3)
-           ON CONFLICT (story_title_id, user_id) DO NOTHING`,
-          [storyTitleId, userId, 'contributor'],
-        );
-      } catch (errAccess) {
-        console.error('[POST /story-titles/:storyTitleId/sync-desktop] failed to insert story_access row:', errAccess);
-      }
     }
 
     // Delete extra chapters if local has fewer

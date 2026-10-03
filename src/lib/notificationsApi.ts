@@ -2,7 +2,7 @@ import { apiFetch } from "./apiBase";
 
 export interface AppNotification {
   id: string;
-  type: "friend_request" | "friend_accept" | "follow";
+  type: "friend_request" | "friend_accept" | "follow" | "collaboration_request" | "collaboration_request_decided";
   payload: Record<string, string>;
   read_at: string | null;
   created_at: string;

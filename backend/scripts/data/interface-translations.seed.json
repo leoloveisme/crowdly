@@ -9504,5 +9504,628 @@
     "en": "Drag a page thumbnail, or use the arrows under it, to change the page order.",
     "ru": "Перетащите миниатюру страницы или используйте стрелки под ней, чтобы изменить порядок страниц.",
     "de": "Ziehe eine Seitenvorschau oder nutze die Pfeile darunter, um die Seitenreihenfolge zu ändern."
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-desktop-title",
+    "en": "Crowdly desktop app",
+    "ru": "Приложение Crowdly для компьютера",
+    "de": "Crowdly-Desktop-App"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-desktop-intro",
+    "en": "One app with two modes: Discovery for reading and listening, Creation for writing. Choose the mode you want to start in - you can switch at any time.",
+    "ru": "Одно приложение с двумя режимами: Discovery — чтобы читать и слушать, Creation — чтобы писать. Выберите режим, с которого хотите начать, — переключаться можно в любой момент.",
+    "de": "Eine App mit zwei Modi: Discovery zum Lesen und Hören, Creation zum Schreiben. Wähle den Modus, mit dem du starten möchtest – du kannst jederzeit wechseln."
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-discovery-title",
+    "en": "Crowdly Discovery",
+    "ru": "Crowdly Discovery",
+    "de": "Crowdly Discovery"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-discovery-desc",
+    "en": "Read and listen: your private library of books and audiobooks, Crowdly stories, and reading positions, highlights and notes synced across your devices.",
+    "ru": "Читайте и слушайте: личная библиотека книг и аудиокниг, истории Crowdly, а также место чтения, выделения и заметки, синхронизированные между вашими устройствами.",
+    "de": "Lesen und hören: deine private Bibliothek mit Büchern und Hörbüchern, Crowdly-Geschichten sowie Lesepositionen, Markierungen und Notizen, synchronisiert auf all deinen Geräten."
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-creation-title",
+    "en": "Crowdly Creation",
+    "ru": "Crowdly Creation",
+    "de": "Crowdly Creation"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-creation-desc",
+    "en": "Write: a distraction-free editor for stories and screenplays that syncs with Crowdly, your creative Spaces, GitHub and Google Drive.",
+    "ru": "Пишите: редактор без отвлекающих элементов для историй и сценариев, синхронизируемый с Crowdly, вашими творческими пространствами, GitHub и Google Drive.",
+    "de": "Schreiben: ein ablenkungsfreier Editor für Geschichten und Drehbücher, der mit Crowdly, deinen kreativen Spaces, GitHub und Google Drive synchronisiert."
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-download-discovery",
+    "en": "Download",
+    "ru": "Скачать",
+    "de": "Herunterladen"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-download-creation",
+    "en": "Download",
+    "ru": "Скачать",
+    "de": "Herunterladen"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-download-soon",
+    "en": "Download - coming soon",
+    "ru": "Скачать — скоро",
+    "de": "Download – demnächst"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-desktop-platforms",
+    "en": "macOS, Windows and Linux",
+    "ru": "macOS, Windows и Linux",
+    "de": "macOS, Windows und Linux"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-desktop-alpha-note",
+    "en": "Crowdly is invite-only during the alpha, so the app asks for your Crowdly account.",
+    "ru": "Во время альфа-версии Crowdly доступен только по приглашениям, поэтому приложение попросит вашу учётную запись Crowdly.",
+    "de": "Crowdly ist während der Alpha-Phase nur auf Einladung zugänglich, daher fragt die App nach deinem Crowdly-Konto."
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-mobile-soon",
+    "en": "Crowdly Discovery and Crowdly Creation for Android (Google Play) and iPhone/iPad (App Store) will follow.",
+    "ru": "Crowdly Discovery и Crowdly Creation для Android (Google Play) и iPhone/iPad (App Store) появятся позже.",
+    "de": "Crowdly Discovery und Crowdly Creation für Android (Google Play) und iPhone/iPad (App Store) folgen."
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-system-favorites",
+    "en": "Favorites",
+    "ru": "Избранное",
+    "de": "Favoriten"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-system-living",
+    "en": "Living",
+    "ru": "Проживаю",
+    "de": "Erlebe ich gerade"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-system-lived",
+    "en": "Lived",
+    "ru": "Прожито",
+    "de": "Erlebt"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-system-newest",
+    "en": "Newest stories",
+    "ru": "Новейшие истории",
+    "de": "Neueste Geschichten"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-system-most-active",
+    "en": "Most active",
+    "ru": "Самые активные",
+    "de": "Am aktivsten"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-system-most-popular",
+    "en": "Most popular",
+    "ru": "Самые популярные",
+    "de": "Am beliebtesten"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-field-source",
+    "en": "Source",
+    "ru": "Источник",
+    "de": "Quelle"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-field-format",
+    "en": "Format",
+    "ru": "Формат",
+    "de": "Format"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-field-language",
+    "en": "Language",
+    "ru": "Язык",
+    "de": "Sprache"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-field-title",
+    "en": "Title",
+    "ru": "Название",
+    "de": "Titel"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-field-author",
+    "en": "Author",
+    "ru": "Автор",
+    "de": "Autor"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-field-status",
+    "en": "Crowdly status",
+    "ru": "Статус в Crowdly",
+    "de": "Crowdly-Status"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-field-progress",
+    "en": "Reading progress",
+    "ru": "Прогресс чтения",
+    "de": "Lesefortschritt"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-field-added",
+    "en": "Added in the last",
+    "ru": "Добавлено за последние",
+    "de": "Hinzugefügt in den letzten"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-field-read",
+    "en": "Read in the last",
+    "ru": "Прочитано за последние",
+    "de": "Gelesen in den letzten"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-op-is",
+    "en": "is",
+    "ru": "равно",
+    "de": "ist"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-op-contains",
+    "en": "contains",
+    "ru": "содержит",
+    "de": "enthält"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-op-days",
+    "en": "days (at most)",
+    "ru": "дней (не более)",
+    "de": "Tage (höchstens)"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-value-library",
+    "en": "My library",
+    "ru": "Моя библиотека",
+    "de": "Meine Bibliothek"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-value-crowdly",
+    "en": "Crowdly",
+    "ru": "Crowdly",
+    "de": "Crowdly"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-value-audio",
+    "en": "Audio",
+    "ru": "Аудио",
+    "de": "Audio"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-value-text",
+    "en": "Text",
+    "ru": "Текст",
+    "de": "Text"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-value-story",
+    "en": "Story",
+    "ru": "История",
+    "de": "Geschichte"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-value-screenplay",
+    "en": "Screenplay",
+    "ru": "Сценарий",
+    "de": "Drehbuch"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-value-favorite",
+    "en": "Favorite",
+    "ru": "Избранное",
+    "de": "Favorit"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-value-living",
+    "en": "Living",
+    "ru": "Проживаю",
+    "de": "Erlebe ich gerade"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-value-lived",
+    "en": "Lived",
+    "ru": "Прожито",
+    "de": "Erlebt"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-value-unread",
+    "en": "Not started",
+    "ru": "Не начато",
+    "de": "Nicht begonnen"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-value-reading",
+    "en": "In progress",
+    "ru": "В процессе",
+    "de": "Begonnen"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-value-finished",
+    "en": "Finished",
+    "ru": "Закончено",
+    "de": "Beendet"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-sort-manual",
+    "en": "My order",
+    "ru": "Мой порядок",
+    "de": "Meine Reihenfolge"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-sort-title",
+    "en": "Title",
+    "ru": "Название",
+    "de": "Titel"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-sort-added",
+    "en": "Recently added",
+    "ru": "Недавно добавленные",
+    "de": "Zuletzt hinzugefügt"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-sort-progress",
+    "en": "Reading progress",
+    "ru": "Прогресс чтения",
+    "de": "Lesefortschritt"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-sort-last-read",
+    "en": "Recently read",
+    "ru": "Недавно прочитанные",
+    "de": "Zuletzt gelesen"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-smart-title",
+    "en": "Smart shelf",
+    "ru": "Умная полка",
+    "de": "Intelligentes Regal"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-smart-name",
+    "en": "Name",
+    "ru": "Название",
+    "de": "Name"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-smart-match",
+    "en": "Show items that match",
+    "ru": "Показывать элементы, подходящие под",
+    "de": "Einträge zeigen, die passen zu"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-smart-all",
+    "en": "all of these rules",
+    "ru": "все эти правила",
+    "de": "allen diesen Regeln"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-smart-any",
+    "en": "any of these rules",
+    "ru": "любое из этих правил",
+    "de": "einer dieser Regeln"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-sort-by",
+    "en": "Sort by",
+    "ru": "Сортировать по",
+    "de": "Sortieren nach"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-smart-add-rule",
+    "en": "Add rule",
+    "ru": "Добавить правило",
+    "de": "Regel hinzufügen"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-smart-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-smart-save",
+    "en": "Save",
+    "ru": "Сохранить",
+    "de": "Speichern"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-title",
+    "en": "My shelves",
+    "ru": "Мои полки",
+    "de": "Meine Regale"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-intro",
+    "en": "The same shelves as in Crowdly Discovery, the desktop app: Crowdly's lists, your own shelves and smart shelves that fill themselves.",
+    "ru": "Те же полки, что и в Crowdly Discovery, приложении для компьютера: списки Crowdly, ваши собственные полки и умные полки, которые заполняются сами.",
+    "de": "Dieselben Regale wie in Crowdly Discovery, der Desktop-App: die Listen von Crowdly, deine eigenen Regale und intelligente Regale, die sich selbst füllen."
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-login",
+    "en": "Log in to see your shelves.",
+    "ru": "Войдите, чтобы увидеть свои полки.",
+    "de": "Melde dich an, um deine Regale zu sehen."
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-group-crowdly",
+    "en": "Crowdly",
+    "ru": "Crowdly",
+    "de": "Crowdly"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-group-mine",
+    "en": "My shelves",
+    "ru": "Мои полки",
+    "de": "Meine Regale"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-new",
+    "en": "New shelf",
+    "ru": "Новая полка",
+    "de": "Neues Regal"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-new-smart",
+    "en": "New smart shelf",
+    "ru": "Новая умная полка",
+    "de": "Neues intelligentes Regal"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-edit-rules",
+    "en": "Edit rules",
+    "ru": "Изменить правила",
+    "de": "Regeln bearbeiten"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-rename",
+    "en": "Rename",
+    "ru": "Переименовать",
+    "de": "Umbenennen"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-delete",
+    "en": "Delete shelf",
+    "ru": "Удалить полку",
+    "de": "Regal löschen"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-smart-hint",
+    "en": "This smart shelf fills itself from its rules.",
+    "ru": "Эта умная полка заполняется сама по своим правилам.",
+    "de": "Dieses intelligente Regal füllt sich anhand seiner Regeln selbst."
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-empty",
+    "en": "Nothing here yet. Use \"Add to shelf\" on a story, or on a book in Crowdly Discovery.",
+    "ru": "Здесь пока ничего нет. Используйте «Добавить на полку» у истории или у книги в Crowdly Discovery.",
+    "de": "Hier ist noch nichts. Nutze „Zum Regal hinzufügen“ bei einer Geschichte oder bei einem Buch in Crowdly Discovery."
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-library-note",
+    "en": "In your private library - open it in Crowdly Discovery.",
+    "ru": "В вашей личной библиотеке — откройте её в Crowdly Discovery.",
+    "de": "In deiner privaten Bibliothek – öffne es in Crowdly Discovery."
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-remove-item",
+    "en": "Remove",
+    "ru": "Убрать",
+    "de": "Entfernen"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-rename-title",
+    "en": "Rename shelf",
+    "ru": "Переименовать полку",
+    "de": "Regal umbenennen"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-rename-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-rename-save",
+    "en": "Save",
+    "ru": "Сохранить",
+    "de": "Speichern"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-delete-title",
+    "en": "Delete this shelf?",
+    "ru": "Удалить эту полку?",
+    "de": "Dieses Regal löschen?"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-delete-desc",
+    "en": "The books and stories on it are not deleted.",
+    "ru": "Книги и истории на ней не удаляются.",
+    "de": "Die Bücher und Geschichten darauf werden nicht gelöscht."
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-delete-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-delete-confirm",
+    "en": "Delete",
+    "ru": "Удалить",
+    "de": "Löschen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "addshelf-button",
+    "en": "Add to shelf",
+    "ru": "Добавить на полку",
+    "de": "Zum Regal hinzufügen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "addshelf-label",
+    "en": "My shelves",
+    "ru": "Мои полки",
+    "de": "Meine Regale"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "addshelf-none",
+    "en": "No shelves yet",
+    "ru": "Полок пока нет",
+    "de": "Noch keine Regale"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "addshelf-new",
+    "en": "New shelf",
+    "ru": "Новая полка",
+    "de": "Neues Regal"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "addshelf-open",
+    "en": "Open my shelves",
+    "ru": "Открыть мои полки",
+    "de": "Meine Regale öffnen"
+  },
+  {
+    "page_key": "/profile",
+    "element_id": "profile-my-shelves-link",
+    "en": "My shelves: Favorites, Living, Lived and your own shelves →",
+    "ru": "Мои полки: избранное, проживаемые, прожитые и ваши собственные полки →",
+    "de": "Meine Regale: Favoriten, gerade erlebt, erlebt und deine eigenen Regale →"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "header-notif-collab-request",
+    "en": "asks to collaborate on",
+    "ru": "просит о соавторстве в истории",
+    "de": "möchte mitschreiben an"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "header-notif-collab-approved",
+    "en": "you are now a collaborator",
+    "ru": "теперь вы соавтор",
+    "de": "du bist jetzt Mitautor:in"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "header-notif-collab-declined",
+    "en": "the author declined your request",
+    "ru": "автор отклонил ваш запрос",
+    "de": "der Autor hat deine Anfrage abgelehnt"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-collab-requests-title",
+    "en": "Requests to collaborate on this story",
+    "ru": "Запросы на соавторство в этой истории",
+    "de": "Anfragen zur Mitarbeit an dieser Geschichte"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-collab-approve",
+    "en": "Invite as collaborator",
+    "ru": "Пригласить в соавторы",
+    "de": "Als Mitautor:in einladen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-collab-decline",
+    "en": "Decline",
+    "ru": "Отклонить",
+    "de": "Ablehnen"
   }
 ]

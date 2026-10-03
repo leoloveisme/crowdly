@@ -589,6 +589,182 @@ Details: {error}</translation>
         <source>Your Google sign-in doesn&apos;t include Drive access yet. Your browser will open again: on Google&apos;s permission screen, tick the box &quot;See, edit, create, and delete all of your Google Drive files&quot;.</source>
         <translation>تسجيل دخولك إلى Google لا يتضمن الوصول إلى Drive بعد. سيفتح المتصفح مرة أخرى: في شاشة أذونات Google حدّد المربع &quot;عرض جميع ملفاتك على Google Drive وتعديلها وإنشاؤها وحذفها&quot;.</translation>
     </message>
+    <message>
+        <source>Add books…</source>
+        <translation>إضافة كتب…</translation>
+    </message>
+    <message>
+        <source>Startup</source>
+        <translation>بدء التشغيل</translation>
+    </message>
+    <message>
+        <source>Start in</source>
+        <translation>البدء في</translation>
+    </message>
+    <message>
+        <source>On launch</source>
+        <translation>عند التشغيل</translation>
+    </message>
+    <message>
+        <source>Start where I left off</source>
+        <translation>المتابعة من حيث توقفت</translation>
+    </message>
+    <message>
+        <source>Start with default settings</source>
+        <translation>البدء بالإعدادات الافتراضية</translation>
+    </message>
+    <message>
+        <source>Switch to Creation</source>
+        <translation>التبديل إلى الإبداع</translation>
+    </message>
+    <message>
+        <source>Switch to Discovery</source>
+        <translation>التبديل إلى الاكتشاف</translation>
+    </message>
+    <message>
+        <source>Convert to Crowdly story</source>
+        <translation>تحويل إلى قصة على Crowdly</translation>
+    </message>
+    <message>
+        <source>Only your own work, public-domain books or books under a Creative Commons licence that allows changes can become Crowdly stories. Set the book&apos;s rights first.</source>
+        <translation>يمكن أن تصبح قصصًا على Crowdly أعمالك الخاصة فقط، أو كتب الملكية العامة، أو الكتب المرخّصة برخصة المشاع الإبداعي التي تسمح بالتعديل. حدّد حقوق الكتاب أولًا.</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is now open in Creation mode as {file}. With Synchronisation with web platform on, it becomes a Crowdly story when it is saved.</source>
+        <translation>«{title}» مفتوح الآن في وضع الإبداع باسم {file}. عند تفعيل المزامنة مع المنصة على الويب يصبح قصة على Crowdly عند حفظه.</translation>
+    </message>
+    <message>
+        <source>Change this story</source>
+        <translation>تغيير هذه القصة</translation>
+    </message>
+    <message>
+        <source>Opening the story in Creation…</source>
+        <translation>جارٍ فتح القصة في الإبداع…</translation>
+    </message>
+    <message>
+        <source>You can&apos;t change this story directly</source>
+        <translation>لا يمكنك تغيير هذه القصة مباشرةً</translation>
+    </message>
+    <message>
+        <source>Only the author and invited collaborators can change this story directly.
+
+Turn this file into a suggestion copy? Your edits are kept and you can send them to the author as suggestions.</source>
+        <translation>لا يمكن تغيير هذه القصة مباشرةً إلا للمؤلف والمتعاونين المدعوين.
+
+هل تريد تحويل هذا الملف إلى نسخة اقتراحات؟ تُحفظ تعديلاتك ويمكنك إرسالها إلى المؤلف كاقتراحات.</translation>
+    </message>
+    <message>
+        <source>There are no new changes to suggest.</source>
+        <translation>لا توجد تغييرات جديدة لاقتراحها.</translation>
+    </message>
+    <message>
+        <source>The author approves each suggestion separately. If one of them changes the number of paragraphs, later suggestions in the same chapter may need the author&apos;s attention.</source>
+        <translation>يوافق المؤلف على كل اقتراح على حدة. إذا غيّر أحدها عدد الفقرات، فقد تحتاج الاقتراحات اللاحقة في الفصل نفسه إلى انتباه المؤلف.</translation>
+    </message>
+    <message>
+        <source>Project space required</source>
+        <translation>مطلوب مساحة مشروع</translation>
+    </message>
+    <message>
+        <source>Please create or choose your project space first.</source>
+        <translation>يُرجى إنشاء مساحة المشروع أو اختيارها أولًا.</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is open as a suggestion copy. Change anything you like, then click &quot;Send my suggestions&quot;: the author sees each change and decides.</source>
+        <translation>«{title}» مفتوح كنسخة اقتراحات. غيّر ما تشاء، ثم انقر «إرسال اقتراحاتي»: يرى المؤلف كل تغيير ويقرر.</translation>
+    </message>
+    <message>
+        <source>Send my suggestions</source>
+        <translation>إرسال اقتراحاتي</translation>
+    </message>
+    <message>
+        <source>{count} suggestion(s) will be sent to the author.</source>
+        <translation>سيُرسل {count} اقتراح إلى المؤلف.</translation>
+    </message>
+    <message>
+        <source>Checking how you can change &quot;{title}&quot;…</source>
+        <translation>جارٍ التحقق من كيفية تغيير «{title}»…</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is your own story now. With Synchronisation with web platform on, your changes are saved to Crowdly.</source>
+        <translation>«{title}» أصبحت قصتك الآن. مع تفعيل المزامنة مع منصة الويب تُحفظ تغييراتك على Crowdly.</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is open for editing. With Synchronisation with web platform on, your changes are saved to Crowdly.</source>
+        <translation>«{title}» مفتوح للتحرير. مع تفعيل المزامنة مع منصة الويب تُحفظ تغييراتك على Crowdly.</translation>
+    </message>
+    <message>
+        <source>Error</source>
+        <translation>خطأ</translation>
+    </message>
+    <message>
+        <source>Failed to save the imported story locally.</source>
+        <translation>تعذّر حفظ القصة المستوردة محليًا.</translation>
+    </message>
+    <message>
+        <source>Making your own version…</source>
+        <translation>جارٍ إنشاء نسختك الخاصة…</translation>
+    </message>
+    <message>
+        <source>Suggestion copy of &quot;{title}&quot; - your edits are sent to the author as suggestions.</source>
+        <translation>نسخة اقتراحات من «{title}» - تُرسل تعديلاتك إلى المؤلف كاقتراحات.</translation>
+    </message>
+    <message>
+        <source>These changes can&apos;t be sent as suggestions (use &quot;Make my own version&quot; for them):</source>
+        <translation>لا يمكن إرسال هذه التغييرات كاقتراحات (استخدم «إنشاء نسختي الخاصة» لها):</translation>
+    </message>
+    <message>
+        <source>Sent {count} suggestion(s). The author will review them on Crowdly.</source>
+        <translation>أُرسل {count} اقتراح. سيراجعها المؤلف على Crowdly.</translation>
+    </message>
+    <message>
+        <source>Starting the translation…</source>
+        <translation>جارٍ بدء الترجمة…</translation>
+    </message>
+    <message>
+        <source>These changes can&apos;t be sent as suggestions:</source>
+        <translation>لا يمكن إرسال هذه التغييرات كاقتراحات:</translation>
+    </message>
+    <message>
+        <source>Ask to collaborate</source>
+        <translation>طلب التعاون</translation>
+    </message>
+    <message>
+        <source>Your request was sent to the author of &quot;{title}&quot;. Once they accept it, &quot;I want to change this story&quot; opens the story for direct editing.</source>
+        <translation>أُرسل طلبك إلى مؤلف «{title}». بعد قبوله، يفتح «أريد تغيير هذه القصة» القصة للتحرير المباشر.</translation>
+    </message>
+    <message>
+        <source>My own work</source>
+        <translation>عملي الخاص</translation>
+    </message>
+    <message>
+        <source>Public domain</source>
+        <translation>ملكية عامة</translation>
+    </message>
+    <message>
+        <source>Creative Commons licence that allows changes</source>
+        <translation>رخصة المشاع الإبداعي التي تسمح بالتعديل</translation>
+    </message>
+    <message>
+        <source>Someone else&apos;s book (my personal copy)</source>
+        <translation>كتاب لشخص آخر (نسختي الشخصية)</translation>
+    </message>
+    <message>
+        <source>Who wrote &quot;{title}&quot;?
+
+Your own work, public-domain and Creative Commons books open as a story you can publish on Crowdly. Someone else&apos;s book opens as a private copy that stays on this computer.</source>
+        <translation>من كتب «{title}»؟
+
+تُفتح أعمالك الخاصة وكتب الملكية العامة والمشاع الإبداعي كقصة يمكنك نشرها على Crowdly. ويُفتح كتاب شخص آخر كنسخة خاصة تبقى على هذا الكمبيوتر.</translation>
+    </message>
+    <message>
+        <source>Private copy of &quot;{title}&quot; - only on this computer, never synced or published.</source>
+        <translation>نسخة خاصة من «{title}» - على هذا الكمبيوتر فقط، لا تُزامن ولا تُنشر أبدًا.</translation>
+    </message>
+    <message>
+        <source>Import failed</source>
+        <translation>فشل الاستيراد</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>
@@ -888,6 +1064,1095 @@ Details: {error}</translation>
 {error}</source>
         <translation>تعذّر إنشاء المجلد:
 {error}</translation>
+    </message>
+</context>
+<context>
+    <name>AppModes</name>
+    <message>
+        <source>Crowdly Discovery</source>
+        <translation>Crowdly Discovery</translation>
+    </message>
+    <message>
+        <source>Crowdly Creation</source>
+        <translation>Crowdly Creation</translation>
+    </message>
+    <message>
+        <source>Discovery</source>
+        <translation>الاكتشاف</translation>
+    </message>
+    <message>
+        <source>Creation</source>
+        <translation>الإبداع</translation>
+    </message>
+</context>
+<context>
+    <name>App</name>
+    <message>
+        <source>Files from your last session that could not be found: {count}</source>
+        <translation>ملفات من جلستك السابقة تعذّر العثور عليها: {count}</translation>
+    </message>
+</context>
+<context>
+    <name>RightsConfirmationDialog</name>
+    <message>
+        <source>Before your books sync</source>
+        <translation>قبل مزامنة كتبك</translation>
+    </message>
+    <message>
+        <source>With synchronisation on, the books you import are uploaded to your own Crowdly account so they are available on your other devices.
+
+• They stay private: only you can open them. Crowdly never shares, lists or links them for anyone else.
+• Only upload books you have the right to keep a copy of - books you bought DRM-free, your own work, public-domain or openly licensed books.
+• DRM-protected files are never imported.
+• Rights holders can ask Crowdly to remove a file, and your files are deleted when you delete your account.</source>
+        <translation>عند تفعيل المزامنة تُرفع الكتب التي تستوردها إلى حسابك على Crowdly لتكون متاحة على أجهزتك الأخرى.
+
+• تبقى خاصة: أنت وحدك من يمكنه فتحها. لا يشاركها Crowdly ولا يدرجها ولا يضع روابط لها لأي شخص آخر.
+• ارفع فقط الكتب التي يحق لك الاحتفاظ بنسخة منها - كتب اشتريتها بلا DRM، أو أعمالك الخاصة، أو كتب الملكية العامة أو المرخّصة ترخيصًا مفتوحًا.
+• لا تُستورد أبدًا الملفات المحمية بـ DRM.
+• يمكن لأصحاب الحقوق أن يطلبوا من Crowdly إزالة ملف، وتُحذف ملفاتك عند حذف حسابك.</translation>
+    </message>
+    <message>
+        <source>I have the right to keep these books in my account</source>
+        <translation>يحق لي الاحتفاظ بهذه الكتب في حسابي</translation>
+    </message>
+    <message>
+        <source>Sync my library</source>
+        <translation>مزامنة مكتبتي</translation>
+    </message>
+</context>
+<context>
+    <name>DiscoveryView</name>
+    <message>
+        <source>My library</source>
+        <translation>مكتبتي</translation>
+    </message>
+    <message>
+        <source>Reading on Crowdly</source>
+        <translation>أقرأ على Crowdly</translation>
+    </message>
+    <message>
+        <source>Browse Crowdly</source>
+        <translation>تصفّح Crowdly</translation>
+    </message>
+    <message>
+        <source>Add books…</source>
+        <translation>إضافة كتب…</translation>
+    </message>
+    <message>
+        <source>Sync now</source>
+        <translation>مزامنة الآن</translation>
+    </message>
+    <message>
+        <source>Crowdly is invite-only while it is in alpha.
+Log in with your Crowdly account to use Discovery.</source>
+        <translation>Crowdly متاح بالدعوة فقط خلال مرحلة ألفا.
+سجّل الدخول بحسابك على Crowdly لاستخدام الاكتشاف.</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly</source>
+        <translation>تسجيل الدخول إلى Crowdly</translation>
+    </message>
+    <message>
+        <source>Your library is empty. Use &quot;Add books…&quot; to import EPUB, PDF, audio or text files. Your books stay private to you.</source>
+        <translation>مكتبتك فارغة. استخدم «إضافة كتب…» لاستيراد ملفات EPUB أو PDF أو صوتية أو نصية. تبقى كتبك خاصة بك.</translation>
+    </message>
+    <message>
+        <source>Stories you are living on Crowdly.</source>
+        <translation>القصص التي تعيشها على Crowdly.</translation>
+    </message>
+    <message>
+        <source>Search Crowdly stories</source>
+        <translation>ابحث في قصص Crowdly</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>بحث</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>أحدث القصص</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>صوت</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>نص</translation>
+    </message>
+    <message>
+        <source>{percent}% read</source>
+        <translation>قُرئ {percent}%</translation>
+    </message>
+    <message>
+        <source>synced</source>
+        <translation>تمت المزامنة</translation>
+    </message>
+    <message>
+        <source>Add books to your library</source>
+        <translation>أضف كتبًا إلى مكتبتك</translation>
+    </message>
+    <message>
+        <source>Books and audiobooks ({patterns})</source>
+        <translation>كتب وكتب صوتية ({patterns})</translation>
+    </message>
+    <message>
+        <source>All files (*)</source>
+        <translation>كل الملفات (*)</translation>
+    </message>
+    <message>
+        <source>Some files were not added</source>
+        <translation>لم تُضف بعض الملفات</translation>
+    </message>
+    <message>
+        <source>Books added to your library: {count}</source>
+        <translation>الكتب المضافة إلى مكتبتك: {count}</translation>
+    </message>
+    <message>
+        <source>Book not available</source>
+        <translation>الكتاب غير متاح</translation>
+    </message>
+    <message>
+        <source>The file for this book is missing. Sync again or re-import it.</source>
+        <translation>ملف هذا الكتاب مفقود. زامِن مجددًا أو أعد استيراده.</translation>
+    </message>
+    <message>
+        <source>Could not read this EPUB:</source>
+        <translation>تعذّرت قراءة ملف EPUB هذا:</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>فتح</translation>
+    </message>
+    <message>
+        <source>Book rights…</source>
+        <translation>حقوق الكتاب…</translation>
+    </message>
+    <message>
+        <source>Convert to Crowdly story</source>
+        <translation>تحويل إلى قصة على Crowdly</translation>
+    </message>
+    <message>
+        <source>Remove from library</source>
+        <translation>إزالة من المكتبة</translation>
+    </message>
+    <message>
+        <source>Remove &quot;{title}&quot; from your library on all your devices?</source>
+        <translation>هل تريد إزالة «{title}» من مكتبتك على جميع أجهزتك؟</translation>
+    </message>
+    <message>
+        <source>Not specified</source>
+        <translation>غير محدد</translation>
+    </message>
+    <message>
+        <source>My personal copy (private only)</source>
+        <translation>نسختي الشخصية (خاصة فقط)</translation>
+    </message>
+    <message>
+        <source>My own work</source>
+        <translation>عملي الخاص</translation>
+    </message>
+    <message>
+        <source>Public domain</source>
+        <translation>ملكية عامة</translation>
+    </message>
+    <message>
+        <source>Creative Commons licence that allows changes</source>
+        <translation>رخصة المشاع الإبداعي التي تسمح بالتعديل</translation>
+    </message>
+    <message>
+        <source>Book rights</source>
+        <translation>حقوق الكتاب</translation>
+    </message>
+    <message>
+        <source>Who holds the rights to &quot;{title}&quot;?
+Only your own work, public-domain or Creative Commons (without &quot;no derivatives&quot;) books can become Crowdly stories others can read and co-create.</source>
+        <translation>من يملك حقوق «{title}»؟
+يمكن أن تصبح قصصًا على Crowdly يقرؤها الآخرون ويشاركون في إبداعها أعمالك الخاصة وكتب الملكية العامة وكتب المشاع الإبداعي (دون «منع الاشتقاق») فقط.</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>بلا عنوان</translation>
+    </message>
+    <message>
+        <source>(No stories yet - mark a story as &quot;living&quot; on Crowdly.)</source>
+        <translation>(لا قصص بعد - ضع علامة «أعيشها» على قصة في Crowdly.)</translation>
+    </message>
+    <message>
+        <source>Search results</source>
+        <translation>نتائج البحث</translation>
+    </message>
+    <message>
+        <source>No stories found.</source>
+        <translation>لم يُعثر على قصص.</translation>
+    </message>
+    <message>
+        <source>Opening &quot;{title}&quot;…</source>
+        <translation>جارٍ فتح «{title}»…</translation>
+    </message>
+    <message>
+        <source>Crowdly could not be reached: {error}</source>
+        <translation>تعذّر الوصول إلى Crowdly: {error}</translation>
+    </message>
+    <message>
+        <source>Turn on Settings → Synchronisation with → web platform to sync your library.</source>
+        <translation>فعّل الإعدادات ← المزامنة مع ← منصة الويب لمزامنة مكتبتك.</translation>
+    </message>
+    <message>
+        <source>Syncing…</source>
+        <translation>جارٍ المزامنة…</translation>
+    </message>
+    <message>
+        <source>Synced with problems</source>
+        <translation>تمت المزامنة مع وجود مشكلات</translation>
+    </message>
+    <message>
+        <source>Library synced</source>
+        <translation>تمت مزامنة المكتبة</translation>
+    </message>
+    <message>
+        <source>Sync failed</source>
+        <translation>فشلت المزامنة</translation>
+    </message>
+    <message>
+        <source>Shelves</source>
+        <translation>الرفوف</translation>
+    </message>
+    <message>
+        <source>Turn on Synchronisation with web platform to put library books on shelves.</source>
+        <translation>فعّل المزامنة مع منصة الويب لوضع كتب المكتبة على الرفوف.</translation>
+    </message>
+    <message>
+        <source>Book not on this computer</source>
+        <translation>الكتاب غير موجود على هذا الكمبيوتر</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is in your Crowdly library but not on this computer yet. Sync your library to download it.</source>
+        <translation>«{title}» موجود في مكتبتك على Crowdly لكنه ليس على هذا الكمبيوتر بعد. زامِن مكتبتك لتنزيله.</translation>
+    </message>
+    <message>
+        <source>Screenplays can&apos;t be read in Discovery yet - open them on the web platform.</source>
+        <translation>لا يمكن قراءة السيناريوهات في الاكتشاف بعد - افتحها على منصة الويب.</translation>
+    </message>
+    <message>
+        <source>My Library</source>
+        <translation>مكتبتي</translation>
+    </message>
+    <message>
+        <source>+ Add books</source>
+        <translation>+ إضافة كتب</translation>
+    </message>
+    <message>
+        <source>Add to shelf</source>
+        <translation>إضافة إلى رف</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>قصة</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>سيناريو</translation>
+    </message>
+    <message>
+        <source>Audiobook</source>
+        <translation>كتاب صوتي</translation>
+    </message>
+    <message>
+        <source>{count} scenes</source>
+        <translation>{count} مشاهد</translation>
+    </message>
+    <message>
+        <source>{count} chapters</source>
+        <translation>{count} فصول</translation>
+    </message>
+    <message>
+        <source>Listen</source>
+        <translation>استماع</translation>
+    </message>
+    <message>
+        <source>Read</source>
+        <translation>قراءة</translation>
+    </message>
+    <message>
+        <source>Remove from this shelf</source>
+        <translation>إزالة من هذا الرف</translation>
+    </message>
+    <message>
+        <source>Details</source>
+        <translation>التفاصيل</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to browse.</source>
+        <translation>سجّل الدخول إلى Crowdly للتصفح.</translation>
+    </message>
+    <message>
+        <source>Search my library and Crowdly…</source>
+        <translation>ابحث في مكتبتي وفي Crowdly…</translation>
+    </message>
+    <message>
+        <source>Search Crowdly…</source>
+        <translation>ابحث في Crowdly…</translation>
+    </message>
+    <message>
+        <source>Search results for &quot;{query}&quot;</source>
+        <translation>نتائج البحث عن «{query}»</translation>
+    </message>
+    <message>
+        <source>Sync off</source>
+        <translation>المزامنة متوقفة</translation>
+    </message>
+    <message>
+        <source>Click to sync now</source>
+        <translation>انقر للمزامنة الآن</translation>
+    </message>
+    <message>
+        <source>✎ Change this story</source>
+        <translation>✎ تغيير هذه القصة</translation>
+    </message>
+</context>
+<context>
+    <name>ReaderWidget</name>
+    <message>
+        <source>← Library</source>
+        <translation>→ المكتبة</translation>
+    </message>
+    <message>
+        <source>Highlight</source>
+        <translation>تمييز</translation>
+    </message>
+    <message>
+        <source>Add note</source>
+        <translation>إضافة ملاحظة</translation>
+    </message>
+    <message>
+        <source>Highlights</source>
+        <translation>التمييزات</translation>
+    </message>
+    <message>
+        <source>Highlights and notes</source>
+        <translation>التمييزات والملاحظات</translation>
+    </message>
+    <message>
+        <source>PDF viewing is not available in this build.</source>
+        <translation>عرض ملفات PDF غير متاح في هذا الإصدار.</translation>
+    </message>
+    <message>
+        <source>Yellow</source>
+        <translation>أصفر</translation>
+    </message>
+    <message>
+        <source>Green</source>
+        <translation>أخضر</translation>
+    </message>
+    <message>
+        <source>Blue</source>
+        <translation>أزرق</translation>
+    </message>
+    <message>
+        <source>Pink</source>
+        <translation>وردي</translation>
+    </message>
+    <message>
+        <source>Play / Pause</source>
+        <translation>تشغيل / إيقاف مؤقت</translation>
+    </message>
+    <message>
+        <source>Speed</source>
+        <translation>السرعة</translation>
+    </message>
+    <message>
+        <source>Sleep timer</source>
+        <translation>مؤقت النوم</translation>
+    </message>
+    <message>
+        <source>Off</source>
+        <translation>إيقاف</translation>
+    </message>
+    <message>
+        <source>{count} min</source>
+        <translation>{count} دقيقة</translation>
+    </message>
+    <message>
+        <source>Note:</source>
+        <translation>الملاحظة:</translation>
+    </message>
+    <message>
+        <source>(text changed) </source>
+        <translation>(تغيّر النص) </translation>
+    </message>
+    <message>
+        <source>Edit note</source>
+        <translation>تعديل الملاحظة</translation>
+    </message>
+    <message>
+        <source>Delete highlight</source>
+        <translation>حذف التمييز</translation>
+    </message>
+    <message>
+        <source>Shelves</source>
+        <translation>الرفوف</translation>
+    </message>
+    <message>
+        <source>← Back</source>
+        <translation>→ رجوع</translation>
+    </message>
+    <message>
+        <source>Text size, font and colours</source>
+        <translation>حجم النص والخط والألوان</translation>
+    </message>
+    <message>
+        <source>Smaller text</source>
+        <translation>نص أصغر</translation>
+    </message>
+    <message>
+        <source>Larger text</source>
+        <translation>نص أكبر</translation>
+    </message>
+    <message>
+        <source>Serif font</source>
+        <translation>خط بتذييل</translation>
+    </message>
+    <message>
+        <source>Sans-serif font</source>
+        <translation>خط بدون تذييل</translation>
+    </message>
+    <message>
+        <source>Light</source>
+        <translation>فاتح</translation>
+    </message>
+    <message>
+        <source>Sepia</source>
+        <translation>بني داكن</translation>
+    </message>
+    <message>
+        <source>Dark</source>
+        <translation>داكن</translation>
+    </message>
+    <message>
+        <source>✎ Change this story</source>
+        <translation>✎ تغيير هذه القصة</translation>
+    </message>
+    <message>
+        <source>Edit, suggest changes, make your own version or translate (Ctrl+E)</source>
+        <translation>حرّر، اقترح تغييرات، أنشئ نسختك الخاصة أو ترجم (Ctrl+E)</translation>
+    </message>
+</context>
+<context>
+    <name>Shelves</name>
+    <message>
+        <source>Favorites</source>
+        <translation>المفضلة</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>أعيشها</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>عشتها</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>أحدث القصص</translation>
+    </message>
+    <message>
+        <source>Most active</source>
+        <translation>الأكثر نشاطًا</translation>
+    </message>
+    <message>
+        <source>Most popular</source>
+        <translation>الأكثر شعبية</translation>
+    </message>
+    <message>
+        <source>Favorite</source>
+        <translation>مفضلة</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>صوت</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>نص</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>قصة</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>سيناريو</translation>
+    </message>
+    <message>
+        <source>{percent}% read</source>
+        <translation>قُرئ {percent}%</translation>
+    </message>
+    <message>
+        <source>in my library</source>
+        <translation>في مكتبتي</translation>
+    </message>
+    <message>
+        <source>Add to shelf</source>
+        <translation>إضافة إلى رف</translation>
+    </message>
+    <message>
+        <source>This item can&apos;t be put on a shelf.</source>
+        <translation>لا يمكن وضع هذا العنصر على رف.</translation>
+    </message>
+    <message>
+        <source>Loading…</source>
+        <translation>جارٍ التحميل…</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to use shelves.</source>
+        <translation>سجّل الدخول إلى Crowdly لاستخدام الرفوف.</translation>
+    </message>
+    <message>
+        <source>Shelves are not available: {error}</source>
+        <translation>الرفوف غير متاحة: {error}</translation>
+    </message>
+    <message>
+        <source>New shelf…</source>
+        <translation>رف جديد…</translation>
+    </message>
+    <message>
+        <source>Shelves: {error}</source>
+        <translation>الرفوف: {error}</translation>
+    </message>
+    <message>
+        <source>Saved</source>
+        <translation>تم الحفظ</translation>
+    </message>
+    <message>
+        <source>Added to the shelf</source>
+        <translation>أُضيف إلى الرف</translation>
+    </message>
+    <message>
+        <source>Removed from the shelf</source>
+        <translation>أُزيل من الرف</translation>
+    </message>
+    <message>
+        <source>New shelf</source>
+        <translation>رف جديد</translation>
+    </message>
+    <message>
+        <source>Shelf name:</source>
+        <translation>اسم الرف:</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>My shelves</source>
+        <translation>رفوفي</translation>
+    </message>
+    <message>
+        <source>New smart shelf</source>
+        <translation>رف ذكي جديد</translation>
+    </message>
+    <message>
+        <source>Offline - showing the shelves as they were last loaded.</source>
+        <translation>غير متصل - تُعرض الرفوف كما حُمّلت آخر مرة.</translation>
+    </message>
+    <message>
+        <source>This smart shelf fills itself from its rules.</source>
+        <translation>يمتلئ هذا الرف الذكي تلقائيًا وفق قواعده.</translation>
+    </message>
+    <message>
+        <source>This shelf is empty. Use &quot;Add to shelf&quot; on a book or story.</source>
+        <translation>هذا الرف فارغ. استخدم «إضافة إلى رف» على كتاب أو قصة.</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>بلا عنوان</translation>
+    </message>
+    <message>
+        <source>Rename…</source>
+        <translation>إعادة التسمية…</translation>
+    </message>
+    <message>
+        <source>Edit rules…</source>
+        <translation>تعديل القواعد…</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>الترتيب حسب</translation>
+    </message>
+    <message>
+        <source>Delete shelf</source>
+        <translation>حذف الرف</translation>
+    </message>
+    <message>
+        <source>Rename shelf</source>
+        <translation>إعادة تسمية الرف</translation>
+    </message>
+    <message>
+        <source>Delete the shelf &quot;{name}&quot;? The books and stories on it are not deleted.</source>
+        <translation>هل تريد حذف الرف «{name}»؟ لن تُحذف الكتب والقصص الموجودة عليه.</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>فتح</translation>
+    </message>
+    <message>
+        <source>Remove from this shelf</source>
+        <translation>إزالة من هذا الرف</translation>
+    </message>
+    <message>
+        <source>My order</source>
+        <translation>ترتيبي</translation>
+    </message>
+    <message>
+        <source>Title</source>
+        <translation>العنوان</translation>
+    </message>
+    <message>
+        <source>Recently added</source>
+        <translation>المضاف حديثًا</translation>
+    </message>
+    <message>
+        <source>Reading progress</source>
+        <translation>تقدم القراءة</translation>
+    </message>
+    <message>
+        <source>Recently read</source>
+        <translation>المقروء حديثًا</translation>
+    </message>
+</context>
+<context>
+    <name>SmartShelfDialog</name>
+    <message>
+        <source>Smart shelf</source>
+        <translation>رف ذكي</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation>الاسم</translation>
+    </message>
+    <message>
+        <source>all of these rules</source>
+        <translation>كل هذه القواعد</translation>
+    </message>
+    <message>
+        <source>any of these rules</source>
+        <translation>أي من هذه القواعد</translation>
+    </message>
+    <message>
+        <source>Show items that match</source>
+        <translation>عرض العناصر المطابقة لـ</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>الترتيب حسب</translation>
+    </message>
+    <message>
+        <source>Add rule</source>
+        <translation>إضافة قاعدة</translation>
+    </message>
+    <message>
+        <source>Source</source>
+        <translation>المصدر</translation>
+    </message>
+    <message>
+        <source>Format</source>
+        <translation>الصيغة</translation>
+    </message>
+    <message>
+        <source>Language</source>
+        <translation>اللغة</translation>
+    </message>
+    <message>
+        <source>Title</source>
+        <translation>العنوان</translation>
+    </message>
+    <message>
+        <source>Author</source>
+        <translation>المؤلف</translation>
+    </message>
+    <message>
+        <source>Crowdly status</source>
+        <translation>الحالة على Crowdly</translation>
+    </message>
+    <message>
+        <source>Reading progress</source>
+        <translation>تقدم القراءة</translation>
+    </message>
+    <message>
+        <source>Added in the last</source>
+        <translation>أُضيف خلال آخر</translation>
+    </message>
+    <message>
+        <source>Read in the last</source>
+        <translation>قُرئ خلال آخر</translation>
+    </message>
+    <message>
+        <source>is</source>
+        <translation>هو</translation>
+    </message>
+    <message>
+        <source>contains</source>
+        <translation>يحتوي على</translation>
+    </message>
+    <message>
+        <source>days (at most)</source>
+        <translation>أيام (على الأكثر)</translation>
+    </message>
+    <message>
+        <source>My library</source>
+        <translation>مكتبتي</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>صوت</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>نص</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>قصة</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>سيناريو</translation>
+    </message>
+    <message>
+        <source>Favorite</source>
+        <translation>مفضلة</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>أعيشها</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>عشتها</translation>
+    </message>
+    <message>
+        <source>Not started</source>
+        <translation>لم يبدأ</translation>
+    </message>
+    <message>
+        <source>In progress</source>
+        <translation>قيد القراءة</translation>
+    </message>
+    <message>
+        <source>Finished</source>
+        <translation>انتهى</translation>
+    </message>
+    <message>
+        <source>Please give the shelf a name.</source>
+        <translation>يُرجى إعطاء الرف اسمًا.</translation>
+    </message>
+    <message>
+        <source>Every rule needs a value.</source>
+        <translation>كل قاعدة تحتاج إلى قيمة.</translation>
+    </message>
+</context>
+<context>
+    <name>BrowsePage</name>
+    <message>
+        <source>Continue reading</source>
+        <translation>متابعة القراءة</translation>
+    </message>
+    <message>
+        <source>Favorites</source>
+        <translation>المفضلة</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>أحدث القصص</translation>
+    </message>
+    <message>
+        <source>Newest screenplays</source>
+        <translation>أحدث السيناريوهات</translation>
+    </message>
+    <message>
+        <source>Most popular stories</source>
+        <translation>القصص الأكثر شعبية</translation>
+    </message>
+    <message>
+        <source>Most popular screenplays</source>
+        <translation>السيناريوهات الأكثر شعبية</translation>
+    </message>
+    <message>
+        <source>Most active screenplays</source>
+        <translation>السيناريوهات الأكثر نشاطًا</translation>
+    </message>
+    <message>
+        <source>Most active stories</source>
+        <translation>القصص الأكثر نشاطًا</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>أعيشها</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>عشتها</translation>
+    </message>
+    <message>
+        <source>See all ›</source>
+        <translation>عرض الكل ›</translation>
+    </message>
+    <message>
+        <source>‹ Back</source>
+        <translation>› رجوع</translation>
+    </message>
+    <message>
+        <source>Try again</source>
+        <translation>حاول مجددًا</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>بلا عنوان</translation>
+    </message>
+    <message>
+        <source>Loading Crowdly…</source>
+        <translation>جارٍ تحميل Crowdly…</translation>
+    </message>
+    <message>
+        <source>Crowdly could not be reached: {error}</source>
+        <translation>تعذّر الوصول إلى Crowdly: {error}</translation>
+    </message>
+</context>
+<context>
+    <name>LibraryPage</name>
+    <message>
+        <source>Continue reading</source>
+        <translation>متابعة القراءة</translation>
+    </message>
+    <message>
+        <source>All books</source>
+        <translation>كل الكتب</translation>
+    </message>
+    <message>
+        <source>Audiobooks</source>
+        <translation>الكتب الصوتية</translation>
+    </message>
+    <message>
+        <source>Crowdly stories</source>
+        <translation>قصص Crowdly</translation>
+    </message>
+    <message>
+        <source>+ New shelf</source>
+        <translation>+ رف جديد</translation>
+    </message>
+    <message>
+        <source>+ New smart shelf</source>
+        <translation>+ رف ذكي جديد</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>الترتيب حسب</translation>
+    </message>
+    <message>
+        <source>Grid</source>
+        <translation>شبكة</translation>
+    </message>
+    <message>
+        <source>List</source>
+        <translation>قائمة</translation>
+    </message>
+    <message>
+        <source>Also on Crowdly</source>
+        <translation>أيضًا على Crowdly</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>بلا عنوان</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to use shelves.</source>
+        <translation>سجّل الدخول إلى Crowdly لاستخدام الرفوف.</translation>
+    </message>
+    <message>
+        <source>Shelves are not available: {error}</source>
+        <translation>الرفوف غير متاحة: {error}</translation>
+    </message>
+    <message>
+        <source>This computer</source>
+        <translation>هذا الكمبيوتر</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>My shelves</source>
+        <translation>رفوفي</translation>
+    </message>
+    <message>
+        <source>Loading…</source>
+        <translation>جارٍ التحميل…</translation>
+    </message>
+    <message>
+        <source>Offline - showing the shelves as they were last loaded.</source>
+        <translation>غير متصل - تُعرض الرفوف كما حُمّلت آخر مرة.</translation>
+    </message>
+    <message>
+        <source>This smart shelf fills itself from its rules.</source>
+        <translation>يمتلئ هذا الرف الذكي تلقائيًا وفق قواعده.</translation>
+    </message>
+    <message>
+        <source>Nothing here matches your search.</source>
+        <translation>لا شيء هنا يطابق بحثك.</translation>
+    </message>
+    <message>
+        <source>Books and stories you have started appear here.</source>
+        <translation>تظهر هنا الكتب والقصص التي بدأتها.</translation>
+    </message>
+    <message>
+        <source>This shelf is empty. Drag a book or story onto it, or use &quot;Add to shelf&quot;.</source>
+        <translation>هذا الرف فارغ. اسحب إليه كتابًا أو قصة، أو استخدم «إضافة إلى رف».</translation>
+    </message>
+    <message>
+        <source>Shelves: {error}</source>
+        <translation>الرفوف: {error}</translation>
+    </message>
+    <message>
+        <source>New shelf</source>
+        <translation>رف جديد</translation>
+    </message>
+    <message>
+        <source>Shelf name:</source>
+        <translation>اسم الرف:</translation>
+    </message>
+    <message>
+        <source>Rename…</source>
+        <translation>إعادة التسمية…</translation>
+    </message>
+    <message>
+        <source>Edit rules…</source>
+        <translation>تعديل القواعد…</translation>
+    </message>
+    <message>
+        <source>Delete shelf</source>
+        <translation>حذف الرف</translation>
+    </message>
+    <message>
+        <source>Rename shelf</source>
+        <translation>إعادة تسمية الرف</translation>
+    </message>
+    <message>
+        <source>Delete the shelf &quot;{name}&quot;? The books and stories on it are not deleted.</source>
+        <translation>هل تريد حذف الرف «{name}»؟ لن تُحذف الكتب والقصص الموجودة عليه.</translation>
+    </message>
+    <message>
+        <source>Turn on Synchronisation with web platform to put library books on shelves.</source>
+        <translation>فعّل المزامنة مع منصة الويب لوضع كتب المكتبة على الرفوف.</translation>
+    </message>
+    <message>
+        <source>Added to &quot;{shelf}&quot;</source>
+        <translation>أُضيف إلى «{shelf}»</translation>
+    </message>
+</context>
+<context>
+    <name>_DropZone</name>
+    <message>
+        <source>Drop EPUB, PDF, audio or text files here, or use &quot;+ Add books&quot;.
+Your books stay private to you.</source>
+        <translation>أفلت هنا ملفات EPUB أو PDF أو صوتية أو نصية، أو استخدم «+ إضافة كتب».
+تبقى كتبك خاصة بك.</translation>
+    </message>
+</context>
+<context>
+    <name>ChangeStoryDialog</name>
+    <message>
+        <source>Change this story</source>
+        <translation>تغيير هذه القصة</translation>
+    </message>
+    <message>
+        <source>Translate into</source>
+        <translation>الترجمة إلى</translation>
+    </message>
+    <message>
+        <source>Start from a copy of the original text</source>
+        <translation>البدء من نسخة من النص الأصلي</translation>
+    </message>
+    <message>
+        <source>Start with empty chapters</source>
+        <translation>البدء بفصول فارغة</translation>
+    </message>
+    <message>
+        <source>Hi! I&apos;d love to help with this story…</source>
+        <translation>مرحبًا! أودّ المساعدة في هذه القصة…</translation>
+    </message>
+    <message>
+        <source>Continue</source>
+        <translation>متابعة</translation>
+    </message>
+    <message>
+        <source>Suggest changes</source>
+        <translation>اقتراح تغييرات</translation>
+    </message>
+    <message>
+        <source>Edit the story in Creation; your changes are sent to the author as suggestions to approve.</source>
+        <translation>حرّر القصة في الإبداع؛ تُرسل تغييراتك إلى المؤلف كاقتراحات للموافقة عليها.</translation>
+    </message>
+    <message>
+        <source>Make my own version</source>
+        <translation>إنشاء نسختي الخاصة</translation>
+    </message>
+    <message>
+        <source>Copy the story into a new story of your own that you can change freely.</source>
+        <translation>انسخ القصة إلى قصة جديدة خاصة بك يمكنك تغييرها بحرية.</translation>
+    </message>
+    <message>
+        <source>The author doesn&apos;t allow copies of this story.</source>
+        <translation>لا يسمح المؤلف بنسخ هذه القصة.</translation>
+    </message>
+    <message>
+        <source>Translate</source>
+        <translation>ترجمة</translation>
+    </message>
+    <message>
+        <source>Start a translation into another language, as a new story of your own.</source>
+        <translation>ابدأ ترجمة إلى لغة أخرى كقصة جديدة خاصة بك.</translation>
+    </message>
+    <message>
+        <source>The author doesn&apos;t allow translations of this story.</source>
+        <translation>لا يسمح المؤلف بترجمة هذه القصة.</translation>
+    </message>
+    <message>
+        <source>Ask to collaborate</source>
+        <translation>طلب التعاون</translation>
+    </message>
+    <message>
+        <source>Ask the author to invite you, so you can change the story directly.</source>
+        <translation>اطلب من المؤلف دعوتك لتتمكن من تغيير القصة مباشرةً.</translation>
+    </message>
+    <message>
+        <source>You already asked; the author hasn&apos;t answered yet.</source>
+        <translation>لقد طلبت بالفعل؛ لم يرد المؤلف بعد.</translation>
+    </message>
+    <message>
+        <source>The author declined your earlier request to collaborate.</source>
+        <translation>رفض المؤلف طلبك السابق للتعاون.</translation>
+    </message>
+    <message>
+        <source>Message to the author (optional):</source>
+        <translation>رسالة إلى المؤلف (اختيارية):</translation>
+    </message>
+    <message>
+        <source>Start translation</source>
+        <translation>بدء الترجمة</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; belongs to another author, so you can&apos;t change it directly. How would you like to change it?</source>
+        <translation>«{title}» يخص مؤلفًا آخر، لذا لا يمكنك تغييرها مباشرةً. كيف تريد تغييرها؟</translation>
+    </message>
+    <message>
+        <source>Send request</source>
+        <translation>إرسال الطلب</translation>
     </message>
 </context>
 </TS>

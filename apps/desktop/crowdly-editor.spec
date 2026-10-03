@@ -1,5 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+import os
 import sys
 from pathlib import Path
 
@@ -45,6 +46,25 @@ if GOOGLE_CLIENT.is_file():
     extra_datas.append((str(GOOGLE_CLIENT), "editor"))
 
 
+
+# Which download this build is: "discovery" -> "Crowdly Discovery",
+# "creation" -> "Crowdly Creation" (same app, see src/editor/app_modes.py).
+# The value is bundled as editor/first_start_mode.txt and only decides the
+# mode of the very first start. Unset = the plain "Crowdly" build as before.
+FIRST_START_MODE = os.environ.get("CROWDLY_FIRST_START_MODE", "").strip().lower()
+if FIRST_START_MODE not in ("", "discovery", "creation"):
+    raise SystemExit(f"CROWDLY_FIRST_START_MODE must be discovery or creation, not {FIRST_START_MODE!r}")
+VARIANT_NAMES = {"discovery": "Crowdly Discovery", "creation": "Crowdly Creation"}
+VARIANT_DISPLAY_NAME = VARIANT_NAMES.get(FIRST_START_MODE, "Crowdly")
+VARIANT_SLUG = f"crowdly-{FIRST_START_MODE}" if FIRST_START_MODE else "crowdly-app"
+variant_datas = []
+if FIRST_START_MODE:
+    marker_dir = PROJECT_ROOT / "build" / f"first-start-{FIRST_START_MODE}"
+    marker_dir.mkdir(parents=True, exist_ok=True)
+    marker = marker_dir / "first_start_mode.txt"
+    marker.write_text(FIRST_START_MODE + "\n", encoding="utf-8")
+    variant_datas.append((str(marker), "editor"))
+
 block_cipher = None
 
 
@@ -54,7 +74,7 @@ a = Analysis(
     [ENTRY_SCRIPT],
     pathex=[str(SRC_ROOT)],
     binaries=[],
-    datas=i18n_datas + extra_datas,
+    datas=i18n_datas + extra_datas + variant_datas,
     hiddenimports=pyside6_hidden + keyring_hidden,
     hookspath=[],
     hooksconfig={},
@@ -74,7 +94,7 @@ exe = EXE(
     a.binaries,
     a.zipfiles,
     a.datas,
-    name="crowdly-app",
+    name=VARIANT_SLUG,
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

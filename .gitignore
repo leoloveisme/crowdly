@@ -60,6 +60,8 @@ apps/desktop\ app/push_new_app_version_to_crowdly_in_opt_2
 
 # Locally-stored uploaded gallery/comic images (Phase 1 storage decision: local disk for now)
 backend/uploads/
+# Private Discovery library files (never public, see backend/src/library.js)
+backend/private/
 
 
 # Google OAuth desktop client for direct Drive sync (see Documentation/Google_Drive_OAuth_setup.md)

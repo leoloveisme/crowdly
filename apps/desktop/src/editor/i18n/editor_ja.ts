@@ -589,6 +589,182 @@ Details: {error}</translation>
         <source>Your Google sign-in doesn&apos;t include Drive access yet. Your browser will open again: on Google&apos;s permission screen, tick the box &quot;See, edit, create, and delete all of your Google Drive files&quot;.</source>
         <translation>Google へのサインインにはまだドライブへのアクセスが含まれていません。ブラウザがもう一度開きます。Google の許可画面で「Google ドライブのすべてのファイルの表示、編集、作成、削除」にチェックを入れてください。</translation>
     </message>
+    <message>
+        <source>Add books…</source>
+        <translation>本を追加…</translation>
+    </message>
+    <message>
+        <source>Startup</source>
+        <translation>起動</translation>
+    </message>
+    <message>
+        <source>Start in</source>
+        <translation>起動モード</translation>
+    </message>
+    <message>
+        <source>On launch</source>
+        <translation>起動時</translation>
+    </message>
+    <message>
+        <source>Start where I left off</source>
+        <translation>前回の続きから開始</translation>
+    </message>
+    <message>
+        <source>Start with default settings</source>
+        <translation>既定の設定で開始</translation>
+    </message>
+    <message>
+        <source>Switch to Creation</source>
+        <translation>クリエーションに切り替え</translation>
+    </message>
+    <message>
+        <source>Switch to Discovery</source>
+        <translation>ディスカバリーに切り替え</translation>
+    </message>
+    <message>
+        <source>Convert to Crowdly story</source>
+        <translation>Crowdly のストーリーに変換</translation>
+    </message>
+    <message>
+        <source>Only your own work, public-domain books or books under a Creative Commons licence that allows changes can become Crowdly stories. Set the book&apos;s rights first.</source>
+        <translation>Crowdly のストーリーにできるのは、自分の作品、パブリックドメインの本、または改変を許可するクリエイティブ・コモンズ・ライセンスの本だけです。まず本の権利を設定してください。</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is now open in Creation mode as {file}. With Synchronisation with web platform on, it becomes a Crowdly story when it is saved.</source>
+        <translation>「{title}」はクリエーションモードで {file} として開かれています。Web プラットフォームとの同期がオンなら、保存すると Crowdly のストーリーになります。</translation>
+    </message>
+    <message>
+        <source>Change this story</source>
+        <translation>このストーリーを変更</translation>
+    </message>
+    <message>
+        <source>Opening the story in Creation…</source>
+        <translation>クリエーションでストーリーを開いています…</translation>
+    </message>
+    <message>
+        <source>You can&apos;t change this story directly</source>
+        <translation>このストーリーを直接変更することはできません</translation>
+    </message>
+    <message>
+        <source>Only the author and invited collaborators can change this story directly.
+
+Turn this file into a suggestion copy? Your edits are kept and you can send them to the author as suggestions.</source>
+        <translation>このストーリーを直接変更できるのは作者と招待された共同作業者だけです。
+
+このファイルを提案用コピーにしますか？編集内容は保持され、作者に提案として送ることができます。</translation>
+    </message>
+    <message>
+        <source>There are no new changes to suggest.</source>
+        <translation>提案する新しい変更はありません。</translation>
+    </message>
+    <message>
+        <source>The author approves each suggestion separately. If one of them changes the number of paragraphs, later suggestions in the same chapter may need the author&apos;s attention.</source>
+        <translation>作者は提案を一つずつ承認します。どれかが段落の数を変えると、同じ章の後の提案は作者の確認が必要になることがあります。</translation>
+    </message>
+    <message>
+        <source>Project space required</source>
+        <translation>プロジェクトスペースが必要です</translation>
+    </message>
+    <message>
+        <source>Please create or choose your project space first.</source>
+        <translation>まずプロジェクトスペースを作成または選択してください。</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is open as a suggestion copy. Change anything you like, then click &quot;Send my suggestions&quot;: the author sees each change and decides.</source>
+        <translation>「{title}」を提案用コピーとして開きました。自由に変更してから「提案を送信」をクリックすると、作者が各変更を確認して判断します。</translation>
+    </message>
+    <message>
+        <source>Send my suggestions</source>
+        <translation>提案を送信</translation>
+    </message>
+    <message>
+        <source>{count} suggestion(s) will be sent to the author.</source>
+        <translation>{count} 件の提案を作者に送ります。</translation>
+    </message>
+    <message>
+        <source>Checking how you can change &quot;{title}&quot;…</source>
+        <translation>「{title}」の変更方法を確認しています…</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is your own story now. With Synchronisation with web platform on, your changes are saved to Crowdly.</source>
+        <translation>「{title}」はあなた自身のストーリーになりました。Web プラットフォームとの同期がオンなら、変更は Crowdly に保存されます。</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is open for editing. With Synchronisation with web platform on, your changes are saved to Crowdly.</source>
+        <translation>「{title}」を編集用に開きました。Web プラットフォームとの同期がオンなら、変更は Crowdly に保存されます。</translation>
+    </message>
+    <message>
+        <source>Error</source>
+        <translation>エラー</translation>
+    </message>
+    <message>
+        <source>Failed to save the imported story locally.</source>
+        <translation>インポートしたストーリーをローカルに保存できませんでした。</translation>
+    </message>
+    <message>
+        <source>Making your own version…</source>
+        <translation>あなた自身のバージョンを作成中…</translation>
+    </message>
+    <message>
+        <source>Suggestion copy of &quot;{title}&quot; - your edits are sent to the author as suggestions.</source>
+        <translation>「{title}」の提案用コピー - 編集は作者に提案として送られます。</translation>
+    </message>
+    <message>
+        <source>These changes can&apos;t be sent as suggestions (use &quot;Make my own version&quot; for them):</source>
+        <translation>これらの変更は提案として送れません（「自分のバージョンを作る」を使ってください）:</translation>
+    </message>
+    <message>
+        <source>Sent {count} suggestion(s). The author will review them on Crowdly.</source>
+        <translation>{count} 件の提案を送信しました。作者が Crowdly で確認します。</translation>
+    </message>
+    <message>
+        <source>Starting the translation…</source>
+        <translation>翻訳を開始しています…</translation>
+    </message>
+    <message>
+        <source>These changes can&apos;t be sent as suggestions:</source>
+        <translation>これらの変更は提案として送れません:</translation>
+    </message>
+    <message>
+        <source>Ask to collaborate</source>
+        <translation>共同作業を依頼</translation>
+    </message>
+    <message>
+        <source>Your request was sent to the author of &quot;{title}&quot;. Once they accept it, &quot;I want to change this story&quot; opens the story for direct editing.</source>
+        <translation>「{title}」の作者に依頼を送りました。承認されると「このストーリーを変更」で直接編集できるようになります。</translation>
+    </message>
+    <message>
+        <source>My own work</source>
+        <translation>自分の作品</translation>
+    </message>
+    <message>
+        <source>Public domain</source>
+        <translation>パブリックドメイン</translation>
+    </message>
+    <message>
+        <source>Creative Commons licence that allows changes</source>
+        <translation>改変を許可するクリエイティブ・コモンズ・ライセンス</translation>
+    </message>
+    <message>
+        <source>Someone else&apos;s book (my personal copy)</source>
+        <translation>他の人の本（個人用のコピー）</translation>
+    </message>
+    <message>
+        <source>Who wrote &quot;{title}&quot;?
+
+Your own work, public-domain and Creative Commons books open as a story you can publish on Crowdly. Someone else&apos;s book opens as a private copy that stays on this computer.</source>
+        <translation>「{title}」を書いたのは誰ですか？
+
+自分の作品、パブリックドメイン、クリエイティブ・コモンズの本は Crowdly で公開できるストーリーとして開きます。他の人の本は、このコンピューターだけに残る非公開コピーとして開きます。</translation>
+    </message>
+    <message>
+        <source>Private copy of &quot;{title}&quot; - only on this computer, never synced or published.</source>
+        <translation>「{title}」の非公開コピー - このコンピューターだけに保存され、同期も公開もされません。</translation>
+    </message>
+    <message>
+        <source>Import failed</source>
+        <translation>インポートに失敗しました</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>
@@ -888,6 +1064,1095 @@ Details: {error}</translation>
 {error}</source>
         <translation>フォルダを作成できませんでした:
 {error}</translation>
+    </message>
+</context>
+<context>
+    <name>AppModes</name>
+    <message>
+        <source>Crowdly Discovery</source>
+        <translation>Crowdly Discovery</translation>
+    </message>
+    <message>
+        <source>Crowdly Creation</source>
+        <translation>Crowdly Creation</translation>
+    </message>
+    <message>
+        <source>Discovery</source>
+        <translation>ディスカバリー</translation>
+    </message>
+    <message>
+        <source>Creation</source>
+        <translation>クリエーション</translation>
+    </message>
+</context>
+<context>
+    <name>App</name>
+    <message>
+        <source>Files from your last session that could not be found: {count}</source>
+        <translation>前回のセッションで見つからなかったファイル: {count}</translation>
+    </message>
+</context>
+<context>
+    <name>RightsConfirmationDialog</name>
+    <message>
+        <source>Before your books sync</source>
+        <translation>本を同期する前に</translation>
+    </message>
+    <message>
+        <source>With synchronisation on, the books you import are uploaded to your own Crowdly account so they are available on your other devices.
+
+• They stay private: only you can open them. Crowdly never shares, lists or links them for anyone else.
+• Only upload books you have the right to keep a copy of - books you bought DRM-free, your own work, public-domain or openly licensed books.
+• DRM-protected files are never imported.
+• Rights holders can ask Crowdly to remove a file, and your files are deleted when you delete your account.</source>
+        <translation>同期がオンのとき、インポートした本はあなた自身の Crowdly アカウントにアップロードされ、ほかのデバイスでも使えるようになります。
+
+• 本は非公開のままです。開けるのはあなただけで、Crowdly がほかの人に共有・一覧表示・リンクすることはありません。
+• コピーを保持する権利がある本だけをアップロードしてください（DRM なしで購入した本、自分の作品、パブリックドメインまたはオープンライセンスの本）。
+• DRM で保護されたファイルはインポートされません。
+• 権利者は Crowdly にファイルの削除を求めることができ、アカウントを削除するとファイルも削除されます。</translation>
+    </message>
+    <message>
+        <source>I have the right to keep these books in my account</source>
+        <translation>これらの本をアカウントに保管する権利があります</translation>
+    </message>
+    <message>
+        <source>Sync my library</source>
+        <translation>ライブラリを同期</translation>
+    </message>
+</context>
+<context>
+    <name>DiscoveryView</name>
+    <message>
+        <source>My library</source>
+        <translation>マイライブラリ</translation>
+    </message>
+    <message>
+        <source>Reading on Crowdly</source>
+        <translation>Crowdly で読書中</translation>
+    </message>
+    <message>
+        <source>Browse Crowdly</source>
+        <translation>Crowdly を見る</translation>
+    </message>
+    <message>
+        <source>Add books…</source>
+        <translation>本を追加…</translation>
+    </message>
+    <message>
+        <source>Sync now</source>
+        <translation>今すぐ同期</translation>
+    </message>
+    <message>
+        <source>Crowdly is invite-only while it is in alpha.
+Log in with your Crowdly account to use Discovery.</source>
+        <translation>Crowdly はアルファ版の間、招待制です。
+ディスカバリーを使うには Crowdly アカウントでログインしてください。</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly</source>
+        <translation>Crowdly にログイン</translation>
+    </message>
+    <message>
+        <source>Your library is empty. Use &quot;Add books…&quot; to import EPUB, PDF, audio or text files. Your books stay private to you.</source>
+        <translation>ライブラリは空です。「本を追加…」で EPUB、PDF、音声、テキストファイルをインポートできます。本は非公開のままです。</translation>
+    </message>
+    <message>
+        <source>Stories you are living on Crowdly.</source>
+        <translation>Crowdly で体験中のストーリー。</translation>
+    </message>
+    <message>
+        <source>Search Crowdly stories</source>
+        <translation>Crowdly のストーリーを検索</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>検索</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>最新のストーリー</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>音声</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>テキスト</translation>
+    </message>
+    <message>
+        <source>{percent}% read</source>
+        <translation>{percent}% 読了</translation>
+    </message>
+    <message>
+        <source>synced</source>
+        <translation>同期済み</translation>
+    </message>
+    <message>
+        <source>Add books to your library</source>
+        <translation>ライブラリに本を追加</translation>
+    </message>
+    <message>
+        <source>Books and audiobooks ({patterns})</source>
+        <translation>本とオーディオブック ({patterns})</translation>
+    </message>
+    <message>
+        <source>All files (*)</source>
+        <translation>すべてのファイル (*)</translation>
+    </message>
+    <message>
+        <source>Some files were not added</source>
+        <translation>一部のファイルは追加されませんでした</translation>
+    </message>
+    <message>
+        <source>Books added to your library: {count}</source>
+        <translation>ライブラリに追加した本: {count}</translation>
+    </message>
+    <message>
+        <source>Book not available</source>
+        <translation>本を開けません</translation>
+    </message>
+    <message>
+        <source>The file for this book is missing. Sync again or re-import it.</source>
+        <translation>この本のファイルが見つかりません。もう一度同期するか、再インポートしてください。</translation>
+    </message>
+    <message>
+        <source>Could not read this EPUB:</source>
+        <translation>この EPUB を読み込めませんでした:</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>開く</translation>
+    </message>
+    <message>
+        <source>Book rights…</source>
+        <translation>本の権利…</translation>
+    </message>
+    <message>
+        <source>Convert to Crowdly story</source>
+        <translation>Crowdly のストーリーに変換</translation>
+    </message>
+    <message>
+        <source>Remove from library</source>
+        <translation>ライブラリから削除</translation>
+    </message>
+    <message>
+        <source>Remove &quot;{title}&quot; from your library on all your devices?</source>
+        <translation>すべてのデバイスのライブラリから「{title}」を削除しますか？</translation>
+    </message>
+    <message>
+        <source>Not specified</source>
+        <translation>未指定</translation>
+    </message>
+    <message>
+        <source>My personal copy (private only)</source>
+        <translation>個人用のコピー（非公開のみ）</translation>
+    </message>
+    <message>
+        <source>My own work</source>
+        <translation>自分の作品</translation>
+    </message>
+    <message>
+        <source>Public domain</source>
+        <translation>パブリックドメイン</translation>
+    </message>
+    <message>
+        <source>Creative Commons licence that allows changes</source>
+        <translation>改変を許可するクリエイティブ・コモンズ・ライセンス</translation>
+    </message>
+    <message>
+        <source>Book rights</source>
+        <translation>本の権利</translation>
+    </message>
+    <message>
+        <source>Who holds the rights to &quot;{title}&quot;?
+Only your own work, public-domain or Creative Commons (without &quot;no derivatives&quot;) books can become Crowdly stories others can read and co-create.</source>
+        <translation>「{title}」の権利は誰にありますか？
+ほかの人が読んだり共同で創作したりできる Crowdly のストーリーにできるのは、自分の作品、パブリックドメイン、またはクリエイティブ・コモンズ（「改変禁止」なし）の本だけです。</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>無題</translation>
+    </message>
+    <message>
+        <source>(No stories yet - mark a story as &quot;living&quot; on Crowdly.)</source>
+        <translation>（まだストーリーがありません - Crowdly でストーリーを「体験中」にしてください。）</translation>
+    </message>
+    <message>
+        <source>Search results</source>
+        <translation>検索結果</translation>
+    </message>
+    <message>
+        <source>No stories found.</source>
+        <translation>ストーリーが見つかりません。</translation>
+    </message>
+    <message>
+        <source>Opening &quot;{title}&quot;…</source>
+        <translation>「{title}」を開いています…</translation>
+    </message>
+    <message>
+        <source>Crowdly could not be reached: {error}</source>
+        <translation>Crowdly に接続できません: {error}</translation>
+    </message>
+    <message>
+        <source>Turn on Settings → Synchronisation with → web platform to sync your library.</source>
+        <translation>ライブラリを同期するには、設定 → 同期先 → Web プラットフォームをオンにしてください。</translation>
+    </message>
+    <message>
+        <source>Syncing…</source>
+        <translation>同期中…</translation>
+    </message>
+    <message>
+        <source>Synced with problems</source>
+        <translation>同期しましたが問題があります</translation>
+    </message>
+    <message>
+        <source>Library synced</source>
+        <translation>ライブラリを同期しました</translation>
+    </message>
+    <message>
+        <source>Sync failed</source>
+        <translation>同期に失敗しました</translation>
+    </message>
+    <message>
+        <source>Shelves</source>
+        <translation>本棚</translation>
+    </message>
+    <message>
+        <source>Turn on Synchronisation with web platform to put library books on shelves.</source>
+        <translation>ライブラリの本を本棚に入れるには Web プラットフォームとの同期をオンにしてください。</translation>
+    </message>
+    <message>
+        <source>Book not on this computer</source>
+        <translation>この本はこのコンピューターにありません</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is in your Crowdly library but not on this computer yet. Sync your library to download it.</source>
+        <translation>「{title}」は Crowdly のライブラリにありますが、まだこのコンピューターにはありません。ダウンロードするにはライブラリを同期してください。</translation>
+    </message>
+    <message>
+        <source>Screenplays can&apos;t be read in Discovery yet - open them on the web platform.</source>
+        <translation>脚本はまだディスカバリーで読めません。Web プラットフォームで開いてください。</translation>
+    </message>
+    <message>
+        <source>My Library</source>
+        <translation>マイライブラリ</translation>
+    </message>
+    <message>
+        <source>+ Add books</source>
+        <translation>+ 本を追加</translation>
+    </message>
+    <message>
+        <source>Add to shelf</source>
+        <translation>本棚に追加</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>ストーリー</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>脚本</translation>
+    </message>
+    <message>
+        <source>Audiobook</source>
+        <translation>オーディオブック</translation>
+    </message>
+    <message>
+        <source>{count} scenes</source>
+        <translation>{count} シーン</translation>
+    </message>
+    <message>
+        <source>{count} chapters</source>
+        <translation>{count} 章</translation>
+    </message>
+    <message>
+        <source>Listen</source>
+        <translation>聴く</translation>
+    </message>
+    <message>
+        <source>Read</source>
+        <translation>読む</translation>
+    </message>
+    <message>
+        <source>Remove from this shelf</source>
+        <translation>この本棚から削除</translation>
+    </message>
+    <message>
+        <source>Details</source>
+        <translation>詳細</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to browse.</source>
+        <translation>閲覧するには Crowdly にログインしてください。</translation>
+    </message>
+    <message>
+        <source>Search my library and Crowdly…</source>
+        <translation>マイライブラリと Crowdly を検索…</translation>
+    </message>
+    <message>
+        <source>Search Crowdly…</source>
+        <translation>Crowdly を検索…</translation>
+    </message>
+    <message>
+        <source>Search results for &quot;{query}&quot;</source>
+        <translation>「{query}」の検索結果</translation>
+    </message>
+    <message>
+        <source>Sync off</source>
+        <translation>同期オフ</translation>
+    </message>
+    <message>
+        <source>Click to sync now</source>
+        <translation>クリックして今すぐ同期</translation>
+    </message>
+    <message>
+        <source>✎ Change this story</source>
+        <translation>✎ このストーリーを変更</translation>
+    </message>
+</context>
+<context>
+    <name>ReaderWidget</name>
+    <message>
+        <source>← Library</source>
+        <translation>← ライブラリ</translation>
+    </message>
+    <message>
+        <source>Highlight</source>
+        <translation>ハイライト</translation>
+    </message>
+    <message>
+        <source>Add note</source>
+        <translation>メモを追加</translation>
+    </message>
+    <message>
+        <source>Highlights</source>
+        <translation>ハイライト</translation>
+    </message>
+    <message>
+        <source>Highlights and notes</source>
+        <translation>ハイライトとメモ</translation>
+    </message>
+    <message>
+        <source>PDF viewing is not available in this build.</source>
+        <translation>このビルドでは PDF を表示できません。</translation>
+    </message>
+    <message>
+        <source>Yellow</source>
+        <translation>黄</translation>
+    </message>
+    <message>
+        <source>Green</source>
+        <translation>緑</translation>
+    </message>
+    <message>
+        <source>Blue</source>
+        <translation>青</translation>
+    </message>
+    <message>
+        <source>Pink</source>
+        <translation>ピンク</translation>
+    </message>
+    <message>
+        <source>Play / Pause</source>
+        <translation>再生 / 一時停止</translation>
+    </message>
+    <message>
+        <source>Speed</source>
+        <translation>速度</translation>
+    </message>
+    <message>
+        <source>Sleep timer</source>
+        <translation>スリープタイマー</translation>
+    </message>
+    <message>
+        <source>Off</source>
+        <translation>オフ</translation>
+    </message>
+    <message>
+        <source>{count} min</source>
+        <translation>{count} 分</translation>
+    </message>
+    <message>
+        <source>Note:</source>
+        <translation>メモ:</translation>
+    </message>
+    <message>
+        <source>(text changed) </source>
+        <translation>（テキストが変更されました）</translation>
+    </message>
+    <message>
+        <source>Edit note</source>
+        <translation>メモを編集</translation>
+    </message>
+    <message>
+        <source>Delete highlight</source>
+        <translation>ハイライトを削除</translation>
+    </message>
+    <message>
+        <source>Shelves</source>
+        <translation>本棚</translation>
+    </message>
+    <message>
+        <source>← Back</source>
+        <translation>← 戻る</translation>
+    </message>
+    <message>
+        <source>Text size, font and colours</source>
+        <translation>文字サイズ・フォント・配色</translation>
+    </message>
+    <message>
+        <source>Smaller text</source>
+        <translation>文字を小さく</translation>
+    </message>
+    <message>
+        <source>Larger text</source>
+        <translation>文字を大きく</translation>
+    </message>
+    <message>
+        <source>Serif font</source>
+        <translation>明朝体</translation>
+    </message>
+    <message>
+        <source>Sans-serif font</source>
+        <translation>ゴシック体</translation>
+    </message>
+    <message>
+        <source>Light</source>
+        <translation>ライト</translation>
+    </message>
+    <message>
+        <source>Sepia</source>
+        <translation>セピア</translation>
+    </message>
+    <message>
+        <source>Dark</source>
+        <translation>ダーク</translation>
+    </message>
+    <message>
+        <source>✎ Change this story</source>
+        <translation>✎ このストーリーを変更</translation>
+    </message>
+    <message>
+        <source>Edit, suggest changes, make your own version or translate (Ctrl+E)</source>
+        <translation>編集・変更の提案・自分のバージョン作成・翻訳 (Ctrl+E)</translation>
+    </message>
+</context>
+<context>
+    <name>Shelves</name>
+    <message>
+        <source>Favorites</source>
+        <translation>お気に入り</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>体験中</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>体験済み</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>最新のストーリー</translation>
+    </message>
+    <message>
+        <source>Most active</source>
+        <translation>最も活発</translation>
+    </message>
+    <message>
+        <source>Most popular</source>
+        <translation>人気</translation>
+    </message>
+    <message>
+        <source>Favorite</source>
+        <translation>お気に入り</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>音声</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>テキスト</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>ストーリー</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>脚本</translation>
+    </message>
+    <message>
+        <source>{percent}% read</source>
+        <translation>{percent}% 読了</translation>
+    </message>
+    <message>
+        <source>in my library</source>
+        <translation>マイライブラリ内</translation>
+    </message>
+    <message>
+        <source>Add to shelf</source>
+        <translation>本棚に追加</translation>
+    </message>
+    <message>
+        <source>This item can&apos;t be put on a shelf.</source>
+        <translation>この項目は本棚に入れられません。</translation>
+    </message>
+    <message>
+        <source>Loading…</source>
+        <translation>読み込み中…</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to use shelves.</source>
+        <translation>本棚を使うには Crowdly にログインしてください。</translation>
+    </message>
+    <message>
+        <source>Shelves are not available: {error}</source>
+        <translation>本棚を利用できません: {error}</translation>
+    </message>
+    <message>
+        <source>New shelf…</source>
+        <translation>新しい本棚…</translation>
+    </message>
+    <message>
+        <source>Shelves: {error}</source>
+        <translation>本棚: {error}</translation>
+    </message>
+    <message>
+        <source>Saved</source>
+        <translation>保存しました</translation>
+    </message>
+    <message>
+        <source>Added to the shelf</source>
+        <translation>本棚に追加しました</translation>
+    </message>
+    <message>
+        <source>Removed from the shelf</source>
+        <translation>本棚から削除しました</translation>
+    </message>
+    <message>
+        <source>New shelf</source>
+        <translation>新しい本棚</translation>
+    </message>
+    <message>
+        <source>Shelf name:</source>
+        <translation>本棚の名前:</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>My shelves</source>
+        <translation>マイ本棚</translation>
+    </message>
+    <message>
+        <source>New smart shelf</source>
+        <translation>新しいスマート本棚</translation>
+    </message>
+    <message>
+        <source>Offline - showing the shelves as they were last loaded.</source>
+        <translation>オフライン - 最後に読み込んだ状態の本棚を表示しています。</translation>
+    </message>
+    <message>
+        <source>This smart shelf fills itself from its rules.</source>
+        <translation>このスマート本棚はルールに従って自動で埋まります。</translation>
+    </message>
+    <message>
+        <source>This shelf is empty. Use &quot;Add to shelf&quot; on a book or story.</source>
+        <translation>この本棚は空です。本やストーリーで「本棚に追加」を使ってください。</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>無題</translation>
+    </message>
+    <message>
+        <source>Rename…</source>
+        <translation>名前を変更…</translation>
+    </message>
+    <message>
+        <source>Edit rules…</source>
+        <translation>ルールを編集…</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>並べ替え</translation>
+    </message>
+    <message>
+        <source>Delete shelf</source>
+        <translation>本棚を削除</translation>
+    </message>
+    <message>
+        <source>Rename shelf</source>
+        <translation>本棚の名前を変更</translation>
+    </message>
+    <message>
+        <source>Delete the shelf &quot;{name}&quot;? The books and stories on it are not deleted.</source>
+        <translation>本棚「{name}」を削除しますか？入っている本やストーリーは削除されません。</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>開く</translation>
+    </message>
+    <message>
+        <source>Remove from this shelf</source>
+        <translation>この本棚から削除</translation>
+    </message>
+    <message>
+        <source>My order</source>
+        <translation>自分の順番</translation>
+    </message>
+    <message>
+        <source>Title</source>
+        <translation>タイトル</translation>
+    </message>
+    <message>
+        <source>Recently added</source>
+        <translation>最近追加</translation>
+    </message>
+    <message>
+        <source>Reading progress</source>
+        <translation>読書の進み具合</translation>
+    </message>
+    <message>
+        <source>Recently read</source>
+        <translation>最近読んだ</translation>
+    </message>
+</context>
+<context>
+    <name>SmartShelfDialog</name>
+    <message>
+        <source>Smart shelf</source>
+        <translation>スマート本棚</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation>名前</translation>
+    </message>
+    <message>
+        <source>all of these rules</source>
+        <translation>すべてのルール</translation>
+    </message>
+    <message>
+        <source>any of these rules</source>
+        <translation>いずれかのルール</translation>
+    </message>
+    <message>
+        <source>Show items that match</source>
+        <translation>一致する項目を表示</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>並べ替え</translation>
+    </message>
+    <message>
+        <source>Add rule</source>
+        <translation>ルールを追加</translation>
+    </message>
+    <message>
+        <source>Source</source>
+        <translation>ソース</translation>
+    </message>
+    <message>
+        <source>Format</source>
+        <translation>形式</translation>
+    </message>
+    <message>
+        <source>Language</source>
+        <translation>言語</translation>
+    </message>
+    <message>
+        <source>Title</source>
+        <translation>タイトル</translation>
+    </message>
+    <message>
+        <source>Author</source>
+        <translation>著者</translation>
+    </message>
+    <message>
+        <source>Crowdly status</source>
+        <translation>Crowdly のステータス</translation>
+    </message>
+    <message>
+        <source>Reading progress</source>
+        <translation>読書の進み具合</translation>
+    </message>
+    <message>
+        <source>Added in the last</source>
+        <translation>最近追加した期間</translation>
+    </message>
+    <message>
+        <source>Read in the last</source>
+        <translation>最近読んだ期間</translation>
+    </message>
+    <message>
+        <source>is</source>
+        <translation>が次と一致</translation>
+    </message>
+    <message>
+        <source>contains</source>
+        <translation>を含む</translation>
+    </message>
+    <message>
+        <source>days (at most)</source>
+        <translation>日（以内）</translation>
+    </message>
+    <message>
+        <source>My library</source>
+        <translation>マイライブラリ</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>音声</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>テキスト</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>ストーリー</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>脚本</translation>
+    </message>
+    <message>
+        <source>Favorite</source>
+        <translation>お気に入り</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>体験中</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>体験済み</translation>
+    </message>
+    <message>
+        <source>Not started</source>
+        <translation>未読</translation>
+    </message>
+    <message>
+        <source>In progress</source>
+        <translation>読書中</translation>
+    </message>
+    <message>
+        <source>Finished</source>
+        <translation>読了</translation>
+    </message>
+    <message>
+        <source>Please give the shelf a name.</source>
+        <translation>本棚に名前を付けてください。</translation>
+    </message>
+    <message>
+        <source>Every rule needs a value.</source>
+        <translation>すべてのルールに値が必要です。</translation>
+    </message>
+</context>
+<context>
+    <name>BrowsePage</name>
+    <message>
+        <source>Continue reading</source>
+        <translation>続きを読む</translation>
+    </message>
+    <message>
+        <source>Favorites</source>
+        <translation>お気に入り</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>最新のストーリー</translation>
+    </message>
+    <message>
+        <source>Newest screenplays</source>
+        <translation>最新の脚本</translation>
+    </message>
+    <message>
+        <source>Most popular stories</source>
+        <translation>人気のストーリー</translation>
+    </message>
+    <message>
+        <source>Most popular screenplays</source>
+        <translation>人気の脚本</translation>
+    </message>
+    <message>
+        <source>Most active screenplays</source>
+        <translation>最も活発な脚本</translation>
+    </message>
+    <message>
+        <source>Most active stories</source>
+        <translation>最も活発なストーリー</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>体験中</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>体験済み</translation>
+    </message>
+    <message>
+        <source>See all ›</source>
+        <translation>すべて表示 ›</translation>
+    </message>
+    <message>
+        <source>‹ Back</source>
+        <translation>‹ 戻る</translation>
+    </message>
+    <message>
+        <source>Try again</source>
+        <translation>再試行</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>無題</translation>
+    </message>
+    <message>
+        <source>Loading Crowdly…</source>
+        <translation>Crowdly を読み込み中…</translation>
+    </message>
+    <message>
+        <source>Crowdly could not be reached: {error}</source>
+        <translation>Crowdly に接続できません: {error}</translation>
+    </message>
+</context>
+<context>
+    <name>LibraryPage</name>
+    <message>
+        <source>Continue reading</source>
+        <translation>続きを読む</translation>
+    </message>
+    <message>
+        <source>All books</source>
+        <translation>すべての本</translation>
+    </message>
+    <message>
+        <source>Audiobooks</source>
+        <translation>オーディオブック</translation>
+    </message>
+    <message>
+        <source>Crowdly stories</source>
+        <translation>Crowdly のストーリー</translation>
+    </message>
+    <message>
+        <source>+ New shelf</source>
+        <translation>+ 新しい本棚</translation>
+    </message>
+    <message>
+        <source>+ New smart shelf</source>
+        <translation>+ 新しいスマート本棚</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>並べ替え</translation>
+    </message>
+    <message>
+        <source>Grid</source>
+        <translation>グリッド</translation>
+    </message>
+    <message>
+        <source>List</source>
+        <translation>リスト</translation>
+    </message>
+    <message>
+        <source>Also on Crowdly</source>
+        <translation>Crowdly でも</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>無題</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to use shelves.</source>
+        <translation>本棚を使うには Crowdly にログインしてください。</translation>
+    </message>
+    <message>
+        <source>Shelves are not available: {error}</source>
+        <translation>本棚を利用できません: {error}</translation>
+    </message>
+    <message>
+        <source>This computer</source>
+        <translation>このコンピューター</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>My shelves</source>
+        <translation>マイ本棚</translation>
+    </message>
+    <message>
+        <source>Loading…</source>
+        <translation>読み込み中…</translation>
+    </message>
+    <message>
+        <source>Offline - showing the shelves as they were last loaded.</source>
+        <translation>オフライン - 最後に読み込んだ状態の本棚を表示しています。</translation>
+    </message>
+    <message>
+        <source>This smart shelf fills itself from its rules.</source>
+        <translation>このスマート本棚はルールに従って自動で埋まります。</translation>
+    </message>
+    <message>
+        <source>Nothing here matches your search.</source>
+        <translation>検索に一致するものはありません。</translation>
+    </message>
+    <message>
+        <source>Books and stories you have started appear here.</source>
+        <translation>読み始めた本やストーリーがここに表示されます。</translation>
+    </message>
+    <message>
+        <source>This shelf is empty. Drag a book or story onto it, or use &quot;Add to shelf&quot;.</source>
+        <translation>この本棚は空です。本やストーリーをドラッグするか、「本棚に追加」を使ってください。</translation>
+    </message>
+    <message>
+        <source>Shelves: {error}</source>
+        <translation>本棚: {error}</translation>
+    </message>
+    <message>
+        <source>New shelf</source>
+        <translation>新しい本棚</translation>
+    </message>
+    <message>
+        <source>Shelf name:</source>
+        <translation>本棚の名前:</translation>
+    </message>
+    <message>
+        <source>Rename…</source>
+        <translation>名前を変更…</translation>
+    </message>
+    <message>
+        <source>Edit rules…</source>
+        <translation>ルールを編集…</translation>
+    </message>
+    <message>
+        <source>Delete shelf</source>
+        <translation>本棚を削除</translation>
+    </message>
+    <message>
+        <source>Rename shelf</source>
+        <translation>本棚の名前を変更</translation>
+    </message>
+    <message>
+        <source>Delete the shelf &quot;{name}&quot;? The books and stories on it are not deleted.</source>
+        <translation>本棚「{name}」を削除しますか？入っている本やストーリーは削除されません。</translation>
+    </message>
+    <message>
+        <source>Turn on Synchronisation with web platform to put library books on shelves.</source>
+        <translation>ライブラリの本を本棚に入れるには Web プラットフォームとの同期をオンにしてください。</translation>
+    </message>
+    <message>
+        <source>Added to &quot;{shelf}&quot;</source>
+        <translation>「{shelf}」に追加しました</translation>
+    </message>
+</context>
+<context>
+    <name>_DropZone</name>
+    <message>
+        <source>Drop EPUB, PDF, audio or text files here, or use &quot;+ Add books&quot;.
+Your books stay private to you.</source>
+        <translation>EPUB、PDF、音声、テキストのファイルをここにドロップするか、「+ 本を追加」を使ってください。
+本は非公開のままです。</translation>
+    </message>
+</context>
+<context>
+    <name>ChangeStoryDialog</name>
+    <message>
+        <source>Change this story</source>
+        <translation>このストーリーを変更</translation>
+    </message>
+    <message>
+        <source>Translate into</source>
+        <translation>翻訳先</translation>
+    </message>
+    <message>
+        <source>Start from a copy of the original text</source>
+        <translation>原文のコピーから始める</translation>
+    </message>
+    <message>
+        <source>Start with empty chapters</source>
+        <translation>空の章から始める</translation>
+    </message>
+    <message>
+        <source>Hi! I&apos;d love to help with this story…</source>
+        <translation>こんにちは！このストーリーを手伝いたいです…</translation>
+    </message>
+    <message>
+        <source>Continue</source>
+        <translation>続ける</translation>
+    </message>
+    <message>
+        <source>Suggest changes</source>
+        <translation>変更を提案</translation>
+    </message>
+    <message>
+        <source>Edit the story in Creation; your changes are sent to the author as suggestions to approve.</source>
+        <translation>クリエーションでストーリーを編集すると、変更が承認待ちの提案として作者に送られます。</translation>
+    </message>
+    <message>
+        <source>Make my own version</source>
+        <translation>自分のバージョンを作る</translation>
+    </message>
+    <message>
+        <source>Copy the story into a new story of your own that you can change freely.</source>
+        <translation>ストーリーを自由に変更できる自分の新しいストーリーにコピーします。</translation>
+    </message>
+    <message>
+        <source>The author doesn&apos;t allow copies of this story.</source>
+        <translation>作者はこのストーリーのコピーを許可していません。</translation>
+    </message>
+    <message>
+        <source>Translate</source>
+        <translation>翻訳</translation>
+    </message>
+    <message>
+        <source>Start a translation into another language, as a new story of your own.</source>
+        <translation>自分の新しいストーリーとして別の言語への翻訳を始めます。</translation>
+    </message>
+    <message>
+        <source>The author doesn&apos;t allow translations of this story.</source>
+        <translation>作者はこのストーリーの翻訳を許可していません。</translation>
+    </message>
+    <message>
+        <source>Ask to collaborate</source>
+        <translation>共同作業を依頼</translation>
+    </message>
+    <message>
+        <source>Ask the author to invite you, so you can change the story directly.</source>
+        <translation>作者に招待を依頼すると、ストーリーを直接変更できるようになります。</translation>
+    </message>
+    <message>
+        <source>You already asked; the author hasn&apos;t answered yet.</source>
+        <translation>すでに依頼済みです。作者はまだ返答していません。</translation>
+    </message>
+    <message>
+        <source>The author declined your earlier request to collaborate.</source>
+        <translation>作者は以前の共同作業の依頼を断りました。</translation>
+    </message>
+    <message>
+        <source>Message to the author (optional):</source>
+        <translation>作者へのメッセージ（任意）:</translation>
+    </message>
+    <message>
+        <source>Start translation</source>
+        <translation>翻訳を始める</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; belongs to another author, so you can&apos;t change it directly. How would you like to change it?</source>
+        <translation>「{title}」は別の作者のものなので、直接変更できません。どのように変更しますか？</translation>
+    </message>
+    <message>
+        <source>Send request</source>
+        <translation>依頼を送信</translation>
     </message>
 </context>
 </TS>

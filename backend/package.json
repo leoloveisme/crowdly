@@ -12,7 +12,8 @@
     "audit-happybeings": "node scripts/audit-happybeings-space.js",
     "import-happybeings": "node scripts/import-happybeings.js",
     "review-happybeings": "node scripts/review-happybeings-import.js",
-    "migrate-media-to-storage": "node scripts/migrate-media-to-storage.js"
+    "migrate-media-to-storage": "node scripts/migrate-media-to-storage.js",
+    "test:discovery-auth": "node --test tests/discovery-auth.test.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",

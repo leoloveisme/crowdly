@@ -735,15 +735,139 @@ class CrowdlyClient:
 
                 return json.loads(body)
         except urllib.error.HTTPError as exc:
-            if exc.code in (401, 403):
-                raise CrowdlyClientError("Login failed.", kind="auth_failed", status_code=exc.code)
-            raise CrowdlyClientError(
-                "HTTP error (HTTP {code}).".format(code=exc.code),
-                kind="http_error",
-                status_code=exc.code,
-            )
+            raise self._post_error(exc)
         except urllib.error.URLError as exc:
             raise CrowdlyClientError(f"Network error: {exc}", kind="network")
+
+    @staticmethod
+    def _post_error(exc: urllib.error.HTTPError) -> CrowdlyClientError:
+        """Map a failed POST: 401 is a login problem, 403 means "not permitted"."""
+
+        message = None
+        try:
+            data = json.loads(exc.read().decode("utf-8", errors="replace"))
+            if isinstance(data, dict):
+                message = data.get("message") or data.get("error")
+        except Exception:
+            pass
+        if exc.code == 401:
+            return CrowdlyClientError("Login failed.", kind="auth_failed", status_code=401)
+        if exc.code == 403:
+            return CrowdlyClientError(
+                message or "You are not allowed to do this.", kind="forbidden", status_code=403
+            )
+        return CrowdlyClientError(
+            message or "HTTP error (HTTP {code}).".format(code=exc.code),
+            kind="http_error",
+            status_code=exc.code,
+        )
+
+    # -- "I want to change this story" (Discovery -> Creation) ----------------
+
+    def get_my_access(self, story_id: str) -> dict[str, Any]:
+        """``{"role": ..., "explicit": bool}``; explicit = owner or invited."""
+
+        self.login()
+        data = self._http_get_json(f"{self.base_url}/story-titles/{story_id}/my-access")
+        return data if isinstance(data, dict) else {}
+
+    def can_translate(self, story_id: str) -> bool:
+        self.login()
+        data = self._http_get_json(f"{self.base_url}/stories/{story_id}/translations")
+        return bool(isinstance(data, dict) and data.get("can_translate"))
+
+    def my_collaboration_request(self, story_id: str) -> dict[str, Any] | None:
+        self.login()
+        data = self._http_get_json(f"{self.base_url}/stories/{story_id}/collaboration-requests/mine")
+        return data.get("request") if isinstance(data, dict) else None
+
+    def change_options(self, story_id: str) -> dict[str, Any]:
+        """Everything the "Change this story" dialog needs, in one call."""
+
+        access = self.get_my_access(story_id)
+        row = self.get_story_title_row(story_id)
+        try:
+            translate = self.can_translate(story_id)
+        except CrowdlyClientError:
+            translate = False
+        try:
+            request = self.my_collaboration_request(story_id)
+        except CrowdlyClientError:
+            request = None
+        return {
+            "title": row.get("title") or "",
+            "language": row.get("language") or "",
+            "explicit": bool(access.get("explicit")),
+            "role": access.get("role"),
+            "can_clone": row.get("can_clone") is not False,
+            "can_translate": translate,
+            "request": request,
+        }
+
+    def fetch_chapters(self, story_id: str) -> list[dict[str, Any]]:
+        """The story's chapters as rows (chapter_id, chapter_title, paragraphs)."""
+
+        user_id = self.login() if self._credentials is not None else None
+        query = {"storyTitleId": story_id}
+        if user_id:
+            query["userId"] = user_id
+        rows = self._http_get_json(f"{self.base_url}/chapters?" + urlencode(query))
+        if not isinstance(rows, list):
+            raise CrowdlyClientError("Unexpected chapters response.", kind="invalid_response")
+        return [r for r in rows if isinstance(r, dict)]
+
+    def clone_story(self, story_id: str) -> str:
+        """Copy the story into a new one the user owns; returns its id."""
+
+        user_id = self.login()
+        data = self._http_post_json(f"{self.base_url}/stories/{story_id}/clone", {"userId": user_id})
+        new_id = data.get("storyTitleId") if isinstance(data, dict) else None
+        if not isinstance(new_id, str):
+            raise CrowdlyClientError("Unexpected clone response.", kind="invalid_response")
+        return new_id
+
+    def list_locales(self) -> list[dict[str, Any]]:
+        rows = self._http_get_json(f"{self.base_url}/locales")
+        return [r for r in rows if isinstance(r, dict)] if isinstance(rows, list) else []
+
+    def create_translation(self, story_id: str, language: str, start: str = "copy") -> str:
+        """Start a translation the user owns; returns the new story's id."""
+
+        self.login()
+        data = self._http_post_json(
+            f"{self.base_url}/stories/{story_id}/translations", {"language": language, "start": start}
+        )
+        new_id = data.get("story_title_id") if isinstance(data, dict) else None
+        if not isinstance(new_id, str):
+            raise CrowdlyClientError("Unexpected translation response.", kind="invalid_response")
+        return new_id
+
+    def create_proposal(
+        self,
+        story_id: str,
+        *,
+        target_type: str,
+        chapter_id: str,
+        proposed_text: str,
+        target_path: str | None = None,
+    ) -> dict[str, Any]:
+        self.login()
+        payload: dict[str, Any] = {
+            "targetType": target_type,
+            "targetChapterId": chapter_id,
+            "proposedText": proposed_text,
+        }
+        if target_path is not None:
+            payload["targetPath"] = target_path
+        data = self._http_post_json(f"{self.base_url}/stories/{story_id}/proposals", payload)
+        return data if isinstance(data, dict) else {}
+
+    def request_collaboration(self, story_id: str, message: str) -> dict[str, Any]:
+        self.login()
+        data = self._http_post_json(
+            f"{self.base_url}/stories/{story_id}/collaboration-requests", {"message": message}
+        )
+        return (data or {}).get("request") or {}
 
     def _http_get_json(self, url: str) -> Any:
         headers = {

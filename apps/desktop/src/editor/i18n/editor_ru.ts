@@ -685,6 +685,182 @@ Details: {error}</source>
         <source>Your Google sign-in doesn&apos;t include Drive access yet. Your browser will open again: on Google&apos;s permission screen, tick the box &quot;See, edit, create, and delete all of your Google Drive files&quot;.</source>
         <translation>Ваш вход в Google пока не включает доступ к Диску. Браузер откроется снова: на экране разрешений Google отметьте пункт «Просмотр, редактирование, создание и удаление всех ваших файлов на Google Диске».</translation>
     </message>
+    <message>
+        <source>Add books…</source>
+        <translation>Добавить книги…</translation>
+    </message>
+    <message>
+        <source>Startup</source>
+        <translation>Запуск</translation>
+    </message>
+    <message>
+        <source>Start in</source>
+        <translation>Запускать в режиме</translation>
+    </message>
+    <message>
+        <source>On launch</source>
+        <translation>При запуске</translation>
+    </message>
+    <message>
+        <source>Start where I left off</source>
+        <translation>Продолжить с того места, где я остановился</translation>
+    </message>
+    <message>
+        <source>Start with default settings</source>
+        <translation>Запускать с настройками по умолчанию</translation>
+    </message>
+    <message>
+        <source>Switch to Creation</source>
+        <translation>Перейти в режим «Творчество»</translation>
+    </message>
+    <message>
+        <source>Switch to Discovery</source>
+        <translation>Перейти в режим «Открытия»</translation>
+    </message>
+    <message>
+        <source>Convert to Crowdly story</source>
+        <translation>Превратить в историю Crowdly</translation>
+    </message>
+    <message>
+        <source>Only your own work, public-domain books or books under a Creative Commons licence that allows changes can become Crowdly stories. Set the book&apos;s rights first.</source>
+        <translation>Историями Crowdly могут стать только ваши собственные произведения, книги в общественном достоянии или книги под лицензией Creative Commons, разрешающей изменения. Сначала укажите права на книгу.</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is now open in Creation mode as {file}. With Synchronisation with web platform on, it becomes a Crowdly story when it is saved.</source>
+        <translation>«{title}» открыт в режиме «Творчество» как {file}. Если включена синхронизация с веб-платформой, при сохранении он станет историей Crowdly.</translation>
+    </message>
+    <message>
+        <source>Change this story</source>
+        <translation>Изменить эту историю</translation>
+    </message>
+    <message>
+        <source>Opening the story in Creation…</source>
+        <translation>Открываю историю в «Творчестве»…</translation>
+    </message>
+    <message>
+        <source>You can&apos;t change this story directly</source>
+        <translation>Вы не можете изменить эту историю напрямую</translation>
+    </message>
+    <message>
+        <source>Only the author and invited collaborators can change this story directly.
+
+Turn this file into a suggestion copy? Your edits are kept and you can send them to the author as suggestions.</source>
+        <translation>Изменять эту историю напрямую могут только автор и приглашённые соавторы.
+
+Превратить этот файл в копию с предложениями? Ваши правки сохранятся, и вы сможете отправить их автору как предложения.</translation>
+    </message>
+    <message>
+        <source>There are no new changes to suggest.</source>
+        <translation>Новых изменений для предложения нет.</translation>
+    </message>
+    <message>
+        <source>The author approves each suggestion separately. If one of them changes the number of paragraphs, later suggestions in the same chapter may need the author&apos;s attention.</source>
+        <translation>Автор одобряет каждое предложение отдельно. Если одно из них меняет число абзацев, следующим предложениям в той же главе может потребоваться внимание автора.</translation>
+    </message>
+    <message>
+        <source>Project space required</source>
+        <translation>Нужно пространство проекта</translation>
+    </message>
+    <message>
+        <source>Please create or choose your project space first.</source>
+        <translation>Сначала создайте или выберите пространство проекта.</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is open as a suggestion copy. Change anything you like, then click &quot;Send my suggestions&quot;: the author sees each change and decides.</source>
+        <translation>«{title}» открыт как копия с предложениями. Меняйте что угодно, затем нажмите «Отправить мои предложения»: автор увидит каждое изменение и решит.</translation>
+    </message>
+    <message>
+        <source>Send my suggestions</source>
+        <translation>Отправить мои предложения</translation>
+    </message>
+    <message>
+        <source>{count} suggestion(s) will be sent to the author.</source>
+        <translation>Автору будет отправлено предложений: {count}.</translation>
+    </message>
+    <message>
+        <source>Checking how you can change &quot;{title}&quot;…</source>
+        <translation>Проверяю, как вы можете изменить «{title}»…</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is your own story now. With Synchronisation with web platform on, your changes are saved to Crowdly.</source>
+        <translation>«{title}» теперь ваша собственная история. Если включена синхронизация с веб-платформой, изменения сохраняются в Crowdly.</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is open for editing. With Synchronisation with web platform on, your changes are saved to Crowdly.</source>
+        <translation>«{title}» открыт для редактирования. Если включена синхронизация с веб-платформой, изменения сохраняются в Crowdly.</translation>
+    </message>
+    <message>
+        <source>Error</source>
+        <translation>Ошибка</translation>
+    </message>
+    <message>
+        <source>Failed to save the imported story locally.</source>
+        <translation>Не удалось сохранить импортированную историю локально.</translation>
+    </message>
+    <message>
+        <source>Making your own version…</source>
+        <translation>Создаю вашу версию…</translation>
+    </message>
+    <message>
+        <source>Suggestion copy of &quot;{title}&quot; - your edits are sent to the author as suggestions.</source>
+        <translation>Копия с предложениями для «{title}» - ваши правки отправляются автору как предложения.</translation>
+    </message>
+    <message>
+        <source>These changes can&apos;t be sent as suggestions (use &quot;Make my own version&quot; for them):</source>
+        <translation>Эти изменения нельзя отправить как предложения (для них используйте «Сделать свою версию»):</translation>
+    </message>
+    <message>
+        <source>Sent {count} suggestion(s). The author will review them on Crowdly.</source>
+        <translation>Отправлено предложений: {count}. Автор рассмотрит их на Crowdly.</translation>
+    </message>
+    <message>
+        <source>Starting the translation…</source>
+        <translation>Начинаю перевод…</translation>
+    </message>
+    <message>
+        <source>These changes can&apos;t be sent as suggestions:</source>
+        <translation>Эти изменения нельзя отправить как предложения:</translation>
+    </message>
+    <message>
+        <source>Ask to collaborate</source>
+        <translation>Попросить о соавторстве</translation>
+    </message>
+    <message>
+        <source>Your request was sent to the author of &quot;{title}&quot;. Once they accept it, &quot;I want to change this story&quot; opens the story for direct editing.</source>
+        <translation>Запрос отправлен автору «{title}». Когда он его примет, «Изменить эту историю» откроет историю для прямого редактирования.</translation>
+    </message>
+    <message>
+        <source>My own work</source>
+        <translation>Моё собственное произведение</translation>
+    </message>
+    <message>
+        <source>Public domain</source>
+        <translation>Общественное достояние</translation>
+    </message>
+    <message>
+        <source>Creative Commons licence that allows changes</source>
+        <translation>Лицензия Creative Commons, разрешающая изменения</translation>
+    </message>
+    <message>
+        <source>Someone else&apos;s book (my personal copy)</source>
+        <translation>Чужая книга (моя личная копия)</translation>
+    </message>
+    <message>
+        <source>Who wrote &quot;{title}&quot;?
+
+Your own work, public-domain and Creative Commons books open as a story you can publish on Crowdly. Someone else&apos;s book opens as a private copy that stays on this computer.</source>
+        <translation>Кто написал «{title}»?
+
+Ваши собственные произведения, книги в общественном достоянии и под Creative Commons открываются как история, которую можно опубликовать на Crowdly. Чужая книга открывается как личная копия, которая остаётся на этом компьютере.</translation>
+    </message>
+    <message>
+        <source>Private copy of &quot;{title}&quot; - only on this computer, never synced or published.</source>
+        <translation>Личная копия «{title}» - только на этом компьютере, никогда не синхронизируется и не публикуется.</translation>
+    </message>
+    <message>
+        <source>Import failed</source>
+        <translation>Ошибка импорта</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>
@@ -1132,6 +1308,1095 @@ Details: {error}</source>
 {error}</source>
         <translation>Не удалось создать папку:
 {error}</translation>
+    </message>
+</context>
+<context>
+    <name>AppModes</name>
+    <message>
+        <source>Crowdly Discovery</source>
+        <translation>Crowdly Discovery</translation>
+    </message>
+    <message>
+        <source>Crowdly Creation</source>
+        <translation>Crowdly Creation</translation>
+    </message>
+    <message>
+        <source>Discovery</source>
+        <translation>Открытия</translation>
+    </message>
+    <message>
+        <source>Creation</source>
+        <translation>Творчество</translation>
+    </message>
+</context>
+<context>
+    <name>App</name>
+    <message>
+        <source>Files from your last session that could not be found: {count}</source>
+        <translation>Файлы из прошлого сеанса, которые не найдены: {count}</translation>
+    </message>
+</context>
+<context>
+    <name>RightsConfirmationDialog</name>
+    <message>
+        <source>Before your books sync</source>
+        <translation>Перед синхронизацией книг</translation>
+    </message>
+    <message>
+        <source>With synchronisation on, the books you import are uploaded to your own Crowdly account so they are available on your other devices.
+
+• They stay private: only you can open them. Crowdly never shares, lists or links them for anyone else.
+• Only upload books you have the right to keep a copy of - books you bought DRM-free, your own work, public-domain or openly licensed books.
+• DRM-protected files are never imported.
+• Rights holders can ask Crowdly to remove a file, and your files are deleted when you delete your account.</source>
+        <translation>При включённой синхронизации импортированные книги загружаются в вашу собственную учётную запись Crowdly, чтобы они были доступны на других ваших устройствах.
+
+• Они остаются личными: открыть их можете только вы. Crowdly никогда не делится ими, не показывает их в списках и не даёт на них ссылки другим людям.
+• Загружайте только книги, копию которых вы вправе хранить: купленные без DRM, ваши собственные произведения, книги в общественном достоянии или под открытой лицензией.
+• Файлы, защищённые DRM, никогда не импортируются.
+• Правообладатели могут попросить Crowdly удалить файл, а при удалении учётной записи ваши файлы удаляются.</translation>
+    </message>
+    <message>
+        <source>I have the right to keep these books in my account</source>
+        <translation>Я вправе хранить эти книги в своей учётной записи</translation>
+    </message>
+    <message>
+        <source>Sync my library</source>
+        <translation>Синхронизировать библиотеку</translation>
+    </message>
+</context>
+<context>
+    <name>DiscoveryView</name>
+    <message>
+        <source>My library</source>
+        <translation>Моя библиотека</translation>
+    </message>
+    <message>
+        <source>Reading on Crowdly</source>
+        <translation>Читаю на Crowdly</translation>
+    </message>
+    <message>
+        <source>Browse Crowdly</source>
+        <translation>Обзор Crowdly</translation>
+    </message>
+    <message>
+        <source>Add books…</source>
+        <translation>Добавить книги…</translation>
+    </message>
+    <message>
+        <source>Sync now</source>
+        <translation>Синхронизировать</translation>
+    </message>
+    <message>
+        <source>Crowdly is invite-only while it is in alpha.
+Log in with your Crowdly account to use Discovery.</source>
+        <translation>Пока Crowdly в альфа-версии, доступ только по приглашениям.
+Войдите в свою учётную запись Crowdly, чтобы пользоваться «Открытиями».</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly</source>
+        <translation>Войти в Crowdly</translation>
+    </message>
+    <message>
+        <source>Your library is empty. Use &quot;Add books…&quot; to import EPUB, PDF, audio or text files. Your books stay private to you.</source>
+        <translation>Ваша библиотека пуста. Нажмите «Добавить книги…», чтобы импортировать файлы EPUB, PDF, аудио или текст. Книги остаются личными.</translation>
+    </message>
+    <message>
+        <source>Stories you are living on Crowdly.</source>
+        <translation>Истории, которыми вы живёте на Crowdly.</translation>
+    </message>
+    <message>
+        <source>Search Crowdly stories</source>
+        <translation>Поиск историй Crowdly</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Найти</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>Новые истории</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>Аудио</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>Текст</translation>
+    </message>
+    <message>
+        <source>{percent}% read</source>
+        <translation>прочитано {percent}%</translation>
+    </message>
+    <message>
+        <source>synced</source>
+        <translation>синхронизировано</translation>
+    </message>
+    <message>
+        <source>Add books to your library</source>
+        <translation>Добавить книги в библиотеку</translation>
+    </message>
+    <message>
+        <source>Books and audiobooks ({patterns})</source>
+        <translation>Книги и аудиокниги ({patterns})</translation>
+    </message>
+    <message>
+        <source>All files (*)</source>
+        <translation>Все файлы (*)</translation>
+    </message>
+    <message>
+        <source>Some files were not added</source>
+        <translation>Некоторые файлы не добавлены</translation>
+    </message>
+    <message>
+        <source>Books added to your library: {count}</source>
+        <translation>Добавлено книг в библиотеку: {count}</translation>
+    </message>
+    <message>
+        <source>Book not available</source>
+        <translation>Книга недоступна</translation>
+    </message>
+    <message>
+        <source>The file for this book is missing. Sync again or re-import it.</source>
+        <translation>Файл этой книги отсутствует. Синхронизируйте ещё раз или импортируйте заново.</translation>
+    </message>
+    <message>
+        <source>Could not read this EPUB:</source>
+        <translation>Не удалось прочитать этот EPUB:</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>Открыть</translation>
+    </message>
+    <message>
+        <source>Book rights…</source>
+        <translation>Права на книгу…</translation>
+    </message>
+    <message>
+        <source>Convert to Crowdly story</source>
+        <translation>Превратить в историю Crowdly</translation>
+    </message>
+    <message>
+        <source>Remove from library</source>
+        <translation>Удалить из библиотеки</translation>
+    </message>
+    <message>
+        <source>Remove &quot;{title}&quot; from your library on all your devices?</source>
+        <translation>Удалить «{title}» из библиотеки на всех ваших устройствах?</translation>
+    </message>
+    <message>
+        <source>Not specified</source>
+        <translation>Не указано</translation>
+    </message>
+    <message>
+        <source>My personal copy (private only)</source>
+        <translation>Моя личная копия (только для себя)</translation>
+    </message>
+    <message>
+        <source>My own work</source>
+        <translation>Моё собственное произведение</translation>
+    </message>
+    <message>
+        <source>Public domain</source>
+        <translation>Общественное достояние</translation>
+    </message>
+    <message>
+        <source>Creative Commons licence that allows changes</source>
+        <translation>Лицензия Creative Commons, разрешающая изменения</translation>
+    </message>
+    <message>
+        <source>Book rights</source>
+        <translation>Права на книгу</translation>
+    </message>
+    <message>
+        <source>Who holds the rights to &quot;{title}&quot;?
+Only your own work, public-domain or Creative Commons (without &quot;no derivatives&quot;) books can become Crowdly stories others can read and co-create.</source>
+        <translation>Кому принадлежат права на «{title}»?
+Историями Crowdly, которые другие могут читать и создавать вместе, могут стать только ваши собственные произведения, книги в общественном достоянии или под Creative Commons (без «без производных»).</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>Без названия</translation>
+    </message>
+    <message>
+        <source>(No stories yet - mark a story as &quot;living&quot; on Crowdly.)</source>
+        <translation>(Пока нет историй - отметьте историю как «живу» на Crowdly.)</translation>
+    </message>
+    <message>
+        <source>Search results</source>
+        <translation>Результаты поиска</translation>
+    </message>
+    <message>
+        <source>No stories found.</source>
+        <translation>Истории не найдены.</translation>
+    </message>
+    <message>
+        <source>Opening &quot;{title}&quot;…</source>
+        <translation>Открываю «{title}»…</translation>
+    </message>
+    <message>
+        <source>Crowdly could not be reached: {error}</source>
+        <translation>Не удалось связаться с Crowdly: {error}</translation>
+    </message>
+    <message>
+        <source>Turn on Settings → Synchronisation with → web platform to sync your library.</source>
+        <translation>Включите «Настройки → Синхронизация с → веб-платформой», чтобы синхронизировать библиотеку.</translation>
+    </message>
+    <message>
+        <source>Syncing…</source>
+        <translation>Синхронизация…</translation>
+    </message>
+    <message>
+        <source>Synced with problems</source>
+        <translation>Синхронизировано с ошибками</translation>
+    </message>
+    <message>
+        <source>Library synced</source>
+        <translation>Библиотека синхронизирована</translation>
+    </message>
+    <message>
+        <source>Sync failed</source>
+        <translation>Ошибка синхронизации</translation>
+    </message>
+    <message>
+        <source>Shelves</source>
+        <translation>Полки</translation>
+    </message>
+    <message>
+        <source>Turn on Synchronisation with web platform to put library books on shelves.</source>
+        <translation>Включите синхронизацию с веб-платформой, чтобы ставить книги из библиотеки на полки.</translation>
+    </message>
+    <message>
+        <source>Book not on this computer</source>
+        <translation>Книги нет на этом компьютере</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is in your Crowdly library but not on this computer yet. Sync your library to download it.</source>
+        <translation>«{title}» есть в вашей библиотеке Crowdly, но ещё не на этом компьютере. Синхронизируйте библиотеку, чтобы скачать её.</translation>
+    </message>
+    <message>
+        <source>Screenplays can&apos;t be read in Discovery yet - open them on the web platform.</source>
+        <translation>Сценарии пока нельзя читать в «Открытиях» - откройте их на веб-платформе.</translation>
+    </message>
+    <message>
+        <source>My Library</source>
+        <translation>Моя библиотека</translation>
+    </message>
+    <message>
+        <source>+ Add books</source>
+        <translation>+ Добавить книги</translation>
+    </message>
+    <message>
+        <source>Add to shelf</source>
+        <translation>Добавить на полку</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>История</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>Сценарий</translation>
+    </message>
+    <message>
+        <source>Audiobook</source>
+        <translation>Аудиокнига</translation>
+    </message>
+    <message>
+        <source>{count} scenes</source>
+        <translation>сцен: {count}</translation>
+    </message>
+    <message>
+        <source>{count} chapters</source>
+        <translation>глав: {count}</translation>
+    </message>
+    <message>
+        <source>Listen</source>
+        <translation>Слушать</translation>
+    </message>
+    <message>
+        <source>Read</source>
+        <translation>Читать</translation>
+    </message>
+    <message>
+        <source>Remove from this shelf</source>
+        <translation>Убрать с этой полки</translation>
+    </message>
+    <message>
+        <source>Details</source>
+        <translation>Подробнее</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to browse.</source>
+        <translation>Войдите в Crowdly, чтобы просматривать.</translation>
+    </message>
+    <message>
+        <source>Search my library and Crowdly…</source>
+        <translation>Поиск в моей библиотеке и на Crowdly…</translation>
+    </message>
+    <message>
+        <source>Search Crowdly…</source>
+        <translation>Поиск по Crowdly…</translation>
+    </message>
+    <message>
+        <source>Search results for &quot;{query}&quot;</source>
+        <translation>Результаты поиска «{query}»</translation>
+    </message>
+    <message>
+        <source>Sync off</source>
+        <translation>Синхронизация выключена</translation>
+    </message>
+    <message>
+        <source>Click to sync now</source>
+        <translation>Нажмите, чтобы синхронизировать</translation>
+    </message>
+    <message>
+        <source>✎ Change this story</source>
+        <translation>✎ Изменить эту историю</translation>
+    </message>
+</context>
+<context>
+    <name>ReaderWidget</name>
+    <message>
+        <source>← Library</source>
+        <translation>← Библиотека</translation>
+    </message>
+    <message>
+        <source>Highlight</source>
+        <translation>Выделить</translation>
+    </message>
+    <message>
+        <source>Add note</source>
+        <translation>Добавить заметку</translation>
+    </message>
+    <message>
+        <source>Highlights</source>
+        <translation>Выделения</translation>
+    </message>
+    <message>
+        <source>Highlights and notes</source>
+        <translation>Выделения и заметки</translation>
+    </message>
+    <message>
+        <source>PDF viewing is not available in this build.</source>
+        <translation>Просмотр PDF недоступен в этой сборке.</translation>
+    </message>
+    <message>
+        <source>Yellow</source>
+        <translation>Жёлтый</translation>
+    </message>
+    <message>
+        <source>Green</source>
+        <translation>Зелёный</translation>
+    </message>
+    <message>
+        <source>Blue</source>
+        <translation>Синий</translation>
+    </message>
+    <message>
+        <source>Pink</source>
+        <translation>Розовый</translation>
+    </message>
+    <message>
+        <source>Play / Pause</source>
+        <translation>Воспроизвести / Пауза</translation>
+    </message>
+    <message>
+        <source>Speed</source>
+        <translation>Скорость</translation>
+    </message>
+    <message>
+        <source>Sleep timer</source>
+        <translation>Таймер сна</translation>
+    </message>
+    <message>
+        <source>Off</source>
+        <translation>Выкл.</translation>
+    </message>
+    <message>
+        <source>{count} min</source>
+        <translation>{count} мин</translation>
+    </message>
+    <message>
+        <source>Note:</source>
+        <translation>Заметка:</translation>
+    </message>
+    <message>
+        <source>(text changed) </source>
+        <translation>(текст изменён) </translation>
+    </message>
+    <message>
+        <source>Edit note</source>
+        <translation>Изменить заметку</translation>
+    </message>
+    <message>
+        <source>Delete highlight</source>
+        <translation>Удалить выделение</translation>
+    </message>
+    <message>
+        <source>Shelves</source>
+        <translation>Полки</translation>
+    </message>
+    <message>
+        <source>← Back</source>
+        <translation>← Назад</translation>
+    </message>
+    <message>
+        <source>Text size, font and colours</source>
+        <translation>Размер текста, шрифт и цвета</translation>
+    </message>
+    <message>
+        <source>Smaller text</source>
+        <translation>Мельче</translation>
+    </message>
+    <message>
+        <source>Larger text</source>
+        <translation>Крупнее</translation>
+    </message>
+    <message>
+        <source>Serif font</source>
+        <translation>Шрифт с засечками</translation>
+    </message>
+    <message>
+        <source>Sans-serif font</source>
+        <translation>Шрифт без засечек</translation>
+    </message>
+    <message>
+        <source>Light</source>
+        <translation>Светлая</translation>
+    </message>
+    <message>
+        <source>Sepia</source>
+        <translation>Сепия</translation>
+    </message>
+    <message>
+        <source>Dark</source>
+        <translation>Тёмная</translation>
+    </message>
+    <message>
+        <source>✎ Change this story</source>
+        <translation>✎ Изменить эту историю</translation>
+    </message>
+    <message>
+        <source>Edit, suggest changes, make your own version or translate (Ctrl+E)</source>
+        <translation>Править, предлагать изменения, сделать свою версию или перевести (Ctrl+E)</translation>
+    </message>
+</context>
+<context>
+    <name>Shelves</name>
+    <message>
+        <source>Favorites</source>
+        <translation>Избранное</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>Живу</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>Прожито</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>Новые истории</translation>
+    </message>
+    <message>
+        <source>Most active</source>
+        <translation>Самые активные</translation>
+    </message>
+    <message>
+        <source>Most popular</source>
+        <translation>Самые популярные</translation>
+    </message>
+    <message>
+        <source>Favorite</source>
+        <translation>Избранное</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>Аудио</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>Текст</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>История</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>Сценарий</translation>
+    </message>
+    <message>
+        <source>{percent}% read</source>
+        <translation>прочитано {percent}%</translation>
+    </message>
+    <message>
+        <source>in my library</source>
+        <translation>в моей библиотеке</translation>
+    </message>
+    <message>
+        <source>Add to shelf</source>
+        <translation>Добавить на полку</translation>
+    </message>
+    <message>
+        <source>This item can&apos;t be put on a shelf.</source>
+        <translation>Этот элемент нельзя поставить на полку.</translation>
+    </message>
+    <message>
+        <source>Loading…</source>
+        <translation>Загрузка…</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to use shelves.</source>
+        <translation>Войдите в Crowdly, чтобы пользоваться полками.</translation>
+    </message>
+    <message>
+        <source>Shelves are not available: {error}</source>
+        <translation>Полки недоступны: {error}</translation>
+    </message>
+    <message>
+        <source>New shelf…</source>
+        <translation>Новая полка…</translation>
+    </message>
+    <message>
+        <source>Shelves: {error}</source>
+        <translation>Полки: {error}</translation>
+    </message>
+    <message>
+        <source>Saved</source>
+        <translation>Сохранено</translation>
+    </message>
+    <message>
+        <source>Added to the shelf</source>
+        <translation>Добавлено на полку</translation>
+    </message>
+    <message>
+        <source>Removed from the shelf</source>
+        <translation>Убрано с полки</translation>
+    </message>
+    <message>
+        <source>New shelf</source>
+        <translation>Новая полка</translation>
+    </message>
+    <message>
+        <source>Shelf name:</source>
+        <translation>Название полки:</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>My shelves</source>
+        <translation>Мои полки</translation>
+    </message>
+    <message>
+        <source>New smart shelf</source>
+        <translation>Новая умная полка</translation>
+    </message>
+    <message>
+        <source>Offline - showing the shelves as they were last loaded.</source>
+        <translation>Нет связи - показаны полки в том виде, в каком они были загружены в последний раз.</translation>
+    </message>
+    <message>
+        <source>This smart shelf fills itself from its rules.</source>
+        <translation>Эта умная полка заполняется сама по своим правилам.</translation>
+    </message>
+    <message>
+        <source>This shelf is empty. Use &quot;Add to shelf&quot; on a book or story.</source>
+        <translation>Эта полка пуста. Используйте «Добавить на полку» у книги или истории.</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>Без названия</translation>
+    </message>
+    <message>
+        <source>Rename…</source>
+        <translation>Переименовать…</translation>
+    </message>
+    <message>
+        <source>Edit rules…</source>
+        <translation>Изменить правила…</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>Сортировать по</translation>
+    </message>
+    <message>
+        <source>Delete shelf</source>
+        <translation>Удалить полку</translation>
+    </message>
+    <message>
+        <source>Rename shelf</source>
+        <translation>Переименовать полку</translation>
+    </message>
+    <message>
+        <source>Delete the shelf &quot;{name}&quot;? The books and stories on it are not deleted.</source>
+        <translation>Удалить полку «{name}»? Книги и истории на ней не удаляются.</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>Открыть</translation>
+    </message>
+    <message>
+        <source>Remove from this shelf</source>
+        <translation>Убрать с этой полки</translation>
+    </message>
+    <message>
+        <source>My order</source>
+        <translation>Мой порядок</translation>
+    </message>
+    <message>
+        <source>Title</source>
+        <translation>Название</translation>
+    </message>
+    <message>
+        <source>Recently added</source>
+        <translation>Недавно добавленные</translation>
+    </message>
+    <message>
+        <source>Reading progress</source>
+        <translation>Прогресс чтения</translation>
+    </message>
+    <message>
+        <source>Recently read</source>
+        <translation>Недавно прочитанные</translation>
+    </message>
+</context>
+<context>
+    <name>SmartShelfDialog</name>
+    <message>
+        <source>Smart shelf</source>
+        <translation>Умная полка</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation>Название</translation>
+    </message>
+    <message>
+        <source>all of these rules</source>
+        <translation>всем этим правилам</translation>
+    </message>
+    <message>
+        <source>any of these rules</source>
+        <translation>любому из этих правил</translation>
+    </message>
+    <message>
+        <source>Show items that match</source>
+        <translation>Показывать элементы, подходящие под</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>Сортировать по</translation>
+    </message>
+    <message>
+        <source>Add rule</source>
+        <translation>Добавить правило</translation>
+    </message>
+    <message>
+        <source>Source</source>
+        <translation>Источник</translation>
+    </message>
+    <message>
+        <source>Format</source>
+        <translation>Формат</translation>
+    </message>
+    <message>
+        <source>Language</source>
+        <translation>Язык</translation>
+    </message>
+    <message>
+        <source>Title</source>
+        <translation>Название</translation>
+    </message>
+    <message>
+        <source>Author</source>
+        <translation>Автор</translation>
+    </message>
+    <message>
+        <source>Crowdly status</source>
+        <translation>Статус в Crowdly</translation>
+    </message>
+    <message>
+        <source>Reading progress</source>
+        <translation>Прогресс чтения</translation>
+    </message>
+    <message>
+        <source>Added in the last</source>
+        <translation>Добавлено за последние</translation>
+    </message>
+    <message>
+        <source>Read in the last</source>
+        <translation>Прочитано за последние</translation>
+    </message>
+    <message>
+        <source>is</source>
+        <translation>равно</translation>
+    </message>
+    <message>
+        <source>contains</source>
+        <translation>содержит</translation>
+    </message>
+    <message>
+        <source>days (at most)</source>
+        <translation>дней (не более)</translation>
+    </message>
+    <message>
+        <source>My library</source>
+        <translation>Моя библиотека</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>Аудио</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>Текст</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>История</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>Сценарий</translation>
+    </message>
+    <message>
+        <source>Favorite</source>
+        <translation>Избранное</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>Живу</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>Прожито</translation>
+    </message>
+    <message>
+        <source>Not started</source>
+        <translation>Не начато</translation>
+    </message>
+    <message>
+        <source>In progress</source>
+        <translation>В процессе</translation>
+    </message>
+    <message>
+        <source>Finished</source>
+        <translation>Закончено</translation>
+    </message>
+    <message>
+        <source>Please give the shelf a name.</source>
+        <translation>Дайте полке название.</translation>
+    </message>
+    <message>
+        <source>Every rule needs a value.</source>
+        <translation>У каждого правила должно быть значение.</translation>
+    </message>
+</context>
+<context>
+    <name>BrowsePage</name>
+    <message>
+        <source>Continue reading</source>
+        <translation>Продолжить чтение</translation>
+    </message>
+    <message>
+        <source>Favorites</source>
+        <translation>Избранное</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>Новые истории</translation>
+    </message>
+    <message>
+        <source>Newest screenplays</source>
+        <translation>Новые сценарии</translation>
+    </message>
+    <message>
+        <source>Most popular stories</source>
+        <translation>Самые популярные истории</translation>
+    </message>
+    <message>
+        <source>Most popular screenplays</source>
+        <translation>Самые популярные сценарии</translation>
+    </message>
+    <message>
+        <source>Most active screenplays</source>
+        <translation>Самые активные сценарии</translation>
+    </message>
+    <message>
+        <source>Most active stories</source>
+        <translation>Самые активные истории</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>Живу</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>Прожито</translation>
+    </message>
+    <message>
+        <source>See all ›</source>
+        <translation>Смотреть все ›</translation>
+    </message>
+    <message>
+        <source>‹ Back</source>
+        <translation>‹ Назад</translation>
+    </message>
+    <message>
+        <source>Try again</source>
+        <translation>Повторить</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>Без названия</translation>
+    </message>
+    <message>
+        <source>Loading Crowdly…</source>
+        <translation>Загрузка Crowdly…</translation>
+    </message>
+    <message>
+        <source>Crowdly could not be reached: {error}</source>
+        <translation>Не удалось связаться с Crowdly: {error}</translation>
+    </message>
+</context>
+<context>
+    <name>LibraryPage</name>
+    <message>
+        <source>Continue reading</source>
+        <translation>Продолжить чтение</translation>
+    </message>
+    <message>
+        <source>All books</source>
+        <translation>Все книги</translation>
+    </message>
+    <message>
+        <source>Audiobooks</source>
+        <translation>Аудиокниги</translation>
+    </message>
+    <message>
+        <source>Crowdly stories</source>
+        <translation>Истории Crowdly</translation>
+    </message>
+    <message>
+        <source>+ New shelf</source>
+        <translation>+ Новая полка</translation>
+    </message>
+    <message>
+        <source>+ New smart shelf</source>
+        <translation>+ Новая умная полка</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>Сортировать по</translation>
+    </message>
+    <message>
+        <source>Grid</source>
+        <translation>Сетка</translation>
+    </message>
+    <message>
+        <source>List</source>
+        <translation>Список</translation>
+    </message>
+    <message>
+        <source>Also on Crowdly</source>
+        <translation>Также на Crowdly</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>Без названия</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to use shelves.</source>
+        <translation>Войдите в Crowdly, чтобы пользоваться полками.</translation>
+    </message>
+    <message>
+        <source>Shelves are not available: {error}</source>
+        <translation>Полки недоступны: {error}</translation>
+    </message>
+    <message>
+        <source>This computer</source>
+        <translation>Этот компьютер</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>My shelves</source>
+        <translation>Мои полки</translation>
+    </message>
+    <message>
+        <source>Loading…</source>
+        <translation>Загрузка…</translation>
+    </message>
+    <message>
+        <source>Offline - showing the shelves as they were last loaded.</source>
+        <translation>Нет связи - показаны полки в том виде, в каком они были загружены в последний раз.</translation>
+    </message>
+    <message>
+        <source>This smart shelf fills itself from its rules.</source>
+        <translation>Эта умная полка заполняется сама по своим правилам.</translation>
+    </message>
+    <message>
+        <source>Nothing here matches your search.</source>
+        <translation>Ничего не найдено.</translation>
+    </message>
+    <message>
+        <source>Books and stories you have started appear here.</source>
+        <translation>Здесь появятся книги и истории, которые вы начали.</translation>
+    </message>
+    <message>
+        <source>This shelf is empty. Drag a book or story onto it, or use &quot;Add to shelf&quot;.</source>
+        <translation>Эта полка пуста. Перетащите на неё книгу или историю или используйте «Добавить на полку».</translation>
+    </message>
+    <message>
+        <source>Shelves: {error}</source>
+        <translation>Полки: {error}</translation>
+    </message>
+    <message>
+        <source>New shelf</source>
+        <translation>Новая полка</translation>
+    </message>
+    <message>
+        <source>Shelf name:</source>
+        <translation>Название полки:</translation>
+    </message>
+    <message>
+        <source>Rename…</source>
+        <translation>Переименовать…</translation>
+    </message>
+    <message>
+        <source>Edit rules…</source>
+        <translation>Изменить правила…</translation>
+    </message>
+    <message>
+        <source>Delete shelf</source>
+        <translation>Удалить полку</translation>
+    </message>
+    <message>
+        <source>Rename shelf</source>
+        <translation>Переименовать полку</translation>
+    </message>
+    <message>
+        <source>Delete the shelf &quot;{name}&quot;? The books and stories on it are not deleted.</source>
+        <translation>Удалить полку «{name}»? Книги и истории на ней не удаляются.</translation>
+    </message>
+    <message>
+        <source>Turn on Synchronisation with web platform to put library books on shelves.</source>
+        <translation>Включите синхронизацию с веб-платформой, чтобы ставить книги из библиотеки на полки.</translation>
+    </message>
+    <message>
+        <source>Added to &quot;{shelf}&quot;</source>
+        <translation>Добавлено на полку «{shelf}»</translation>
+    </message>
+</context>
+<context>
+    <name>_DropZone</name>
+    <message>
+        <source>Drop EPUB, PDF, audio or text files here, or use &quot;+ Add books&quot;.
+Your books stay private to you.</source>
+        <translation>Перетащите сюда файлы EPUB, PDF, аудио или текст или нажмите «+ Добавить книги».
+Ваши книги остаются личными.</translation>
+    </message>
+</context>
+<context>
+    <name>ChangeStoryDialog</name>
+    <message>
+        <source>Change this story</source>
+        <translation>Изменить эту историю</translation>
+    </message>
+    <message>
+        <source>Translate into</source>
+        <translation>Перевести на</translation>
+    </message>
+    <message>
+        <source>Start from a copy of the original text</source>
+        <translation>Начать с копии исходного текста</translation>
+    </message>
+    <message>
+        <source>Start with empty chapters</source>
+        <translation>Начать с пустых глав</translation>
+    </message>
+    <message>
+        <source>Hi! I&apos;d love to help with this story…</source>
+        <translation>Привет! Я бы с радостью помог с этой историей…</translation>
+    </message>
+    <message>
+        <source>Continue</source>
+        <translation>Продолжить</translation>
+    </message>
+    <message>
+        <source>Suggest changes</source>
+        <translation>Предложить изменения</translation>
+    </message>
+    <message>
+        <source>Edit the story in Creation; your changes are sent to the author as suggestions to approve.</source>
+        <translation>Редактируйте историю в «Творчестве»; ваши изменения отправляются автору как предложения на одобрение.</translation>
+    </message>
+    <message>
+        <source>Make my own version</source>
+        <translation>Сделать свою версию</translation>
+    </message>
+    <message>
+        <source>Copy the story into a new story of your own that you can change freely.</source>
+        <translation>Скопировать историю в новую собственную историю, которую можно свободно менять.</translation>
+    </message>
+    <message>
+        <source>The author doesn&apos;t allow copies of this story.</source>
+        <translation>Автор не разрешает копировать эту историю.</translation>
+    </message>
+    <message>
+        <source>Translate</source>
+        <translation>Перевести</translation>
+    </message>
+    <message>
+        <source>Start a translation into another language, as a new story of your own.</source>
+        <translation>Начать перевод на другой язык как собственную новую историю.</translation>
+    </message>
+    <message>
+        <source>The author doesn&apos;t allow translations of this story.</source>
+        <translation>Автор не разрешает переводить эту историю.</translation>
+    </message>
+    <message>
+        <source>Ask to collaborate</source>
+        <translation>Попросить о соавторстве</translation>
+    </message>
+    <message>
+        <source>Ask the author to invite you, so you can change the story directly.</source>
+        <translation>Попросить автора пригласить вас, чтобы менять историю напрямую.</translation>
+    </message>
+    <message>
+        <source>You already asked; the author hasn&apos;t answered yet.</source>
+        <translation>Вы уже отправили запрос; автор ещё не ответил.</translation>
+    </message>
+    <message>
+        <source>The author declined your earlier request to collaborate.</source>
+        <translation>Автор отклонил ваш прежний запрос на соавторство.</translation>
+    </message>
+    <message>
+        <source>Message to the author (optional):</source>
+        <translation>Сообщение автору (необязательно):</translation>
+    </message>
+    <message>
+        <source>Start translation</source>
+        <translation>Начать перевод</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; belongs to another author, so you can&apos;t change it directly. How would you like to change it?</source>
+        <translation>«{title}» принадлежит другому автору, поэтому изменить её напрямую нельзя. Как вы хотите её изменить?</translation>
+    </message>
+    <message>
+        <source>Send request</source>
+        <translation>Отправить запрос</translation>
     </message>
 </context>
 </TS>

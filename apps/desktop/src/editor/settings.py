@@ -88,6 +88,31 @@ class Settings:
     # filename"; a non-empty string is a user-assigned custom title.
     session_tab_titles: list[str] = field(default_factory=list)
 
+    # Mode a new launch starts in ("discovery" or "creation"), chosen under
+    # Settings -> Startup -> Start in. ``None`` until the very first start,
+    # which fills it from the download's bundled first-start mode (see
+    # editor.app_modes.first_start_mode).
+    startup_mode: str | None = None
+
+    # Full "Start where I left off" snapshot (see editor.session_store):
+    # every window with its geometry, mode, tabs, cursors, scroll positions
+    # and pane toggles. Only used with ``session_control == "keep_session"``.
+    session_state: dict = field(default_factory=dict)
+
+    # Set once the user has confirmed the rights notice shown the first time
+    # imported books are synchronised to their Crowdly account.
+    library_rights_confirmed: bool = False
+
+    # Discovery preferences: reader appearance ("font_size", "font",
+    # "theme") and the My Library view ("library_view": "grid" | "list").
+    discovery_prefs: dict = field(default_factory=dict)
+
+
+def get_config_dir() -> Path:
+    """Public accessor for the configuration directory."""
+
+    return _get_config_dir()
+
 
 def _get_config_dir() -> Path:
     """Return the directory where configuration files are stored."""
@@ -190,6 +215,14 @@ def load_settings() -> Settings:
         for entry in raw_tab_titles:
             session_tab_titles.append(entry if isinstance(entry, str) else "")
 
+    startup_mode = raw.get("startup_mode")
+    if startup_mode not in ("discovery", "creation"):
+        startup_mode = None
+
+    session_state = raw.get("session_state")
+    if not isinstance(session_state, dict):
+        session_state = {}
+
     remembered_login = raw.get("remembered_login")
     if not isinstance(remembered_login, str) or not remembered_login:
         remembered_login = None
@@ -210,6 +243,10 @@ def load_settings() -> Settings:
         session_open_tabs=session_open_tabs,
         session_active_tab=session_active_tab,
         session_tab_titles=session_tab_titles,
+        startup_mode=startup_mode,
+        session_state=session_state,
+        library_rights_confirmed=bool(raw.get("library_rights_confirmed", False)),
+        discovery_prefs=raw.get("discovery_prefs") if isinstance(raw.get("discovery_prefs"), dict) else {},
     )
 
     # Ensure device_id is persisted for older configs.

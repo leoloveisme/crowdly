@@ -1,0 +1,11 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Name=Crowdly Discovery
+Comment=Crowdly desktop app - read and write stories (opens in Discovery mode the first time)
+Exec=/opt/crowdly-discovery/crowdly-discovery %F
+Icon=/opt/crowdly-discovery/crowdly.png
+Terminal=false
+Type=Application
+Categories=Office;TextEditor;
+MimeType=text/markdown;text/x-markdown;application/x-crowdly-master;
+StartupNotify=true

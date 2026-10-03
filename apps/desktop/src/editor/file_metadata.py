@@ -17,6 +17,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 import errno
+import json
 import os
 from typing import Iterable
 
@@ -25,6 +26,44 @@ XATTR_PREFIX = "user.crowdly."
 
 # ENOATTR exists on some platforms (macOS/BSD) but not on Linux.
 _ERRNO_ENOATTR = getattr(errno, "ENOATTR", None)
+
+# Python only exposes os.getxattr & co. on Linux. Elsewhere (macOS, Windows)
+# the same per-field values are kept in the document's JSON sidecar
+# ("<file>.crowdly.json", under "xattrs") so story metadata works everywhere.
+_NATIVE_XATTRS = all(hasattr(os, name) for name in ("getxattr", "setxattr", "removexattr"))
+
+
+def _sidecar_path(path: Path) -> Path:
+    return Path(str(path) + ".crowdly.json")
+
+
+def _sidecar_attrs(path: Path) -> tuple[dict, dict]:
+    """(whole sidecar, its "xattrs" dict); both empty if missing/unreadable."""
+
+    try:
+        data = json.loads(_sidecar_path(path).read_text(encoding="utf-8"))
+    except Exception:
+        data = {}
+    if not isinstance(data, dict):
+        data = {}
+    attrs = data.get("xattrs")
+    return data, attrs if isinstance(attrs, dict) else {}
+
+
+def _sidecar_store(path: Path, field: str, value: str | None) -> bool:
+    if not Path(path).exists():
+        return False
+    data, attrs = _sidecar_attrs(path)
+    if value is None:
+        attrs.pop(field, None)
+    else:
+        attrs[field] = value
+    data["xattrs"] = attrs
+    try:
+        _sidecar_path(path).write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
+        return True
+    except OSError:
+        return False
 
 # Public, user-facing metadata fields (per product spec)
 # These apply to both regular stories and screenplays; a "screenplay" is a
@@ -131,6 +170,10 @@ def xattr_key(field: str) -> str:
 def get_attr(path: Path, field: str) -> str | None:
     """Get xattr value for *field* on *path*, returning None if missing/unsupported."""
 
+    if not _NATIVE_XATTRS:
+        value = _sidecar_attrs(path)[1].get(field)
+        return value if isinstance(value, str) else None
+
     key = xattr_key(field)
     try:
         raw = os.getxattr(path, key)
@@ -154,6 +197,9 @@ def set_attr(path: Path, field: str, value: str) -> bool:
     Returns True on success, False on unsupported/permission errors.
     """
 
+    if not _NATIVE_XATTRS:
+        return _sidecar_store(path, field, value or "")
+
     key = xattr_key(field)
     try:
         os.setxattr(path, key, (value or "").encode("utf-8"))
@@ -165,6 +211,9 @@ def set_attr(path: Path, field: str, value: str) -> bool:
 
 
 def remove_attr(path: Path, field: str) -> bool:
+    if not _NATIVE_XATTRS:
+        return _sidecar_store(path, field, None)
+
     key = xattr_key(field)
     try:
         os.removexattr(path, key)

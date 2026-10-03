@@ -621,6 +621,182 @@ Details: {error}</translation>
         <source>Your Google sign-in doesn&apos;t include Drive access yet. Your browser will open again: on Google&apos;s permission screen, tick the box &quot;See, edit, create, and delete all of your Google Drive files&quot;.</source>
         <translation>Your Google sign-in doesn&apos;t include Drive access yet. Your browser will open again: on Google&apos;s permission screen, tick the box &quot;See, edit, create, and delete all of your Google Drive files&quot;.</translation>
     </message>
+    <message>
+        <source>Add books…</source>
+        <translation>Add books…</translation>
+    </message>
+    <message>
+        <source>Startup</source>
+        <translation>Startup</translation>
+    </message>
+    <message>
+        <source>Start in</source>
+        <translation>Start in</translation>
+    </message>
+    <message>
+        <source>On launch</source>
+        <translation>On launch</translation>
+    </message>
+    <message>
+        <source>Start where I left off</source>
+        <translation>Start where I left off</translation>
+    </message>
+    <message>
+        <source>Start with default settings</source>
+        <translation>Start with default settings</translation>
+    </message>
+    <message>
+        <source>Switch to Creation</source>
+        <translation>Switch to Creation</translation>
+    </message>
+    <message>
+        <source>Switch to Discovery</source>
+        <translation>Switch to Discovery</translation>
+    </message>
+    <message>
+        <source>Convert to Crowdly story</source>
+        <translation>Convert to Crowdly story</translation>
+    </message>
+    <message>
+        <source>Only your own work, public-domain books or books under a Creative Commons licence that allows changes can become Crowdly stories. Set the book&apos;s rights first.</source>
+        <translation>Only your own work, public-domain books or books under a Creative Commons licence that allows changes can become Crowdly stories. Set the book&apos;s rights first.</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is now open in Creation mode as {file}. With Synchronisation with web platform on, it becomes a Crowdly story when it is saved.</source>
+        <translation>&quot;{title}&quot; is now open in Creation mode as {file}. With Synchronisation with web platform on, it becomes a Crowdly story when it is saved.</translation>
+    </message>
+    <message>
+        <source>Change this story</source>
+        <translation>Change this story</translation>
+    </message>
+    <message>
+        <source>Opening the story in Creation…</source>
+        <translation>Opening the story in Creation…</translation>
+    </message>
+    <message>
+        <source>You can&apos;t change this story directly</source>
+        <translation>You can&apos;t change this story directly</translation>
+    </message>
+    <message>
+        <source>Only the author and invited collaborators can change this story directly.
+
+Turn this file into a suggestion copy? Your edits are kept and you can send them to the author as suggestions.</source>
+        <translation>Only the author and invited collaborators can change this story directly.
+
+Turn this file into a suggestion copy? Your edits are kept and you can send them to the author as suggestions.</translation>
+    </message>
+    <message>
+        <source>There are no new changes to suggest.</source>
+        <translation>There are no new changes to suggest.</translation>
+    </message>
+    <message>
+        <source>The author approves each suggestion separately. If one of them changes the number of paragraphs, later suggestions in the same chapter may need the author&apos;s attention.</source>
+        <translation>The author approves each suggestion separately. If one of them changes the number of paragraphs, later suggestions in the same chapter may need the author&apos;s attention.</translation>
+    </message>
+    <message>
+        <source>Project space required</source>
+        <translation>Project space required</translation>
+    </message>
+    <message>
+        <source>Please create or choose your project space first.</source>
+        <translation>Please create or choose your project space first.</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is open as a suggestion copy. Change anything you like, then click &quot;Send my suggestions&quot;: the author sees each change and decides.</source>
+        <translation>&quot;{title}&quot; is open as a suggestion copy. Change anything you like, then click &quot;Send my suggestions&quot;: the author sees each change and decides.</translation>
+    </message>
+    <message>
+        <source>Send my suggestions</source>
+        <translation>Send my suggestions</translation>
+    </message>
+    <message>
+        <source>{count} suggestion(s) will be sent to the author.</source>
+        <translation>{count} suggestion(s) will be sent to the author.</translation>
+    </message>
+    <message>
+        <source>Checking how you can change &quot;{title}&quot;…</source>
+        <translation>Checking how you can change &quot;{title}&quot;…</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is your own story now. With Synchronisation with web platform on, your changes are saved to Crowdly.</source>
+        <translation>&quot;{title}&quot; is your own story now. With Synchronisation with web platform on, your changes are saved to Crowdly.</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is open for editing. With Synchronisation with web platform on, your changes are saved to Crowdly.</source>
+        <translation>&quot;{title}&quot; is open for editing. With Synchronisation with web platform on, your changes are saved to Crowdly.</translation>
+    </message>
+    <message>
+        <source>Error</source>
+        <translation>Error</translation>
+    </message>
+    <message>
+        <source>Failed to save the imported story locally.</source>
+        <translation>Failed to save the imported story locally.</translation>
+    </message>
+    <message>
+        <source>Making your own version…</source>
+        <translation>Making your own version…</translation>
+    </message>
+    <message>
+        <source>Suggestion copy of &quot;{title}&quot; - your edits are sent to the author as suggestions.</source>
+        <translation>Suggestion copy of &quot;{title}&quot; - your edits are sent to the author as suggestions.</translation>
+    </message>
+    <message>
+        <source>These changes can&apos;t be sent as suggestions (use &quot;Make my own version&quot; for them):</source>
+        <translation>These changes can&apos;t be sent as suggestions (use &quot;Make my own version&quot; for them):</translation>
+    </message>
+    <message>
+        <source>Sent {count} suggestion(s). The author will review them on Crowdly.</source>
+        <translation>Sent {count} suggestion(s). The author will review them on Crowdly.</translation>
+    </message>
+    <message>
+        <source>Starting the translation…</source>
+        <translation>Starting the translation…</translation>
+    </message>
+    <message>
+        <source>These changes can&apos;t be sent as suggestions:</source>
+        <translation>These changes can&apos;t be sent as suggestions:</translation>
+    </message>
+    <message>
+        <source>Ask to collaborate</source>
+        <translation>Ask to collaborate</translation>
+    </message>
+    <message>
+        <source>Your request was sent to the author of &quot;{title}&quot;. Once they accept it, &quot;I want to change this story&quot; opens the story for direct editing.</source>
+        <translation>Your request was sent to the author of &quot;{title}&quot;. Once they accept it, &quot;I want to change this story&quot; opens the story for direct editing.</translation>
+    </message>
+    <message>
+        <source>My own work</source>
+        <translation>My own work</translation>
+    </message>
+    <message>
+        <source>Public domain</source>
+        <translation>Public domain</translation>
+    </message>
+    <message>
+        <source>Creative Commons licence that allows changes</source>
+        <translation>Creative Commons licence that allows changes</translation>
+    </message>
+    <message>
+        <source>Someone else&apos;s book (my personal copy)</source>
+        <translation>Someone else&apos;s book (my personal copy)</translation>
+    </message>
+    <message>
+        <source>Who wrote &quot;{title}&quot;?
+
+Your own work, public-domain and Creative Commons books open as a story you can publish on Crowdly. Someone else&apos;s book opens as a private copy that stays on this computer.</source>
+        <translation>Who wrote &quot;{title}&quot;?
+
+Your own work, public-domain and Creative Commons books open as a story you can publish on Crowdly. Someone else&apos;s book opens as a private copy that stays on this computer.</translation>
+    </message>
+    <message>
+        <source>Private copy of &quot;{title}&quot; - only on this computer, never synced or published.</source>
+        <translation>Private copy of &quot;{title}&quot; - only on this computer, never synced or published.</translation>
+    </message>
+    <message>
+        <source>Import failed</source>
+        <translation>Import failed</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>
@@ -1068,6 +1244,1095 @@ Details: {error}</translation>
 {error}</source>
         <translation>Could not create the folder:
 {error}</translation>
+    </message>
+</context>
+<context>
+    <name>AppModes</name>
+    <message>
+        <source>Crowdly Discovery</source>
+        <translation>Crowdly Discovery</translation>
+    </message>
+    <message>
+        <source>Crowdly Creation</source>
+        <translation>Crowdly Creation</translation>
+    </message>
+    <message>
+        <source>Discovery</source>
+        <translation>Discovery</translation>
+    </message>
+    <message>
+        <source>Creation</source>
+        <translation>Creation</translation>
+    </message>
+</context>
+<context>
+    <name>App</name>
+    <message>
+        <source>Files from your last session that could not be found: {count}</source>
+        <translation>Files from your last session that could not be found: {count}</translation>
+    </message>
+</context>
+<context>
+    <name>RightsConfirmationDialog</name>
+    <message>
+        <source>Before your books sync</source>
+        <translation>Before your books sync</translation>
+    </message>
+    <message>
+        <source>With synchronisation on, the books you import are uploaded to your own Crowdly account so they are available on your other devices.
+
+• They stay private: only you can open them. Crowdly never shares, lists or links them for anyone else.
+• Only upload books you have the right to keep a copy of - books you bought DRM-free, your own work, public-domain or openly licensed books.
+• DRM-protected files are never imported.
+• Rights holders can ask Crowdly to remove a file, and your files are deleted when you delete your account.</source>
+        <translation>With synchronisation on, the books you import are uploaded to your own Crowdly account so they are available on your other devices.
+
+• They stay private: only you can open them. Crowdly never shares, lists or links them for anyone else.
+• Only upload books you have the right to keep a copy of - books you bought DRM-free, your own work, public-domain or openly licensed books.
+• DRM-protected files are never imported.
+• Rights holders can ask Crowdly to remove a file, and your files are deleted when you delete your account.</translation>
+    </message>
+    <message>
+        <source>I have the right to keep these books in my account</source>
+        <translation>I have the right to keep these books in my account</translation>
+    </message>
+    <message>
+        <source>Sync my library</source>
+        <translation>Sync my library</translation>
+    </message>
+</context>
+<context>
+    <name>DiscoveryView</name>
+    <message>
+        <source>My library</source>
+        <translation>My library</translation>
+    </message>
+    <message>
+        <source>Reading on Crowdly</source>
+        <translation>Reading on Crowdly</translation>
+    </message>
+    <message>
+        <source>Browse Crowdly</source>
+        <translation>Browse Crowdly</translation>
+    </message>
+    <message>
+        <source>Add books…</source>
+        <translation>Add books…</translation>
+    </message>
+    <message>
+        <source>Sync now</source>
+        <translation>Sync now</translation>
+    </message>
+    <message>
+        <source>Crowdly is invite-only while it is in alpha.
+Log in with your Crowdly account to use Discovery.</source>
+        <translation>Crowdly is invite-only while it is in alpha.
+Log in with your Crowdly account to use Discovery.</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly</source>
+        <translation>Log in to Crowdly</translation>
+    </message>
+    <message>
+        <source>Your library is empty. Use &quot;Add books…&quot; to import EPUB, PDF, audio or text files. Your books stay private to you.</source>
+        <translation>Your library is empty. Use &quot;Add books…&quot; to import EPUB, PDF, audio or text files. Your books stay private to you.</translation>
+    </message>
+    <message>
+        <source>Stories you are living on Crowdly.</source>
+        <translation>Stories you are living on Crowdly.</translation>
+    </message>
+    <message>
+        <source>Search Crowdly stories</source>
+        <translation>Search Crowdly stories</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Search</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>Newest stories</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>Audio</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>Text</translation>
+    </message>
+    <message>
+        <source>{percent}% read</source>
+        <translation>{percent}% read</translation>
+    </message>
+    <message>
+        <source>synced</source>
+        <translation>synced</translation>
+    </message>
+    <message>
+        <source>Add books to your library</source>
+        <translation>Add books to your library</translation>
+    </message>
+    <message>
+        <source>Books and audiobooks ({patterns})</source>
+        <translation>Books and audiobooks ({patterns})</translation>
+    </message>
+    <message>
+        <source>All files (*)</source>
+        <translation>All files (*)</translation>
+    </message>
+    <message>
+        <source>Some files were not added</source>
+        <translation>Some files were not added</translation>
+    </message>
+    <message>
+        <source>Books added to your library: {count}</source>
+        <translation>Books added to your library: {count}</translation>
+    </message>
+    <message>
+        <source>Book not available</source>
+        <translation>Book not available</translation>
+    </message>
+    <message>
+        <source>The file for this book is missing. Sync again or re-import it.</source>
+        <translation>The file for this book is missing. Sync again or re-import it.</translation>
+    </message>
+    <message>
+        <source>Could not read this EPUB:</source>
+        <translation>Could not read this EPUB:</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>Open</translation>
+    </message>
+    <message>
+        <source>Book rights…</source>
+        <translation>Book rights…</translation>
+    </message>
+    <message>
+        <source>Convert to Crowdly story</source>
+        <translation>Convert to Crowdly story</translation>
+    </message>
+    <message>
+        <source>Remove from library</source>
+        <translation>Remove from library</translation>
+    </message>
+    <message>
+        <source>Remove &quot;{title}&quot; from your library on all your devices?</source>
+        <translation>Remove &quot;{title}&quot; from your library on all your devices?</translation>
+    </message>
+    <message>
+        <source>Not specified</source>
+        <translation>Not specified</translation>
+    </message>
+    <message>
+        <source>My personal copy (private only)</source>
+        <translation>My personal copy (private only)</translation>
+    </message>
+    <message>
+        <source>My own work</source>
+        <translation>My own work</translation>
+    </message>
+    <message>
+        <source>Public domain</source>
+        <translation>Public domain</translation>
+    </message>
+    <message>
+        <source>Creative Commons licence that allows changes</source>
+        <translation>Creative Commons licence that allows changes</translation>
+    </message>
+    <message>
+        <source>Book rights</source>
+        <translation>Book rights</translation>
+    </message>
+    <message>
+        <source>Who holds the rights to &quot;{title}&quot;?
+Only your own work, public-domain or Creative Commons (without &quot;no derivatives&quot;) books can become Crowdly stories others can read and co-create.</source>
+        <translation>Who holds the rights to &quot;{title}&quot;?
+Only your own work, public-domain or Creative Commons (without &quot;no derivatives&quot;) books can become Crowdly stories others can read and co-create.</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>Untitled</translation>
+    </message>
+    <message>
+        <source>(No stories yet - mark a story as &quot;living&quot; on Crowdly.)</source>
+        <translation>(No stories yet - mark a story as &quot;living&quot; on Crowdly.)</translation>
+    </message>
+    <message>
+        <source>Search results</source>
+        <translation>Search results</translation>
+    </message>
+    <message>
+        <source>No stories found.</source>
+        <translation>No stories found.</translation>
+    </message>
+    <message>
+        <source>Opening &quot;{title}&quot;…</source>
+        <translation>Opening &quot;{title}&quot;…</translation>
+    </message>
+    <message>
+        <source>Crowdly could not be reached: {error}</source>
+        <translation>Crowdly could not be reached: {error}</translation>
+    </message>
+    <message>
+        <source>Turn on Settings → Synchronisation with → web platform to sync your library.</source>
+        <translation>Turn on Settings → Synchronisation with → web platform to sync your library.</translation>
+    </message>
+    <message>
+        <source>Syncing…</source>
+        <translation>Syncing…</translation>
+    </message>
+    <message>
+        <source>Synced with problems</source>
+        <translation>Synced with problems</translation>
+    </message>
+    <message>
+        <source>Library synced</source>
+        <translation>Library synced</translation>
+    </message>
+    <message>
+        <source>Sync failed</source>
+        <translation>Sync failed</translation>
+    </message>
+    <message>
+        <source>Shelves</source>
+        <translation>Shelves</translation>
+    </message>
+    <message>
+        <source>Turn on Synchronisation with web platform to put library books on shelves.</source>
+        <translation>Turn on Synchronisation with web platform to put library books on shelves.</translation>
+    </message>
+    <message>
+        <source>Book not on this computer</source>
+        <translation>Book not on this computer</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is in your Crowdly library but not on this computer yet. Sync your library to download it.</source>
+        <translation>&quot;{title}&quot; is in your Crowdly library but not on this computer yet. Sync your library to download it.</translation>
+    </message>
+    <message>
+        <source>Screenplays can&apos;t be read in Discovery yet - open them on the web platform.</source>
+        <translation>Screenplays can&apos;t be read in Discovery yet - open them on the web platform.</translation>
+    </message>
+    <message>
+        <source>My Library</source>
+        <translation>My Library</translation>
+    </message>
+    <message>
+        <source>+ Add books</source>
+        <translation>+ Add books</translation>
+    </message>
+    <message>
+        <source>Add to shelf</source>
+        <translation>Add to shelf</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>Story</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>Screenplay</translation>
+    </message>
+    <message>
+        <source>Audiobook</source>
+        <translation>Audiobook</translation>
+    </message>
+    <message>
+        <source>{count} scenes</source>
+        <translation>{count} scenes</translation>
+    </message>
+    <message>
+        <source>{count} chapters</source>
+        <translation>{count} chapters</translation>
+    </message>
+    <message>
+        <source>Listen</source>
+        <translation>Listen</translation>
+    </message>
+    <message>
+        <source>Read</source>
+        <translation>Read</translation>
+    </message>
+    <message>
+        <source>Remove from this shelf</source>
+        <translation>Remove from this shelf</translation>
+    </message>
+    <message>
+        <source>Details</source>
+        <translation>Details</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to browse.</source>
+        <translation>Log in to Crowdly to browse.</translation>
+    </message>
+    <message>
+        <source>Search my library and Crowdly…</source>
+        <translation>Search my library and Crowdly…</translation>
+    </message>
+    <message>
+        <source>Search Crowdly…</source>
+        <translation>Search Crowdly…</translation>
+    </message>
+    <message>
+        <source>Search results for &quot;{query}&quot;</source>
+        <translation>Search results for &quot;{query}&quot;</translation>
+    </message>
+    <message>
+        <source>Sync off</source>
+        <translation>Sync off</translation>
+    </message>
+    <message>
+        <source>Click to sync now</source>
+        <translation>Click to sync now</translation>
+    </message>
+    <message>
+        <source>✎ Change this story</source>
+        <translation>✎ Change this story</translation>
+    </message>
+</context>
+<context>
+    <name>ReaderWidget</name>
+    <message>
+        <source>← Library</source>
+        <translation>← Library</translation>
+    </message>
+    <message>
+        <source>Highlight</source>
+        <translation>Highlight</translation>
+    </message>
+    <message>
+        <source>Add note</source>
+        <translation>Add note</translation>
+    </message>
+    <message>
+        <source>Highlights</source>
+        <translation>Highlights</translation>
+    </message>
+    <message>
+        <source>Highlights and notes</source>
+        <translation>Highlights and notes</translation>
+    </message>
+    <message>
+        <source>PDF viewing is not available in this build.</source>
+        <translation>PDF viewing is not available in this build.</translation>
+    </message>
+    <message>
+        <source>Yellow</source>
+        <translation>Yellow</translation>
+    </message>
+    <message>
+        <source>Green</source>
+        <translation>Green</translation>
+    </message>
+    <message>
+        <source>Blue</source>
+        <translation>Blue</translation>
+    </message>
+    <message>
+        <source>Pink</source>
+        <translation>Pink</translation>
+    </message>
+    <message>
+        <source>Play / Pause</source>
+        <translation>Play / Pause</translation>
+    </message>
+    <message>
+        <source>Speed</source>
+        <translation>Speed</translation>
+    </message>
+    <message>
+        <source>Sleep timer</source>
+        <translation>Sleep timer</translation>
+    </message>
+    <message>
+        <source>Off</source>
+        <translation>Off</translation>
+    </message>
+    <message>
+        <source>{count} min</source>
+        <translation>{count} min</translation>
+    </message>
+    <message>
+        <source>Note:</source>
+        <translation>Note:</translation>
+    </message>
+    <message>
+        <source>(text changed) </source>
+        <translation>(text changed) </translation>
+    </message>
+    <message>
+        <source>Edit note</source>
+        <translation>Edit note</translation>
+    </message>
+    <message>
+        <source>Delete highlight</source>
+        <translation>Delete highlight</translation>
+    </message>
+    <message>
+        <source>Shelves</source>
+        <translation>Shelves</translation>
+    </message>
+    <message>
+        <source>← Back</source>
+        <translation>← Back</translation>
+    </message>
+    <message>
+        <source>Text size, font and colours</source>
+        <translation>Text size, font and colours</translation>
+    </message>
+    <message>
+        <source>Smaller text</source>
+        <translation>Smaller text</translation>
+    </message>
+    <message>
+        <source>Larger text</source>
+        <translation>Larger text</translation>
+    </message>
+    <message>
+        <source>Serif font</source>
+        <translation>Serif font</translation>
+    </message>
+    <message>
+        <source>Sans-serif font</source>
+        <translation>Sans-serif font</translation>
+    </message>
+    <message>
+        <source>Light</source>
+        <translation>Light</translation>
+    </message>
+    <message>
+        <source>Sepia</source>
+        <translation>Sepia</translation>
+    </message>
+    <message>
+        <source>Dark</source>
+        <translation>Dark</translation>
+    </message>
+    <message>
+        <source>✎ Change this story</source>
+        <translation>✎ Change this story</translation>
+    </message>
+    <message>
+        <source>Edit, suggest changes, make your own version or translate (Ctrl+E)</source>
+        <translation>Edit, suggest changes, make your own version or translate (Ctrl+E)</translation>
+    </message>
+</context>
+<context>
+    <name>Shelves</name>
+    <message>
+        <source>Favorites</source>
+        <translation>Favorites</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>Living</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>Lived</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>Newest stories</translation>
+    </message>
+    <message>
+        <source>Most active</source>
+        <translation>Most active</translation>
+    </message>
+    <message>
+        <source>Most popular</source>
+        <translation>Most popular</translation>
+    </message>
+    <message>
+        <source>Favorite</source>
+        <translation>Favorite</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>Audio</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>Text</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>Story</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>Screenplay</translation>
+    </message>
+    <message>
+        <source>{percent}% read</source>
+        <translation>{percent}% read</translation>
+    </message>
+    <message>
+        <source>in my library</source>
+        <translation>in my library</translation>
+    </message>
+    <message>
+        <source>Add to shelf</source>
+        <translation>Add to shelf</translation>
+    </message>
+    <message>
+        <source>This item can&apos;t be put on a shelf.</source>
+        <translation>This item can&apos;t be put on a shelf.</translation>
+    </message>
+    <message>
+        <source>Loading…</source>
+        <translation>Loading…</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to use shelves.</source>
+        <translation>Log in to Crowdly to use shelves.</translation>
+    </message>
+    <message>
+        <source>Shelves are not available: {error}</source>
+        <translation>Shelves are not available: {error}</translation>
+    </message>
+    <message>
+        <source>New shelf…</source>
+        <translation>New shelf…</translation>
+    </message>
+    <message>
+        <source>Shelves: {error}</source>
+        <translation>Shelves: {error}</translation>
+    </message>
+    <message>
+        <source>Saved</source>
+        <translation>Saved</translation>
+    </message>
+    <message>
+        <source>Added to the shelf</source>
+        <translation>Added to the shelf</translation>
+    </message>
+    <message>
+        <source>Removed from the shelf</source>
+        <translation>Removed from the shelf</translation>
+    </message>
+    <message>
+        <source>New shelf</source>
+        <translation>New shelf</translation>
+    </message>
+    <message>
+        <source>Shelf name:</source>
+        <translation>Shelf name:</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>My shelves</source>
+        <translation>My shelves</translation>
+    </message>
+    <message>
+        <source>New smart shelf</source>
+        <translation>New smart shelf</translation>
+    </message>
+    <message>
+        <source>Offline - showing the shelves as they were last loaded.</source>
+        <translation>Offline - showing the shelves as they were last loaded.</translation>
+    </message>
+    <message>
+        <source>This smart shelf fills itself from its rules.</source>
+        <translation>This smart shelf fills itself from its rules.</translation>
+    </message>
+    <message>
+        <source>This shelf is empty. Use &quot;Add to shelf&quot; on a book or story.</source>
+        <translation>This shelf is empty. Use &quot;Add to shelf&quot; on a book or story.</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>Untitled</translation>
+    </message>
+    <message>
+        <source>Rename…</source>
+        <translation>Rename…</translation>
+    </message>
+    <message>
+        <source>Edit rules…</source>
+        <translation>Edit rules…</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>Sort by</translation>
+    </message>
+    <message>
+        <source>Delete shelf</source>
+        <translation>Delete shelf</translation>
+    </message>
+    <message>
+        <source>Rename shelf</source>
+        <translation>Rename shelf</translation>
+    </message>
+    <message>
+        <source>Delete the shelf &quot;{name}&quot;? The books and stories on it are not deleted.</source>
+        <translation>Delete the shelf &quot;{name}&quot;? The books and stories on it are not deleted.</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>Open</translation>
+    </message>
+    <message>
+        <source>Remove from this shelf</source>
+        <translation>Remove from this shelf</translation>
+    </message>
+    <message>
+        <source>My order</source>
+        <translation>My order</translation>
+    </message>
+    <message>
+        <source>Title</source>
+        <translation>Title</translation>
+    </message>
+    <message>
+        <source>Recently added</source>
+        <translation>Recently added</translation>
+    </message>
+    <message>
+        <source>Reading progress</source>
+        <translation>Reading progress</translation>
+    </message>
+    <message>
+        <source>Recently read</source>
+        <translation>Recently read</translation>
+    </message>
+</context>
+<context>
+    <name>SmartShelfDialog</name>
+    <message>
+        <source>Smart shelf</source>
+        <translation>Smart shelf</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation>Name</translation>
+    </message>
+    <message>
+        <source>all of these rules</source>
+        <translation>all of these rules</translation>
+    </message>
+    <message>
+        <source>any of these rules</source>
+        <translation>any of these rules</translation>
+    </message>
+    <message>
+        <source>Show items that match</source>
+        <translation>Show items that match</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>Sort by</translation>
+    </message>
+    <message>
+        <source>Add rule</source>
+        <translation>Add rule</translation>
+    </message>
+    <message>
+        <source>Source</source>
+        <translation>Source</translation>
+    </message>
+    <message>
+        <source>Format</source>
+        <translation>Format</translation>
+    </message>
+    <message>
+        <source>Language</source>
+        <translation>Language</translation>
+    </message>
+    <message>
+        <source>Title</source>
+        <translation>Title</translation>
+    </message>
+    <message>
+        <source>Author</source>
+        <translation>Author</translation>
+    </message>
+    <message>
+        <source>Crowdly status</source>
+        <translation>Crowdly status</translation>
+    </message>
+    <message>
+        <source>Reading progress</source>
+        <translation>Reading progress</translation>
+    </message>
+    <message>
+        <source>Added in the last</source>
+        <translation>Added in the last</translation>
+    </message>
+    <message>
+        <source>Read in the last</source>
+        <translation>Read in the last</translation>
+    </message>
+    <message>
+        <source>is</source>
+        <translation>is</translation>
+    </message>
+    <message>
+        <source>contains</source>
+        <translation>contains</translation>
+    </message>
+    <message>
+        <source>days (at most)</source>
+        <translation>days (at most)</translation>
+    </message>
+    <message>
+        <source>My library</source>
+        <translation>My library</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>Audio</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>Text</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>Story</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>Screenplay</translation>
+    </message>
+    <message>
+        <source>Favorite</source>
+        <translation>Favorite</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>Living</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>Lived</translation>
+    </message>
+    <message>
+        <source>Not started</source>
+        <translation>Not started</translation>
+    </message>
+    <message>
+        <source>In progress</source>
+        <translation>In progress</translation>
+    </message>
+    <message>
+        <source>Finished</source>
+        <translation>Finished</translation>
+    </message>
+    <message>
+        <source>Please give the shelf a name.</source>
+        <translation>Please give the shelf a name.</translation>
+    </message>
+    <message>
+        <source>Every rule needs a value.</source>
+        <translation>Every rule needs a value.</translation>
+    </message>
+</context>
+<context>
+    <name>BrowsePage</name>
+    <message>
+        <source>Continue reading</source>
+        <translation>Continue reading</translation>
+    </message>
+    <message>
+        <source>Favorites</source>
+        <translation>Favorites</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>Newest stories</translation>
+    </message>
+    <message>
+        <source>Newest screenplays</source>
+        <translation>Newest screenplays</translation>
+    </message>
+    <message>
+        <source>Most popular stories</source>
+        <translation>Most popular stories</translation>
+    </message>
+    <message>
+        <source>Most popular screenplays</source>
+        <translation>Most popular screenplays</translation>
+    </message>
+    <message>
+        <source>Most active screenplays</source>
+        <translation>Most active screenplays</translation>
+    </message>
+    <message>
+        <source>Most active stories</source>
+        <translation>Most active stories</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>Living</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>Lived</translation>
+    </message>
+    <message>
+        <source>See all ›</source>
+        <translation>See all ›</translation>
+    </message>
+    <message>
+        <source>‹ Back</source>
+        <translation>‹ Back</translation>
+    </message>
+    <message>
+        <source>Try again</source>
+        <translation>Try again</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>Untitled</translation>
+    </message>
+    <message>
+        <source>Loading Crowdly…</source>
+        <translation>Loading Crowdly…</translation>
+    </message>
+    <message>
+        <source>Crowdly could not be reached: {error}</source>
+        <translation>Crowdly could not be reached: {error}</translation>
+    </message>
+</context>
+<context>
+    <name>LibraryPage</name>
+    <message>
+        <source>Continue reading</source>
+        <translation>Continue reading</translation>
+    </message>
+    <message>
+        <source>All books</source>
+        <translation>All books</translation>
+    </message>
+    <message>
+        <source>Audiobooks</source>
+        <translation>Audiobooks</translation>
+    </message>
+    <message>
+        <source>Crowdly stories</source>
+        <translation>Crowdly stories</translation>
+    </message>
+    <message>
+        <source>+ New shelf</source>
+        <translation>+ New shelf</translation>
+    </message>
+    <message>
+        <source>+ New smart shelf</source>
+        <translation>+ New smart shelf</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>Sort by</translation>
+    </message>
+    <message>
+        <source>Grid</source>
+        <translation>Grid</translation>
+    </message>
+    <message>
+        <source>List</source>
+        <translation>List</translation>
+    </message>
+    <message>
+        <source>Also on Crowdly</source>
+        <translation>Also on Crowdly</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>Untitled</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to use shelves.</source>
+        <translation>Log in to Crowdly to use shelves.</translation>
+    </message>
+    <message>
+        <source>Shelves are not available: {error}</source>
+        <translation>Shelves are not available: {error}</translation>
+    </message>
+    <message>
+        <source>This computer</source>
+        <translation>This computer</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>My shelves</source>
+        <translation>My shelves</translation>
+    </message>
+    <message>
+        <source>Loading…</source>
+        <translation>Loading…</translation>
+    </message>
+    <message>
+        <source>Offline - showing the shelves as they were last loaded.</source>
+        <translation>Offline - showing the shelves as they were last loaded.</translation>
+    </message>
+    <message>
+        <source>This smart shelf fills itself from its rules.</source>
+        <translation>This smart shelf fills itself from its rules.</translation>
+    </message>
+    <message>
+        <source>Nothing here matches your search.</source>
+        <translation>Nothing here matches your search.</translation>
+    </message>
+    <message>
+        <source>Books and stories you have started appear here.</source>
+        <translation>Books and stories you have started appear here.</translation>
+    </message>
+    <message>
+        <source>This shelf is empty. Drag a book or story onto it, or use &quot;Add to shelf&quot;.</source>
+        <translation>This shelf is empty. Drag a book or story onto it, or use &quot;Add to shelf&quot;.</translation>
+    </message>
+    <message>
+        <source>Shelves: {error}</source>
+        <translation>Shelves: {error}</translation>
+    </message>
+    <message>
+        <source>New shelf</source>
+        <translation>New shelf</translation>
+    </message>
+    <message>
+        <source>Shelf name:</source>
+        <translation>Shelf name:</translation>
+    </message>
+    <message>
+        <source>Rename…</source>
+        <translation>Rename…</translation>
+    </message>
+    <message>
+        <source>Edit rules…</source>
+        <translation>Edit rules…</translation>
+    </message>
+    <message>
+        <source>Delete shelf</source>
+        <translation>Delete shelf</translation>
+    </message>
+    <message>
+        <source>Rename shelf</source>
+        <translation>Rename shelf</translation>
+    </message>
+    <message>
+        <source>Delete the shelf &quot;{name}&quot;? The books and stories on it are not deleted.</source>
+        <translation>Delete the shelf &quot;{name}&quot;? The books and stories on it are not deleted.</translation>
+    </message>
+    <message>
+        <source>Turn on Synchronisation with web platform to put library books on shelves.</source>
+        <translation>Turn on Synchronisation with web platform to put library books on shelves.</translation>
+    </message>
+    <message>
+        <source>Added to &quot;{shelf}&quot;</source>
+        <translation>Added to &quot;{shelf}&quot;</translation>
+    </message>
+</context>
+<context>
+    <name>_DropZone</name>
+    <message>
+        <source>Drop EPUB, PDF, audio or text files here, or use &quot;+ Add books&quot;.
+Your books stay private to you.</source>
+        <translation>Drop EPUB, PDF, audio or text files here, or use &quot;+ Add books&quot;.
+Your books stay private to you.</translation>
+    </message>
+</context>
+<context>
+    <name>ChangeStoryDialog</name>
+    <message>
+        <source>Change this story</source>
+        <translation>Change this story</translation>
+    </message>
+    <message>
+        <source>Translate into</source>
+        <translation>Translate into</translation>
+    </message>
+    <message>
+        <source>Start from a copy of the original text</source>
+        <translation>Start from a copy of the original text</translation>
+    </message>
+    <message>
+        <source>Start with empty chapters</source>
+        <translation>Start with empty chapters</translation>
+    </message>
+    <message>
+        <source>Hi! I&apos;d love to help with this story…</source>
+        <translation>Hi! I&apos;d love to help with this story…</translation>
+    </message>
+    <message>
+        <source>Continue</source>
+        <translation>Continue</translation>
+    </message>
+    <message>
+        <source>Suggest changes</source>
+        <translation>Suggest changes</translation>
+    </message>
+    <message>
+        <source>Edit the story in Creation; your changes are sent to the author as suggestions to approve.</source>
+        <translation>Edit the story in Creation; your changes are sent to the author as suggestions to approve.</translation>
+    </message>
+    <message>
+        <source>Make my own version</source>
+        <translation>Make my own version</translation>
+    </message>
+    <message>
+        <source>Copy the story into a new story of your own that you can change freely.</source>
+        <translation>Copy the story into a new story of your own that you can change freely.</translation>
+    </message>
+    <message>
+        <source>The author doesn&apos;t allow copies of this story.</source>
+        <translation>The author doesn&apos;t allow copies of this story.</translation>
+    </message>
+    <message>
+        <source>Translate</source>
+        <translation>Translate</translation>
+    </message>
+    <message>
+        <source>Start a translation into another language, as a new story of your own.</source>
+        <translation>Start a translation into another language, as a new story of your own.</translation>
+    </message>
+    <message>
+        <source>The author doesn&apos;t allow translations of this story.</source>
+        <translation>The author doesn&apos;t allow translations of this story.</translation>
+    </message>
+    <message>
+        <source>Ask to collaborate</source>
+        <translation>Ask to collaborate</translation>
+    </message>
+    <message>
+        <source>Ask the author to invite you, so you can change the story directly.</source>
+        <translation>Ask the author to invite you, so you can change the story directly.</translation>
+    </message>
+    <message>
+        <source>You already asked; the author hasn&apos;t answered yet.</source>
+        <translation>You already asked; the author hasn&apos;t answered yet.</translation>
+    </message>
+    <message>
+        <source>The author declined your earlier request to collaborate.</source>
+        <translation>The author declined your earlier request to collaborate.</translation>
+    </message>
+    <message>
+        <source>Message to the author (optional):</source>
+        <translation>Message to the author (optional):</translation>
+    </message>
+    <message>
+        <source>Start translation</source>
+        <translation>Start translation</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; belongs to another author, so you can&apos;t change it directly. How would you like to change it?</source>
+        <translation>&quot;{title}&quot; belongs to another author, so you can&apos;t change it directly. How would you like to change it?</translation>
+    </message>
+    <message>
+        <source>Send request</source>
+        <translation>Send request</translation>
     </message>
 </context>
 </TS>

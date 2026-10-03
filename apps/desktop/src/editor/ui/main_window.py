@@ -33,6 +33,7 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QPushButton,
     QWidgetAction,
+    QStackedWidget,
 )
 from PySide6.QtCore import Qt, QTimer, QEvent, QCoreApplication, QObject, QThread, Signal, QUrl
 from PySide6.QtGui import (
@@ -47,7 +48,11 @@ from PySide6.QtGui import (
 )
 
 from ..document import Document
-from ..settings import Settings, save_settings, load_spaces_status_log
+from ..settings import Settings, save_settings, load_spaces_status_log, get_config_dir
+from .. import app_modes
+from ..app_modes import MODE_CREATION, MODE_DISCOVERY
+from .. import session_store
+from .. import suggestions
 from .. import file_metadata
 from .. import story_sync
 from .. import websync
@@ -78,10 +83,16 @@ class MainWindow(QMainWindow):
         *,
         translator: object | None = None,
         restore_sync: bool = False,
+        mode: str | None = None,
     ) -> None:
         super().__init__(parent)
 
         self._settings = settings
+
+        # Discovery / Creation mode of this window (see editor.app_modes).
+        # The Discovery page is built the first time it is shown.
+        self._mode: str = MODE_CREATION
+        self._discovery_view = None
         self._project_space_path: Path | None = settings.project_space
 
         # Known creative spaces (project-space roots) that the user can switch between.
@@ -240,6 +251,13 @@ class MainWindow(QMainWindow):
         if screen is not None:
             self.setGeometry(screen.availableGeometry())
 
+        initial_mode = (
+            app_modes.normalize_mode(mode)
+            or app_modes.normalize_mode(getattr(settings, "startup_mode", None))
+            or MODE_CREATION
+        )
+        self.set_mode(initial_mode)
+
         # Only the app's first window resumes sync from the saved settings;
         # extra windows (Cmd/Ctrl+N) must not prompt for a second login.
         if restore_sync:
@@ -269,6 +287,13 @@ class MainWindow(QMainWindow):
         self._burger_button = burger_button
 
         menu = QMenu(burger_button)
+        # Switch this window between Discovery and Creation (the label names
+        # the mode it switches *to*; see set_mode).
+        self._action_switch_mode = menu.addAction("", self._toggle_mode)
+        # Discovery only: import books into the library.
+        self._action_add_books = menu.addAction(self.tr("Add books…"), self._discovery_add_books)
+        menu.addSeparator()
+
         # These actions are placeholders for now and will be wired up in
         # later iterations (e.g. New, Open, Settings, Toggle distraction-free).
         new_menu = menu.addMenu(self.tr("New"))
@@ -460,9 +485,46 @@ class MainWindow(QMainWindow):
 
         self._update_language_actions()
 
-        self._action_session_control = settings_menu.addAction(
-            self.tr("Session control"), self._show_session_control_dialog
+        # Startup: which mode a launch opens in, and whether it resumes the
+        # last session (see editor.session_store).
+        startup_menu = settings_menu.addMenu(self.tr("Startup"))
+        self._startup_menu = startup_menu
+        startup_menu.aboutToShow.connect(self._update_startup_actions)
+
+        self._start_in_menu = startup_menu.addMenu(self.tr("Start in"))
+        start_in_group = QActionGroup(self)
+        start_in_group.setExclusive(True)
+        self._action_start_in_discovery = self._start_in_menu.addAction(
+            app_modes.display_name(MODE_DISCOVERY)
         )
+        self._action_start_in_creation = self._start_in_menu.addAction(
+            app_modes.display_name(MODE_CREATION)
+        )
+        for action, value in (
+            (self._action_start_in_discovery, MODE_DISCOVERY),
+            (self._action_start_in_creation, MODE_CREATION),
+        ):
+            action.setCheckable(True)
+            start_in_group.addAction(action)
+            action.triggered.connect(lambda _=False, v=value: self._set_startup_mode(v))
+
+        self._on_launch_menu = startup_menu.addMenu(self.tr("On launch"))
+        on_launch_group = QActionGroup(self)
+        on_launch_group.setExclusive(True)
+        self._action_launch_resume = self._on_launch_menu.addAction(
+            self.tr("Start where I left off")
+        )
+        self._action_launch_defaults = self._on_launch_menu.addAction(
+            self.tr("Start with default settings")
+        )
+        for action, value in (
+            (self._action_launch_resume, "keep_session"),
+            (self._action_launch_defaults, "close_all"),
+        ):
+            action.setCheckable(True)
+            on_launch_group.addAction(action)
+            action.triggered.connect(lambda _=False, v=value: self._set_session_control(v))
+        self._update_startup_actions()
 
         # "View" menu removed; pane visibility is now controlled via
         # checkboxes in the top bar.
@@ -510,6 +572,23 @@ class MainWindow(QMainWindow):
         self._menu = menu
 
         top_layout.addWidget(burger_button)
+
+        # Discovery | Creation segmented toggle for this window.
+        self._mode_button_group = QButtonGroup(top_bar)
+        self._mode_button_group.setExclusive(True)
+        self._btn_mode_discovery = QToolButton(top_bar)
+        self._btn_mode_creation = QToolButton(top_bar)
+        for button, value in (
+            (self._btn_mode_discovery, MODE_DISCOVERY),
+            (self._btn_mode_creation, MODE_CREATION),
+        ):
+            button.setCheckable(True)
+            button.setAutoRaise(True)
+            self._mode_button_group.addButton(button)
+            button.clicked.connect(lambda _=False, v=value: self.set_mode(v))
+            top_layout.addWidget(button)
+        self._btn_mode_creation.setChecked(True)
+
         top_layout.addStretch(1)
 
         # Checkboxes in the top-right to control which panes are visible.
@@ -597,10 +676,34 @@ class MainWindow(QMainWindow):
         # Create the initial tab backed by the initial in-memory document.
         self._create_tab_for_document(self._document)
 
-        # Assemble layout: top bar above the search bar and tab widget.
+        # Assemble layout: the top bar above a stack holding the Creation page
+        # (search bar + tab widget) and, once used, the Discovery page.
+        self._mode_stack = QStackedWidget(container)
+        self._creation_page = QWidget(self._mode_stack)
+        creation_layout = QVBoxLayout(self._creation_page)
+        creation_layout.setContentsMargins(0, 0, 0, 0)
+        creation_layout.setSpacing(0)
+        # Shown above the editor while a suggestion copy is open (see
+        # editor.suggestions): edits go to the author as suggestions.
+        self._suggestion_bar = QWidget(self._creation_page)
+        self._suggestion_bar.setStyleSheet("background: #fff4d6;")
+        suggestion_layout = QHBoxLayout(self._suggestion_bar)
+        suggestion_layout.setContentsMargins(10, 6, 10, 6)
+        self._suggestion_label = QLabel(self._suggestion_bar)
+        self._suggestion_label.setWordWrap(True)
+        self._suggestion_label.setStyleSheet("color: #5b4500;")
+        suggestion_layout.addWidget(self._suggestion_label, 1)
+        self._btn_send_suggestions = QPushButton(self._suggestion_bar)
+        self._btn_send_suggestions.clicked.connect(self._send_suggestions)
+        suggestion_layout.addWidget(self._btn_send_suggestions)
+        self._suggestion_bar.setVisible(False)
+        creation_layout.addWidget(self._suggestion_bar)
+        creation_layout.addWidget(self._search_bar)
+        creation_layout.addWidget(self._tab_widget, 1)
+        self._mode_stack.addWidget(self._creation_page)
+
         root_layout.addWidget(top_bar)
-        root_layout.addWidget(self._search_bar)
-        root_layout.addWidget(self._tab_widget, 1)
+        root_layout.addWidget(self._mode_stack, 1)
 
         self.setCentralWidget(container)
 
@@ -683,8 +786,19 @@ class MainWindow(QMainWindow):
         both in a single title, e.g. "document.md — Distraction-Free Editor".
         """
 
-        app_name = self.tr("Distraction-Free Editor")
+        app_name = app_modes.display_name(getattr(self, "_mode", MODE_CREATION))
         title = app_name
+
+        if getattr(self, "_mode", MODE_CREATION) == MODE_DISCOVERY:
+            view = getattr(self, "_discovery_view", None)
+            name = view.current_title() if view is not None else ""
+            if name:
+                title = f"{name} — {app_name}"
+            try:
+                self.setWindowTitle(title)
+            except Exception:
+                pass
+            return
 
         path = getattr(self._document, "path", None)
         if isinstance(path, Path):
@@ -703,6 +817,7 @@ class MainWindow(QMainWindow):
         except Exception:
             # Never let title updates affect core behaviour.
             pass
+        self._update_suggestion_bar()
 
     def _update_filename_header_label(self) -> None:
         """Update any inline filename header label, if present.
@@ -2359,30 +2474,35 @@ class MainWindow(QMainWindow):
                 self._settings.session_open_tabs = []
                 self._settings.session_tab_titles = []
                 self._settings.session_active_tab = 0
+                self._settings.session_state = {}
                 save_settings(self._settings)
             except Exception:
                 pass
         else:
-            # "keep_session" – persist every open tab that has a saved file so
-            # they can be re-opened on the next launch.
+            # "keep_session" ("Start where I left off"): snapshot every open
+            # window at once (see editor.session_store), but only when the
+            # whole app is closing. A single extra window closed on its own
+            # just drops out of the next snapshot instead of overwriting it.
             try:
-                tab_paths: list[str] = []
-                tab_titles: list[str] = []
-                for i, doc in enumerate(self._tab_documents):
-                    p = getattr(doc, "path", None)
-                    if isinstance(p, Path) and p.is_file():
-                        tab_paths.append(str(p))
-                        # Save the current tab title.  If it matches the
-                        # filename the user did not rename it, so store an
-                        # empty string (meaning "use the filename").
-                        title = self._tab_widget.tabText(i) if i < self._tab_widget.count() else ""
-                        if title == p.name:
-                            title = ""
-                        tab_titles.append(title)
-                self._settings.session_open_tabs = tab_paths
-                self._settings.session_tab_titles = tab_titles
-                self._settings.session_active_tab = self._current_tab_index
-                save_settings(self._settings)
+                app = QCoreApplication.instance()
+                if app is not None and self._closing_whole_app(app):
+                    if not getattr(app, "_crowdly_session_captured", False):
+                        windows = self._live_main_windows(app)
+                        if self not in windows:
+                            windows.insert(0, self)
+                        self._settings.session_state = session_store.capture_session(windows)
+                        self._sync_legacy_session_keys()
+                        save_settings(self._settings)
+                        setattr(app, "_crowdly_session_captured", True)
+            except Exception:
+                import traceback
+
+                traceback.print_exc()
+
+        # Flush the reading position and session of an open book.
+        if self._discovery_view is not None:
+            try:
+                self._discovery_view.deactivate()
             except Exception:
                 pass
 
@@ -2710,8 +2830,19 @@ class MainWindow(QMainWindow):
                 self._action_login_logout.setText(self.tr("Logout"))
             else:
                 self._action_login_logout.setText(self.tr("Login"))
-        if hasattr(self, "_action_session_control"):
-            self._action_session_control.setText(self.tr("Session control"))
+        if hasattr(self, "_startup_menu"):
+            self._startup_menu.setTitle(self.tr("Startup"))
+            self._start_in_menu.setTitle(self.tr("Start in"))
+            self._action_start_in_discovery.setText(app_modes.display_name(MODE_DISCOVERY))
+            self._action_start_in_creation.setText(app_modes.display_name(MODE_CREATION))
+            self._on_launch_menu.setTitle(self.tr("On launch"))
+            self._action_launch_resume.setText(self.tr("Start where I left off"))
+            self._action_launch_defaults.setText(self.tr("Start with default settings"))
+        if hasattr(self, "_action_add_books"):
+            self._action_add_books.setText(self.tr("Add books…"))
+        self._update_mode_labels()
+        if getattr(self, "_discovery_view", None) is not None:
+            self._discovery_view.retranslate()
         if hasattr(self, "_action_quit"):
             self._action_quit.setText(self.tr("Quit"))
 
@@ -3459,8 +3590,11 @@ class MainWindow(QMainWindow):
             return
 
         try:
-            # Reuse the current settings instance so preferences are shared.
-            new_window = MainWindow(self._settings, parent=None, translator=self._translator)
+            # Reuse the current settings instance so preferences are shared,
+            # and open in this window's mode.
+            new_window = MainWindow(
+                self._settings, parent=None, translator=self._translator, mode=self._mode
+            )
             new_window.show()
 
             # Explicitly raise and activate the window so it opens in front.
@@ -6574,6 +6708,10 @@ class MainWindow(QMainWindow):
         if not valid_paths:
             return
 
+        # Documents open in the editor, i.e. in Creation mode.
+        if getattr(self, "_mode", MODE_CREATION) != MODE_CREATION:
+            self.set_mode(MODE_CREATION)
+
         # Split into `.master` files and regular documents.
         master_paths: list[Path] = []
         normal_paths: list[Path] = []
@@ -6655,77 +6793,674 @@ class MainWindow(QMainWindow):
         save_settings(self._settings)
         self._update_project_space_status()
 
-    def _show_session_control_dialog(self) -> None:  # pragma: no cover - UI wiring
-        """Open a dialog that lets the user choose session-close behaviour."""
+    # Discovery / Creation modes ------------------------------------------------
 
-        dialog = QDialog(self)
-        dialog.setWindowTitle(self.tr("Session control"))
-        dialog.setMinimumWidth(480)
+    def set_mode(self, mode: str) -> None:
+        """Show this window in Discovery or Creation mode."""
 
-        layout = QVBoxLayout(dialog)
-
-        description = QLabel(
-            self.tr(
-                "Here you can decide how the session control for closing of "
-                "the app should work."
-            )
-        )
-        description.setWordWrap(True)
-        layout.addWidget(description)
-
-        label = QLabel(self.tr("The app will:"))
-        layout.addWidget(label)
-
-        radio_close_all = QRadioButton(
-            self.tr(
-                "Close all its tabs and clear creative / project Space"
-            )
-        )
-        radio_keep_session = QRadioButton(
-            self.tr(
-                "Keep the current session (saves all the opened tabs and "
-                "windows, and the Space remains set)"
-            )
-        )
-
-        button_group = QButtonGroup(dialog)
-        button_group.addButton(radio_close_all)
-        button_group.addButton(radio_keep_session)
-
-        current = getattr(self._settings, "session_control", "close_all")
-        if current == "keep_session":
-            radio_keep_session.setChecked(True)
+        mode = app_modes.normalize_mode(mode) or MODE_CREATION
+        if mode == MODE_DISCOVERY:
+            view = self._ensure_discovery_view()
+            self._mode_stack.setCurrentWidget(view)
         else:
-            radio_close_all.setChecked(True)
+            if self._discovery_view is not None and self._mode == MODE_DISCOVERY:
+                self._discovery_view.deactivate()
+            self._mode_stack.setCurrentWidget(self._creation_page)
+        self._mode = mode
 
-        layout.addWidget(radio_close_all)
-        layout.addWidget(radio_keep_session)
+        creation = mode == MODE_CREATION
+        for menu in (
+            getattr(self, "_import_menu", None),
+            getattr(self, "_export_menu", None),
+            getattr(self, "_save_as_menu", None),
+            getattr(self, "_search_menu", None),
+            getattr(self, "_insert_menu", None),
+            getattr(self, "_story_settings_menu", None),
+        ):
+            if menu is not None:
+                menu.menuAction().setVisible(creation)
+        for shortcut in (
+            getattr(self, "_shortcut_find", None),
+            getattr(self, "_shortcut_find_next", None),
+            getattr(self, "_shortcut_find_previous", None),
+            getattr(self, "_shortcut_replace", None),
+            getattr(self, "_shortcut_new_tab", None),
+        ):
+            if shortcut is not None:
+                shortcut.setEnabled(creation)
+        self._chk_md_editor.setVisible(creation)
+        self._chk_wysiwyg.setVisible(creation)
+        self._action_add_books.setVisible(not creation)
+        if not creation and getattr(self, "_search_bar", None) is not None:
+            self._search_bar.setVisible(False)
 
-        button_layout = QHBoxLayout()
-        button_layout.addStretch()
-        save_button = QPushButton(self.tr("Save"))
-        cancel_button = QPushButton(self.tr("Cancel"))
-        button_layout.addWidget(save_button)
-        button_layout.addWidget(cancel_button)
-        layout.addLayout(button_layout)
+        self._update_mode_labels()
+        if mode == MODE_DISCOVERY:
+            self._discovery_view.activate()
+        self._update_window_title()
 
-        def _on_save() -> None:
-            if radio_keep_session.isChecked():
-                self._settings.session_control = "keep_session"
+    def mode(self) -> str:
+        return self._mode
+
+    def discovery_view(self):
+        """The window's Discovery page (created on demand)."""
+
+        return self._ensure_discovery_view()
+
+    def _toggle_mode(self) -> None:  # pragma: no cover - UI wiring
+        self.set_mode(MODE_CREATION if self._mode == MODE_DISCOVERY else MODE_DISCOVERY)
+
+    def _update_mode_labels(self) -> None:
+        if not hasattr(self, "_btn_mode_discovery"):
+            return
+        self._btn_mode_discovery.setText(app_modes.short_name(MODE_DISCOVERY))
+        self._btn_mode_creation.setText(app_modes.short_name(MODE_CREATION))
+        self._btn_mode_discovery.setToolTip(app_modes.display_name(MODE_DISCOVERY))
+        self._btn_mode_creation.setToolTip(app_modes.display_name(MODE_CREATION))
+        button = self._btn_mode_discovery if self._mode == MODE_DISCOVERY else self._btn_mode_creation
+        button.setChecked(True)
+        if self._mode == MODE_DISCOVERY:
+            self._action_switch_mode.setText(self.tr("Switch to Creation"))
+        else:
+            self._action_switch_mode.setText(self.tr("Switch to Discovery"))
+
+    def _shared_library(self):
+        """One LocalLibrary per app, shared by every window's Discovery page."""
+
+        from ..library.store import LocalLibrary
+
+        app = QCoreApplication.instance()
+        library = getattr(app, "_crowdly_library", None) if app is not None else None
+        if library is None:
+            library = LocalLibrary(get_config_dir() / "library")
+            if app is not None:
+                setattr(app, "_crowdly_library", library)
+        return library
+
+    def _shared_shelf_store(self):
+        """One LocalShelfStore per app, next to the shared library."""
+
+        from ..library.shelf_store import LocalShelfStore
+
+        app = QCoreApplication.instance()
+        store = getattr(app, "_crowdly_shelf_store", None) if app is not None else None
+        if store is None:
+            store = LocalShelfStore(get_config_dir() / "library" / "shelves.json", self._shared_library())
+            if app is not None:
+                setattr(app, "_crowdly_shelf_store", store)
+        return store
+
+    def _ensure_discovery_view(self):
+        if self._discovery_view is not None:
+            return self._discovery_view
+        from .discovery import DiscoveryView
+
+        view = DiscoveryView(
+            self._settings,
+            self._shared_library(),
+            api_base=lambda: websync._build_api_base(self._settings),
+            credentials=self._discovery_credentials,
+            sync_enabled=lambda: bool(getattr(self, "_sync_web_platform", False)),
+            on_rights_confirmed=self._confirm_library_rights,
+            shelf_store=self._shared_shelf_store(),
+            parent=self._mode_stack,
+        )
+        view.titleChanged.connect(lambda _title: self._update_window_title())
+        view.statusMessage.connect(lambda message: self.statusBar().showMessage(message, 8000))
+        view.convertRequested.connect(self._convert_library_item_to_story)
+        view.changeStoryRequested.connect(self._change_story_from_discovery)
+        view.changeBookRequested.connect(self._change_book_from_discovery)
+        self._mode_stack.addWidget(view)
+        self._discovery_view = view
+        return view
+
+    def _discovery_credentials(self, prompt: bool) -> tuple[str, str] | None:
+        """Crowdly credentials for Discovery; prompts for a login only if *prompt*."""
+
+        if self._crowdly_web_credentials is not None:
+            return self._crowdly_web_credentials
+        remembered = crowdly_session.load(self._settings)
+        if remembered is not None:
+            self._crowdly_web_credentials = remembered
+            return remembered
+        if prompt:
+            return self._ensure_crowdly_web_credentials()
+        return None
+
+    def _confirm_library_rights(self) -> None:
+        self._settings.library_rights_confirmed = True
+        save_settings(self._settings)
+
+    def _discovery_add_books(self) -> None:  # pragma: no cover - UI wiring
+        if self._mode != MODE_DISCOVERY:
+            self.set_mode(MODE_DISCOVERY)
+        view = self._ensure_discovery_view()
+        if view.has_access():
+            view.add_books()
+
+    def _convert_library_item_to_story(self, item_id: str) -> None:  # pragma: no cover - UI wiring
+        """Turn an imported book the user holds the rights to into a story draft.
+
+        The book is converted to Markdown (same importer as Import from
+        file), saved into the project Space and opened in Creation mode.
+        From there the existing story pipeline takes over: with web sync on,
+        the document becomes a Crowdly story like any other local story.
+        """
+
+        from ..library.store import CONVERTIBLE_RIGHTS
+
+        library = self._shared_library()
+        item = library.get(item_id)
+        if item is None:
+            return
+        if item.rights_status not in CONVERTIBLE_RIGHTS:
+            QMessageBox.information(
+                self,
+                self.tr("Convert to Crowdly story"),
+                self.tr(
+                    "Only your own work, public-domain books or books under a "
+                    "Creative Commons licence that allows changes can become "
+                    "Crowdly stories. Set the book's rights first."
+                ),
+            )
+            return
+        source = library.file_path(item)
+        if source is None:
+            return
+
+        if self._project_space_path is None:
+            QMessageBox.information(
+                self,
+                self.tr("Project space required"),
+                self.tr("Please create or choose your project space first."),
+            )
+            self._choose_project_space()
+            if self._project_space_path is None:
+                return
+
+        try:
+            markdown_text = self._book_as_markdown(source)
+        except Exception as exc:
+            QMessageBox.warning(self, self.tr("Import failed"), str(exc))
+            return
+        if not markdown_text.strip():
+            QMessageBox.information(
+                self,
+                self.tr("Import"),
+                self.tr("The selected file did not contain any importable content."),
+            )
+            return
+
+        safe = "".join(c for c in item.title if c.isalnum() or c in " -_").strip() or "Book"
+        target = self._project_space_path / f"{safe}.md"
+        counter = 2
+        while target.exists():
+            target = self._project_space_path / f"{safe} {counter}.md"
+            counter += 1
+        header = f"# {item.title}\n\n" if not markdown_text.lstrip().startswith("#") else ""
+        target.write_text(header + markdown_text, encoding="utf-8")
+
+        self.set_mode(MODE_CREATION)
+        self._open_paths_from_cli([str(target)])
+
+        if item.remote_id and getattr(self, "_sync_web_platform", False):
+            creds = self._discovery_credentials(False)
+            if creds is not None:
+                from .discovery.tasks import run_in_background
+
+                base = websync._build_api_base(self._settings)
+                remote_id = item.remote_id
+                run_in_background(
+                    lambda: _record_conversion(base, creds, remote_id), None, None
+                )
+
+        QMessageBox.information(
+            self,
+            self.tr("Convert to Crowdly story"),
+            self.tr(
+                "\"{title}\" is now open in Creation mode as {file}. With "
+                "Synchronisation with web platform on, it becomes a Crowdly story "
+                "when it is saved."
+            ).format(title=item.title, file=target.name),
+        )
+
+    # "I want to change this story" (Discovery -> Creation) -----------------------
+
+    def _crowdly_client(self, credentials):
+        from ..crowdly_client import CrowdlyClient
+
+        return CrowdlyClient(websync._build_api_base(self._settings), credentials=credentials, timeout_seconds=30.0)
+
+    def _ensure_project_space(self) -> bool:
+        if self._project_space_path is None:
+            QMessageBox.information(
+                self,
+                self.tr("Project space required"),
+                self.tr("Please create or choose your project space first."),
+            )
+            self._choose_project_space()
+        return self._project_space_path is not None
+
+    def _change_failed(self, message: str) -> None:
+        self.statusBar().clearMessage()
+        QMessageBox.warning(self, self.tr("Change this story"), message)
+
+    def _change_story_from_discovery(self, story_id: str, title: str) -> None:  # pragma: no cover - UI wiring
+        """Route a reader to the right way of changing a story.
+
+        The owner and invited collaborators edit the story directly; everyone
+        else chooses between suggesting changes, their own copy, a
+        translation, or asking to collaborate (ChangeStoryDialog).
+        """
+
+        from .change_story_dialog import (
+            CHOICE_CLONE,
+            CHOICE_COLLABORATE,
+            CHOICE_SUGGEST,
+            CHOICE_TRANSLATE,
+            ChangeStoryDialog,
+        )
+        from .discovery.tasks import run_in_background
+
+        creds = self._discovery_credentials(True)
+        if creds is None or not self._ensure_project_space():
+            return
+        self.statusBar().showMessage(self.tr("Checking how you can change \"{title}\"…").format(title=title))
+
+        def work():
+            client = self._crowdly_client(creds)
+            options = client.change_options(story_id)
+            locales = [] if options.get("explicit") else client.list_locales()
+            return options, locales
+
+        def done(result) -> None:
+            self.statusBar().clearMessage()
+            options, locales = result
+            if options.get("explicit"):
+                self._open_story_for_change(story_id, creds, suggest=False)
+                return
+            dialog = ChangeStoryDialog(options, locales, self)
+            if not dialog.exec():
+                return
+            if dialog.choice == CHOICE_SUGGEST:
+                self._open_story_for_change(story_id, creds, suggest=True)
+            elif dialog.choice == CHOICE_CLONE:
+                self.statusBar().showMessage(self.tr("Making your own version…"))
+                run_in_background(
+                    lambda: self._crowdly_client(creds).clone_story(story_id),
+                    lambda new_id: self._open_story_for_change(new_id, creds, suggest=False, own_copy=True),
+                    self._change_failed,
+                )
+            elif dialog.choice == CHOICE_TRANSLATE and dialog.language:
+                language, start = dialog.language, dialog.start
+                self.statusBar().showMessage(self.tr("Starting the translation…"))
+                run_in_background(
+                    lambda: self._crowdly_client(creds).create_translation(story_id, language, start),
+                    lambda new_id: self._open_story_for_change(new_id, creds, suggest=False, own_copy=True),
+                    self._change_failed,
+                )
+            elif dialog.choice == CHOICE_COLLABORATE:
+                message = dialog.message
+
+                def sent(_request) -> None:
+                    QMessageBox.information(
+                        self,
+                        self.tr("Ask to collaborate"),
+                        self.tr(
+                            "Your request was sent to the author of \"{title}\". Once they accept it, "
+                            "\"I want to change this story\" opens the story for direct editing."
+                        ).format(title=options.get("title") or title),
+                    )
+
+                run_in_background(
+                    lambda: self._crowdly_client(creds).request_collaboration(story_id, message),
+                    sent,
+                    self._change_failed,
+                )
+
+        run_in_background(work, done, self._change_failed)
+
+    def _open_story_for_change(
+        self, story_id: str, creds, *, suggest: bool, own_copy: bool = False
+    ) -> None:  # pragma: no cover - UI wiring
+        """Fetch a story and open it in Creation (directly or as a suggestion copy)."""
+
+        from .discovery.tasks import run_in_background
+
+        base = websync._build_api_base(self._settings)
+        self.statusBar().showMessage(self.tr("Opening the story in Creation…"))
+
+        def work():
+            client = self._crowdly_client(creds)
+            story = client.fetch_story(f"{base}/story/{story_id}")
+            chapters = client.fetch_chapters(story_id) if suggest else None
+            return story, chapters
+
+        def done(result) -> None:
+            story, chapters = result
+            self.statusBar().clearMessage()
+            path = self._import_story_locally(story, chapters)
+            if path is None:
+                return
+            self.set_mode(MODE_CREATION)
+            self._open_paths_from_cli([str(path)])
+            self._update_suggestion_bar()
+            if suggest:
+                text = self.tr(
+                    "\"{title}\" is open as a suggestion copy. Change anything you like, then "
+                    "click \"Send my suggestions\": the author sees each change and decides."
+                )
+            elif own_copy:
+                text = self.tr(
+                    "\"{title}\" is your own story now. With Synchronisation with web platform on, "
+                    "your changes are saved to Crowdly."
+                )
             else:
-                self._settings.session_control = "close_all"
-                # Clear any stale session-restore data when switching to
-                # "close_all" so the next launch does not unexpectedly
-                # reopen old tabs.
-                self._settings.session_open_tabs = []
-                self._settings.session_active_tab = 0
-            save_settings(self._settings)
-            dialog.accept()
+                text = self.tr(
+                    "\"{title}\" is open for editing. With Synchronisation with web platform on, "
+                    "your changes are saved to Crowdly."
+                )
+            QMessageBox.information(self, self.tr("Change this story"), text.format(title=story.title or ""))
 
-        save_button.clicked.connect(_on_save)
-        cancel_button.clicked.connect(dialog.reject)
+        run_in_background(work, done, self._change_failed)
 
-        dialog.exec()
+    @staticmethod
+    def _book_as_markdown(source: Path) -> str:
+        """An imported book's text as Markdown (text/Markdown files as they are)."""
+
+        if source.suffix.lower() in (".md", ".markdown", ".txt"):
+            return source.read_text(encoding="utf-8", errors="replace")
+        markdown_text, _metadata = importing_controller.import_to_markdown(source)
+        return markdown_text
+
+    def _change_book_from_discovery(self, item_id: str) -> None:  # pragma: no cover - UI wiring
+        """"Change this story" for an imported book: ask who wrote it, then
+        open it as a story draft (own work / public domain / CC) or as a
+        private, local-only copy (someone else's book)."""
+
+        from ..library.store import (
+            CONVERTIBLE_RIGHTS,
+            RIGHTS_CC_LICENSED,
+            RIGHTS_OWN_WORK,
+            RIGHTS_PERSONAL_COPY,
+            RIGHTS_PUBLIC_DOMAIN,
+            RIGHTS_UNKNOWN,
+        )
+
+        library = self._shared_library()
+        item = library.get(item_id)
+        if item is None:
+            return
+        if item.rights_status == RIGHTS_UNKNOWN:
+            choices = [
+                (RIGHTS_OWN_WORK, self.tr("My own work")),
+                (RIGHTS_PUBLIC_DOMAIN, self.tr("Public domain")),
+                (RIGHTS_CC_LICENSED, self.tr("Creative Commons licence that allows changes")),
+                (RIGHTS_PERSONAL_COPY, self.tr("Someone else's book (my personal copy)")),
+            ]
+            label, ok = QInputDialog.getItem(
+                self,
+                self.tr("Change this story"),
+                self.tr(
+                    "Who wrote \"{title}\"?\n\n"
+                    "Your own work, public-domain and Creative Commons books open as a story you "
+                    "can publish on Crowdly. Someone else's book opens as a private copy that "
+                    "stays on this computer."
+                ).format(title=item.title),
+                [text for _key, text in choices],
+                0,
+                False,
+            )
+            if not ok:
+                return
+            status = next(key for key, text in choices if text == label)
+            library.set_rights(item.id, status)
+            if self._discovery_view is not None:
+                self._discovery_view.sync_now(interactive=False)
+        if item.rights_status in CONVERTIBLE_RIGHTS:
+            self._convert_library_item_to_story(item.id)
+        else:
+            self._open_private_copy(item)
+
+    def _open_private_copy(self, item) -> None:  # pragma: no cover - UI wiring
+        """Open an editable copy of someone else's book that never leaves this computer.
+
+        It is saved outside the project Space (so no Space, Drive, GitHub or
+        web sync sees it) and marked private, which _maybe_sync_story_to_web
+        respects.
+        """
+
+        library = self._shared_library()
+        source = library.file_path(item)
+        if source is None:
+            return
+        folder = get_config_dir() / "library" / "private-edits"
+        safe = "".join(c for c in item.title if c.isalnum() or c in " -_").strip() or "Book"
+        existing = sorted(folder.glob(f"{safe}*.md")) if folder.is_dir() else []
+        target = next((p for p in existing if suggestions.is_private_copy(p)), None)
+        if target is None:
+            try:
+                markdown_text = self._book_as_markdown(source)
+            except Exception as exc:
+                QMessageBox.warning(self, self.tr("Import failed"), str(exc))
+                return
+            folder.mkdir(parents=True, exist_ok=True)
+            target = folder / f"{safe}.md"
+            counter = 2
+            while target.exists():
+                target = folder / f"{safe} {counter}.md"
+                counter += 1
+            header = f"# {item.title}\n\n" if not markdown_text.lstrip().startswith("#") else ""
+            target.write_text(header + markdown_text, encoding="utf-8")
+            suggestions.mark_private_copy(target, item.title)
+        self.set_mode(MODE_CREATION)
+        self._open_paths_from_cli([str(target)])
+        self._update_suggestion_bar()
+
+    def _import_story_locally(self, story, chapters: list | None) -> Path | None:
+        """Save a fetched story into the project space (as for Open → Story on the web)."""
+
+        import traceback
+
+        from ..story_import import map_story_to_document, persist_import_metadata, suggest_local_path
+
+        try:
+            doc = map_story_to_document(story)
+            doc.kind = "story"
+            doc.storage_format = "markdown"
+            path = suggest_local_path(self._project_space_path, story)
+            doc.save(path)
+            persist_import_metadata(path, story)
+            if chapters is not None:
+                suggestions.mark_suggestion_copy(path, chapters)
+            try:
+                local_queue.ensure_crowdly_dir_for_document(path)
+            except Exception:
+                pass
+            return path
+        except Exception:
+            traceback.print_exc()
+            QMessageBox.warning(self, self.tr("Error"), self.tr("Failed to save the imported story locally."))
+            return None
+
+    def _update_suggestion_bar(self) -> None:
+        bar = getattr(self, "_suggestion_bar", None)
+        if bar is None:
+            return
+        path = getattr(self._document, "path", None)
+        mode = (
+            suggestions.edit_mode(path)
+            if getattr(self, "_mode", MODE_CREATION) == MODE_CREATION and isinstance(path, Path)
+            else None
+        )
+        if mode == suggestions.EDIT_MODE_SUGGEST:
+            title = file_metadata.get_attr(path, file_metadata.FIELD_STORY_TITLE) or path.stem
+            self._suggestion_label.setText(
+                self.tr(
+                    "Suggestion copy of \"{title}\" - your edits are sent to the author as suggestions."
+                ).format(title=title)
+            )
+            self._btn_send_suggestions.setText(self.tr("Send my suggestions"))
+        elif mode == suggestions.EDIT_MODE_PRIVATE:
+            self._suggestion_label.setText(
+                self.tr(
+                    "Private copy of \"{title}\" - only on this computer, never synced or published."
+                ).format(title=path.stem)
+            )
+        self._btn_send_suggestions.setVisible(mode == suggestions.EDIT_MODE_SUGGEST)
+        bar.setVisible(mode in (suggestions.EDIT_MODE_SUGGEST, suggestions.EDIT_MODE_PRIVATE))
+
+    def _offer_suggestion_copy(self, message: str) -> None:  # pragma: no cover - UI wiring
+        path = self._get_current_document_path()
+        story_id = file_metadata.get_attr(path, file_metadata.FIELD_STORY_ID) if path else None
+        if path is None or not story_id:
+            QMessageBox.warning(self, self.tr("Sync failed"), message)
+            return
+        answer = QMessageBox.question(
+            self,
+            self.tr("You can't change this story directly"),
+            self.tr(
+                "Only the author and invited collaborators can change this story directly.\n\n"
+                "Turn this file into a suggestion copy? Your edits are kept and you can send them "
+                "to the author as suggestions."
+            ),
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        creds = self._discovery_credentials(True)
+        if creds is None:
+            return
+        from .discovery.tasks import run_in_background
+
+        def done(chapters) -> None:
+            suggestions.mark_suggestion_copy(path, chapters)
+            self._update_suggestion_bar()
+
+        run_in_background(lambda: self._crowdly_client(creds).fetch_chapters(story_id), done, self._change_failed)
+
+    def _send_suggestions(self) -> None:  # pragma: no cover - UI wiring
+        path = self._get_current_document_path()
+        if path is None or not suggestions.is_suggestion_copy(path):
+            return
+        story_id = file_metadata.get_attr(path, file_metadata.FIELD_STORY_ID)
+        if not story_id:
+            return
+        # Save first so the file and the suggestions agree.
+        try:
+            if self._autosave_timer.isActive():
+                self._autosave_timer.stop()
+            self._perform_autosave()
+        except Exception:
+            pass
+        snapshot, sent = suggestions.suggestion_state(path)
+        content = getattr(self._document, "content", "") or ""
+        plan = suggestions.build_proposals(snapshot, content, already_sent=sent)
+        if not plan.proposals:
+            text = self.tr("There are no new changes to suggest.")
+            if plan.skipped:
+                text += "\n\n" + self.tr("These changes can't be sent as suggestions:") + "\n• " + "\n• ".join(plan.skipped)
+            QMessageBox.information(self, self.tr("Send my suggestions"), text)
+            return
+        details = self.tr("{count} suggestion(s) will be sent to the author.").format(count=len(plan.proposals))
+        if plan.skipped:
+            details += "\n\n" + self.tr(
+                "These changes can't be sent as suggestions (use \"Make my own version\" for them):"
+            ) + "\n• " + "\n• ".join(plan.skipped)
+        details += "\n\n" + self.tr(
+            "The author approves each suggestion separately. If one of them changes the number of "
+            "paragraphs, later suggestions in the same chapter may need the author's attention."
+        )
+        if QMessageBox.question(self, self.tr("Send my suggestions"), details) != QMessageBox.StandardButton.Yes:
+            return
+        creds = self._discovery_credentials(True)
+        if creds is None:
+            return
+        from .discovery.tasks import run_in_background
+
+        proposals = plan.proposals
+
+        def work():
+            client = self._crowdly_client(creds)
+            sent_now = []
+            for proposal in proposals:
+                client.create_proposal(
+                    story_id,
+                    target_type=proposal.target_type,
+                    chapter_id=proposal.chapter_id,
+                    proposed_text=proposal.text,
+                    target_path=proposal.target_path,
+                )
+                sent_now.append(proposal)
+            return sent_now
+
+        def done(sent_now) -> None:
+            suggestions.record_sent(path, sent_now)
+            QMessageBox.information(
+                self,
+                self.tr("Send my suggestions"),
+                self.tr("Sent {count} suggestion(s). The author will review them on Crowdly.").format(count=len(sent_now)),
+            )
+
+        run_in_background(work, done, self._change_failed)
+
+    def _update_startup_actions(self) -> None:
+        mode = app_modes.normalize_mode(getattr(self._settings, "startup_mode", None)) or MODE_CREATION
+        self._action_start_in_discovery.setChecked(mode == MODE_DISCOVERY)
+        self._action_start_in_creation.setChecked(mode == MODE_CREATION)
+        resume = getattr(self._settings, "session_control", "close_all") == "keep_session"
+        self._action_launch_resume.setChecked(resume)
+        self._action_launch_defaults.setChecked(not resume)
+
+    def _set_startup_mode(self, mode: str) -> None:  # pragma: no cover - UI wiring
+        self._settings.startup_mode = app_modes.normalize_mode(mode) or MODE_CREATION
+        save_settings(self._settings)
+
+    def _set_session_control(self, value: str) -> None:  # pragma: no cover - UI wiring
+        self._settings.session_control = value
+        if value == "close_all":
+            # Clear stale session-restore data so the next launch does not
+            # unexpectedly reopen old windows and tabs.
+            self._settings.session_open_tabs = []
+            self._settings.session_tab_titles = []
+            self._settings.session_active_tab = 0
+            self._settings.session_state = {}
+        save_settings(self._settings)
+
+    def _live_main_windows(self, app) -> list:
+        """Visible MainWindows, the primary window first."""
+
+        windows: list = []
+        primary = getattr(app, "_main_window", None)
+        candidates = [primary] + list(getattr(app, "_extra_windows", None) or [])
+        for win in candidates:
+            if not isinstance(win, MainWindow) or win in windows:
+                continue
+            try:
+                if win.isVisible():
+                    windows.append(win)
+            except RuntimeError:
+                continue
+        return windows
+
+    def _closing_whole_app(self, app) -> bool:
+        """True when this close ends the app rather than one extra window."""
+
+        if getattr(app, "_crowdly_quitting", False):
+            return True
+        if getattr(app, "_main_window", None) is self:
+            return True
+        others = [w for w in self._live_main_windows(app) if w is not self]
+        return not others
+
+    def _sync_legacy_session_keys(self) -> None:
+        """Mirror the first window's tabs into the pre-v2 session keys."""
+
+        windows = (self._settings.session_state or {}).get("windows") or []
+        first = windows[0] if windows else {}
+        tabs = first.get("tabs") or []
+        self._settings.session_open_tabs = [t["path"] for t in tabs if t.get("path")]
+        self._settings.session_tab_titles = [t.get("title") or "" for t in tabs]
+        self._settings.session_active_tab = int(first.get("active_tab") or 0)
 
     def _get_current_document_path(self) -> Path | None:
         """Return the current document path, if it exists on disk."""
@@ -7244,6 +7979,12 @@ class MainWindow(QMainWindow):
         try:
             path = self._get_current_document_path()
             if path is None:
+                return
+
+            # Suggestion copies are never synced directly: their edits go to
+            # the author as suggestions ("Send my suggestions"). Private
+            # copies of someone else's book are never synced at all.
+            if suggestions.edit_mode(path) in (suggestions.EDIT_MODE_SUGGEST, suggestions.EDIT_MODE_PRIVATE):
                 return
 
             # Screenplays created from the Crowdly template store their
@@ -7840,6 +8581,11 @@ class MainWindow(QMainWindow):
                 bar.clearMessage()
 
             msg = str(error)
+            # Not the owner or an invited collaborator: offer to turn the file
+            # into a suggestion copy instead of retrying a sync that can't work.
+            if "Suggest changes instead" in msg or "not_permitted" in msg:
+                self._offer_suggestion_copy(msg)
+                return
             # If the backend reports an authentication failure, treat it as a
             # login problem and guide the user to correct their credentials.
             if "Login failed" in msg or "auth" in msg.lower():
@@ -8816,3 +9562,13 @@ class _GoogleDriveSyncThread(QThread):
             except Exception as exc:  # pragma: no cover - network dependent
                 outcomes.append((root, None, str(exc)))
         self.syncFinished.emit(outcomes)
+
+
+def _record_conversion(base_url: str, credentials: tuple[str, str], remote_id: str) -> None:
+    """Tell the backend a library item was converted (it re-checks the rights)."""
+
+    from ..library.sync import LibrarySyncClient
+
+    client = LibrarySyncClient(base_url, credentials)
+    client.login()
+    client.convert_to_story(remote_id, "")

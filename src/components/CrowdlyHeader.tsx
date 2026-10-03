@@ -51,10 +51,37 @@ const CrowdlyHeader = () => {
     refresh: refreshLiveUpdates,
   } = useLiveUpdates();
 
-  const notificationText = (n: (typeof notifications)[number]) =>
-    n.type === "friend_request"
+  const notificationText = (n: (typeof notifications)[number]): React.ReactNode => {
+    if (n.type === "collaboration_request") {
+      return (
+        <>
+          {n.payload.requesterName ?? ""}{" "}
+          <EditableText id="header-notif-collab-request" layoutScoped>asks to collaborate on</EditableText>{" "}
+          <Link to={`/story/${n.payload.storyTitleId}`} className="text-indigo-700 underline">
+            {n.payload.storyTitle}
+          </Link>
+        </>
+      );
+    }
+    if (n.type === "collaboration_request_decided") {
+      return (
+        <>
+          <Link to={`/story/${n.payload.storyTitleId}`} className="text-indigo-700 underline">
+            {n.payload.storyTitle}
+          </Link>
+          {": "}
+          {n.payload.status === "approved" ? (
+            <EditableText id="header-notif-collab-approved" layoutScoped>you are now a collaborator</EditableText>
+          ) : (
+            <EditableText id="header-notif-collab-declined" layoutScoped>the author declined your request</EditableText>
+          )}
+        </>
+      );
+    }
+    return n.type === "friend_request"
       ? `${n.payload.fromEmail ?? "Someone"} sent you a friend request`
       : `${n.payload.byEmail ?? "Someone"} accepted your friend request`;
+  };
 
   const handleAcceptFromBell = async (requestId: string, notificationId: string) => {
     setBusyRequestIds((prev) => new Set(prev).add(requestId));
