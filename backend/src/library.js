@@ -35,6 +35,8 @@ const CONVERTIBLE_RIGHTS = new Set(['own_work', 'public_domain', 'cc_licensed'])
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SHA256_RE = /^[0-9a-f]{64}$/;
 const MIN_SESSION_SECONDS = 10;
+const MAX_COVER_BYTES = 2 * 1024 * 1024;
+const COVER_TYPES = { png: 'image/png', jpg: 'image/jpeg' };
 const MAX_SESSION_SECONDS = 24 * 60 * 60;
 
 const router = express.Router();
@@ -54,6 +56,7 @@ function serializeItem(row) {
     file_sha256: row.file_sha256,
     file_size: row.file_size === null ? null : Number(row.file_size),
     has_file: Boolean(row.storage_key),
+    has_cover: Boolean(row.cover_key),
     rights_status: row.rights_status,
     rights_declared_at: row.rights_declared_at,
     visibility: row.visibility,
@@ -230,6 +233,60 @@ router.get('/library/items/:id/file', requireAuth, async (req, res) => {
   }
 });
 
+// Cover thumbnail of an imported book (made on the device that imported it),
+// stored next to the book file and, like it, only ever served to its owner.
+function coverType(buffer) {
+  if (buffer.length > 8 && buffer.readUInt32BE(0) === 0x89504e47) return 'png';
+  if (buffer.length > 3 && buffer[0] === 0xff && buffer[1] === 0xd8) return 'jpg';
+  return null;
+}
+
+router.put(
+  '/library/items/:id/cover',
+  requireAuth,
+  express.raw({ type: () => true, limit: MAX_COVER_BYTES }),
+  async (req, res) => {
+    try {
+      const item = await loadOwnItem(req.user.id, req.params.id);
+      if (!item) return res.status(404).json({ error: 'Library item not found' });
+      const data = req.body;
+      const type = Buffer.isBuffer(data) ? coverType(data) : null;
+      if (!type) return res.status(400).json({ error: 'The cover must be a PNG or JPEG image' });
+      const coverKey = `${req.user.id}/${item.id}`;
+      const target = `${filePathFor(coverKey)}.cover`;
+      await fs.promises.mkdir(path.dirname(target), { recursive: true });
+      const tmp = `${target}.${randomUUID()}.tmp`;
+      await fs.promises.writeFile(tmp, data);
+      await fs.promises.rename(tmp, target);
+      const { rows } = await pool.query(
+        'UPDATE library_items SET cover_key = $1, updated_at = now() WHERE id = $2 AND user_id = $3 RETURNING *',
+        [`${coverKey}.${type}`, item.id, req.user.id],
+      );
+      res.json({ item: serializeItem(rows[0]) });
+    } catch (err) {
+      console.error('[PUT /library/items/:id/cover] failed:', err);
+      res.status(500).json({ error: 'Failed to store cover' });
+    }
+  },
+);
+
+router.get('/library/items/:id/cover', requireAuth, async (req, res) => {
+  try {
+    const item = await loadOwnItem(req.user.id, req.params.id);
+    if (!item || !item.cover_key) return res.status(404).json({ error: 'Cover not found' });
+    const [key, type] = [item.cover_key.slice(0, item.cover_key.lastIndexOf('.')), item.cover_key.split('.').pop()];
+    const filePath = filePathFor(key);
+    if (!filePath || !COVER_TYPES[type] || !fs.existsSync(`${filePath}.cover`)) {
+      return res.status(404).json({ error: 'Cover not found' });
+    }
+    res.set({ 'Content-Type': COVER_TYPES[type], 'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff' });
+    res.sendFile(`${filePath}.cover`);
+  } catch (err) {
+    console.error('[GET /library/items/:id/cover] failed:', err);
+    res.status(500).json({ error: 'Failed to read cover' });
+  }
+});
+
 router.patch('/library/items/:id', requireAuth, async (req, res) => {
   const body = req.body ?? {};
   try {
@@ -266,7 +323,7 @@ router.delete('/library/items/:id', requireAuth, async (req, res) => {
     const item = await loadOwnItem(req.user.id, req.params.id);
     if (!item) return res.status(404).json({ error: 'Library item not found' });
     await pool.query(
-      `UPDATE library_items SET deleted_at = now(), storage_key = NULL, updated_at = now()
+      `UPDATE library_items SET deleted_at = now(), storage_key = NULL, cover_key = NULL, updated_at = now()
         WHERE id = $1 AND user_id = $2`,
       [item.id, req.user.id],
     );
@@ -274,6 +331,8 @@ router.delete('/library/items/:id', requireAuth, async (req, res) => {
       const filePath = filePathFor(item.storage_key);
       if (filePath) await fs.promises.rm(filePath, { force: true });
     }
+    const coverPath = filePathFor(`${req.user.id}/${item.id}`);
+    if (coverPath) await fs.promises.rm(`${coverPath}.cover`, { force: true });
     res.status(204).send();
   } catch (err) {
     console.error('[DELETE /library/items/:id] failed:', err);

@@ -320,6 +320,98 @@ Solo tu propia obra, los libros de dominio público o con licencia Creative Comm
         <source>Sync failed</source>
         <translation>Error de sincronización</translation>
     </message>
+    <message>
+        <source>Shelves</source>
+        <translation>Estanterías</translation>
+    </message>
+    <message>
+        <source>Turn on Synchronisation with web platform to put library books on shelves.</source>
+        <translation>Activa la sincronización con la plataforma web para poner libros de la biblioteca en estanterías.</translation>
+    </message>
+    <message>
+        <source>Book not on this computer</source>
+        <translation>El libro no está en este ordenador</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is in your Crowdly library but not on this computer yet. Sync your library to download it.</source>
+        <translation>«{title}» está en tu biblioteca de Crowdly pero aún no en este ordenador. Sincroniza tu biblioteca para descargarlo.</translation>
+    </message>
+    <message>
+        <source>Screenplays can&apos;t be read in Discovery yet - open them on the web platform.</source>
+        <translation>Los guiones aún no se pueden leer en Descubrir: ábrelos en la plataforma web.</translation>
+    </message>
+    <message>
+        <source>My Library</source>
+        <translation>Mi biblioteca</translation>
+    </message>
+    <message>
+        <source>+ Add books</source>
+        <translation>+ Añadir libros</translation>
+    </message>
+    <message>
+        <source>Add to shelf</source>
+        <translation>Añadir a una estantería</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>Historia</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>Guion</translation>
+    </message>
+    <message>
+        <source>Audiobook</source>
+        <translation>Audiolibro</translation>
+    </message>
+    <message>
+        <source>{count} scenes</source>
+        <translation>{count} escenas</translation>
+    </message>
+    <message>
+        <source>{count} chapters</source>
+        <translation>{count} capítulos</translation>
+    </message>
+    <message>
+        <source>Listen</source>
+        <translation>Escuchar</translation>
+    </message>
+    <message>
+        <source>Read</source>
+        <translation>Leer</translation>
+    </message>
+    <message>
+        <source>Remove from this shelf</source>
+        <translation>Quitar de esta estantería</translation>
+    </message>
+    <message>
+        <source>Details</source>
+        <translation>Detalles</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to browse.</source>
+        <translation>Inicia sesión en Crowdly para explorar.</translation>
+    </message>
+    <message>
+        <source>Search my library and Crowdly…</source>
+        <translation>Buscar en mi biblioteca y en Crowdly…</translation>
+    </message>
+    <message>
+        <source>Search Crowdly…</source>
+        <translation>Buscar en Crowdly…</translation>
+    </message>
+    <message>
+        <source>Search results for &quot;{query}&quot;</source>
+        <translation>Resultados de «{query}»</translation>
+    </message>
+    <message>
+        <source>Sync off</source>
+        <translation>Sincronización desactivada</translation>
+    </message>
+    <message>
+        <source>Click to sync now</source>
+        <translation>Haz clic para sincronizar ahora</translation>
+    </message>
 </context>
 <context>
     <name>ReaderWidget</name>
@@ -398,6 +490,571 @@ Solo tu propia obra, los libros de dominio público o con licencia Creative Comm
     <message>
         <source>Delete highlight</source>
         <translation>Eliminar resaltado</translation>
+    </message>
+    <message>
+        <source>Shelves</source>
+        <translation>Estanterías</translation>
+    </message>
+    <message>
+        <source>← Back</source>
+        <translation>← Atrás</translation>
+    </message>
+    <message>
+        <source>Text size, font and colours</source>
+        <translation>Tamaño del texto, fuente y colores</translation>
+    </message>
+    <message>
+        <source>Smaller text</source>
+        <translation>Texto más pequeño</translation>
+    </message>
+    <message>
+        <source>Larger text</source>
+        <translation>Texto más grande</translation>
+    </message>
+    <message>
+        <source>Serif font</source>
+        <translation>Fuente con serifa</translation>
+    </message>
+    <message>
+        <source>Sans-serif font</source>
+        <translation>Fuente sin serifa</translation>
+    </message>
+    <message>
+        <source>Light</source>
+        <translation>Claro</translation>
+    </message>
+    <message>
+        <source>Sepia</source>
+        <translation>Sepia</translation>
+    </message>
+    <message>
+        <source>Dark</source>
+        <translation>Oscuro</translation>
+    </message>
+</context>
+<context>
+    <name>Shelves</name>
+    <message>
+        <source>Favorites</source>
+        <translation>Favoritos</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>La estoy viviendo</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>Vivida</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>Historias más recientes</translation>
+    </message>
+    <message>
+        <source>Most active</source>
+        <translation>Más activas</translation>
+    </message>
+    <message>
+        <source>Most popular</source>
+        <translation>Más populares</translation>
+    </message>
+    <message>
+        <source>Favorite</source>
+        <translation>Favorito</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>Audio</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>Texto</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>Historia</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>Guion</translation>
+    </message>
+    <message>
+        <source>{percent}% read</source>
+        <translation>{percent} % leído</translation>
+    </message>
+    <message>
+        <source>in my library</source>
+        <translation>en mi biblioteca</translation>
+    </message>
+    <message>
+        <source>Add to shelf</source>
+        <translation>Añadir a una estantería</translation>
+    </message>
+    <message>
+        <source>Turn on Synchronisation with web platform to put library books on shelves</source>
+        <translation>Activa la sincronización con la plataforma web para poner libros de la biblioteca en estanterías</translation>
+    </message>
+    <message>
+        <source>Loading…</source>
+        <translation>Cargando…</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to use shelves.</source>
+        <translation>Inicia sesión en Crowdly para usar las estanterías.</translation>
+    </message>
+    <message>
+        <source>Shelves are not available: {error}</source>
+        <translation>Las estanterías no están disponibles: {error}</translation>
+    </message>
+    <message>
+        <source>New shelf…</source>
+        <translation>Nueva estantería…</translation>
+    </message>
+    <message>
+        <source>Shelves: {error}</source>
+        <translation>Estanterías: {error}</translation>
+    </message>
+    <message>
+        <source>Saved</source>
+        <translation>Guardado</translation>
+    </message>
+    <message>
+        <source>Added to the shelf</source>
+        <translation>Añadido a la estantería</translation>
+    </message>
+    <message>
+        <source>Removed from the shelf</source>
+        <translation>Quitado de la estantería</translation>
+    </message>
+    <message>
+        <source>New shelf</source>
+        <translation>Nueva estantería</translation>
+    </message>
+    <message>
+        <source>Shelf name:</source>
+        <translation>Nombre de la estantería:</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>My shelves</source>
+        <translation>Mis estanterías</translation>
+    </message>
+    <message>
+        <source>New smart shelf</source>
+        <translation>Nueva estantería inteligente</translation>
+    </message>
+    <message>
+        <source>Offline - showing the shelves as they were last loaded.</source>
+        <translation>Sin conexión: se muestran las estanterías tal como se cargaron por última vez.</translation>
+    </message>
+    <message>
+        <source>This smart shelf fills itself from its rules.</source>
+        <translation>Esta estantería inteligente se llena sola según sus reglas.</translation>
+    </message>
+    <message>
+        <source>This shelf is empty. Use &quot;Add to shelf&quot; on a book or story.</source>
+        <translation>Esta estantería está vacía. Usa «Añadir a una estantería» en un libro o una historia.</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>Sin título</translation>
+    </message>
+    <message>
+        <source>Rename…</source>
+        <translation>Cambiar nombre…</translation>
+    </message>
+    <message>
+        <source>Edit rules…</source>
+        <translation>Editar reglas…</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>Ordenar por</translation>
+    </message>
+    <message>
+        <source>Delete shelf</source>
+        <translation>Eliminar estantería</translation>
+    </message>
+    <message>
+        <source>Rename shelf</source>
+        <translation>Cambiar nombre de la estantería</translation>
+    </message>
+    <message>
+        <source>Delete the shelf &quot;{name}&quot;? The books and stories on it are not deleted.</source>
+        <translation>¿Eliminar la estantería «{name}»? Los libros e historias que contiene no se eliminan.</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>Abrir</translation>
+    </message>
+    <message>
+        <source>Remove from this shelf</source>
+        <translation>Quitar de esta estantería</translation>
+    </message>
+    <message>
+        <source>My order</source>
+        <translation>Mi orden</translation>
+    </message>
+    <message>
+        <source>Title</source>
+        <translation>Título</translation>
+    </message>
+    <message>
+        <source>Recently added</source>
+        <translation>Añadidos recientemente</translation>
+    </message>
+    <message>
+        <source>Reading progress</source>
+        <translation>Progreso de lectura</translation>
+    </message>
+    <message>
+        <source>Recently read</source>
+        <translation>Leídos recientemente</translation>
+    </message>
+</context>
+<context>
+    <name>SmartShelfDialog</name>
+    <message>
+        <source>Smart shelf</source>
+        <translation>Estantería inteligente</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation>Nombre</translation>
+    </message>
+    <message>
+        <source>all of these rules</source>
+        <translation>todas estas reglas</translation>
+    </message>
+    <message>
+        <source>any of these rules</source>
+        <translation>cualquiera de estas reglas</translation>
+    </message>
+    <message>
+        <source>Show items that match</source>
+        <translation>Mostrar elementos que cumplan</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>Ordenar por</translation>
+    </message>
+    <message>
+        <source>Add rule</source>
+        <translation>Añadir regla</translation>
+    </message>
+    <message>
+        <source>Source</source>
+        <translation>Origen</translation>
+    </message>
+    <message>
+        <source>Format</source>
+        <translation>Formato</translation>
+    </message>
+    <message>
+        <source>Language</source>
+        <translation>Idioma</translation>
+    </message>
+    <message>
+        <source>Title</source>
+        <translation>Título</translation>
+    </message>
+    <message>
+        <source>Author</source>
+        <translation>Autor</translation>
+    </message>
+    <message>
+        <source>Crowdly status</source>
+        <translation>Estado en Crowdly</translation>
+    </message>
+    <message>
+        <source>Reading progress</source>
+        <translation>Progreso de lectura</translation>
+    </message>
+    <message>
+        <source>Added in the last</source>
+        <translation>Añadido en los últimos</translation>
+    </message>
+    <message>
+        <source>Read in the last</source>
+        <translation>Leído en los últimos</translation>
+    </message>
+    <message>
+        <source>is</source>
+        <translation>es</translation>
+    </message>
+    <message>
+        <source>contains</source>
+        <translation>contiene</translation>
+    </message>
+    <message>
+        <source>days (at most)</source>
+        <translation>días (como máximo)</translation>
+    </message>
+    <message>
+        <source>My library</source>
+        <translation>Mi biblioteca</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>Audio</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>Texto</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>Historia</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>Guion</translation>
+    </message>
+    <message>
+        <source>Favorite</source>
+        <translation>Favorito</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>La estoy viviendo</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>Vivida</translation>
+    </message>
+    <message>
+        <source>Not started</source>
+        <translation>Sin empezar</translation>
+    </message>
+    <message>
+        <source>In progress</source>
+        <translation>En curso</translation>
+    </message>
+    <message>
+        <source>Finished</source>
+        <translation>Terminado</translation>
+    </message>
+    <message>
+        <source>Please give the shelf a name.</source>
+        <translation>Ponle un nombre a la estantería.</translation>
+    </message>
+    <message>
+        <source>Every rule needs a value.</source>
+        <translation>Cada regla necesita un valor.</translation>
+    </message>
+</context>
+<context>
+    <name>BrowsePage</name>
+    <message>
+        <source>Continue reading</source>
+        <translation>Seguir leyendo</translation>
+    </message>
+    <message>
+        <source>Favorites</source>
+        <translation>Favoritos</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>Historias más recientes</translation>
+    </message>
+    <message>
+        <source>Newest screenplays</source>
+        <translation>Guiones más recientes</translation>
+    </message>
+    <message>
+        <source>Most popular stories</source>
+        <translation>Historias más populares</translation>
+    </message>
+    <message>
+        <source>Most popular screenplays</source>
+        <translation>Guiones más populares</translation>
+    </message>
+    <message>
+        <source>Most active screenplays</source>
+        <translation>Guiones más activos</translation>
+    </message>
+    <message>
+        <source>Most active stories</source>
+        <translation>Historias más activas</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>La estoy viviendo</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>Vivida</translation>
+    </message>
+    <message>
+        <source>See all ›</source>
+        <translation>Ver todo ›</translation>
+    </message>
+    <message>
+        <source>‹ Back</source>
+        <translation>‹ Atrás</translation>
+    </message>
+    <message>
+        <source>Try again</source>
+        <translation>Reintentar</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>Sin título</translation>
+    </message>
+    <message>
+        <source>Loading Crowdly…</source>
+        <translation>Cargando Crowdly…</translation>
+    </message>
+    <message>
+        <source>Crowdly could not be reached: {error}</source>
+        <translation>No se pudo conectar con Crowdly: {error}</translation>
+    </message>
+</context>
+<context>
+    <name>LibraryPage</name>
+    <message>
+        <source>Continue reading</source>
+        <translation>Seguir leyendo</translation>
+    </message>
+    <message>
+        <source>All books</source>
+        <translation>Todos los libros</translation>
+    </message>
+    <message>
+        <source>Audiobooks</source>
+        <translation>Audiolibros</translation>
+    </message>
+    <message>
+        <source>Crowdly stories</source>
+        <translation>Historias de Crowdly</translation>
+    </message>
+    <message>
+        <source>+ New shelf</source>
+        <translation>+ Nueva estantería</translation>
+    </message>
+    <message>
+        <source>+ New smart shelf</source>
+        <translation>+ Nueva estantería inteligente</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>Ordenar por</translation>
+    </message>
+    <message>
+        <source>Grid</source>
+        <translation>Cuadrícula</translation>
+    </message>
+    <message>
+        <source>List</source>
+        <translation>Lista</translation>
+    </message>
+    <message>
+        <source>Also on Crowdly</source>
+        <translation>También en Crowdly</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>Sin título</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to use shelves.</source>
+        <translation>Inicia sesión en Crowdly para usar las estanterías.</translation>
+    </message>
+    <message>
+        <source>Shelves are not available: {error}</source>
+        <translation>Las estanterías no están disponibles: {error}</translation>
+    </message>
+    <message>
+        <source>This computer</source>
+        <translation>Este ordenador</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>My shelves</source>
+        <translation>Mis estanterías</translation>
+    </message>
+    <message>
+        <source>Loading…</source>
+        <translation>Cargando…</translation>
+    </message>
+    <message>
+        <source>Offline - showing the shelves as they were last loaded.</source>
+        <translation>Sin conexión: se muestran las estanterías tal como se cargaron por última vez.</translation>
+    </message>
+    <message>
+        <source>This smart shelf fills itself from its rules.</source>
+        <translation>Esta estantería inteligente se llena sola según sus reglas.</translation>
+    </message>
+    <message>
+        <source>Nothing here matches your search.</source>
+        <translation>Nada aquí coincide con tu búsqueda.</translation>
+    </message>
+    <message>
+        <source>Books and stories you have started appear here.</source>
+        <translation>Aquí aparecen los libros e historias que has empezado.</translation>
+    </message>
+    <message>
+        <source>This shelf is empty. Drag a book or story onto it, or use &quot;Add to shelf&quot;.</source>
+        <translation>Esta estantería está vacía. Arrastra un libro o una historia hasta ella, o usa «Añadir a una estantería».</translation>
+    </message>
+    <message>
+        <source>Shelves: {error}</source>
+        <translation>Estanterías: {error}</translation>
+    </message>
+    <message>
+        <source>New shelf</source>
+        <translation>Nueva estantería</translation>
+    </message>
+    <message>
+        <source>Shelf name:</source>
+        <translation>Nombre de la estantería:</translation>
+    </message>
+    <message>
+        <source>Rename…</source>
+        <translation>Cambiar nombre…</translation>
+    </message>
+    <message>
+        <source>Edit rules…</source>
+        <translation>Editar reglas…</translation>
+    </message>
+    <message>
+        <source>Delete shelf</source>
+        <translation>Eliminar estantería</translation>
+    </message>
+    <message>
+        <source>Rename shelf</source>
+        <translation>Cambiar nombre de la estantería</translation>
+    </message>
+    <message>
+        <source>Delete the shelf &quot;{name}&quot;? The books and stories on it are not deleted.</source>
+        <translation>¿Eliminar la estantería «{name}»? Los libros e historias que contiene no se eliminan.</translation>
+    </message>
+    <message>
+        <source>Turn on Synchronisation with web platform to put library books on shelves.</source>
+        <translation>Activa la sincronización con la plataforma web para poner libros de la biblioteca en estanterías.</translation>
+    </message>
+    <message>
+        <source>Added to &quot;{shelf}&quot;</source>
+        <translation>Añadido a «{shelf}»</translation>
+    </message>
+</context>
+<context>
+    <name>_DropZone</name>
+    <message>
+        <source>Drop EPUB, PDF, audio or text files here, or use &quot;+ Add books&quot;.
+Your books stay private to you.</source>
+        <translation>Suelta aquí archivos EPUB, PDF, de audio o de texto, o usa «+ Añadir libros».
+Tus libros siguen siendo privados.</translation>
     </message>
 </context>
 </TS>

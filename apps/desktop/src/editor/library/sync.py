@@ -141,6 +141,24 @@ class LibrarySyncClient:
             raise LibrarySyncError("Unexpected file response.")
         return bytes(data)
 
+    def upload_cover(self, remote_id: str, path: Path) -> dict:
+        data = self._request(
+            "PUT", f"/library/items/{remote_id}/cover", data=path.read_bytes(), content_type="application/octet-stream"
+        )
+        return data.get("item") if isinstance(data, dict) else {}
+
+    def download_cover(self, remote_id: str) -> bytes:
+        data = self._request("GET", f"/library/items/{remote_id}/cover")
+        if not isinstance(data, (bytes, bytearray)):
+            raise LibrarySyncError("Unexpected cover response.")
+        return bytes(data)
+
+    def discover_home(self) -> list[dict]:
+        """Browse Crowdly rows: [{"key": "newest", "items": [...]}, ...]."""
+
+        data = self._request("GET", "/discover/home")
+        return list(data.get("rows") or []) if isinstance(data, dict) else []
+
     def set_rights(self, remote_id: str, status: str) -> dict:
         data = self._request("PATCH", f"/library/items/{remote_id}", payload={"rightsStatus": status})
         return data.get("item") if isinstance(data, dict) else {}
@@ -182,6 +200,60 @@ class LibrarySyncClient:
             "changes": changes,
         }
         data = self._request("POST", "/reading/highlights/sync", payload=payload)
+        return data if isinstance(data, dict) else {}
+
+    # -- shelves (backend/src/shelves.js) --------------------------------------
+
+    def list_shelves(self) -> dict:
+        data = self._request("GET", "/shelves")
+        return data if isinstance(data, dict) else {"system": [], "custom": []}
+
+    def create_shelf(self, name: str, *, kind: str = "manual", rules: dict | None = None, sort: str | None = None) -> dict:
+        payload: dict[str, Any] = {"name": name, "kind": kind}
+        if rules is not None:
+            payload["rules"] = rules
+        if sort:
+            payload["sort"] = sort
+        data = self._request("POST", "/shelves", payload=payload)
+        return data.get("shelf") if isinstance(data, dict) else {}
+
+    def update_shelf(self, shelf_id: str, **changes: Any) -> dict:
+        data = self._request("PATCH", f"/shelves/{shelf_id}", payload=changes)
+        return data.get("shelf") if isinstance(data, dict) else {}
+
+    def delete_shelf(self, shelf_id: str) -> None:
+        self._request("DELETE", f"/shelves/{shelf_id}")
+
+    def reorder_shelves(self, ids: list[str]) -> None:
+        self._request("PUT", "/shelves/order", payload={"ids": ids})
+
+    def shelf_items(self, key: str) -> dict:
+        data = self._request("GET", f"/shelves/{key}/items")
+        return data if isinstance(data, dict) else {"items": []}
+
+    def add_to_shelf(self, shelf_id: str, item_type: str, item_id: str) -> None:
+        self._request("POST", f"/shelves/{shelf_id}/items", payload={"type": item_type, "id": item_id})
+
+    def remove_from_shelf(self, shelf_id: str, item_id: str, item_type: str | None = None) -> None:
+        """Remove by shelf entry id, or by item id when *item_type* is given."""
+
+        suffix = f"?type={item_type}" if item_type else ""
+        self._request("DELETE", f"/shelves/{shelf_id}/items/{item_id}{suffix}")
+
+    def reorder_shelf_items(self, shelf_id: str, entry_ids: list[str]) -> None:
+        self._request("PUT", f"/shelves/{shelf_id}/items/order", payload={"ids": entry_ids})
+
+    def membership(self, item_type: str, item_id: str) -> dict:
+        data = self._request("GET", f"/shelves/membership?type={item_type}&id={item_id}")
+        return data if isinstance(data, dict) else {"shelves": [], "status": {}}
+
+    def set_story_status(self, content_type: str, content_id: str, **flags: bool) -> dict:
+        payload: dict[str, Any] = {"contentType": content_type}
+        payload["storyTitleId" if content_type == "story" else "screenplayId"] = content_id
+        names = {"favorite": "isFavorite", "living": "isLiving", "lived": "isLived"}
+        for key, value in flags.items():
+            payload[names[key]] = bool(value)
+        data = self._request("PUT", "/me/story-status", payload=payload)
         return data if isinstance(data, dict) else {}
 
 
@@ -233,6 +305,8 @@ def sync_library(library: LocalLibrary, client: LibrarySyncClient, device_id: st
                     report.uploaded += 1
             elif remote and remote.get("has_file"):
                 item.uploaded = True
+            if item.kind == KIND_IMPORTED and item.remote_id:
+                _sync_cover(library, item, remote or {}, client)
             # Rights: the newer declaration wins.
             if remote:
                 remote_ts = str(remote.get("rights_declared_at") or "")
@@ -274,6 +348,7 @@ def sync_library(library: LocalLibrary, client: LibrarySyncClient, device_id: st
                 item.author = remote.get("author") or item.author
                 item.rights_status = remote.get("rights_status") or item.rights_status
                 item.rights_declared_at = remote.get("rights_declared_at")
+                _sync_cover(library, item, remote, client)
                 report.downloaded += 1
         except Exception as exc:  # one bad item must not stop the sync
             report.errors.append(f"{remote.get('title') or remote_id}: {exc}")
@@ -327,6 +402,22 @@ def sync_library(library: LocalLibrary, client: LibrarySyncClient, device_id: st
 
     library.save()
     return report
+
+
+def _sync_cover(library: LocalLibrary, item: LibraryItem, remote: dict, client: LibrarySyncClient) -> None:
+    """Upload this device's cover thumbnail, or fetch the account's one."""
+
+    try:
+        from .covers import store_cover_bytes
+
+        cover = library.cover_path(item)
+        if cover is not None and not item.cover_uploaded:
+            client.upload_cover(item.remote_id, cover)
+            item.cover_uploaded = True
+        elif cover is None and remote.get("has_cover"):
+            store_cover_bytes(library, item, client.download_cover(item.remote_id))
+    except (LibrarySyncError, OSError, ImportError):
+        pass  # a missing cover never fails a sync
 
 
 def _position_from_remote(remote: dict) -> dict:

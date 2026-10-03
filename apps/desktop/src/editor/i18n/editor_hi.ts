@@ -320,6 +320,98 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
         <source>Sync failed</source>
         <translation>सिंक विफल रहा</translation>
     </message>
+    <message>
+        <source>Shelves</source>
+        <translation>शेल्फ़</translation>
+    </message>
+    <message>
+        <source>Turn on Synchronisation with web platform to put library books on shelves.</source>
+        <translation>लाइब्रेरी की किताबें शेल्फ़ पर रखने के लिए वेब प्लेटफ़ॉर्म के साथ सिंक चालू करें।</translation>
+    </message>
+    <message>
+        <source>Book not on this computer</source>
+        <translation>किताब इस कंप्यूटर पर नहीं है</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is in your Crowdly library but not on this computer yet. Sync your library to download it.</source>
+        <translation>&quot;{title}&quot; आपकी Crowdly लाइब्रेरी में है, पर अभी इस कंप्यूटर पर नहीं। इसे डाउनलोड करने के लिए अपनी लाइब्रेरी सिंक करें।</translation>
+    </message>
+    <message>
+        <source>Screenplays can&apos;t be read in Discovery yet - open them on the web platform.</source>
+        <translation>पटकथाएँ अभी खोज में नहीं पढ़ी जा सकतीं - उन्हें वेब प्लेटफ़ॉर्म पर खोलें।</translation>
+    </message>
+    <message>
+        <source>My Library</source>
+        <translation>मेरी लाइब्रेरी</translation>
+    </message>
+    <message>
+        <source>+ Add books</source>
+        <translation>+ किताबें जोड़ें</translation>
+    </message>
+    <message>
+        <source>Add to shelf</source>
+        <translation>शेल्फ़ में जोड़ें</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>कहानी</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>पटकथा</translation>
+    </message>
+    <message>
+        <source>Audiobook</source>
+        <translation>ऑडियोबुक</translation>
+    </message>
+    <message>
+        <source>{count} scenes</source>
+        <translation>{count} दृश्य</translation>
+    </message>
+    <message>
+        <source>{count} chapters</source>
+        <translation>{count} अध्याय</translation>
+    </message>
+    <message>
+        <source>Listen</source>
+        <translation>सुनें</translation>
+    </message>
+    <message>
+        <source>Read</source>
+        <translation>पढ़ें</translation>
+    </message>
+    <message>
+        <source>Remove from this shelf</source>
+        <translation>इस शेल्फ़ से हटाएँ</translation>
+    </message>
+    <message>
+        <source>Details</source>
+        <translation>विवरण</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to browse.</source>
+        <translation>ब्राउज़ करने के लिए Crowdly में लॉग इन करें।</translation>
+    </message>
+    <message>
+        <source>Search my library and Crowdly…</source>
+        <translation>मेरी लाइब्रेरी और Crowdly में खोजें…</translation>
+    </message>
+    <message>
+        <source>Search Crowdly…</source>
+        <translation>Crowdly में खोजें…</translation>
+    </message>
+    <message>
+        <source>Search results for &quot;{query}&quot;</source>
+        <translation>&quot;{query}&quot; के खोज परिणाम</translation>
+    </message>
+    <message>
+        <source>Sync off</source>
+        <translation>सिंक बंद</translation>
+    </message>
+    <message>
+        <source>Click to sync now</source>
+        <translation>अभी सिंक करने के लिए क्लिक करें</translation>
+    </message>
 </context>
 <context>
     <name>ReaderWidget</name>
@@ -398,6 +490,571 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
     <message>
         <source>Delete highlight</source>
         <translation>हाइलाइट हटाएँ</translation>
+    </message>
+    <message>
+        <source>Shelves</source>
+        <translation>शेल्फ़</translation>
+    </message>
+    <message>
+        <source>← Back</source>
+        <translation>← वापस</translation>
+    </message>
+    <message>
+        <source>Text size, font and colours</source>
+        <translation>टेक्स्ट का आकार, फ़ॉन्ट और रंग</translation>
+    </message>
+    <message>
+        <source>Smaller text</source>
+        <translation>छोटा टेक्स्ट</translation>
+    </message>
+    <message>
+        <source>Larger text</source>
+        <translation>बड़ा टेक्स्ट</translation>
+    </message>
+    <message>
+        <source>Serif font</source>
+        <translation>सेरिफ़ फ़ॉन्ट</translation>
+    </message>
+    <message>
+        <source>Sans-serif font</source>
+        <translation>सैन-सेरिफ़ फ़ॉन्ट</translation>
+    </message>
+    <message>
+        <source>Light</source>
+        <translation>हल्का</translation>
+    </message>
+    <message>
+        <source>Sepia</source>
+        <translation>सेपिया</translation>
+    </message>
+    <message>
+        <source>Dark</source>
+        <translation>गहरा</translation>
+    </message>
+</context>
+<context>
+    <name>Shelves</name>
+    <message>
+        <source>Favorites</source>
+        <translation>पसंदीदा</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>जी रहे हैं</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>जी चुके</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>नवीनतम कहानियाँ</translation>
+    </message>
+    <message>
+        <source>Most active</source>
+        <translation>सबसे सक्रिय</translation>
+    </message>
+    <message>
+        <source>Most popular</source>
+        <translation>सबसे लोकप्रिय</translation>
+    </message>
+    <message>
+        <source>Favorite</source>
+        <translation>पसंदीदा</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>ऑडियो</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>टेक्स्ट</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>कहानी</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>पटकथा</translation>
+    </message>
+    <message>
+        <source>{percent}% read</source>
+        <translation>{percent}% पढ़ा गया</translation>
+    </message>
+    <message>
+        <source>in my library</source>
+        <translation>मेरी लाइब्रेरी में</translation>
+    </message>
+    <message>
+        <source>Add to shelf</source>
+        <translation>शेल्फ़ में जोड़ें</translation>
+    </message>
+    <message>
+        <source>Turn on Synchronisation with web platform to put library books on shelves</source>
+        <translation>लाइब्रेरी की किताबें शेल्फ़ पर रखने के लिए वेब प्लेटफ़ॉर्म के साथ सिंक चालू करें</translation>
+    </message>
+    <message>
+        <source>Loading…</source>
+        <translation>लोड हो रहा है…</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to use shelves.</source>
+        <translation>शेल्फ़ इस्तेमाल करने के लिए Crowdly में लॉग इन करें।</translation>
+    </message>
+    <message>
+        <source>Shelves are not available: {error}</source>
+        <translation>शेल्फ़ उपलब्ध नहीं हैं: {error}</translation>
+    </message>
+    <message>
+        <source>New shelf…</source>
+        <translation>नया शेल्फ़…</translation>
+    </message>
+    <message>
+        <source>Shelves: {error}</source>
+        <translation>शेल्फ़: {error}</translation>
+    </message>
+    <message>
+        <source>Saved</source>
+        <translation>सहेजा गया</translation>
+    </message>
+    <message>
+        <source>Added to the shelf</source>
+        <translation>शेल्फ़ में जोड़ा गया</translation>
+    </message>
+    <message>
+        <source>Removed from the shelf</source>
+        <translation>शेल्फ़ से हटाया गया</translation>
+    </message>
+    <message>
+        <source>New shelf</source>
+        <translation>नया शेल्फ़</translation>
+    </message>
+    <message>
+        <source>Shelf name:</source>
+        <translation>शेल्फ़ का नाम:</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>My shelves</source>
+        <translation>मेरे शेल्फ़</translation>
+    </message>
+    <message>
+        <source>New smart shelf</source>
+        <translation>नया स्मार्ट शेल्फ़</translation>
+    </message>
+    <message>
+        <source>Offline - showing the shelves as they were last loaded.</source>
+        <translation>ऑफ़लाइन - शेल्फ़ वैसे दिख रहे हैं जैसे पिछली बार लोड हुए थे।</translation>
+    </message>
+    <message>
+        <source>This smart shelf fills itself from its rules.</source>
+        <translation>यह स्मार्ट शेल्फ़ अपने नियमों से अपने-आप भरता है।</translation>
+    </message>
+    <message>
+        <source>This shelf is empty. Use &quot;Add to shelf&quot; on a book or story.</source>
+        <translation>यह शेल्फ़ खाली है। किसी किताब या कहानी पर &quot;शेल्फ़ में जोड़ें&quot; का उपयोग करें।</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>शीर्षकहीन</translation>
+    </message>
+    <message>
+        <source>Rename…</source>
+        <translation>नाम बदलें…</translation>
+    </message>
+    <message>
+        <source>Edit rules…</source>
+        <translation>नियम संपादित करें…</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>इसके अनुसार क्रमबद्ध करें</translation>
+    </message>
+    <message>
+        <source>Delete shelf</source>
+        <translation>शेल्फ़ हटाएँ</translation>
+    </message>
+    <message>
+        <source>Rename shelf</source>
+        <translation>शेल्फ़ का नाम बदलें</translation>
+    </message>
+    <message>
+        <source>Delete the shelf &quot;{name}&quot;? The books and stories on it are not deleted.</source>
+        <translation>शेल्फ़ &quot;{name}&quot; हटाएँ? उस पर रखी किताबें और कहानियाँ नहीं हटेंगी।</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>खोलें</translation>
+    </message>
+    <message>
+        <source>Remove from this shelf</source>
+        <translation>इस शेल्फ़ से हटाएँ</translation>
+    </message>
+    <message>
+        <source>My order</source>
+        <translation>मेरा क्रम</translation>
+    </message>
+    <message>
+        <source>Title</source>
+        <translation>शीर्षक</translation>
+    </message>
+    <message>
+        <source>Recently added</source>
+        <translation>हाल में जोड़े गए</translation>
+    </message>
+    <message>
+        <source>Reading progress</source>
+        <translation>पढ़ने की प्रगति</translation>
+    </message>
+    <message>
+        <source>Recently read</source>
+        <translation>हाल में पढ़े गए</translation>
+    </message>
+</context>
+<context>
+    <name>SmartShelfDialog</name>
+    <message>
+        <source>Smart shelf</source>
+        <translation>स्मार्ट शेल्फ़</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation>नाम</translation>
+    </message>
+    <message>
+        <source>all of these rules</source>
+        <translation>ये सभी नियम</translation>
+    </message>
+    <message>
+        <source>any of these rules</source>
+        <translation>इनमें से कोई भी नियम</translation>
+    </message>
+    <message>
+        <source>Show items that match</source>
+        <translation>वे आइटम दिखाएँ जो मेल खाते हैं</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>इसके अनुसार क्रमबद्ध करें</translation>
+    </message>
+    <message>
+        <source>Add rule</source>
+        <translation>नियम जोड़ें</translation>
+    </message>
+    <message>
+        <source>Source</source>
+        <translation>स्रोत</translation>
+    </message>
+    <message>
+        <source>Format</source>
+        <translation>प्रारूप</translation>
+    </message>
+    <message>
+        <source>Language</source>
+        <translation>भाषा</translation>
+    </message>
+    <message>
+        <source>Title</source>
+        <translation>शीर्षक</translation>
+    </message>
+    <message>
+        <source>Author</source>
+        <translation>लेखक</translation>
+    </message>
+    <message>
+        <source>Crowdly status</source>
+        <translation>Crowdly स्थिति</translation>
+    </message>
+    <message>
+        <source>Reading progress</source>
+        <translation>पढ़ने की प्रगति</translation>
+    </message>
+    <message>
+        <source>Added in the last</source>
+        <translation>पिछले इतने में जोड़ा गया</translation>
+    </message>
+    <message>
+        <source>Read in the last</source>
+        <translation>पिछले इतने में पढ़ा गया</translation>
+    </message>
+    <message>
+        <source>is</source>
+        <translation>है</translation>
+    </message>
+    <message>
+        <source>contains</source>
+        <translation>में शामिल है</translation>
+    </message>
+    <message>
+        <source>days (at most)</source>
+        <translation>दिन (अधिकतम)</translation>
+    </message>
+    <message>
+        <source>My library</source>
+        <translation>मेरी लाइब्रेरी</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>ऑडियो</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>टेक्स्ट</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>कहानी</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>पटकथा</translation>
+    </message>
+    <message>
+        <source>Favorite</source>
+        <translation>पसंदीदा</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>जी रहे हैं</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>जी चुके</translation>
+    </message>
+    <message>
+        <source>Not started</source>
+        <translation>शुरू नहीं किया</translation>
+    </message>
+    <message>
+        <source>In progress</source>
+        <translation>जारी है</translation>
+    </message>
+    <message>
+        <source>Finished</source>
+        <translation>पूरा हुआ</translation>
+    </message>
+    <message>
+        <source>Please give the shelf a name.</source>
+        <translation>कृपया शेल्फ़ को नाम दें।</translation>
+    </message>
+    <message>
+        <source>Every rule needs a value.</source>
+        <translation>हर नियम को एक मान चाहिए।</translation>
+    </message>
+</context>
+<context>
+    <name>BrowsePage</name>
+    <message>
+        <source>Continue reading</source>
+        <translation>पढ़ना जारी रखें</translation>
+    </message>
+    <message>
+        <source>Favorites</source>
+        <translation>पसंदीदा</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>नवीनतम कहानियाँ</translation>
+    </message>
+    <message>
+        <source>Newest screenplays</source>
+        <translation>नवीनतम पटकथाएँ</translation>
+    </message>
+    <message>
+        <source>Most popular stories</source>
+        <translation>सबसे लोकप्रिय कहानियाँ</translation>
+    </message>
+    <message>
+        <source>Most popular screenplays</source>
+        <translation>सबसे लोकप्रिय पटकथाएँ</translation>
+    </message>
+    <message>
+        <source>Most active screenplays</source>
+        <translation>सबसे सक्रिय पटकथाएँ</translation>
+    </message>
+    <message>
+        <source>Most active stories</source>
+        <translation>सबसे सक्रिय कहानियाँ</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>जी रहे हैं</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>जी चुके</translation>
+    </message>
+    <message>
+        <source>See all ›</source>
+        <translation>सभी देखें ›</translation>
+    </message>
+    <message>
+        <source>‹ Back</source>
+        <translation>‹ वापस</translation>
+    </message>
+    <message>
+        <source>Try again</source>
+        <translation>फिर से कोशिश करें</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>शीर्षकहीन</translation>
+    </message>
+    <message>
+        <source>Loading Crowdly…</source>
+        <translation>Crowdly लोड हो रहा है…</translation>
+    </message>
+    <message>
+        <source>Crowdly could not be reached: {error}</source>
+        <translation>Crowdly तक नहीं पहुँच सके: {error}</translation>
+    </message>
+</context>
+<context>
+    <name>LibraryPage</name>
+    <message>
+        <source>Continue reading</source>
+        <translation>पढ़ना जारी रखें</translation>
+    </message>
+    <message>
+        <source>All books</source>
+        <translation>सभी किताबें</translation>
+    </message>
+    <message>
+        <source>Audiobooks</source>
+        <translation>ऑडियोबुक</translation>
+    </message>
+    <message>
+        <source>Crowdly stories</source>
+        <translation>Crowdly कहानियाँ</translation>
+    </message>
+    <message>
+        <source>+ New shelf</source>
+        <translation>+ नया शेल्फ़</translation>
+    </message>
+    <message>
+        <source>+ New smart shelf</source>
+        <translation>+ नया स्मार्ट शेल्फ़</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>इसके अनुसार क्रमबद्ध करें</translation>
+    </message>
+    <message>
+        <source>Grid</source>
+        <translation>ग्रिड</translation>
+    </message>
+    <message>
+        <source>List</source>
+        <translation>सूची</translation>
+    </message>
+    <message>
+        <source>Also on Crowdly</source>
+        <translation>Crowdly पर भी</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>शीर्षकहीन</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to use shelves.</source>
+        <translation>शेल्फ़ इस्तेमाल करने के लिए Crowdly में लॉग इन करें।</translation>
+    </message>
+    <message>
+        <source>Shelves are not available: {error}</source>
+        <translation>शेल्फ़ उपलब्ध नहीं हैं: {error}</translation>
+    </message>
+    <message>
+        <source>This computer</source>
+        <translation>यह कंप्यूटर</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>My shelves</source>
+        <translation>मेरे शेल्फ़</translation>
+    </message>
+    <message>
+        <source>Loading…</source>
+        <translation>लोड हो रहा है…</translation>
+    </message>
+    <message>
+        <source>Offline - showing the shelves as they were last loaded.</source>
+        <translation>ऑफ़लाइन - शेल्फ़ वैसे दिख रहे हैं जैसे पिछली बार लोड हुए थे।</translation>
+    </message>
+    <message>
+        <source>This smart shelf fills itself from its rules.</source>
+        <translation>यह स्मार्ट शेल्फ़ अपने नियमों से अपने-आप भरता है।</translation>
+    </message>
+    <message>
+        <source>Nothing here matches your search.</source>
+        <translation>यहाँ कुछ भी आपकी खोज से मेल नहीं खाता।</translation>
+    </message>
+    <message>
+        <source>Books and stories you have started appear here.</source>
+        <translation>आपकी शुरू की गई किताबें और कहानियाँ यहाँ दिखती हैं।</translation>
+    </message>
+    <message>
+        <source>This shelf is empty. Drag a book or story onto it, or use &quot;Add to shelf&quot;.</source>
+        <translation>यह शेल्फ़ खाली है। इस पर कोई किताब या कहानी खींचें, या &quot;शेल्फ़ में जोड़ें&quot; का उपयोग करें।</translation>
+    </message>
+    <message>
+        <source>Shelves: {error}</source>
+        <translation>शेल्फ़: {error}</translation>
+    </message>
+    <message>
+        <source>New shelf</source>
+        <translation>नया शेल्फ़</translation>
+    </message>
+    <message>
+        <source>Shelf name:</source>
+        <translation>शेल्फ़ का नाम:</translation>
+    </message>
+    <message>
+        <source>Rename…</source>
+        <translation>नाम बदलें…</translation>
+    </message>
+    <message>
+        <source>Edit rules…</source>
+        <translation>नियम संपादित करें…</translation>
+    </message>
+    <message>
+        <source>Delete shelf</source>
+        <translation>शेल्फ़ हटाएँ</translation>
+    </message>
+    <message>
+        <source>Rename shelf</source>
+        <translation>शेल्फ़ का नाम बदलें</translation>
+    </message>
+    <message>
+        <source>Delete the shelf &quot;{name}&quot;? The books and stories on it are not deleted.</source>
+        <translation>शेल्फ़ &quot;{name}&quot; हटाएँ? उस पर रखी किताबें और कहानियाँ नहीं हटेंगी।</translation>
+    </message>
+    <message>
+        <source>Turn on Synchronisation with web platform to put library books on shelves.</source>
+        <translation>लाइब्रेरी की किताबें शेल्फ़ पर रखने के लिए वेब प्लेटफ़ॉर्म के साथ सिंक चालू करें।</translation>
+    </message>
+    <message>
+        <source>Added to &quot;{shelf}&quot;</source>
+        <translation>&quot;{shelf}&quot; में जोड़ा गया</translation>
+    </message>
+</context>
+<context>
+    <name>_DropZone</name>
+    <message>
+        <source>Drop EPUB, PDF, audio or text files here, or use &quot;+ Add books&quot;.
+Your books stay private to you.</source>
+        <translation>EPUB, PDF, ऑडियो या टेक्स्ट फ़ाइलें यहाँ छोड़ें, या &quot;+ किताबें जोड़ें&quot; का उपयोग करें।
+आपकी किताबें निजी रहती हैं।</translation>
     </message>
 </context>
 </TS>

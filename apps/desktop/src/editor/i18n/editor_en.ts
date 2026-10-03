@@ -1363,6 +1363,98 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
         <source>Sync failed</source>
         <translation>Sync failed</translation>
     </message>
+    <message>
+        <source>Shelves</source>
+        <translation>Shelves</translation>
+    </message>
+    <message>
+        <source>Turn on Synchronisation with web platform to put library books on shelves.</source>
+        <translation>Turn on Synchronisation with web platform to put library books on shelves.</translation>
+    </message>
+    <message>
+        <source>Book not on this computer</source>
+        <translation>Book not on this computer</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is in your Crowdly library but not on this computer yet. Sync your library to download it.</source>
+        <translation>&quot;{title}&quot; is in your Crowdly library but not on this computer yet. Sync your library to download it.</translation>
+    </message>
+    <message>
+        <source>Screenplays can&apos;t be read in Discovery yet - open them on the web platform.</source>
+        <translation>Screenplays can&apos;t be read in Discovery yet - open them on the web platform.</translation>
+    </message>
+    <message>
+        <source>My Library</source>
+        <translation>My Library</translation>
+    </message>
+    <message>
+        <source>+ Add books</source>
+        <translation>+ Add books</translation>
+    </message>
+    <message>
+        <source>Add to shelf</source>
+        <translation>Add to shelf</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>Story</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>Screenplay</translation>
+    </message>
+    <message>
+        <source>Audiobook</source>
+        <translation>Audiobook</translation>
+    </message>
+    <message>
+        <source>{count} scenes</source>
+        <translation>{count} scenes</translation>
+    </message>
+    <message>
+        <source>{count} chapters</source>
+        <translation>{count} chapters</translation>
+    </message>
+    <message>
+        <source>Listen</source>
+        <translation>Listen</translation>
+    </message>
+    <message>
+        <source>Read</source>
+        <translation>Read</translation>
+    </message>
+    <message>
+        <source>Remove from this shelf</source>
+        <translation>Remove from this shelf</translation>
+    </message>
+    <message>
+        <source>Details</source>
+        <translation>Details</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to browse.</source>
+        <translation>Log in to Crowdly to browse.</translation>
+    </message>
+    <message>
+        <source>Search my library and Crowdly…</source>
+        <translation>Search my library and Crowdly…</translation>
+    </message>
+    <message>
+        <source>Search Crowdly…</source>
+        <translation>Search Crowdly…</translation>
+    </message>
+    <message>
+        <source>Search results for &quot;{query}&quot;</source>
+        <translation>Search results for &quot;{query}&quot;</translation>
+    </message>
+    <message>
+        <source>Sync off</source>
+        <translation>Sync off</translation>
+    </message>
+    <message>
+        <source>Click to sync now</source>
+        <translation>Click to sync now</translation>
+    </message>
 </context>
 <context>
     <name>ReaderWidget</name>
@@ -1441,6 +1533,571 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
     <message>
         <source>Delete highlight</source>
         <translation>Delete highlight</translation>
+    </message>
+    <message>
+        <source>Shelves</source>
+        <translation>Shelves</translation>
+    </message>
+    <message>
+        <source>← Back</source>
+        <translation>← Back</translation>
+    </message>
+    <message>
+        <source>Text size, font and colours</source>
+        <translation>Text size, font and colours</translation>
+    </message>
+    <message>
+        <source>Smaller text</source>
+        <translation>Smaller text</translation>
+    </message>
+    <message>
+        <source>Larger text</source>
+        <translation>Larger text</translation>
+    </message>
+    <message>
+        <source>Serif font</source>
+        <translation>Serif font</translation>
+    </message>
+    <message>
+        <source>Sans-serif font</source>
+        <translation>Sans-serif font</translation>
+    </message>
+    <message>
+        <source>Light</source>
+        <translation>Light</translation>
+    </message>
+    <message>
+        <source>Sepia</source>
+        <translation>Sepia</translation>
+    </message>
+    <message>
+        <source>Dark</source>
+        <translation>Dark</translation>
+    </message>
+</context>
+<context>
+    <name>Shelves</name>
+    <message>
+        <source>Favorites</source>
+        <translation>Favorites</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>Living</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>Lived</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>Newest stories</translation>
+    </message>
+    <message>
+        <source>Most active</source>
+        <translation>Most active</translation>
+    </message>
+    <message>
+        <source>Most popular</source>
+        <translation>Most popular</translation>
+    </message>
+    <message>
+        <source>Favorite</source>
+        <translation>Favorite</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>Audio</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>Text</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>Story</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>Screenplay</translation>
+    </message>
+    <message>
+        <source>{percent}% read</source>
+        <translation>{percent}% read</translation>
+    </message>
+    <message>
+        <source>in my library</source>
+        <translation>in my library</translation>
+    </message>
+    <message>
+        <source>Add to shelf</source>
+        <translation>Add to shelf</translation>
+    </message>
+    <message>
+        <source>Turn on Synchronisation with web platform to put library books on shelves</source>
+        <translation>Turn on Synchronisation with web platform to put library books on shelves</translation>
+    </message>
+    <message>
+        <source>Loading…</source>
+        <translation>Loading…</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to use shelves.</source>
+        <translation>Log in to Crowdly to use shelves.</translation>
+    </message>
+    <message>
+        <source>Shelves are not available: {error}</source>
+        <translation>Shelves are not available: {error}</translation>
+    </message>
+    <message>
+        <source>New shelf…</source>
+        <translation>New shelf…</translation>
+    </message>
+    <message>
+        <source>Shelves: {error}</source>
+        <translation>Shelves: {error}</translation>
+    </message>
+    <message>
+        <source>Saved</source>
+        <translation>Saved</translation>
+    </message>
+    <message>
+        <source>Added to the shelf</source>
+        <translation>Added to the shelf</translation>
+    </message>
+    <message>
+        <source>Removed from the shelf</source>
+        <translation>Removed from the shelf</translation>
+    </message>
+    <message>
+        <source>New shelf</source>
+        <translation>New shelf</translation>
+    </message>
+    <message>
+        <source>Shelf name:</source>
+        <translation>Shelf name:</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>My shelves</source>
+        <translation>My shelves</translation>
+    </message>
+    <message>
+        <source>New smart shelf</source>
+        <translation>New smart shelf</translation>
+    </message>
+    <message>
+        <source>Offline - showing the shelves as they were last loaded.</source>
+        <translation>Offline - showing the shelves as they were last loaded.</translation>
+    </message>
+    <message>
+        <source>This smart shelf fills itself from its rules.</source>
+        <translation>This smart shelf fills itself from its rules.</translation>
+    </message>
+    <message>
+        <source>This shelf is empty. Use &quot;Add to shelf&quot; on a book or story.</source>
+        <translation>This shelf is empty. Use &quot;Add to shelf&quot; on a book or story.</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>Untitled</translation>
+    </message>
+    <message>
+        <source>Rename…</source>
+        <translation>Rename…</translation>
+    </message>
+    <message>
+        <source>Edit rules…</source>
+        <translation>Edit rules…</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>Sort by</translation>
+    </message>
+    <message>
+        <source>Delete shelf</source>
+        <translation>Delete shelf</translation>
+    </message>
+    <message>
+        <source>Rename shelf</source>
+        <translation>Rename shelf</translation>
+    </message>
+    <message>
+        <source>Delete the shelf &quot;{name}&quot;? The books and stories on it are not deleted.</source>
+        <translation>Delete the shelf &quot;{name}&quot;? The books and stories on it are not deleted.</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>Open</translation>
+    </message>
+    <message>
+        <source>Remove from this shelf</source>
+        <translation>Remove from this shelf</translation>
+    </message>
+    <message>
+        <source>My order</source>
+        <translation>My order</translation>
+    </message>
+    <message>
+        <source>Title</source>
+        <translation>Title</translation>
+    </message>
+    <message>
+        <source>Recently added</source>
+        <translation>Recently added</translation>
+    </message>
+    <message>
+        <source>Reading progress</source>
+        <translation>Reading progress</translation>
+    </message>
+    <message>
+        <source>Recently read</source>
+        <translation>Recently read</translation>
+    </message>
+</context>
+<context>
+    <name>SmartShelfDialog</name>
+    <message>
+        <source>Smart shelf</source>
+        <translation>Smart shelf</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation>Name</translation>
+    </message>
+    <message>
+        <source>all of these rules</source>
+        <translation>all of these rules</translation>
+    </message>
+    <message>
+        <source>any of these rules</source>
+        <translation>any of these rules</translation>
+    </message>
+    <message>
+        <source>Show items that match</source>
+        <translation>Show items that match</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>Sort by</translation>
+    </message>
+    <message>
+        <source>Add rule</source>
+        <translation>Add rule</translation>
+    </message>
+    <message>
+        <source>Source</source>
+        <translation>Source</translation>
+    </message>
+    <message>
+        <source>Format</source>
+        <translation>Format</translation>
+    </message>
+    <message>
+        <source>Language</source>
+        <translation>Language</translation>
+    </message>
+    <message>
+        <source>Title</source>
+        <translation>Title</translation>
+    </message>
+    <message>
+        <source>Author</source>
+        <translation>Author</translation>
+    </message>
+    <message>
+        <source>Crowdly status</source>
+        <translation>Crowdly status</translation>
+    </message>
+    <message>
+        <source>Reading progress</source>
+        <translation>Reading progress</translation>
+    </message>
+    <message>
+        <source>Added in the last</source>
+        <translation>Added in the last</translation>
+    </message>
+    <message>
+        <source>Read in the last</source>
+        <translation>Read in the last</translation>
+    </message>
+    <message>
+        <source>is</source>
+        <translation>is</translation>
+    </message>
+    <message>
+        <source>contains</source>
+        <translation>contains</translation>
+    </message>
+    <message>
+        <source>days (at most)</source>
+        <translation>days (at most)</translation>
+    </message>
+    <message>
+        <source>My library</source>
+        <translation>My library</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>Audio</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>Text</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>Story</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>Screenplay</translation>
+    </message>
+    <message>
+        <source>Favorite</source>
+        <translation>Favorite</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>Living</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>Lived</translation>
+    </message>
+    <message>
+        <source>Not started</source>
+        <translation>Not started</translation>
+    </message>
+    <message>
+        <source>In progress</source>
+        <translation>In progress</translation>
+    </message>
+    <message>
+        <source>Finished</source>
+        <translation>Finished</translation>
+    </message>
+    <message>
+        <source>Please give the shelf a name.</source>
+        <translation>Please give the shelf a name.</translation>
+    </message>
+    <message>
+        <source>Every rule needs a value.</source>
+        <translation>Every rule needs a value.</translation>
+    </message>
+</context>
+<context>
+    <name>BrowsePage</name>
+    <message>
+        <source>Continue reading</source>
+        <translation>Continue reading</translation>
+    </message>
+    <message>
+        <source>Favorites</source>
+        <translation>Favorites</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>Newest stories</translation>
+    </message>
+    <message>
+        <source>Newest screenplays</source>
+        <translation>Newest screenplays</translation>
+    </message>
+    <message>
+        <source>Most popular stories</source>
+        <translation>Most popular stories</translation>
+    </message>
+    <message>
+        <source>Most popular screenplays</source>
+        <translation>Most popular screenplays</translation>
+    </message>
+    <message>
+        <source>Most active screenplays</source>
+        <translation>Most active screenplays</translation>
+    </message>
+    <message>
+        <source>Most active stories</source>
+        <translation>Most active stories</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>Living</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>Lived</translation>
+    </message>
+    <message>
+        <source>See all ›</source>
+        <translation>See all ›</translation>
+    </message>
+    <message>
+        <source>‹ Back</source>
+        <translation>‹ Back</translation>
+    </message>
+    <message>
+        <source>Try again</source>
+        <translation>Try again</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>Untitled</translation>
+    </message>
+    <message>
+        <source>Loading Crowdly…</source>
+        <translation>Loading Crowdly…</translation>
+    </message>
+    <message>
+        <source>Crowdly could not be reached: {error}</source>
+        <translation>Crowdly could not be reached: {error}</translation>
+    </message>
+</context>
+<context>
+    <name>LibraryPage</name>
+    <message>
+        <source>Continue reading</source>
+        <translation>Continue reading</translation>
+    </message>
+    <message>
+        <source>All books</source>
+        <translation>All books</translation>
+    </message>
+    <message>
+        <source>Audiobooks</source>
+        <translation>Audiobooks</translation>
+    </message>
+    <message>
+        <source>Crowdly stories</source>
+        <translation>Crowdly stories</translation>
+    </message>
+    <message>
+        <source>+ New shelf</source>
+        <translation>+ New shelf</translation>
+    </message>
+    <message>
+        <source>+ New smart shelf</source>
+        <translation>+ New smart shelf</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>Sort by</translation>
+    </message>
+    <message>
+        <source>Grid</source>
+        <translation>Grid</translation>
+    </message>
+    <message>
+        <source>List</source>
+        <translation>List</translation>
+    </message>
+    <message>
+        <source>Also on Crowdly</source>
+        <translation>Also on Crowdly</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>Untitled</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to use shelves.</source>
+        <translation>Log in to Crowdly to use shelves.</translation>
+    </message>
+    <message>
+        <source>Shelves are not available: {error}</source>
+        <translation>Shelves are not available: {error}</translation>
+    </message>
+    <message>
+        <source>This computer</source>
+        <translation>This computer</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>My shelves</source>
+        <translation>My shelves</translation>
+    </message>
+    <message>
+        <source>Loading…</source>
+        <translation>Loading…</translation>
+    </message>
+    <message>
+        <source>Offline - showing the shelves as they were last loaded.</source>
+        <translation>Offline - showing the shelves as they were last loaded.</translation>
+    </message>
+    <message>
+        <source>This smart shelf fills itself from its rules.</source>
+        <translation>This smart shelf fills itself from its rules.</translation>
+    </message>
+    <message>
+        <source>Nothing here matches your search.</source>
+        <translation>Nothing here matches your search.</translation>
+    </message>
+    <message>
+        <source>Books and stories you have started appear here.</source>
+        <translation>Books and stories you have started appear here.</translation>
+    </message>
+    <message>
+        <source>This shelf is empty. Drag a book or story onto it, or use &quot;Add to shelf&quot;.</source>
+        <translation>This shelf is empty. Drag a book or story onto it, or use &quot;Add to shelf&quot;.</translation>
+    </message>
+    <message>
+        <source>Shelves: {error}</source>
+        <translation>Shelves: {error}</translation>
+    </message>
+    <message>
+        <source>New shelf</source>
+        <translation>New shelf</translation>
+    </message>
+    <message>
+        <source>Shelf name:</source>
+        <translation>Shelf name:</translation>
+    </message>
+    <message>
+        <source>Rename…</source>
+        <translation>Rename…</translation>
+    </message>
+    <message>
+        <source>Edit rules…</source>
+        <translation>Edit rules…</translation>
+    </message>
+    <message>
+        <source>Delete shelf</source>
+        <translation>Delete shelf</translation>
+    </message>
+    <message>
+        <source>Rename shelf</source>
+        <translation>Rename shelf</translation>
+    </message>
+    <message>
+        <source>Delete the shelf &quot;{name}&quot;? The books and stories on it are not deleted.</source>
+        <translation>Delete the shelf &quot;{name}&quot;? The books and stories on it are not deleted.</translation>
+    </message>
+    <message>
+        <source>Turn on Synchronisation with web platform to put library books on shelves.</source>
+        <translation>Turn on Synchronisation with web platform to put library books on shelves.</translation>
+    </message>
+    <message>
+        <source>Added to &quot;{shelf}&quot;</source>
+        <translation>Added to &quot;{shelf}&quot;</translation>
+    </message>
+</context>
+<context>
+    <name>_DropZone</name>
+    <message>
+        <source>Drop EPUB, PDF, audio or text files here, or use &quot;+ Add books&quot;.
+Your books stay private to you.</source>
+        <translation>Drop EPUB, PDF, audio or text files here, or use &quot;+ Add books&quot;.
+Your books stay private to you.</translation>
     </message>
 </context>
 </TS>

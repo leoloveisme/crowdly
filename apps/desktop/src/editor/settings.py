@@ -103,6 +103,10 @@ class Settings:
     # imported books are synchronised to their Crowdly account.
     library_rights_confirmed: bool = False
 
+    # Discovery preferences: reader appearance ("font_size", "font",
+    # "theme") and the My Library view ("library_view": "grid" | "list").
+    discovery_prefs: dict = field(default_factory=dict)
+
 
 def get_config_dir() -> Path:
     """Public accessor for the configuration directory."""
@@ -242,6 +246,7 @@ def load_settings() -> Settings:
         startup_mode=startup_mode,
         session_state=session_state,
         library_rights_confirmed=bool(raw.get("library_rights_confirmed", False)),
+        discovery_prefs=raw.get("discovery_prefs") if isinstance(raw.get("discovery_prefs"), dict) else {},
     )
 
     # Ensure device_id is persisted for older configs.

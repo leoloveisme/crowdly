@@ -23,6 +23,7 @@ import Profile from "./pages/Profile";
 import Sitemap from "./pages/Sitemap";
 import Lounge from "./pages/Lounge";
 import CrowdlySoftware from "./pages/CrowdlySoftware";
+import Shelves from "./pages/Shelves";
 import AboutUs from "./pages/AboutUs";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -99,6 +100,7 @@ const App = () => {
                   <Route path="/profile" element={<AlphaGuard><Profile /></AlphaGuard>} />
                   <Route path="/sitemap" element={<AlphaGuard><Sitemap /></AlphaGuard>} />
                   <Route path="/software" element={<AlphaGuard><CrowdlySoftware /></AlphaGuard>} />
+                  <Route path="/shelves" element={<AlphaGuard><Shelves /></AlphaGuard>} />
                   <Route path="/about-us" element={<AlphaGuard><AboutUs /></AlphaGuard>} />
                   <Route path="/lounge" element={<AlphaGuard><Lounge /></AlphaGuard>} />
                   <Route path="/login" element={<AlphaGuard><Login /></AlphaGuard>} />

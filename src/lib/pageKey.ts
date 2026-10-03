@@ -8,7 +8,7 @@ export const LAYOUT_PAGE_KEY = "/__layout__";
 const ROUTE_PATTERNS: string[] = [
   "/", "/suggest-feature", "/feedback", "/contact", "/feature-suggestions", "/account-administration",
   "/new-story-template", "/new-comic-template", "/story-for-consumers",
-  "/story-to-live", "/profile", "/sitemap", "/software", "/about-us",
+  "/story-to-live", "/profile", "/sitemap", "/software", "/shelves", "/about-us",
   "/lounge", "/login", "/register", "/stories/spaces-migration",
   "/platform-admin", "/admin", "/support", "/admin/invite-users",
   "/friends", "/communications", "/search",

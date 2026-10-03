@@ -4,6 +4,7 @@ import { Loader2, Users, Clock, GitBranch, BookOpen, FileText, Heart, Download, 
 import CrowdlyHeader from "@/components/CrowdlyHeader";
 import CrowdlyFooter from "@/components/CrowdlyFooter";
 import EditableText from "@/components/EditableText";
+import AddToShelfButton from "@/modules/AddToShelfButton";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -2951,6 +2952,9 @@ const Story = () => {
                       className={isFavorite ? "h-5 w-5 text-pink-500 fill-pink-500" : "h-5 w-5 text-gray-400"}
                     />
                   </button>
+                  {user?.id && story?.story_title_id && (
+                    <AddToShelfButton type="story" id={story.story_title_id} />
+                  )}
                   {story.visibility && (
                     <span
                       className={`px-2 py-1 rounded-full text-xs ${

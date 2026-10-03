@@ -1476,6 +1476,13 @@ const Profile = () => {
 
         {/* Experience containers: Favorites / Living / Lived */}
         <div className="mb-10 space-y-8">
+          {!previewMode && authUser?.id && (
+            <p className="text-sm">
+              <Link to="/shelves" className="text-indigo-700 hover:underline">
+                <EditableText id="profile-my-shelves-link">My shelves: Favorites, Living, Lived and your own shelves →</EditableText>
+              </Link>
+            </p>
+          )}
           <section>
             <h2 className="text-xl font-bold mb-2 flex items-center gap-2">
               <Heart className="h-5 w-5 text-pink-600" />

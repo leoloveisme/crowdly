@@ -82,6 +82,11 @@ class LibraryItem:
     pending_sessions: list[dict] = field(default_factory=list)
     total_seconds: int = 0
     last_opened_at: str | None = None
+    # Cover thumbnail next to the book file ("<id>.cover.png"); made once at
+    # import (or downloaded from the account) - see library.covers.
+    cover_file: str = ""
+    cover_checked: bool = False
+    cover_uploaded: bool = False
 
     @classmethod
     def from_dict(cls, data: dict) -> "LibraryItem":
@@ -173,6 +178,12 @@ class LocalLibrary:
             None,
         )
 
+    def cover_path(self, item: LibraryItem) -> Path | None:
+        if not item.cover_file:
+            return None
+        path = self.files_dir / item.cover_file
+        return path if path.is_file() else None
+
     def file_path(self, item: LibraryItem) -> Path | None:
         if not item.file_name:
             return None
@@ -258,12 +269,12 @@ class LocalLibrary:
             return
         if item.remote_id and item.remote_id not in self.pending_remote_deletes:
             self.pending_remote_deletes.append(item.remote_id)
-        path = self.file_path(item)
-        if path is not None:
-            try:
-                path.unlink()
-            except OSError:
-                pass
+        for path in (self.file_path(item), self.cover_path(item)):
+            if path is not None:
+                try:
+                    path.unlink()
+                except OSError:
+                    pass
         self.save()
 
     def set_rights(self, item_id: str, status: str) -> None:

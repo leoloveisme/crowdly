@@ -43,6 +43,15 @@ HIGHLIGHT_COLORS = {
     "pink": "#ffc9e3",
 }
 
+# Reader appearance (Aa menu). Themes: background, text colour.
+READER_THEMES = {
+    "light": ("#ffffff", "#1d1d1f"),
+    "sepia": ("#f4ecd8", "#5b4636"),
+    "dark": ("#1e1e1e", "#e6e6e6"),
+}
+READER_FONTS = {"serif": "Georgia, 'Times New Roman', serif", "sans": "'Helvetica Neue', Arial, sans-serif"}
+DEFAULT_READER_PREFS = {"font_size": 16, "font": "serif", "theme": "light"}
+
 # BookOrbit-style session rules: a session ends after 5 minutes without any
 # activity, and the reader's time only counts while the window is active.
 IDLE_LIMIT_SECONDS = 5 * 60
@@ -141,10 +150,12 @@ class ReaderWidget(QWidget):
     highlightChanged = Signal(str, str, dict)  # item_id, highlight_id, changes
     highlightDeleted = Signal(str, str)  # item_id, highlight_id
     sessionFinished = Signal(str, str, str, int)
+    prefsChanged = Signal(dict)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._item_id: str | None = None
+        self._prefs = dict(DEFAULT_READER_PREFS)
         self._kind = "text"
         self._highlights: list[dict] = []
         self._restoring = False
@@ -185,6 +196,36 @@ class ReaderWidget(QWidget):
         self._btn_note = QPushButton(bar)
         self._btn_note.clicked.connect(self._note_on_selection)
         bar_layout.addWidget(self._btn_note)
+        # "Shelves ▾": Favorite / Living / Lived and Add to shelf for the open
+        # item (menu supplied by the Discovery view, see set_shelf_menu).
+        self._btn_shelves = QToolButton(bar)
+        self._btn_shelves.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        self._btn_shelves.setVisible(False)
+        bar_layout.addWidget(self._btn_shelves)
+        # "Aa": text size, font and theme.
+        self._btn_type = QToolButton(bar)
+        self._btn_type.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        self._type_menu = QMenu(self._btn_type)
+        self._act_smaller = self._type_menu.addAction("")
+        self._act_smaller.triggered.connect(lambda: self._change_pref("font_size", self._prefs["font_size"] - 1))
+        self._act_larger = self._type_menu.addAction("")
+        self._act_larger.triggered.connect(lambda: self._change_pref("font_size", self._prefs["font_size"] + 1))
+        self._type_menu.addSeparator()
+        self._font_actions = {}
+        for key in READER_FONTS:
+            action = self._type_menu.addAction("")
+            action.setCheckable(True)
+            action.triggered.connect(lambda _=False, k=key: self._change_pref("font", k))
+            self._font_actions[key] = action
+        self._type_menu.addSeparator()
+        self._theme_actions = {}
+        for key in READER_THEMES:
+            action = self._type_menu.addAction("")
+            action.setCheckable(True)
+            action.triggered.connect(lambda _=False, k=key: self._change_pref("theme", k))
+            self._theme_actions[key] = action
+        self._btn_type.setMenu(self._type_menu)
+        bar_layout.addWidget(self._btn_type)
         self._btn_panel = QToolButton(bar)
         self._btn_panel.setCheckable(True)
         self._btn_panel.setChecked(True)
@@ -238,14 +279,25 @@ class ReaderWidget(QWidget):
         self._text.installEventFilter(self._activity_filter)
 
         self.retranslate()
+        self.set_prefs(None)
 
     # -- public API ----------------------------------------------------------
 
     def retranslate(self) -> None:
-        self._btn_back.setText(self.tr("← Library"))
+        self._btn_back.setText(self.tr("← Back"))
+        self._btn_type.setText("Aa")
+        self._btn_type.setToolTip(self.tr("Text size, font and colours"))
+        self._act_smaller.setText(self.tr("Smaller text"))
+        self._act_larger.setText(self.tr("Larger text"))
+        self._font_actions["serif"].setText(self.tr("Serif font"))
+        self._font_actions["sans"].setText(self.tr("Sans-serif font"))
+        self._theme_actions["light"].setText(self.tr("Light"))
+        self._theme_actions["sepia"].setText(self.tr("Sepia"))
+        self._theme_actions["dark"].setText(self.tr("Dark"))
         self._btn_highlight.setText(self.tr("Highlight"))
         self._btn_note.setText(self.tr("Add note"))
         self._btn_panel.setText(self.tr("Highlights"))
+        self._btn_shelves.setText(self.tr("Shelves"))
         self._panel_title.setText(self.tr("Highlights and notes"))
         self._pdf_placeholder.setText(self.tr("PDF viewing is not available in this build."))
         colors = {
@@ -264,6 +316,45 @@ class ReaderWidget(QWidget):
             self._sleep_combo.setItemText(i, self.tr("{count} min").format(count=minutes))
         self._refresh_highlight_list()
         self._update_progress_label(self._current_percent())
+
+    def set_prefs(self, prefs: dict | None) -> None:
+        """Apply reader appearance (font size, font, theme)."""
+
+        merged = dict(DEFAULT_READER_PREFS)
+        merged.update({k: v for k, v in (prefs or {}).items() if k in DEFAULT_READER_PREFS})
+        merged["font_size"] = max(10, min(32, int(merged["font_size"])))
+        if merged["font"] not in READER_FONTS:
+            merged["font"] = "serif"
+        if merged["theme"] not in READER_THEMES:
+            merged["theme"] = "light"
+        self._prefs = merged
+        background, color = READER_THEMES[merged["theme"]]
+        self._text.setStyleSheet(
+            f"QTextBrowser {{ background: {background}; color: {color}; "
+            f"font-family: {READER_FONTS[merged['font']]}; font-size: {merged['font_size']}pt; }}"
+        )
+        for key, action in self._font_actions.items():
+            action.setChecked(key == merged["font"])
+        for key, action in self._theme_actions.items():
+            action.setChecked(key == merged["theme"])
+
+    def prefs(self) -> dict:
+        return dict(self._prefs)
+
+    def _change_pref(self, key: str, value) -> None:
+        prefs = dict(self._prefs)
+        prefs[key] = value
+        self.set_prefs(prefs)
+        self.prefsChanged.emit(self.prefs())
+
+    def set_shelf_menu(self, menu: QMenu | None) -> None:
+        """Show *menu* behind the toolbar's "Shelves" button (hidden if None)."""
+
+        old = self._btn_shelves.menu()
+        self._btn_shelves.setMenu(menu)
+        self._btn_shelves.setVisible(menu is not None)
+        if old is not None and old is not menu:
+            old.deleteLater()
 
     def current_item_id(self) -> str | None:
         return self._item_id

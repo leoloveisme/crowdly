@@ -1183,6 +1183,98 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
         <source>Sync failed</source>
         <translation>同期に失敗しました</translation>
     </message>
+    <message>
+        <source>Shelves</source>
+        <translation>本棚</translation>
+    </message>
+    <message>
+        <source>Turn on Synchronisation with web platform to put library books on shelves.</source>
+        <translation>ライブラリの本を本棚に入れるには Web プラットフォームとの同期をオンにしてください。</translation>
+    </message>
+    <message>
+        <source>Book not on this computer</source>
+        <translation>この本はこのコンピューターにありません</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is in your Crowdly library but not on this computer yet. Sync your library to download it.</source>
+        <translation>「{title}」は Crowdly のライブラリにありますが、まだこのコンピューターにはありません。ダウンロードするにはライブラリを同期してください。</translation>
+    </message>
+    <message>
+        <source>Screenplays can&apos;t be read in Discovery yet - open them on the web platform.</source>
+        <translation>脚本はまだディスカバリーで読めません。Web プラットフォームで開いてください。</translation>
+    </message>
+    <message>
+        <source>My Library</source>
+        <translation>マイライブラリ</translation>
+    </message>
+    <message>
+        <source>+ Add books</source>
+        <translation>+ 本を追加</translation>
+    </message>
+    <message>
+        <source>Add to shelf</source>
+        <translation>本棚に追加</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>ストーリー</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>脚本</translation>
+    </message>
+    <message>
+        <source>Audiobook</source>
+        <translation>オーディオブック</translation>
+    </message>
+    <message>
+        <source>{count} scenes</source>
+        <translation>{count} シーン</translation>
+    </message>
+    <message>
+        <source>{count} chapters</source>
+        <translation>{count} 章</translation>
+    </message>
+    <message>
+        <source>Listen</source>
+        <translation>聴く</translation>
+    </message>
+    <message>
+        <source>Read</source>
+        <translation>読む</translation>
+    </message>
+    <message>
+        <source>Remove from this shelf</source>
+        <translation>この本棚から削除</translation>
+    </message>
+    <message>
+        <source>Details</source>
+        <translation>詳細</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to browse.</source>
+        <translation>閲覧するには Crowdly にログインしてください。</translation>
+    </message>
+    <message>
+        <source>Search my library and Crowdly…</source>
+        <translation>マイライブラリと Crowdly を検索…</translation>
+    </message>
+    <message>
+        <source>Search Crowdly…</source>
+        <translation>Crowdly を検索…</translation>
+    </message>
+    <message>
+        <source>Search results for &quot;{query}&quot;</source>
+        <translation>「{query}」の検索結果</translation>
+    </message>
+    <message>
+        <source>Sync off</source>
+        <translation>同期オフ</translation>
+    </message>
+    <message>
+        <source>Click to sync now</source>
+        <translation>クリックして今すぐ同期</translation>
+    </message>
 </context>
 <context>
     <name>ReaderWidget</name>
@@ -1261,6 +1353,571 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
     <message>
         <source>Delete highlight</source>
         <translation>ハイライトを削除</translation>
+    </message>
+    <message>
+        <source>Shelves</source>
+        <translation>本棚</translation>
+    </message>
+    <message>
+        <source>← Back</source>
+        <translation>← 戻る</translation>
+    </message>
+    <message>
+        <source>Text size, font and colours</source>
+        <translation>文字サイズ・フォント・配色</translation>
+    </message>
+    <message>
+        <source>Smaller text</source>
+        <translation>文字を小さく</translation>
+    </message>
+    <message>
+        <source>Larger text</source>
+        <translation>文字を大きく</translation>
+    </message>
+    <message>
+        <source>Serif font</source>
+        <translation>明朝体</translation>
+    </message>
+    <message>
+        <source>Sans-serif font</source>
+        <translation>ゴシック体</translation>
+    </message>
+    <message>
+        <source>Light</source>
+        <translation>ライト</translation>
+    </message>
+    <message>
+        <source>Sepia</source>
+        <translation>セピア</translation>
+    </message>
+    <message>
+        <source>Dark</source>
+        <translation>ダーク</translation>
+    </message>
+</context>
+<context>
+    <name>Shelves</name>
+    <message>
+        <source>Favorites</source>
+        <translation>お気に入り</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>体験中</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>体験済み</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>最新のストーリー</translation>
+    </message>
+    <message>
+        <source>Most active</source>
+        <translation>最も活発</translation>
+    </message>
+    <message>
+        <source>Most popular</source>
+        <translation>人気</translation>
+    </message>
+    <message>
+        <source>Favorite</source>
+        <translation>お気に入り</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>音声</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>テキスト</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>ストーリー</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>脚本</translation>
+    </message>
+    <message>
+        <source>{percent}% read</source>
+        <translation>{percent}% 読了</translation>
+    </message>
+    <message>
+        <source>in my library</source>
+        <translation>マイライブラリ内</translation>
+    </message>
+    <message>
+        <source>Add to shelf</source>
+        <translation>本棚に追加</translation>
+    </message>
+    <message>
+        <source>Turn on Synchronisation with web platform to put library books on shelves</source>
+        <translation>ライブラリの本を本棚に入れるには Web プラットフォームとの同期をオンにしてください</translation>
+    </message>
+    <message>
+        <source>Loading…</source>
+        <translation>読み込み中…</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to use shelves.</source>
+        <translation>本棚を使うには Crowdly にログインしてください。</translation>
+    </message>
+    <message>
+        <source>Shelves are not available: {error}</source>
+        <translation>本棚を利用できません: {error}</translation>
+    </message>
+    <message>
+        <source>New shelf…</source>
+        <translation>新しい本棚…</translation>
+    </message>
+    <message>
+        <source>Shelves: {error}</source>
+        <translation>本棚: {error}</translation>
+    </message>
+    <message>
+        <source>Saved</source>
+        <translation>保存しました</translation>
+    </message>
+    <message>
+        <source>Added to the shelf</source>
+        <translation>本棚に追加しました</translation>
+    </message>
+    <message>
+        <source>Removed from the shelf</source>
+        <translation>本棚から削除しました</translation>
+    </message>
+    <message>
+        <source>New shelf</source>
+        <translation>新しい本棚</translation>
+    </message>
+    <message>
+        <source>Shelf name:</source>
+        <translation>本棚の名前:</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>My shelves</source>
+        <translation>マイ本棚</translation>
+    </message>
+    <message>
+        <source>New smart shelf</source>
+        <translation>新しいスマート本棚</translation>
+    </message>
+    <message>
+        <source>Offline - showing the shelves as they were last loaded.</source>
+        <translation>オフライン - 最後に読み込んだ状態の本棚を表示しています。</translation>
+    </message>
+    <message>
+        <source>This smart shelf fills itself from its rules.</source>
+        <translation>このスマート本棚はルールに従って自動で埋まります。</translation>
+    </message>
+    <message>
+        <source>This shelf is empty. Use &quot;Add to shelf&quot; on a book or story.</source>
+        <translation>この本棚は空です。本やストーリーで「本棚に追加」を使ってください。</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>無題</translation>
+    </message>
+    <message>
+        <source>Rename…</source>
+        <translation>名前を変更…</translation>
+    </message>
+    <message>
+        <source>Edit rules…</source>
+        <translation>ルールを編集…</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>並べ替え</translation>
+    </message>
+    <message>
+        <source>Delete shelf</source>
+        <translation>本棚を削除</translation>
+    </message>
+    <message>
+        <source>Rename shelf</source>
+        <translation>本棚の名前を変更</translation>
+    </message>
+    <message>
+        <source>Delete the shelf &quot;{name}&quot;? The books and stories on it are not deleted.</source>
+        <translation>本棚「{name}」を削除しますか？入っている本やストーリーは削除されません。</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>開く</translation>
+    </message>
+    <message>
+        <source>Remove from this shelf</source>
+        <translation>この本棚から削除</translation>
+    </message>
+    <message>
+        <source>My order</source>
+        <translation>自分の順番</translation>
+    </message>
+    <message>
+        <source>Title</source>
+        <translation>タイトル</translation>
+    </message>
+    <message>
+        <source>Recently added</source>
+        <translation>最近追加</translation>
+    </message>
+    <message>
+        <source>Reading progress</source>
+        <translation>読書の進み具合</translation>
+    </message>
+    <message>
+        <source>Recently read</source>
+        <translation>最近読んだ</translation>
+    </message>
+</context>
+<context>
+    <name>SmartShelfDialog</name>
+    <message>
+        <source>Smart shelf</source>
+        <translation>スマート本棚</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation>名前</translation>
+    </message>
+    <message>
+        <source>all of these rules</source>
+        <translation>すべてのルール</translation>
+    </message>
+    <message>
+        <source>any of these rules</source>
+        <translation>いずれかのルール</translation>
+    </message>
+    <message>
+        <source>Show items that match</source>
+        <translation>一致する項目を表示</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>並べ替え</translation>
+    </message>
+    <message>
+        <source>Add rule</source>
+        <translation>ルールを追加</translation>
+    </message>
+    <message>
+        <source>Source</source>
+        <translation>ソース</translation>
+    </message>
+    <message>
+        <source>Format</source>
+        <translation>形式</translation>
+    </message>
+    <message>
+        <source>Language</source>
+        <translation>言語</translation>
+    </message>
+    <message>
+        <source>Title</source>
+        <translation>タイトル</translation>
+    </message>
+    <message>
+        <source>Author</source>
+        <translation>著者</translation>
+    </message>
+    <message>
+        <source>Crowdly status</source>
+        <translation>Crowdly のステータス</translation>
+    </message>
+    <message>
+        <source>Reading progress</source>
+        <translation>読書の進み具合</translation>
+    </message>
+    <message>
+        <source>Added in the last</source>
+        <translation>最近追加した期間</translation>
+    </message>
+    <message>
+        <source>Read in the last</source>
+        <translation>最近読んだ期間</translation>
+    </message>
+    <message>
+        <source>is</source>
+        <translation>が次と一致</translation>
+    </message>
+    <message>
+        <source>contains</source>
+        <translation>を含む</translation>
+    </message>
+    <message>
+        <source>days (at most)</source>
+        <translation>日（以内）</translation>
+    </message>
+    <message>
+        <source>My library</source>
+        <translation>マイライブラリ</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>音声</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>テキスト</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>ストーリー</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>脚本</translation>
+    </message>
+    <message>
+        <source>Favorite</source>
+        <translation>お気に入り</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>体験中</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>体験済み</translation>
+    </message>
+    <message>
+        <source>Not started</source>
+        <translation>未読</translation>
+    </message>
+    <message>
+        <source>In progress</source>
+        <translation>読書中</translation>
+    </message>
+    <message>
+        <source>Finished</source>
+        <translation>読了</translation>
+    </message>
+    <message>
+        <source>Please give the shelf a name.</source>
+        <translation>本棚に名前を付けてください。</translation>
+    </message>
+    <message>
+        <source>Every rule needs a value.</source>
+        <translation>すべてのルールに値が必要です。</translation>
+    </message>
+</context>
+<context>
+    <name>BrowsePage</name>
+    <message>
+        <source>Continue reading</source>
+        <translation>続きを読む</translation>
+    </message>
+    <message>
+        <source>Favorites</source>
+        <translation>お気に入り</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>最新のストーリー</translation>
+    </message>
+    <message>
+        <source>Newest screenplays</source>
+        <translation>最新の脚本</translation>
+    </message>
+    <message>
+        <source>Most popular stories</source>
+        <translation>人気のストーリー</translation>
+    </message>
+    <message>
+        <source>Most popular screenplays</source>
+        <translation>人気の脚本</translation>
+    </message>
+    <message>
+        <source>Most active screenplays</source>
+        <translation>最も活発な脚本</translation>
+    </message>
+    <message>
+        <source>Most active stories</source>
+        <translation>最も活発なストーリー</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>体験中</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>体験済み</translation>
+    </message>
+    <message>
+        <source>See all ›</source>
+        <translation>すべて表示 ›</translation>
+    </message>
+    <message>
+        <source>‹ Back</source>
+        <translation>‹ 戻る</translation>
+    </message>
+    <message>
+        <source>Try again</source>
+        <translation>再試行</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>無題</translation>
+    </message>
+    <message>
+        <source>Loading Crowdly…</source>
+        <translation>Crowdly を読み込み中…</translation>
+    </message>
+    <message>
+        <source>Crowdly could not be reached: {error}</source>
+        <translation>Crowdly に接続できません: {error}</translation>
+    </message>
+</context>
+<context>
+    <name>LibraryPage</name>
+    <message>
+        <source>Continue reading</source>
+        <translation>続きを読む</translation>
+    </message>
+    <message>
+        <source>All books</source>
+        <translation>すべての本</translation>
+    </message>
+    <message>
+        <source>Audiobooks</source>
+        <translation>オーディオブック</translation>
+    </message>
+    <message>
+        <source>Crowdly stories</source>
+        <translation>Crowdly のストーリー</translation>
+    </message>
+    <message>
+        <source>+ New shelf</source>
+        <translation>+ 新しい本棚</translation>
+    </message>
+    <message>
+        <source>+ New smart shelf</source>
+        <translation>+ 新しいスマート本棚</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>並べ替え</translation>
+    </message>
+    <message>
+        <source>Grid</source>
+        <translation>グリッド</translation>
+    </message>
+    <message>
+        <source>List</source>
+        <translation>リスト</translation>
+    </message>
+    <message>
+        <source>Also on Crowdly</source>
+        <translation>Crowdly でも</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>無題</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to use shelves.</source>
+        <translation>本棚を使うには Crowdly にログインしてください。</translation>
+    </message>
+    <message>
+        <source>Shelves are not available: {error}</source>
+        <translation>本棚を利用できません: {error}</translation>
+    </message>
+    <message>
+        <source>This computer</source>
+        <translation>このコンピューター</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>My shelves</source>
+        <translation>マイ本棚</translation>
+    </message>
+    <message>
+        <source>Loading…</source>
+        <translation>読み込み中…</translation>
+    </message>
+    <message>
+        <source>Offline - showing the shelves as they were last loaded.</source>
+        <translation>オフライン - 最後に読み込んだ状態の本棚を表示しています。</translation>
+    </message>
+    <message>
+        <source>This smart shelf fills itself from its rules.</source>
+        <translation>このスマート本棚はルールに従って自動で埋まります。</translation>
+    </message>
+    <message>
+        <source>Nothing here matches your search.</source>
+        <translation>検索に一致するものはありません。</translation>
+    </message>
+    <message>
+        <source>Books and stories you have started appear here.</source>
+        <translation>読み始めた本やストーリーがここに表示されます。</translation>
+    </message>
+    <message>
+        <source>This shelf is empty. Drag a book or story onto it, or use &quot;Add to shelf&quot;.</source>
+        <translation>この本棚は空です。本やストーリーをドラッグするか、「本棚に追加」を使ってください。</translation>
+    </message>
+    <message>
+        <source>Shelves: {error}</source>
+        <translation>本棚: {error}</translation>
+    </message>
+    <message>
+        <source>New shelf</source>
+        <translation>新しい本棚</translation>
+    </message>
+    <message>
+        <source>Shelf name:</source>
+        <translation>本棚の名前:</translation>
+    </message>
+    <message>
+        <source>Rename…</source>
+        <translation>名前を変更…</translation>
+    </message>
+    <message>
+        <source>Edit rules…</source>
+        <translation>ルールを編集…</translation>
+    </message>
+    <message>
+        <source>Delete shelf</source>
+        <translation>本棚を削除</translation>
+    </message>
+    <message>
+        <source>Rename shelf</source>
+        <translation>本棚の名前を変更</translation>
+    </message>
+    <message>
+        <source>Delete the shelf &quot;{name}&quot;? The books and stories on it are not deleted.</source>
+        <translation>本棚「{name}」を削除しますか？入っている本やストーリーは削除されません。</translation>
+    </message>
+    <message>
+        <source>Turn on Synchronisation with web platform to put library books on shelves.</source>
+        <translation>ライブラリの本を本棚に入れるには Web プラットフォームとの同期をオンにしてください。</translation>
+    </message>
+    <message>
+        <source>Added to &quot;{shelf}&quot;</source>
+        <translation>「{shelf}」に追加しました</translation>
+    </message>
+</context>
+<context>
+    <name>_DropZone</name>
+    <message>
+        <source>Drop EPUB, PDF, audio or text files here, or use &quot;+ Add books&quot;.
+Your books stay private to you.</source>
+        <translation>EPUB、PDF、音声、テキストのファイルをここにドロップするか、「+ 本を追加」を使ってください。
+本は非公開のままです。</translation>
     </message>
 </context>
 </TS>

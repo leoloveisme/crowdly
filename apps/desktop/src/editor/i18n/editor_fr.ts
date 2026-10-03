@@ -320,6 +320,98 @@ Seuls vos propres œuvres, les livres du domaine public ou sous Creative Commons
         <source>Sync failed</source>
         <translation>Échec de la synchronisation</translation>
     </message>
+    <message>
+        <source>Shelves</source>
+        <translation>Étagères</translation>
+    </message>
+    <message>
+        <source>Turn on Synchronisation with web platform to put library books on shelves.</source>
+        <translation>Activez la synchronisation avec la plateforme web pour ranger les livres de la bibliothèque sur des étagères.</translation>
+    </message>
+    <message>
+        <source>Book not on this computer</source>
+        <translation>Livre absent de cet ordinateur</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is in your Crowdly library but not on this computer yet. Sync your library to download it.</source>
+        <translation>« {title} » est dans votre bibliothèque Crowdly mais pas encore sur cet ordinateur. Synchronisez votre bibliothèque pour le télécharger.</translation>
+    </message>
+    <message>
+        <source>Screenplays can&apos;t be read in Discovery yet - open them on the web platform.</source>
+        <translation>Les scénarios ne peuvent pas encore être lus dans Découverte - ouvrez-les sur la plateforme web.</translation>
+    </message>
+    <message>
+        <source>My Library</source>
+        <translation>Ma bibliothèque</translation>
+    </message>
+    <message>
+        <source>+ Add books</source>
+        <translation>+ Ajouter des livres</translation>
+    </message>
+    <message>
+        <source>Add to shelf</source>
+        <translation>Ajouter à une étagère</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>Histoire</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>Scénario</translation>
+    </message>
+    <message>
+        <source>Audiobook</source>
+        <translation>Livre audio</translation>
+    </message>
+    <message>
+        <source>{count} scenes</source>
+        <translation>{count} scènes</translation>
+    </message>
+    <message>
+        <source>{count} chapters</source>
+        <translation>{count} chapitres</translation>
+    </message>
+    <message>
+        <source>Listen</source>
+        <translation>Écouter</translation>
+    </message>
+    <message>
+        <source>Read</source>
+        <translation>Lire</translation>
+    </message>
+    <message>
+        <source>Remove from this shelf</source>
+        <translation>Retirer de cette étagère</translation>
+    </message>
+    <message>
+        <source>Details</source>
+        <translation>Détails</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to browse.</source>
+        <translation>Connectez-vous à Crowdly pour parcourir.</translation>
+    </message>
+    <message>
+        <source>Search my library and Crowdly…</source>
+        <translation>Rechercher dans ma bibliothèque et sur Crowdly…</translation>
+    </message>
+    <message>
+        <source>Search Crowdly…</source>
+        <translation>Rechercher sur Crowdly…</translation>
+    </message>
+    <message>
+        <source>Search results for &quot;{query}&quot;</source>
+        <translation>Résultats pour « {query} »</translation>
+    </message>
+    <message>
+        <source>Sync off</source>
+        <translation>Synchronisation désactivée</translation>
+    </message>
+    <message>
+        <source>Click to sync now</source>
+        <translation>Cliquez pour synchroniser maintenant</translation>
+    </message>
 </context>
 <context>
     <name>ReaderWidget</name>
@@ -398,6 +490,571 @@ Seuls vos propres œuvres, les livres du domaine public ou sous Creative Commons
     <message>
         <source>Delete highlight</source>
         <translation>Supprimer le surlignage</translation>
+    </message>
+    <message>
+        <source>Shelves</source>
+        <translation>Étagères</translation>
+    </message>
+    <message>
+        <source>← Back</source>
+        <translation>← Retour</translation>
+    </message>
+    <message>
+        <source>Text size, font and colours</source>
+        <translation>Taille du texte, police et couleurs</translation>
+    </message>
+    <message>
+        <source>Smaller text</source>
+        <translation>Texte plus petit</translation>
+    </message>
+    <message>
+        <source>Larger text</source>
+        <translation>Texte plus grand</translation>
+    </message>
+    <message>
+        <source>Serif font</source>
+        <translation>Police avec empattement</translation>
+    </message>
+    <message>
+        <source>Sans-serif font</source>
+        <translation>Police sans empattement</translation>
+    </message>
+    <message>
+        <source>Light</source>
+        <translation>Clair</translation>
+    </message>
+    <message>
+        <source>Sepia</source>
+        <translation>Sépia</translation>
+    </message>
+    <message>
+        <source>Dark</source>
+        <translation>Sombre</translation>
+    </message>
+</context>
+<context>
+    <name>Shelves</name>
+    <message>
+        <source>Favorites</source>
+        <translation>Favoris</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>En cours</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>Vécue</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>Histoires les plus récentes</translation>
+    </message>
+    <message>
+        <source>Most active</source>
+        <translation>Les plus actives</translation>
+    </message>
+    <message>
+        <source>Most popular</source>
+        <translation>Les plus populaires</translation>
+    </message>
+    <message>
+        <source>Favorite</source>
+        <translation>Favori</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>Audio</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>Texte</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>Histoire</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>Scénario</translation>
+    </message>
+    <message>
+        <source>{percent}% read</source>
+        <translation>{percent} % lu</translation>
+    </message>
+    <message>
+        <source>in my library</source>
+        <translation>dans ma bibliothèque</translation>
+    </message>
+    <message>
+        <source>Add to shelf</source>
+        <translation>Ajouter à une étagère</translation>
+    </message>
+    <message>
+        <source>Turn on Synchronisation with web platform to put library books on shelves</source>
+        <translation>Activez la synchronisation avec la plateforme web pour ranger les livres de la bibliothèque sur des étagères</translation>
+    </message>
+    <message>
+        <source>Loading…</source>
+        <translation>Chargement…</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to use shelves.</source>
+        <translation>Connectez-vous à Crowdly pour utiliser les étagères.</translation>
+    </message>
+    <message>
+        <source>Shelves are not available: {error}</source>
+        <translation>Les étagères ne sont pas disponibles : {error}</translation>
+    </message>
+    <message>
+        <source>New shelf…</source>
+        <translation>Nouvelle étagère…</translation>
+    </message>
+    <message>
+        <source>Shelves: {error}</source>
+        <translation>Étagères : {error}</translation>
+    </message>
+    <message>
+        <source>Saved</source>
+        <translation>Enregistré</translation>
+    </message>
+    <message>
+        <source>Added to the shelf</source>
+        <translation>Ajouté à l&apos;étagère</translation>
+    </message>
+    <message>
+        <source>Removed from the shelf</source>
+        <translation>Retiré de l&apos;étagère</translation>
+    </message>
+    <message>
+        <source>New shelf</source>
+        <translation>Nouvelle étagère</translation>
+    </message>
+    <message>
+        <source>Shelf name:</source>
+        <translation>Nom de l&apos;étagère :</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>My shelves</source>
+        <translation>Mes étagères</translation>
+    </message>
+    <message>
+        <source>New smart shelf</source>
+        <translation>Nouvelle étagère intelligente</translation>
+    </message>
+    <message>
+        <source>Offline - showing the shelves as they were last loaded.</source>
+        <translation>Hors ligne - les étagères sont affichées telles qu&apos;elles ont été chargées la dernière fois.</translation>
+    </message>
+    <message>
+        <source>This smart shelf fills itself from its rules.</source>
+        <translation>Cette étagère intelligente se remplit d&apos;elle-même selon ses règles.</translation>
+    </message>
+    <message>
+        <source>This shelf is empty. Use &quot;Add to shelf&quot; on a book or story.</source>
+        <translation>Cette étagère est vide. Utilisez « Ajouter à une étagère » sur un livre ou une histoire.</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>Sans titre</translation>
+    </message>
+    <message>
+        <source>Rename…</source>
+        <translation>Renommer…</translation>
+    </message>
+    <message>
+        <source>Edit rules…</source>
+        <translation>Modifier les règles…</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>Trier par</translation>
+    </message>
+    <message>
+        <source>Delete shelf</source>
+        <translation>Supprimer l&apos;étagère</translation>
+    </message>
+    <message>
+        <source>Rename shelf</source>
+        <translation>Renommer l&apos;étagère</translation>
+    </message>
+    <message>
+        <source>Delete the shelf &quot;{name}&quot;? The books and stories on it are not deleted.</source>
+        <translation>Supprimer l&apos;étagère « {name} » ? Les livres et histoires qu&apos;elle contient ne sont pas supprimés.</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>Ouvrir</translation>
+    </message>
+    <message>
+        <source>Remove from this shelf</source>
+        <translation>Retirer de cette étagère</translation>
+    </message>
+    <message>
+        <source>My order</source>
+        <translation>Mon ordre</translation>
+    </message>
+    <message>
+        <source>Title</source>
+        <translation>Titre</translation>
+    </message>
+    <message>
+        <source>Recently added</source>
+        <translation>Ajoutés récemment</translation>
+    </message>
+    <message>
+        <source>Reading progress</source>
+        <translation>Progression de lecture</translation>
+    </message>
+    <message>
+        <source>Recently read</source>
+        <translation>Lus récemment</translation>
+    </message>
+</context>
+<context>
+    <name>SmartShelfDialog</name>
+    <message>
+        <source>Smart shelf</source>
+        <translation>Étagère intelligente</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation>Nom</translation>
+    </message>
+    <message>
+        <source>all of these rules</source>
+        <translation>toutes ces règles</translation>
+    </message>
+    <message>
+        <source>any of these rules</source>
+        <translation>l&apos;une de ces règles</translation>
+    </message>
+    <message>
+        <source>Show items that match</source>
+        <translation>Afficher les éléments qui respectent</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>Trier par</translation>
+    </message>
+    <message>
+        <source>Add rule</source>
+        <translation>Ajouter une règle</translation>
+    </message>
+    <message>
+        <source>Source</source>
+        <translation>Source</translation>
+    </message>
+    <message>
+        <source>Format</source>
+        <translation>Format</translation>
+    </message>
+    <message>
+        <source>Language</source>
+        <translation>Langue</translation>
+    </message>
+    <message>
+        <source>Title</source>
+        <translation>Titre</translation>
+    </message>
+    <message>
+        <source>Author</source>
+        <translation>Auteur</translation>
+    </message>
+    <message>
+        <source>Crowdly status</source>
+        <translation>Statut Crowdly</translation>
+    </message>
+    <message>
+        <source>Reading progress</source>
+        <translation>Progression de lecture</translation>
+    </message>
+    <message>
+        <source>Added in the last</source>
+        <translation>Ajouté au cours des derniers</translation>
+    </message>
+    <message>
+        <source>Read in the last</source>
+        <translation>Lu au cours des derniers</translation>
+    </message>
+    <message>
+        <source>is</source>
+        <translation>est</translation>
+    </message>
+    <message>
+        <source>contains</source>
+        <translation>contient</translation>
+    </message>
+    <message>
+        <source>days (at most)</source>
+        <translation>jours (au plus)</translation>
+    </message>
+    <message>
+        <source>My library</source>
+        <translation>Ma bibliothèque</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>Audio</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>Texte</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>Histoire</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>Scénario</translation>
+    </message>
+    <message>
+        <source>Favorite</source>
+        <translation>Favori</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>En cours</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>Vécue</translation>
+    </message>
+    <message>
+        <source>Not started</source>
+        <translation>Pas commencé</translation>
+    </message>
+    <message>
+        <source>In progress</source>
+        <translation>En cours</translation>
+    </message>
+    <message>
+        <source>Finished</source>
+        <translation>Terminé</translation>
+    </message>
+    <message>
+        <source>Please give the shelf a name.</source>
+        <translation>Veuillez donner un nom à l&apos;étagère.</translation>
+    </message>
+    <message>
+        <source>Every rule needs a value.</source>
+        <translation>Chaque règle a besoin d&apos;une valeur.</translation>
+    </message>
+</context>
+<context>
+    <name>BrowsePage</name>
+    <message>
+        <source>Continue reading</source>
+        <translation>Reprendre la lecture</translation>
+    </message>
+    <message>
+        <source>Favorites</source>
+        <translation>Favoris</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>Histoires les plus récentes</translation>
+    </message>
+    <message>
+        <source>Newest screenplays</source>
+        <translation>Scénarios les plus récents</translation>
+    </message>
+    <message>
+        <source>Most popular stories</source>
+        <translation>Histoires les plus populaires</translation>
+    </message>
+    <message>
+        <source>Most popular screenplays</source>
+        <translation>Scénarios les plus populaires</translation>
+    </message>
+    <message>
+        <source>Most active screenplays</source>
+        <translation>Scénarios les plus actifs</translation>
+    </message>
+    <message>
+        <source>Most active stories</source>
+        <translation>Histoires les plus actives</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>En cours</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>Vécue</translation>
+    </message>
+    <message>
+        <source>See all ›</source>
+        <translation>Tout voir ›</translation>
+    </message>
+    <message>
+        <source>‹ Back</source>
+        <translation>‹ Retour</translation>
+    </message>
+    <message>
+        <source>Try again</source>
+        <translation>Réessayer</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>Sans titre</translation>
+    </message>
+    <message>
+        <source>Loading Crowdly…</source>
+        <translation>Chargement de Crowdly…</translation>
+    </message>
+    <message>
+        <source>Crowdly could not be reached: {error}</source>
+        <translation>Impossible de joindre Crowdly : {error}</translation>
+    </message>
+</context>
+<context>
+    <name>LibraryPage</name>
+    <message>
+        <source>Continue reading</source>
+        <translation>Reprendre la lecture</translation>
+    </message>
+    <message>
+        <source>All books</source>
+        <translation>Tous les livres</translation>
+    </message>
+    <message>
+        <source>Audiobooks</source>
+        <translation>Livres audio</translation>
+    </message>
+    <message>
+        <source>Crowdly stories</source>
+        <translation>Histoires Crowdly</translation>
+    </message>
+    <message>
+        <source>+ New shelf</source>
+        <translation>+ Nouvelle étagère</translation>
+    </message>
+    <message>
+        <source>+ New smart shelf</source>
+        <translation>+ Nouvelle étagère intelligente</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>Trier par</translation>
+    </message>
+    <message>
+        <source>Grid</source>
+        <translation>Grille</translation>
+    </message>
+    <message>
+        <source>List</source>
+        <translation>Liste</translation>
+    </message>
+    <message>
+        <source>Also on Crowdly</source>
+        <translation>Aussi sur Crowdly</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>Sans titre</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to use shelves.</source>
+        <translation>Connectez-vous à Crowdly pour utiliser les étagères.</translation>
+    </message>
+    <message>
+        <source>Shelves are not available: {error}</source>
+        <translation>Les étagères ne sont pas disponibles : {error}</translation>
+    </message>
+    <message>
+        <source>This computer</source>
+        <translation>Cet ordinateur</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>My shelves</source>
+        <translation>Mes étagères</translation>
+    </message>
+    <message>
+        <source>Loading…</source>
+        <translation>Chargement…</translation>
+    </message>
+    <message>
+        <source>Offline - showing the shelves as they were last loaded.</source>
+        <translation>Hors ligne - les étagères sont affichées telles qu&apos;elles ont été chargées la dernière fois.</translation>
+    </message>
+    <message>
+        <source>This smart shelf fills itself from its rules.</source>
+        <translation>Cette étagère intelligente se remplit d&apos;elle-même selon ses règles.</translation>
+    </message>
+    <message>
+        <source>Nothing here matches your search.</source>
+        <translation>Rien ici ne correspond à votre recherche.</translation>
+    </message>
+    <message>
+        <source>Books and stories you have started appear here.</source>
+        <translation>Les livres et histoires que vous avez commencés apparaissent ici.</translation>
+    </message>
+    <message>
+        <source>This shelf is empty. Drag a book or story onto it, or use &quot;Add to shelf&quot;.</source>
+        <translation>Cette étagère est vide. Faites-y glisser un livre ou une histoire, ou utilisez « Ajouter à une étagère ».</translation>
+    </message>
+    <message>
+        <source>Shelves: {error}</source>
+        <translation>Étagères : {error}</translation>
+    </message>
+    <message>
+        <source>New shelf</source>
+        <translation>Nouvelle étagère</translation>
+    </message>
+    <message>
+        <source>Shelf name:</source>
+        <translation>Nom de l&apos;étagère :</translation>
+    </message>
+    <message>
+        <source>Rename…</source>
+        <translation>Renommer…</translation>
+    </message>
+    <message>
+        <source>Edit rules…</source>
+        <translation>Modifier les règles…</translation>
+    </message>
+    <message>
+        <source>Delete shelf</source>
+        <translation>Supprimer l&apos;étagère</translation>
+    </message>
+    <message>
+        <source>Rename shelf</source>
+        <translation>Renommer l&apos;étagère</translation>
+    </message>
+    <message>
+        <source>Delete the shelf &quot;{name}&quot;? The books and stories on it are not deleted.</source>
+        <translation>Supprimer l&apos;étagère « {name} » ? Les livres et histoires qu&apos;elle contient ne sont pas supprimés.</translation>
+    </message>
+    <message>
+        <source>Turn on Synchronisation with web platform to put library books on shelves.</source>
+        <translation>Activez la synchronisation avec la plateforme web pour ranger les livres de la bibliothèque sur des étagères.</translation>
+    </message>
+    <message>
+        <source>Added to &quot;{shelf}&quot;</source>
+        <translation>Ajouté à « {shelf} »</translation>
+    </message>
+</context>
+<context>
+    <name>_DropZone</name>
+    <message>
+        <source>Drop EPUB, PDF, audio or text files here, or use &quot;+ Add books&quot;.
+Your books stay private to you.</source>
+        <translation>Déposez ici des fichiers EPUB, PDF, audio ou texte, ou utilisez « + Ajouter des livres ».
+Vos livres restent privés.</translation>
     </message>
 </context>
 </TS>

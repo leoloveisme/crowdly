@@ -1183,6 +1183,98 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
         <source>Sync failed</source>
         <translation>동기화 실패</translation>
     </message>
+    <message>
+        <source>Shelves</source>
+        <translation>책장</translation>
+    </message>
+    <message>
+        <source>Turn on Synchronisation with web platform to put library books on shelves.</source>
+        <translation>서재의 책을 책장에 넣으려면 웹 플랫폼 동기화를 켜세요.</translation>
+    </message>
+    <message>
+        <source>Book not on this computer</source>
+        <translation>이 컴퓨터에 없는 책</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is in your Crowdly library but not on this computer yet. Sync your library to download it.</source>
+        <translation>&quot;{title}&quot;은(는) Crowdly 서재에 있지만 아직 이 컴퓨터에는 없습니다. 내려받으려면 서재를 동기화하세요.</translation>
+    </message>
+    <message>
+        <source>Screenplays can&apos;t be read in Discovery yet - open them on the web platform.</source>
+        <translation>시나리오는 아직 디스커버리에서 읽을 수 없습니다. 웹 플랫폼에서 여세요.</translation>
+    </message>
+    <message>
+        <source>My Library</source>
+        <translation>내 서재</translation>
+    </message>
+    <message>
+        <source>+ Add books</source>
+        <translation>+ 책 추가</translation>
+    </message>
+    <message>
+        <source>Add to shelf</source>
+        <translation>책장에 추가</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>스토리</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>시나리오</translation>
+    </message>
+    <message>
+        <source>Audiobook</source>
+        <translation>오디오북</translation>
+    </message>
+    <message>
+        <source>{count} scenes</source>
+        <translation>{count}개 장면</translation>
+    </message>
+    <message>
+        <source>{count} chapters</source>
+        <translation>{count}개 챕터</translation>
+    </message>
+    <message>
+        <source>Listen</source>
+        <translation>듣기</translation>
+    </message>
+    <message>
+        <source>Read</source>
+        <translation>읽기</translation>
+    </message>
+    <message>
+        <source>Remove from this shelf</source>
+        <translation>이 책장에서 제거</translation>
+    </message>
+    <message>
+        <source>Details</source>
+        <translation>자세히</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to browse.</source>
+        <translation>둘러보려면 Crowdly에 로그인하세요.</translation>
+    </message>
+    <message>
+        <source>Search my library and Crowdly…</source>
+        <translation>내 서재와 Crowdly 검색…</translation>
+    </message>
+    <message>
+        <source>Search Crowdly…</source>
+        <translation>Crowdly 검색…</translation>
+    </message>
+    <message>
+        <source>Search results for &quot;{query}&quot;</source>
+        <translation>&quot;{query}&quot; 검색 결과</translation>
+    </message>
+    <message>
+        <source>Sync off</source>
+        <translation>동기화 꺼짐</translation>
+    </message>
+    <message>
+        <source>Click to sync now</source>
+        <translation>클릭하여 지금 동기화</translation>
+    </message>
 </context>
 <context>
     <name>ReaderWidget</name>
@@ -1261,6 +1353,571 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
     <message>
         <source>Delete highlight</source>
         <translation>하이라이트 삭제</translation>
+    </message>
+    <message>
+        <source>Shelves</source>
+        <translation>책장</translation>
+    </message>
+    <message>
+        <source>← Back</source>
+        <translation>← 뒤로</translation>
+    </message>
+    <message>
+        <source>Text size, font and colours</source>
+        <translation>글자 크기, 글꼴 및 색상</translation>
+    </message>
+    <message>
+        <source>Smaller text</source>
+        <translation>글자 작게</translation>
+    </message>
+    <message>
+        <source>Larger text</source>
+        <translation>글자 크게</translation>
+    </message>
+    <message>
+        <source>Serif font</source>
+        <translation>세리프 글꼴</translation>
+    </message>
+    <message>
+        <source>Sans-serif font</source>
+        <translation>산세리프 글꼴</translation>
+    </message>
+    <message>
+        <source>Light</source>
+        <translation>밝게</translation>
+    </message>
+    <message>
+        <source>Sepia</source>
+        <translation>세피아</translation>
+    </message>
+    <message>
+        <source>Dark</source>
+        <translation>어둡게</translation>
+    </message>
+</context>
+<context>
+    <name>Shelves</name>
+    <message>
+        <source>Favorites</source>
+        <translation>즐겨찾기</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>경험 중</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>경험함</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>최신 스토리</translation>
+    </message>
+    <message>
+        <source>Most active</source>
+        <translation>가장 활발한</translation>
+    </message>
+    <message>
+        <source>Most popular</source>
+        <translation>가장 인기 있는</translation>
+    </message>
+    <message>
+        <source>Favorite</source>
+        <translation>즐겨찾기</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>오디오</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>텍스트</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>스토리</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>시나리오</translation>
+    </message>
+    <message>
+        <source>{percent}% read</source>
+        <translation>{percent}% 읽음</translation>
+    </message>
+    <message>
+        <source>in my library</source>
+        <translation>내 서재에 있음</translation>
+    </message>
+    <message>
+        <source>Add to shelf</source>
+        <translation>책장에 추가</translation>
+    </message>
+    <message>
+        <source>Turn on Synchronisation with web platform to put library books on shelves</source>
+        <translation>서재의 책을 책장에 넣으려면 웹 플랫폼 동기화를 켜세요</translation>
+    </message>
+    <message>
+        <source>Loading…</source>
+        <translation>불러오는 중…</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to use shelves.</source>
+        <translation>책장을 사용하려면 Crowdly에 로그인하세요.</translation>
+    </message>
+    <message>
+        <source>Shelves are not available: {error}</source>
+        <translation>책장을 사용할 수 없습니다: {error}</translation>
+    </message>
+    <message>
+        <source>New shelf…</source>
+        <translation>새 책장…</translation>
+    </message>
+    <message>
+        <source>Shelves: {error}</source>
+        <translation>책장: {error}</translation>
+    </message>
+    <message>
+        <source>Saved</source>
+        <translation>저장됨</translation>
+    </message>
+    <message>
+        <source>Added to the shelf</source>
+        <translation>책장에 추가됨</translation>
+    </message>
+    <message>
+        <source>Removed from the shelf</source>
+        <translation>책장에서 제거됨</translation>
+    </message>
+    <message>
+        <source>New shelf</source>
+        <translation>새 책장</translation>
+    </message>
+    <message>
+        <source>Shelf name:</source>
+        <translation>책장 이름:</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>My shelves</source>
+        <translation>내 책장</translation>
+    </message>
+    <message>
+        <source>New smart shelf</source>
+        <translation>새 스마트 책장</translation>
+    </message>
+    <message>
+        <source>Offline - showing the shelves as they were last loaded.</source>
+        <translation>오프라인 - 마지막으로 불러온 책장을 표시합니다.</translation>
+    </message>
+    <message>
+        <source>This smart shelf fills itself from its rules.</source>
+        <translation>이 스마트 책장은 규칙에 따라 자동으로 채워집니다.</translation>
+    </message>
+    <message>
+        <source>This shelf is empty. Use &quot;Add to shelf&quot; on a book or story.</source>
+        <translation>이 책장은 비어 있습니다. 책이나 스토리에서 &quot;책장에 추가&quot;를 사용하세요.</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>제목 없음</translation>
+    </message>
+    <message>
+        <source>Rename…</source>
+        <translation>이름 바꾸기…</translation>
+    </message>
+    <message>
+        <source>Edit rules…</source>
+        <translation>규칙 편집…</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>정렬 기준</translation>
+    </message>
+    <message>
+        <source>Delete shelf</source>
+        <translation>책장 삭제</translation>
+    </message>
+    <message>
+        <source>Rename shelf</source>
+        <translation>책장 이름 바꾸기</translation>
+    </message>
+    <message>
+        <source>Delete the shelf &quot;{name}&quot;? The books and stories on it are not deleted.</source>
+        <translation>&quot;{name}&quot; 책장을 삭제할까요? 책장에 있는 책과 스토리는 삭제되지 않습니다.</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>열기</translation>
+    </message>
+    <message>
+        <source>Remove from this shelf</source>
+        <translation>이 책장에서 제거</translation>
+    </message>
+    <message>
+        <source>My order</source>
+        <translation>내 순서</translation>
+    </message>
+    <message>
+        <source>Title</source>
+        <translation>제목</translation>
+    </message>
+    <message>
+        <source>Recently added</source>
+        <translation>최근 추가</translation>
+    </message>
+    <message>
+        <source>Reading progress</source>
+        <translation>읽기 진행률</translation>
+    </message>
+    <message>
+        <source>Recently read</source>
+        <translation>최근 읽음</translation>
+    </message>
+</context>
+<context>
+    <name>SmartShelfDialog</name>
+    <message>
+        <source>Smart shelf</source>
+        <translation>스마트 책장</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation>이름</translation>
+    </message>
+    <message>
+        <source>all of these rules</source>
+        <translation>모든 규칙</translation>
+    </message>
+    <message>
+        <source>any of these rules</source>
+        <translation>규칙 중 하나</translation>
+    </message>
+    <message>
+        <source>Show items that match</source>
+        <translation>일치하는 항목 표시</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>정렬 기준</translation>
+    </message>
+    <message>
+        <source>Add rule</source>
+        <translation>규칙 추가</translation>
+    </message>
+    <message>
+        <source>Source</source>
+        <translation>출처</translation>
+    </message>
+    <message>
+        <source>Format</source>
+        <translation>형식</translation>
+    </message>
+    <message>
+        <source>Language</source>
+        <translation>언어</translation>
+    </message>
+    <message>
+        <source>Title</source>
+        <translation>제목</translation>
+    </message>
+    <message>
+        <source>Author</source>
+        <translation>저자</translation>
+    </message>
+    <message>
+        <source>Crowdly status</source>
+        <translation>Crowdly 상태</translation>
+    </message>
+    <message>
+        <source>Reading progress</source>
+        <translation>읽기 진행률</translation>
+    </message>
+    <message>
+        <source>Added in the last</source>
+        <translation>최근 추가 기간</translation>
+    </message>
+    <message>
+        <source>Read in the last</source>
+        <translation>최근 읽은 기간</translation>
+    </message>
+    <message>
+        <source>is</source>
+        <translation>은(는)</translation>
+    </message>
+    <message>
+        <source>contains</source>
+        <translation>포함</translation>
+    </message>
+    <message>
+        <source>days (at most)</source>
+        <translation>일(이내)</translation>
+    </message>
+    <message>
+        <source>My library</source>
+        <translation>내 서재</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>오디오</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>텍스트</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>스토리</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>시나리오</translation>
+    </message>
+    <message>
+        <source>Favorite</source>
+        <translation>즐겨찾기</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>경험 중</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>경험함</translation>
+    </message>
+    <message>
+        <source>Not started</source>
+        <translation>시작 안 함</translation>
+    </message>
+    <message>
+        <source>In progress</source>
+        <translation>읽는 중</translation>
+    </message>
+    <message>
+        <source>Finished</source>
+        <translation>완료</translation>
+    </message>
+    <message>
+        <source>Please give the shelf a name.</source>
+        <translation>책장 이름을 입력하세요.</translation>
+    </message>
+    <message>
+        <source>Every rule needs a value.</source>
+        <translation>모든 규칙에 값이 필요합니다.</translation>
+    </message>
+</context>
+<context>
+    <name>BrowsePage</name>
+    <message>
+        <source>Continue reading</source>
+        <translation>이어 읽기</translation>
+    </message>
+    <message>
+        <source>Favorites</source>
+        <translation>즐겨찾기</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>최신 스토리</translation>
+    </message>
+    <message>
+        <source>Newest screenplays</source>
+        <translation>최신 시나리오</translation>
+    </message>
+    <message>
+        <source>Most popular stories</source>
+        <translation>가장 인기 있는 스토리</translation>
+    </message>
+    <message>
+        <source>Most popular screenplays</source>
+        <translation>가장 인기 있는 시나리오</translation>
+    </message>
+    <message>
+        <source>Most active screenplays</source>
+        <translation>가장 활발한 시나리오</translation>
+    </message>
+    <message>
+        <source>Most active stories</source>
+        <translation>가장 활발한 스토리</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>경험 중</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>경험함</translation>
+    </message>
+    <message>
+        <source>See all ›</source>
+        <translation>모두 보기 ›</translation>
+    </message>
+    <message>
+        <source>‹ Back</source>
+        <translation>‹ 뒤로</translation>
+    </message>
+    <message>
+        <source>Try again</source>
+        <translation>다시 시도</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>제목 없음</translation>
+    </message>
+    <message>
+        <source>Loading Crowdly…</source>
+        <translation>Crowdly 불러오는 중…</translation>
+    </message>
+    <message>
+        <source>Crowdly could not be reached: {error}</source>
+        <translation>Crowdly에 연결할 수 없습니다: {error}</translation>
+    </message>
+</context>
+<context>
+    <name>LibraryPage</name>
+    <message>
+        <source>Continue reading</source>
+        <translation>이어 읽기</translation>
+    </message>
+    <message>
+        <source>All books</source>
+        <translation>모든 책</translation>
+    </message>
+    <message>
+        <source>Audiobooks</source>
+        <translation>오디오북</translation>
+    </message>
+    <message>
+        <source>Crowdly stories</source>
+        <translation>Crowdly 스토리</translation>
+    </message>
+    <message>
+        <source>+ New shelf</source>
+        <translation>+ 새 책장</translation>
+    </message>
+    <message>
+        <source>+ New smart shelf</source>
+        <translation>+ 새 스마트 책장</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>정렬 기준</translation>
+    </message>
+    <message>
+        <source>Grid</source>
+        <translation>격자</translation>
+    </message>
+    <message>
+        <source>List</source>
+        <translation>목록</translation>
+    </message>
+    <message>
+        <source>Also on Crowdly</source>
+        <translation>Crowdly에도 있음</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>제목 없음</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to use shelves.</source>
+        <translation>책장을 사용하려면 Crowdly에 로그인하세요.</translation>
+    </message>
+    <message>
+        <source>Shelves are not available: {error}</source>
+        <translation>책장을 사용할 수 없습니다: {error}</translation>
+    </message>
+    <message>
+        <source>This computer</source>
+        <translation>이 컴퓨터</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>My shelves</source>
+        <translation>내 책장</translation>
+    </message>
+    <message>
+        <source>Loading…</source>
+        <translation>불러오는 중…</translation>
+    </message>
+    <message>
+        <source>Offline - showing the shelves as they were last loaded.</source>
+        <translation>오프라인 - 마지막으로 불러온 책장을 표시합니다.</translation>
+    </message>
+    <message>
+        <source>This smart shelf fills itself from its rules.</source>
+        <translation>이 스마트 책장은 규칙에 따라 자동으로 채워집니다.</translation>
+    </message>
+    <message>
+        <source>Nothing here matches your search.</source>
+        <translation>검색과 일치하는 항목이 없습니다.</translation>
+    </message>
+    <message>
+        <source>Books and stories you have started appear here.</source>
+        <translation>읽기 시작한 책과 스토리가 여기에 표시됩니다.</translation>
+    </message>
+    <message>
+        <source>This shelf is empty. Drag a book or story onto it, or use &quot;Add to shelf&quot;.</source>
+        <translation>이 책장은 비어 있습니다. 책이나 스토리를 끌어다 놓거나 &quot;책장에 추가&quot;를 사용하세요.</translation>
+    </message>
+    <message>
+        <source>Shelves: {error}</source>
+        <translation>책장: {error}</translation>
+    </message>
+    <message>
+        <source>New shelf</source>
+        <translation>새 책장</translation>
+    </message>
+    <message>
+        <source>Shelf name:</source>
+        <translation>책장 이름:</translation>
+    </message>
+    <message>
+        <source>Rename…</source>
+        <translation>이름 바꾸기…</translation>
+    </message>
+    <message>
+        <source>Edit rules…</source>
+        <translation>규칙 편집…</translation>
+    </message>
+    <message>
+        <source>Delete shelf</source>
+        <translation>책장 삭제</translation>
+    </message>
+    <message>
+        <source>Rename shelf</source>
+        <translation>책장 이름 바꾸기</translation>
+    </message>
+    <message>
+        <source>Delete the shelf &quot;{name}&quot;? The books and stories on it are not deleted.</source>
+        <translation>&quot;{name}&quot; 책장을 삭제할까요? 책장에 있는 책과 스토리는 삭제되지 않습니다.</translation>
+    </message>
+    <message>
+        <source>Turn on Synchronisation with web platform to put library books on shelves.</source>
+        <translation>서재의 책을 책장에 넣으려면 웹 플랫폼 동기화를 켜세요.</translation>
+    </message>
+    <message>
+        <source>Added to &quot;{shelf}&quot;</source>
+        <translation>&quot;{shelf}&quot;에 추가됨</translation>
+    </message>
+</context>
+<context>
+    <name>_DropZone</name>
+    <message>
+        <source>Drop EPUB, PDF, audio or text files here, or use &quot;+ Add books&quot;.
+Your books stay private to you.</source>
+        <translation>EPUB, PDF, 오디오 또는 텍스트 파일을 여기에 놓거나 &quot;+ 책 추가&quot;를 사용하세요.
+책은 나만 볼 수 있습니다.</translation>
     </message>
 </context>
 </TS>

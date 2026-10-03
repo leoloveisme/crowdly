@@ -1183,6 +1183,98 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
         <source>Sync failed</source>
         <translation>فشلت المزامنة</translation>
     </message>
+    <message>
+        <source>Shelves</source>
+        <translation>الرفوف</translation>
+    </message>
+    <message>
+        <source>Turn on Synchronisation with web platform to put library books on shelves.</source>
+        <translation>فعّل المزامنة مع منصة الويب لوضع كتب المكتبة على الرفوف.</translation>
+    </message>
+    <message>
+        <source>Book not on this computer</source>
+        <translation>الكتاب غير موجود على هذا الكمبيوتر</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is in your Crowdly library but not on this computer yet. Sync your library to download it.</source>
+        <translation>«{title}» موجود في مكتبتك على Crowdly لكنه ليس على هذا الكمبيوتر بعد. زامِن مكتبتك لتنزيله.</translation>
+    </message>
+    <message>
+        <source>Screenplays can&apos;t be read in Discovery yet - open them on the web platform.</source>
+        <translation>لا يمكن قراءة السيناريوهات في الاكتشاف بعد - افتحها على منصة الويب.</translation>
+    </message>
+    <message>
+        <source>My Library</source>
+        <translation>مكتبتي</translation>
+    </message>
+    <message>
+        <source>+ Add books</source>
+        <translation>+ إضافة كتب</translation>
+    </message>
+    <message>
+        <source>Add to shelf</source>
+        <translation>إضافة إلى رف</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>قصة</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>سيناريو</translation>
+    </message>
+    <message>
+        <source>Audiobook</source>
+        <translation>كتاب صوتي</translation>
+    </message>
+    <message>
+        <source>{count} scenes</source>
+        <translation>{count} مشاهد</translation>
+    </message>
+    <message>
+        <source>{count} chapters</source>
+        <translation>{count} فصول</translation>
+    </message>
+    <message>
+        <source>Listen</source>
+        <translation>استماع</translation>
+    </message>
+    <message>
+        <source>Read</source>
+        <translation>قراءة</translation>
+    </message>
+    <message>
+        <source>Remove from this shelf</source>
+        <translation>إزالة من هذا الرف</translation>
+    </message>
+    <message>
+        <source>Details</source>
+        <translation>التفاصيل</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to browse.</source>
+        <translation>سجّل الدخول إلى Crowdly للتصفح.</translation>
+    </message>
+    <message>
+        <source>Search my library and Crowdly…</source>
+        <translation>ابحث في مكتبتي وفي Crowdly…</translation>
+    </message>
+    <message>
+        <source>Search Crowdly…</source>
+        <translation>ابحث في Crowdly…</translation>
+    </message>
+    <message>
+        <source>Search results for &quot;{query}&quot;</source>
+        <translation>نتائج البحث عن «{query}»</translation>
+    </message>
+    <message>
+        <source>Sync off</source>
+        <translation>المزامنة متوقفة</translation>
+    </message>
+    <message>
+        <source>Click to sync now</source>
+        <translation>انقر للمزامنة الآن</translation>
+    </message>
 </context>
 <context>
     <name>ReaderWidget</name>
@@ -1261,6 +1353,571 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
     <message>
         <source>Delete highlight</source>
         <translation>حذف التمييز</translation>
+    </message>
+    <message>
+        <source>Shelves</source>
+        <translation>الرفوف</translation>
+    </message>
+    <message>
+        <source>← Back</source>
+        <translation>→ رجوع</translation>
+    </message>
+    <message>
+        <source>Text size, font and colours</source>
+        <translation>حجم النص والخط والألوان</translation>
+    </message>
+    <message>
+        <source>Smaller text</source>
+        <translation>نص أصغر</translation>
+    </message>
+    <message>
+        <source>Larger text</source>
+        <translation>نص أكبر</translation>
+    </message>
+    <message>
+        <source>Serif font</source>
+        <translation>خط بتذييل</translation>
+    </message>
+    <message>
+        <source>Sans-serif font</source>
+        <translation>خط بدون تذييل</translation>
+    </message>
+    <message>
+        <source>Light</source>
+        <translation>فاتح</translation>
+    </message>
+    <message>
+        <source>Sepia</source>
+        <translation>بني داكن</translation>
+    </message>
+    <message>
+        <source>Dark</source>
+        <translation>داكن</translation>
+    </message>
+</context>
+<context>
+    <name>Shelves</name>
+    <message>
+        <source>Favorites</source>
+        <translation>المفضلة</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>أعيشها</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>عشتها</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>أحدث القصص</translation>
+    </message>
+    <message>
+        <source>Most active</source>
+        <translation>الأكثر نشاطًا</translation>
+    </message>
+    <message>
+        <source>Most popular</source>
+        <translation>الأكثر شعبية</translation>
+    </message>
+    <message>
+        <source>Favorite</source>
+        <translation>مفضلة</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>صوت</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>نص</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>قصة</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>سيناريو</translation>
+    </message>
+    <message>
+        <source>{percent}% read</source>
+        <translation>قُرئ {percent}%</translation>
+    </message>
+    <message>
+        <source>in my library</source>
+        <translation>في مكتبتي</translation>
+    </message>
+    <message>
+        <source>Add to shelf</source>
+        <translation>إضافة إلى رف</translation>
+    </message>
+    <message>
+        <source>Turn on Synchronisation with web platform to put library books on shelves</source>
+        <translation>فعّل المزامنة مع منصة الويب لوضع كتب المكتبة على الرفوف</translation>
+    </message>
+    <message>
+        <source>Loading…</source>
+        <translation>جارٍ التحميل…</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to use shelves.</source>
+        <translation>سجّل الدخول إلى Crowdly لاستخدام الرفوف.</translation>
+    </message>
+    <message>
+        <source>Shelves are not available: {error}</source>
+        <translation>الرفوف غير متاحة: {error}</translation>
+    </message>
+    <message>
+        <source>New shelf…</source>
+        <translation>رف جديد…</translation>
+    </message>
+    <message>
+        <source>Shelves: {error}</source>
+        <translation>الرفوف: {error}</translation>
+    </message>
+    <message>
+        <source>Saved</source>
+        <translation>تم الحفظ</translation>
+    </message>
+    <message>
+        <source>Added to the shelf</source>
+        <translation>أُضيف إلى الرف</translation>
+    </message>
+    <message>
+        <source>Removed from the shelf</source>
+        <translation>أُزيل من الرف</translation>
+    </message>
+    <message>
+        <source>New shelf</source>
+        <translation>رف جديد</translation>
+    </message>
+    <message>
+        <source>Shelf name:</source>
+        <translation>اسم الرف:</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>My shelves</source>
+        <translation>رفوفي</translation>
+    </message>
+    <message>
+        <source>New smart shelf</source>
+        <translation>رف ذكي جديد</translation>
+    </message>
+    <message>
+        <source>Offline - showing the shelves as they were last loaded.</source>
+        <translation>غير متصل - تُعرض الرفوف كما حُمّلت آخر مرة.</translation>
+    </message>
+    <message>
+        <source>This smart shelf fills itself from its rules.</source>
+        <translation>يمتلئ هذا الرف الذكي تلقائيًا وفق قواعده.</translation>
+    </message>
+    <message>
+        <source>This shelf is empty. Use &quot;Add to shelf&quot; on a book or story.</source>
+        <translation>هذا الرف فارغ. استخدم «إضافة إلى رف» على كتاب أو قصة.</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>بلا عنوان</translation>
+    </message>
+    <message>
+        <source>Rename…</source>
+        <translation>إعادة التسمية…</translation>
+    </message>
+    <message>
+        <source>Edit rules…</source>
+        <translation>تعديل القواعد…</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>الترتيب حسب</translation>
+    </message>
+    <message>
+        <source>Delete shelf</source>
+        <translation>حذف الرف</translation>
+    </message>
+    <message>
+        <source>Rename shelf</source>
+        <translation>إعادة تسمية الرف</translation>
+    </message>
+    <message>
+        <source>Delete the shelf &quot;{name}&quot;? The books and stories on it are not deleted.</source>
+        <translation>هل تريد حذف الرف «{name}»؟ لن تُحذف الكتب والقصص الموجودة عليه.</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>فتح</translation>
+    </message>
+    <message>
+        <source>Remove from this shelf</source>
+        <translation>إزالة من هذا الرف</translation>
+    </message>
+    <message>
+        <source>My order</source>
+        <translation>ترتيبي</translation>
+    </message>
+    <message>
+        <source>Title</source>
+        <translation>العنوان</translation>
+    </message>
+    <message>
+        <source>Recently added</source>
+        <translation>المضاف حديثًا</translation>
+    </message>
+    <message>
+        <source>Reading progress</source>
+        <translation>تقدم القراءة</translation>
+    </message>
+    <message>
+        <source>Recently read</source>
+        <translation>المقروء حديثًا</translation>
+    </message>
+</context>
+<context>
+    <name>SmartShelfDialog</name>
+    <message>
+        <source>Smart shelf</source>
+        <translation>رف ذكي</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation>الاسم</translation>
+    </message>
+    <message>
+        <source>all of these rules</source>
+        <translation>كل هذه القواعد</translation>
+    </message>
+    <message>
+        <source>any of these rules</source>
+        <translation>أي من هذه القواعد</translation>
+    </message>
+    <message>
+        <source>Show items that match</source>
+        <translation>عرض العناصر المطابقة لـ</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>الترتيب حسب</translation>
+    </message>
+    <message>
+        <source>Add rule</source>
+        <translation>إضافة قاعدة</translation>
+    </message>
+    <message>
+        <source>Source</source>
+        <translation>المصدر</translation>
+    </message>
+    <message>
+        <source>Format</source>
+        <translation>الصيغة</translation>
+    </message>
+    <message>
+        <source>Language</source>
+        <translation>اللغة</translation>
+    </message>
+    <message>
+        <source>Title</source>
+        <translation>العنوان</translation>
+    </message>
+    <message>
+        <source>Author</source>
+        <translation>المؤلف</translation>
+    </message>
+    <message>
+        <source>Crowdly status</source>
+        <translation>الحالة على Crowdly</translation>
+    </message>
+    <message>
+        <source>Reading progress</source>
+        <translation>تقدم القراءة</translation>
+    </message>
+    <message>
+        <source>Added in the last</source>
+        <translation>أُضيف خلال آخر</translation>
+    </message>
+    <message>
+        <source>Read in the last</source>
+        <translation>قُرئ خلال آخر</translation>
+    </message>
+    <message>
+        <source>is</source>
+        <translation>هو</translation>
+    </message>
+    <message>
+        <source>contains</source>
+        <translation>يحتوي على</translation>
+    </message>
+    <message>
+        <source>days (at most)</source>
+        <translation>أيام (على الأكثر)</translation>
+    </message>
+    <message>
+        <source>My library</source>
+        <translation>مكتبتي</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>صوت</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>نص</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>قصة</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>سيناريو</translation>
+    </message>
+    <message>
+        <source>Favorite</source>
+        <translation>مفضلة</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>أعيشها</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>عشتها</translation>
+    </message>
+    <message>
+        <source>Not started</source>
+        <translation>لم يبدأ</translation>
+    </message>
+    <message>
+        <source>In progress</source>
+        <translation>قيد القراءة</translation>
+    </message>
+    <message>
+        <source>Finished</source>
+        <translation>انتهى</translation>
+    </message>
+    <message>
+        <source>Please give the shelf a name.</source>
+        <translation>يُرجى إعطاء الرف اسمًا.</translation>
+    </message>
+    <message>
+        <source>Every rule needs a value.</source>
+        <translation>كل قاعدة تحتاج إلى قيمة.</translation>
+    </message>
+</context>
+<context>
+    <name>BrowsePage</name>
+    <message>
+        <source>Continue reading</source>
+        <translation>متابعة القراءة</translation>
+    </message>
+    <message>
+        <source>Favorites</source>
+        <translation>المفضلة</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>أحدث القصص</translation>
+    </message>
+    <message>
+        <source>Newest screenplays</source>
+        <translation>أحدث السيناريوهات</translation>
+    </message>
+    <message>
+        <source>Most popular stories</source>
+        <translation>القصص الأكثر شعبية</translation>
+    </message>
+    <message>
+        <source>Most popular screenplays</source>
+        <translation>السيناريوهات الأكثر شعبية</translation>
+    </message>
+    <message>
+        <source>Most active screenplays</source>
+        <translation>السيناريوهات الأكثر نشاطًا</translation>
+    </message>
+    <message>
+        <source>Most active stories</source>
+        <translation>القصص الأكثر نشاطًا</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>أعيشها</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>عشتها</translation>
+    </message>
+    <message>
+        <source>See all ›</source>
+        <translation>عرض الكل ›</translation>
+    </message>
+    <message>
+        <source>‹ Back</source>
+        <translation>› رجوع</translation>
+    </message>
+    <message>
+        <source>Try again</source>
+        <translation>حاول مجددًا</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>بلا عنوان</translation>
+    </message>
+    <message>
+        <source>Loading Crowdly…</source>
+        <translation>جارٍ تحميل Crowdly…</translation>
+    </message>
+    <message>
+        <source>Crowdly could not be reached: {error}</source>
+        <translation>تعذّر الوصول إلى Crowdly: {error}</translation>
+    </message>
+</context>
+<context>
+    <name>LibraryPage</name>
+    <message>
+        <source>Continue reading</source>
+        <translation>متابعة القراءة</translation>
+    </message>
+    <message>
+        <source>All books</source>
+        <translation>كل الكتب</translation>
+    </message>
+    <message>
+        <source>Audiobooks</source>
+        <translation>الكتب الصوتية</translation>
+    </message>
+    <message>
+        <source>Crowdly stories</source>
+        <translation>قصص Crowdly</translation>
+    </message>
+    <message>
+        <source>+ New shelf</source>
+        <translation>+ رف جديد</translation>
+    </message>
+    <message>
+        <source>+ New smart shelf</source>
+        <translation>+ رف ذكي جديد</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>الترتيب حسب</translation>
+    </message>
+    <message>
+        <source>Grid</source>
+        <translation>شبكة</translation>
+    </message>
+    <message>
+        <source>List</source>
+        <translation>قائمة</translation>
+    </message>
+    <message>
+        <source>Also on Crowdly</source>
+        <translation>أيضًا على Crowdly</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>بلا عنوان</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to use shelves.</source>
+        <translation>سجّل الدخول إلى Crowdly لاستخدام الرفوف.</translation>
+    </message>
+    <message>
+        <source>Shelves are not available: {error}</source>
+        <translation>الرفوف غير متاحة: {error}</translation>
+    </message>
+    <message>
+        <source>This computer</source>
+        <translation>هذا الكمبيوتر</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>My shelves</source>
+        <translation>رفوفي</translation>
+    </message>
+    <message>
+        <source>Loading…</source>
+        <translation>جارٍ التحميل…</translation>
+    </message>
+    <message>
+        <source>Offline - showing the shelves as they were last loaded.</source>
+        <translation>غير متصل - تُعرض الرفوف كما حُمّلت آخر مرة.</translation>
+    </message>
+    <message>
+        <source>This smart shelf fills itself from its rules.</source>
+        <translation>يمتلئ هذا الرف الذكي تلقائيًا وفق قواعده.</translation>
+    </message>
+    <message>
+        <source>Nothing here matches your search.</source>
+        <translation>لا شيء هنا يطابق بحثك.</translation>
+    </message>
+    <message>
+        <source>Books and stories you have started appear here.</source>
+        <translation>تظهر هنا الكتب والقصص التي بدأتها.</translation>
+    </message>
+    <message>
+        <source>This shelf is empty. Drag a book or story onto it, or use &quot;Add to shelf&quot;.</source>
+        <translation>هذا الرف فارغ. اسحب إليه كتابًا أو قصة، أو استخدم «إضافة إلى رف».</translation>
+    </message>
+    <message>
+        <source>Shelves: {error}</source>
+        <translation>الرفوف: {error}</translation>
+    </message>
+    <message>
+        <source>New shelf</source>
+        <translation>رف جديد</translation>
+    </message>
+    <message>
+        <source>Shelf name:</source>
+        <translation>اسم الرف:</translation>
+    </message>
+    <message>
+        <source>Rename…</source>
+        <translation>إعادة التسمية…</translation>
+    </message>
+    <message>
+        <source>Edit rules…</source>
+        <translation>تعديل القواعد…</translation>
+    </message>
+    <message>
+        <source>Delete shelf</source>
+        <translation>حذف الرف</translation>
+    </message>
+    <message>
+        <source>Rename shelf</source>
+        <translation>إعادة تسمية الرف</translation>
+    </message>
+    <message>
+        <source>Delete the shelf &quot;{name}&quot;? The books and stories on it are not deleted.</source>
+        <translation>هل تريد حذف الرف «{name}»؟ لن تُحذف الكتب والقصص الموجودة عليه.</translation>
+    </message>
+    <message>
+        <source>Turn on Synchronisation with web platform to put library books on shelves.</source>
+        <translation>فعّل المزامنة مع منصة الويب لوضع كتب المكتبة على الرفوف.</translation>
+    </message>
+    <message>
+        <source>Added to &quot;{shelf}&quot;</source>
+        <translation>أُضيف إلى «{shelf}»</translation>
+    </message>
+</context>
+<context>
+    <name>_DropZone</name>
+    <message>
+        <source>Drop EPUB, PDF, audio or text files here, or use &quot;+ Add books&quot;.
+Your books stay private to you.</source>
+        <translation>أفلت هنا ملفات EPUB أو PDF أو صوتية أو نصية، أو استخدم «+ إضافة كتب».
+تبقى كتبك خاصة بك.</translation>
     </message>
 </context>
 </TS>

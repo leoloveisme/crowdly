@@ -1183,6 +1183,98 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
         <source>Sync failed</source>
         <translation>同步失敗</translation>
     </message>
+    <message>
+        <source>Shelves</source>
+        <translation>書架</translation>
+    </message>
+    <message>
+        <source>Turn on Synchronisation with web platform to put library books on shelves.</source>
+        <translation>開啟與網頁平台同步，才能把書庫中的書籍放到書架上。</translation>
+    </message>
+    <message>
+        <source>Book not on this computer</source>
+        <translation>這台電腦上沒有這本書</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is in your Crowdly library but not on this computer yet. Sync your library to download it.</source>
+        <translation>「{title}」在你的 Crowdly 書庫中，但還不在這台電腦上。同步書庫即可下載。</translation>
+    </message>
+    <message>
+        <source>Screenplays can&apos;t be read in Discovery yet - open them on the web platform.</source>
+        <translation>劇本暫時無法在探索中閱讀——請在網頁平台開啟。</translation>
+    </message>
+    <message>
+        <source>My Library</source>
+        <translation>我的書庫</translation>
+    </message>
+    <message>
+        <source>+ Add books</source>
+        <translation>+ 新增書籍</translation>
+    </message>
+    <message>
+        <source>Add to shelf</source>
+        <translation>加入書架</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>故事</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>劇本</translation>
+    </message>
+    <message>
+        <source>Audiobook</source>
+        <translation>有聲書</translation>
+    </message>
+    <message>
+        <source>{count} scenes</source>
+        <translation>{count} 個場景</translation>
+    </message>
+    <message>
+        <source>{count} chapters</source>
+        <translation>{count} 章</translation>
+    </message>
+    <message>
+        <source>Listen</source>
+        <translation>收聽</translation>
+    </message>
+    <message>
+        <source>Read</source>
+        <translation>閱讀</translation>
+    </message>
+    <message>
+        <source>Remove from this shelf</source>
+        <translation>從此書架移除</translation>
+    </message>
+    <message>
+        <source>Details</source>
+        <translation>詳細資訊</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to browse.</source>
+        <translation>登入 Crowdly 以瀏覽。</translation>
+    </message>
+    <message>
+        <source>Search my library and Crowdly…</source>
+        <translation>搜尋我的書庫和 Crowdly…</translation>
+    </message>
+    <message>
+        <source>Search Crowdly…</source>
+        <translation>搜尋 Crowdly…</translation>
+    </message>
+    <message>
+        <source>Search results for &quot;{query}&quot;</source>
+        <translation>「{query}」的搜尋結果</translation>
+    </message>
+    <message>
+        <source>Sync off</source>
+        <translation>同步已關閉</translation>
+    </message>
+    <message>
+        <source>Click to sync now</source>
+        <translation>按一下立即同步</translation>
+    </message>
 </context>
 <context>
     <name>ReaderWidget</name>
@@ -1261,6 +1353,571 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
     <message>
         <source>Delete highlight</source>
         <translation>刪除螢光標記</translation>
+    </message>
+    <message>
+        <source>Shelves</source>
+        <translation>書架</translation>
+    </message>
+    <message>
+        <source>← Back</source>
+        <translation>← 返回</translation>
+    </message>
+    <message>
+        <source>Text size, font and colours</source>
+        <translation>文字大小、字型和顏色</translation>
+    </message>
+    <message>
+        <source>Smaller text</source>
+        <translation>縮小文字</translation>
+    </message>
+    <message>
+        <source>Larger text</source>
+        <translation>放大文字</translation>
+    </message>
+    <message>
+        <source>Serif font</source>
+        <translation>襯線字型</translation>
+    </message>
+    <message>
+        <source>Sans-serif font</source>
+        <translation>無襯線字型</translation>
+    </message>
+    <message>
+        <source>Light</source>
+        <translation>淺色</translation>
+    </message>
+    <message>
+        <source>Sepia</source>
+        <translation>護眼</translation>
+    </message>
+    <message>
+        <source>Dark</source>
+        <translation>深色</translation>
+    </message>
+</context>
+<context>
+    <name>Shelves</name>
+    <message>
+        <source>Favorites</source>
+        <translation>收藏</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>正在體驗</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>已體驗</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>最新故事</translation>
+    </message>
+    <message>
+        <source>Most active</source>
+        <translation>最活躍</translation>
+    </message>
+    <message>
+        <source>Most popular</source>
+        <translation>最受歡迎</translation>
+    </message>
+    <message>
+        <source>Favorite</source>
+        <translation>收藏</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>音訊</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>文字</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>故事</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>劇本</translation>
+    </message>
+    <message>
+        <source>{percent}% read</source>
+        <translation>已讀 {percent}%</translation>
+    </message>
+    <message>
+        <source>in my library</source>
+        <translation>在我的書庫中</translation>
+    </message>
+    <message>
+        <source>Add to shelf</source>
+        <translation>加入書架</translation>
+    </message>
+    <message>
+        <source>Turn on Synchronisation with web platform to put library books on shelves</source>
+        <translation>開啟與網頁平台同步，才能把書庫中的書籍放到書架上</translation>
+    </message>
+    <message>
+        <source>Loading…</source>
+        <translation>正在載入…</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to use shelves.</source>
+        <translation>登入 Crowdly 以使用書架。</translation>
+    </message>
+    <message>
+        <source>Shelves are not available: {error}</source>
+        <translation>書架無法使用：{error}</translation>
+    </message>
+    <message>
+        <source>New shelf…</source>
+        <translation>新增書架…</translation>
+    </message>
+    <message>
+        <source>Shelves: {error}</source>
+        <translation>書架：{error}</translation>
+    </message>
+    <message>
+        <source>Saved</source>
+        <translation>已儲存</translation>
+    </message>
+    <message>
+        <source>Added to the shelf</source>
+        <translation>已加入書架</translation>
+    </message>
+    <message>
+        <source>Removed from the shelf</source>
+        <translation>已從書架移除</translation>
+    </message>
+    <message>
+        <source>New shelf</source>
+        <translation>新增書架</translation>
+    </message>
+    <message>
+        <source>Shelf name:</source>
+        <translation>書架名稱：</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>My shelves</source>
+        <translation>我的書架</translation>
+    </message>
+    <message>
+        <source>New smart shelf</source>
+        <translation>新增智慧書架</translation>
+    </message>
+    <message>
+        <source>Offline - showing the shelves as they were last loaded.</source>
+        <translation>離線——顯示上次載入的書架。</translation>
+    </message>
+    <message>
+        <source>This smart shelf fills itself from its rules.</source>
+        <translation>此智慧書架會依規則自動填入。</translation>
+    </message>
+    <message>
+        <source>This shelf is empty. Use &quot;Add to shelf&quot; on a book or story.</source>
+        <translation>此書架為空。在書籍或故事上使用「加入書架」。</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>無標題</translation>
+    </message>
+    <message>
+        <source>Rename…</source>
+        <translation>重新命名…</translation>
+    </message>
+    <message>
+        <source>Edit rules…</source>
+        <translation>編輯規則…</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>排序方式</translation>
+    </message>
+    <message>
+        <source>Delete shelf</source>
+        <translation>刪除書架</translation>
+    </message>
+    <message>
+        <source>Rename shelf</source>
+        <translation>重新命名書架</translation>
+    </message>
+    <message>
+        <source>Delete the shelf &quot;{name}&quot;? The books and stories on it are not deleted.</source>
+        <translation>刪除書架「{name}」？書架上的書籍和故事不會被刪除。</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>開啟</translation>
+    </message>
+    <message>
+        <source>Remove from this shelf</source>
+        <translation>從此書架移除</translation>
+    </message>
+    <message>
+        <source>My order</source>
+        <translation>我的順序</translation>
+    </message>
+    <message>
+        <source>Title</source>
+        <translation>標題</translation>
+    </message>
+    <message>
+        <source>Recently added</source>
+        <translation>最近新增</translation>
+    </message>
+    <message>
+        <source>Reading progress</source>
+        <translation>閱讀進度</translation>
+    </message>
+    <message>
+        <source>Recently read</source>
+        <translation>最近閱讀</translation>
+    </message>
+</context>
+<context>
+    <name>SmartShelfDialog</name>
+    <message>
+        <source>Smart shelf</source>
+        <translation>智慧書架</translation>
+    </message>
+    <message>
+        <source>Name</source>
+        <translation>名稱</translation>
+    </message>
+    <message>
+        <source>all of these rules</source>
+        <translation>全部規則</translation>
+    </message>
+    <message>
+        <source>any of these rules</source>
+        <translation>任一規則</translation>
+    </message>
+    <message>
+        <source>Show items that match</source>
+        <translation>顯示符合以下條件的項目</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>排序方式</translation>
+    </message>
+    <message>
+        <source>Add rule</source>
+        <translation>新增規則</translation>
+    </message>
+    <message>
+        <source>Source</source>
+        <translation>來源</translation>
+    </message>
+    <message>
+        <source>Format</source>
+        <translation>格式</translation>
+    </message>
+    <message>
+        <source>Language</source>
+        <translation>語言</translation>
+    </message>
+    <message>
+        <source>Title</source>
+        <translation>標題</translation>
+    </message>
+    <message>
+        <source>Author</source>
+        <translation>作者</translation>
+    </message>
+    <message>
+        <source>Crowdly status</source>
+        <translation>Crowdly 狀態</translation>
+    </message>
+    <message>
+        <source>Reading progress</source>
+        <translation>閱讀進度</translation>
+    </message>
+    <message>
+        <source>Added in the last</source>
+        <translation>最近新增於</translation>
+    </message>
+    <message>
+        <source>Read in the last</source>
+        <translation>最近閱讀於</translation>
+    </message>
+    <message>
+        <source>is</source>
+        <translation>是</translation>
+    </message>
+    <message>
+        <source>contains</source>
+        <translation>包含</translation>
+    </message>
+    <message>
+        <source>days (at most)</source>
+        <translation>天（以內）</translation>
+    </message>
+    <message>
+        <source>My library</source>
+        <translation>我的書庫</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>音訊</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>文字</translation>
+    </message>
+    <message>
+        <source>Story</source>
+        <translation>故事</translation>
+    </message>
+    <message>
+        <source>Screenplay</source>
+        <translation>劇本</translation>
+    </message>
+    <message>
+        <source>Favorite</source>
+        <translation>收藏</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>正在體驗</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>已體驗</translation>
+    </message>
+    <message>
+        <source>Not started</source>
+        <translation>未開始</translation>
+    </message>
+    <message>
+        <source>In progress</source>
+        <translation>進行中</translation>
+    </message>
+    <message>
+        <source>Finished</source>
+        <translation>已讀完</translation>
+    </message>
+    <message>
+        <source>Please give the shelf a name.</source>
+        <translation>請為書架命名。</translation>
+    </message>
+    <message>
+        <source>Every rule needs a value.</source>
+        <translation>每條規則都需要一個值。</translation>
+    </message>
+</context>
+<context>
+    <name>BrowsePage</name>
+    <message>
+        <source>Continue reading</source>
+        <translation>繼續閱讀</translation>
+    </message>
+    <message>
+        <source>Favorites</source>
+        <translation>收藏</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>最新故事</translation>
+    </message>
+    <message>
+        <source>Newest screenplays</source>
+        <translation>最新劇本</translation>
+    </message>
+    <message>
+        <source>Most popular stories</source>
+        <translation>最受歡迎的故事</translation>
+    </message>
+    <message>
+        <source>Most popular screenplays</source>
+        <translation>最受歡迎的劇本</translation>
+    </message>
+    <message>
+        <source>Most active screenplays</source>
+        <translation>最活躍的劇本</translation>
+    </message>
+    <message>
+        <source>Most active stories</source>
+        <translation>最活躍的故事</translation>
+    </message>
+    <message>
+        <source>Living</source>
+        <translation>正在體驗</translation>
+    </message>
+    <message>
+        <source>Lived</source>
+        <translation>已體驗</translation>
+    </message>
+    <message>
+        <source>See all ›</source>
+        <translation>查看全部 ›</translation>
+    </message>
+    <message>
+        <source>‹ Back</source>
+        <translation>‹ 返回</translation>
+    </message>
+    <message>
+        <source>Try again</source>
+        <translation>重試</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>無標題</translation>
+    </message>
+    <message>
+        <source>Loading Crowdly…</source>
+        <translation>正在載入 Crowdly…</translation>
+    </message>
+    <message>
+        <source>Crowdly could not be reached: {error}</source>
+        <translation>無法連線到 Crowdly：{error}</translation>
+    </message>
+</context>
+<context>
+    <name>LibraryPage</name>
+    <message>
+        <source>Continue reading</source>
+        <translation>繼續閱讀</translation>
+    </message>
+    <message>
+        <source>All books</source>
+        <translation>全部書籍</translation>
+    </message>
+    <message>
+        <source>Audiobooks</source>
+        <translation>有聲書</translation>
+    </message>
+    <message>
+        <source>Crowdly stories</source>
+        <translation>Crowdly 故事</translation>
+    </message>
+    <message>
+        <source>+ New shelf</source>
+        <translation>+ 新增書架</translation>
+    </message>
+    <message>
+        <source>+ New smart shelf</source>
+        <translation>+ 新增智慧書架</translation>
+    </message>
+    <message>
+        <source>Sort by</source>
+        <translation>排序方式</translation>
+    </message>
+    <message>
+        <source>Grid</source>
+        <translation>格狀</translation>
+    </message>
+    <message>
+        <source>List</source>
+        <translation>清單</translation>
+    </message>
+    <message>
+        <source>Also on Crowdly</source>
+        <translation>Crowdly 上也有</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>無標題</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly to use shelves.</source>
+        <translation>登入 Crowdly 以使用書架。</translation>
+    </message>
+    <message>
+        <source>Shelves are not available: {error}</source>
+        <translation>書架無法使用：{error}</translation>
+    </message>
+    <message>
+        <source>This computer</source>
+        <translation>這台電腦</translation>
+    </message>
+    <message>
+        <source>Crowdly</source>
+        <translation>Crowdly</translation>
+    </message>
+    <message>
+        <source>My shelves</source>
+        <translation>我的書架</translation>
+    </message>
+    <message>
+        <source>Loading…</source>
+        <translation>正在載入…</translation>
+    </message>
+    <message>
+        <source>Offline - showing the shelves as they were last loaded.</source>
+        <translation>離線——顯示上次載入的書架。</translation>
+    </message>
+    <message>
+        <source>This smart shelf fills itself from its rules.</source>
+        <translation>此智慧書架會依規則自動填入。</translation>
+    </message>
+    <message>
+        <source>Nothing here matches your search.</source>
+        <translation>這裡沒有符合搜尋的內容。</translation>
+    </message>
+    <message>
+        <source>Books and stories you have started appear here.</source>
+        <translation>你開始閱讀的書籍和故事會顯示在這裡。</translation>
+    </message>
+    <message>
+        <source>This shelf is empty. Drag a book or story onto it, or use &quot;Add to shelf&quot;.</source>
+        <translation>此書架為空。將書籍或故事拖到這裡，或使用「加入書架」。</translation>
+    </message>
+    <message>
+        <source>Shelves: {error}</source>
+        <translation>書架：{error}</translation>
+    </message>
+    <message>
+        <source>New shelf</source>
+        <translation>新增書架</translation>
+    </message>
+    <message>
+        <source>Shelf name:</source>
+        <translation>書架名稱：</translation>
+    </message>
+    <message>
+        <source>Rename…</source>
+        <translation>重新命名…</translation>
+    </message>
+    <message>
+        <source>Edit rules…</source>
+        <translation>編輯規則…</translation>
+    </message>
+    <message>
+        <source>Delete shelf</source>
+        <translation>刪除書架</translation>
+    </message>
+    <message>
+        <source>Rename shelf</source>
+        <translation>重新命名書架</translation>
+    </message>
+    <message>
+        <source>Delete the shelf &quot;{name}&quot;? The books and stories on it are not deleted.</source>
+        <translation>刪除書架「{name}」？書架上的書籍和故事不會被刪除。</translation>
+    </message>
+    <message>
+        <source>Turn on Synchronisation with web platform to put library books on shelves.</source>
+        <translation>開啟與網頁平台同步，才能把書庫中的書籍放到書架上。</translation>
+    </message>
+    <message>
+        <source>Added to &quot;{shelf}&quot;</source>
+        <translation>已加入「{shelf}」</translation>
+    </message>
+</context>
+<context>
+    <name>_DropZone</name>
+    <message>
+        <source>Drop EPUB, PDF, audio or text files here, or use &quot;+ Add books&quot;.
+Your books stay private to you.</source>
+        <translation>將 EPUB、PDF、音訊或文字檔拖放到這裡，或使用「+ 新增書籍」。
+你的書籍僅你可見。</translation>
     </message>
 </context>
 </TS>
