@@ -52,6 +52,7 @@ from ..settings import Settings, save_settings, load_spaces_status_log, get_conf
 from .. import app_modes
 from ..app_modes import MODE_CREATION, MODE_DISCOVERY
 from .. import session_store
+from .. import suggestions
 from .. import file_metadata
 from .. import story_sync
 from .. import websync
@@ -682,6 +683,21 @@ class MainWindow(QMainWindow):
         creation_layout = QVBoxLayout(self._creation_page)
         creation_layout.setContentsMargins(0, 0, 0, 0)
         creation_layout.setSpacing(0)
+        # Shown above the editor while a suggestion copy is open (see
+        # editor.suggestions): edits go to the author as suggestions.
+        self._suggestion_bar = QWidget(self._creation_page)
+        self._suggestion_bar.setStyleSheet("background: #fff4d6;")
+        suggestion_layout = QHBoxLayout(self._suggestion_bar)
+        suggestion_layout.setContentsMargins(10, 6, 10, 6)
+        self._suggestion_label = QLabel(self._suggestion_bar)
+        self._suggestion_label.setWordWrap(True)
+        self._suggestion_label.setStyleSheet("color: #5b4500;")
+        suggestion_layout.addWidget(self._suggestion_label, 1)
+        self._btn_send_suggestions = QPushButton(self._suggestion_bar)
+        self._btn_send_suggestions.clicked.connect(self._send_suggestions)
+        suggestion_layout.addWidget(self._btn_send_suggestions)
+        self._suggestion_bar.setVisible(False)
+        creation_layout.addWidget(self._suggestion_bar)
         creation_layout.addWidget(self._search_bar)
         creation_layout.addWidget(self._tab_widget, 1)
         self._mode_stack.addWidget(self._creation_page)
@@ -801,6 +817,7 @@ class MainWindow(QMainWindow):
         except Exception:
             # Never let title updates affect core behaviour.
             pass
+        self._update_suggestion_bar()
 
     def _update_filename_header_label(self) -> None:
         """Update any inline filename header label, if present.
@@ -6877,6 +6894,8 @@ class MainWindow(QMainWindow):
         view.titleChanged.connect(lambda _title: self._update_window_title())
         view.statusMessage.connect(lambda message: self.statusBar().showMessage(message, 8000))
         view.convertRequested.connect(self._convert_library_item_to_story)
+        view.changeStoryRequested.connect(self._change_story_from_discovery)
+        view.changeBookRequested.connect(self._change_book_from_discovery)
         self._mode_stack.addWidget(view)
         self._discovery_view = view
         return view
@@ -6946,7 +6965,7 @@ class MainWindow(QMainWindow):
                 return
 
         try:
-            markdown_text, _metadata = importing_controller.import_to_markdown(source)
+            markdown_text = self._book_as_markdown(source)
         except Exception as exc:
             QMessageBox.warning(self, self.tr("Import failed"), str(exc))
             return
@@ -6990,6 +7009,385 @@ class MainWindow(QMainWindow):
                 "when it is saved."
             ).format(title=item.title, file=target.name),
         )
+
+    # "I want to change this story" (Discovery -> Creation) -----------------------
+
+    def _crowdly_client(self, credentials):
+        from ..crowdly_client import CrowdlyClient
+
+        return CrowdlyClient(websync._build_api_base(self._settings), credentials=credentials, timeout_seconds=30.0)
+
+    def _ensure_project_space(self) -> bool:
+        if self._project_space_path is None:
+            QMessageBox.information(
+                self,
+                self.tr("Project space required"),
+                self.tr("Please create or choose your project space first."),
+            )
+            self._choose_project_space()
+        return self._project_space_path is not None
+
+    def _change_failed(self, message: str) -> None:
+        self.statusBar().clearMessage()
+        QMessageBox.warning(self, self.tr("Change this story"), message)
+
+    def _change_story_from_discovery(self, story_id: str, title: str) -> None:  # pragma: no cover - UI wiring
+        """Route a reader to the right way of changing a story.
+
+        The owner and invited collaborators edit the story directly; everyone
+        else chooses between suggesting changes, their own copy, a
+        translation, or asking to collaborate (ChangeStoryDialog).
+        """
+
+        from .change_story_dialog import (
+            CHOICE_CLONE,
+            CHOICE_COLLABORATE,
+            CHOICE_SUGGEST,
+            CHOICE_TRANSLATE,
+            ChangeStoryDialog,
+        )
+        from .discovery.tasks import run_in_background
+
+        creds = self._discovery_credentials(True)
+        if creds is None or not self._ensure_project_space():
+            return
+        self.statusBar().showMessage(self.tr("Checking how you can change \"{title}\"…").format(title=title))
+
+        def work():
+            client = self._crowdly_client(creds)
+            options = client.change_options(story_id)
+            locales = [] if options.get("explicit") else client.list_locales()
+            return options, locales
+
+        def done(result) -> None:
+            self.statusBar().clearMessage()
+            options, locales = result
+            if options.get("explicit"):
+                self._open_story_for_change(story_id, creds, suggest=False)
+                return
+            dialog = ChangeStoryDialog(options, locales, self)
+            if not dialog.exec():
+                return
+            if dialog.choice == CHOICE_SUGGEST:
+                self._open_story_for_change(story_id, creds, suggest=True)
+            elif dialog.choice == CHOICE_CLONE:
+                self.statusBar().showMessage(self.tr("Making your own version…"))
+                run_in_background(
+                    lambda: self._crowdly_client(creds).clone_story(story_id),
+                    lambda new_id: self._open_story_for_change(new_id, creds, suggest=False, own_copy=True),
+                    self._change_failed,
+                )
+            elif dialog.choice == CHOICE_TRANSLATE and dialog.language:
+                language, start = dialog.language, dialog.start
+                self.statusBar().showMessage(self.tr("Starting the translation…"))
+                run_in_background(
+                    lambda: self._crowdly_client(creds).create_translation(story_id, language, start),
+                    lambda new_id: self._open_story_for_change(new_id, creds, suggest=False, own_copy=True),
+                    self._change_failed,
+                )
+            elif dialog.choice == CHOICE_COLLABORATE:
+                message = dialog.message
+
+                def sent(_request) -> None:
+                    QMessageBox.information(
+                        self,
+                        self.tr("Ask to collaborate"),
+                        self.tr(
+                            "Your request was sent to the author of \"{title}\". Once they accept it, "
+                            "\"I want to change this story\" opens the story for direct editing."
+                        ).format(title=options.get("title") or title),
+                    )
+
+                run_in_background(
+                    lambda: self._crowdly_client(creds).request_collaboration(story_id, message),
+                    sent,
+                    self._change_failed,
+                )
+
+        run_in_background(work, done, self._change_failed)
+
+    def _open_story_for_change(
+        self, story_id: str, creds, *, suggest: bool, own_copy: bool = False
+    ) -> None:  # pragma: no cover - UI wiring
+        """Fetch a story and open it in Creation (directly or as a suggestion copy)."""
+
+        from .discovery.tasks import run_in_background
+
+        base = websync._build_api_base(self._settings)
+        self.statusBar().showMessage(self.tr("Opening the story in Creation…"))
+
+        def work():
+            client = self._crowdly_client(creds)
+            story = client.fetch_story(f"{base}/story/{story_id}")
+            chapters = client.fetch_chapters(story_id) if suggest else None
+            return story, chapters
+
+        def done(result) -> None:
+            story, chapters = result
+            self.statusBar().clearMessage()
+            path = self._import_story_locally(story, chapters)
+            if path is None:
+                return
+            self.set_mode(MODE_CREATION)
+            self._open_paths_from_cli([str(path)])
+            self._update_suggestion_bar()
+            if suggest:
+                text = self.tr(
+                    "\"{title}\" is open as a suggestion copy. Change anything you like, then "
+                    "click \"Send my suggestions\": the author sees each change and decides."
+                )
+            elif own_copy:
+                text = self.tr(
+                    "\"{title}\" is your own story now. With Synchronisation with web platform on, "
+                    "your changes are saved to Crowdly."
+                )
+            else:
+                text = self.tr(
+                    "\"{title}\" is open for editing. With Synchronisation with web platform on, "
+                    "your changes are saved to Crowdly."
+                )
+            QMessageBox.information(self, self.tr("Change this story"), text.format(title=story.title or ""))
+
+        run_in_background(work, done, self._change_failed)
+
+    @staticmethod
+    def _book_as_markdown(source: Path) -> str:
+        """An imported book's text as Markdown (text/Markdown files as they are)."""
+
+        if source.suffix.lower() in (".md", ".markdown", ".txt"):
+            return source.read_text(encoding="utf-8", errors="replace")
+        markdown_text, _metadata = importing_controller.import_to_markdown(source)
+        return markdown_text
+
+    def _change_book_from_discovery(self, item_id: str) -> None:  # pragma: no cover - UI wiring
+        """"Change this story" for an imported book: ask who wrote it, then
+        open it as a story draft (own work / public domain / CC) or as a
+        private, local-only copy (someone else's book)."""
+
+        from ..library.store import (
+            CONVERTIBLE_RIGHTS,
+            RIGHTS_CC_LICENSED,
+            RIGHTS_OWN_WORK,
+            RIGHTS_PERSONAL_COPY,
+            RIGHTS_PUBLIC_DOMAIN,
+            RIGHTS_UNKNOWN,
+        )
+
+        library = self._shared_library()
+        item = library.get(item_id)
+        if item is None:
+            return
+        if item.rights_status == RIGHTS_UNKNOWN:
+            choices = [
+                (RIGHTS_OWN_WORK, self.tr("My own work")),
+                (RIGHTS_PUBLIC_DOMAIN, self.tr("Public domain")),
+                (RIGHTS_CC_LICENSED, self.tr("Creative Commons licence that allows changes")),
+                (RIGHTS_PERSONAL_COPY, self.tr("Someone else's book (my personal copy)")),
+            ]
+            label, ok = QInputDialog.getItem(
+                self,
+                self.tr("Change this story"),
+                self.tr(
+                    "Who wrote \"{title}\"?\n\n"
+                    "Your own work, public-domain and Creative Commons books open as a story you "
+                    "can publish on Crowdly. Someone else's book opens as a private copy that "
+                    "stays on this computer."
+                ).format(title=item.title),
+                [text for _key, text in choices],
+                0,
+                False,
+            )
+            if not ok:
+                return
+            status = next(key for key, text in choices if text == label)
+            library.set_rights(item.id, status)
+            if self._discovery_view is not None:
+                self._discovery_view.sync_now(interactive=False)
+        if item.rights_status in CONVERTIBLE_RIGHTS:
+            self._convert_library_item_to_story(item.id)
+        else:
+            self._open_private_copy(item)
+
+    def _open_private_copy(self, item) -> None:  # pragma: no cover - UI wiring
+        """Open an editable copy of someone else's book that never leaves this computer.
+
+        It is saved outside the project Space (so no Space, Drive, GitHub or
+        web sync sees it) and marked private, which _maybe_sync_story_to_web
+        respects.
+        """
+
+        library = self._shared_library()
+        source = library.file_path(item)
+        if source is None:
+            return
+        folder = get_config_dir() / "library" / "private-edits"
+        safe = "".join(c for c in item.title if c.isalnum() or c in " -_").strip() or "Book"
+        existing = sorted(folder.glob(f"{safe}*.md")) if folder.is_dir() else []
+        target = next((p for p in existing if suggestions.is_private_copy(p)), None)
+        if target is None:
+            try:
+                markdown_text = self._book_as_markdown(source)
+            except Exception as exc:
+                QMessageBox.warning(self, self.tr("Import failed"), str(exc))
+                return
+            folder.mkdir(parents=True, exist_ok=True)
+            target = folder / f"{safe}.md"
+            counter = 2
+            while target.exists():
+                target = folder / f"{safe} {counter}.md"
+                counter += 1
+            header = f"# {item.title}\n\n" if not markdown_text.lstrip().startswith("#") else ""
+            target.write_text(header + markdown_text, encoding="utf-8")
+            suggestions.mark_private_copy(target, item.title)
+        self.set_mode(MODE_CREATION)
+        self._open_paths_from_cli([str(target)])
+        self._update_suggestion_bar()
+
+    def _import_story_locally(self, story, chapters: list | None) -> Path | None:
+        """Save a fetched story into the project space (as for Open → Story on the web)."""
+
+        import traceback
+
+        from ..story_import import map_story_to_document, persist_import_metadata, suggest_local_path
+
+        try:
+            doc = map_story_to_document(story)
+            doc.kind = "story"
+            doc.storage_format = "markdown"
+            path = suggest_local_path(self._project_space_path, story)
+            doc.save(path)
+            persist_import_metadata(path, story)
+            if chapters is not None:
+                suggestions.mark_suggestion_copy(path, chapters)
+            try:
+                local_queue.ensure_crowdly_dir_for_document(path)
+            except Exception:
+                pass
+            return path
+        except Exception:
+            traceback.print_exc()
+            QMessageBox.warning(self, self.tr("Error"), self.tr("Failed to save the imported story locally."))
+            return None
+
+    def _update_suggestion_bar(self) -> None:
+        bar = getattr(self, "_suggestion_bar", None)
+        if bar is None:
+            return
+        path = getattr(self._document, "path", None)
+        mode = (
+            suggestions.edit_mode(path)
+            if getattr(self, "_mode", MODE_CREATION) == MODE_CREATION and isinstance(path, Path)
+            else None
+        )
+        if mode == suggestions.EDIT_MODE_SUGGEST:
+            title = file_metadata.get_attr(path, file_metadata.FIELD_STORY_TITLE) or path.stem
+            self._suggestion_label.setText(
+                self.tr(
+                    "Suggestion copy of \"{title}\" - your edits are sent to the author as suggestions."
+                ).format(title=title)
+            )
+            self._btn_send_suggestions.setText(self.tr("Send my suggestions"))
+        elif mode == suggestions.EDIT_MODE_PRIVATE:
+            self._suggestion_label.setText(
+                self.tr(
+                    "Private copy of \"{title}\" - only on this computer, never synced or published."
+                ).format(title=path.stem)
+            )
+        self._btn_send_suggestions.setVisible(mode == suggestions.EDIT_MODE_SUGGEST)
+        bar.setVisible(mode in (suggestions.EDIT_MODE_SUGGEST, suggestions.EDIT_MODE_PRIVATE))
+
+    def _offer_suggestion_copy(self, message: str) -> None:  # pragma: no cover - UI wiring
+        path = self._get_current_document_path()
+        story_id = file_metadata.get_attr(path, file_metadata.FIELD_STORY_ID) if path else None
+        if path is None or not story_id:
+            QMessageBox.warning(self, self.tr("Sync failed"), message)
+            return
+        answer = QMessageBox.question(
+            self,
+            self.tr("You can't change this story directly"),
+            self.tr(
+                "Only the author and invited collaborators can change this story directly.\n\n"
+                "Turn this file into a suggestion copy? Your edits are kept and you can send them "
+                "to the author as suggestions."
+            ),
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        creds = self._discovery_credentials(True)
+        if creds is None:
+            return
+        from .discovery.tasks import run_in_background
+
+        def done(chapters) -> None:
+            suggestions.mark_suggestion_copy(path, chapters)
+            self._update_suggestion_bar()
+
+        run_in_background(lambda: self._crowdly_client(creds).fetch_chapters(story_id), done, self._change_failed)
+
+    def _send_suggestions(self) -> None:  # pragma: no cover - UI wiring
+        path = self._get_current_document_path()
+        if path is None or not suggestions.is_suggestion_copy(path):
+            return
+        story_id = file_metadata.get_attr(path, file_metadata.FIELD_STORY_ID)
+        if not story_id:
+            return
+        # Save first so the file and the suggestions agree.
+        try:
+            if self._autosave_timer.isActive():
+                self._autosave_timer.stop()
+            self._perform_autosave()
+        except Exception:
+            pass
+        snapshot, sent = suggestions.suggestion_state(path)
+        content = getattr(self._document, "content", "") or ""
+        plan = suggestions.build_proposals(snapshot, content, already_sent=sent)
+        if not plan.proposals:
+            text = self.tr("There are no new changes to suggest.")
+            if plan.skipped:
+                text += "\n\n" + self.tr("These changes can't be sent as suggestions:") + "\n• " + "\n• ".join(plan.skipped)
+            QMessageBox.information(self, self.tr("Send my suggestions"), text)
+            return
+        details = self.tr("{count} suggestion(s) will be sent to the author.").format(count=len(plan.proposals))
+        if plan.skipped:
+            details += "\n\n" + self.tr(
+                "These changes can't be sent as suggestions (use \"Make my own version\" for them):"
+            ) + "\n• " + "\n• ".join(plan.skipped)
+        details += "\n\n" + self.tr(
+            "The author approves each suggestion separately. If one of them changes the number of "
+            "paragraphs, later suggestions in the same chapter may need the author's attention."
+        )
+        if QMessageBox.question(self, self.tr("Send my suggestions"), details) != QMessageBox.StandardButton.Yes:
+            return
+        creds = self._discovery_credentials(True)
+        if creds is None:
+            return
+        from .discovery.tasks import run_in_background
+
+        proposals = plan.proposals
+
+        def work():
+            client = self._crowdly_client(creds)
+            sent_now = []
+            for proposal in proposals:
+                client.create_proposal(
+                    story_id,
+                    target_type=proposal.target_type,
+                    chapter_id=proposal.chapter_id,
+                    proposed_text=proposal.text,
+                    target_path=proposal.target_path,
+                )
+                sent_now.append(proposal)
+            return sent_now
+
+        def done(sent_now) -> None:
+            suggestions.record_sent(path, sent_now)
+            QMessageBox.information(
+                self,
+                self.tr("Send my suggestions"),
+                self.tr("Sent {count} suggestion(s). The author will review them on Crowdly.").format(count=len(sent_now)),
+            )
+
+        run_in_background(work, done, self._change_failed)
 
     def _update_startup_actions(self) -> None:
         mode = app_modes.normalize_mode(getattr(self._settings, "startup_mode", None)) or MODE_CREATION
@@ -7567,6 +7965,12 @@ class MainWindow(QMainWindow):
         try:
             path = self._get_current_document_path()
             if path is None:
+                return
+
+            # Suggestion copies are never synced directly: their edits go to
+            # the author as suggestions ("Send my suggestions"). Private
+            # copies of someone else's book are never synced at all.
+            if suggestions.edit_mode(path) in (suggestions.EDIT_MODE_SUGGEST, suggestions.EDIT_MODE_PRIVATE):
                 return
 
             # Screenplays created from the Crowdly template store their
@@ -8163,6 +8567,11 @@ class MainWindow(QMainWindow):
                 bar.clearMessage()
 
             msg = str(error)
+            # Not the owner or an invited collaborator: offer to turn the file
+            # into a suggestion copy instead of retrying a sync that can't work.
+            if "Suggest changes instead" in msg or "not_permitted" in msg:
+                self._offer_suggestion_copy(msg)
+                return
             # If the backend reports an authentication failure, treat it as a
             # login problem and guide the user to correct their credentials.
             if "Login failed" in msg or "auth" in msg.lower():

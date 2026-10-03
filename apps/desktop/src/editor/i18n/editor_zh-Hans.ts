@@ -633,6 +633,138 @@ Details: {error}</translation>
         <source>&quot;{title}&quot; is now open in Creation mode as {file}. With Synchronisation with web platform on, it becomes a Crowdly story when it is saved.</source>
         <translation>“{title}”已在创作模式中以 {file} 打开。开启与网页平台同步后，保存时它会成为 Crowdly 故事。</translation>
     </message>
+    <message>
+        <source>Change this story</source>
+        <translation>修改这个故事</translation>
+    </message>
+    <message>
+        <source>Opening the story in Creation…</source>
+        <translation>正在创作模式中打开故事…</translation>
+    </message>
+    <message>
+        <source>You can&apos;t change this story directly</source>
+        <translation>你不能直接修改这个故事</translation>
+    </message>
+    <message>
+        <source>Only the author and invited collaborators can change this story directly.
+
+Turn this file into a suggestion copy? Your edits are kept and you can send them to the author as suggestions.</source>
+        <translation>只有作者和受邀的协作者才能直接修改这个故事。
+
+要把这个文件变成建议副本吗？你的修改会保留，并可以作为建议发送给作者。</translation>
+    </message>
+    <message>
+        <source>There are no new changes to suggest.</source>
+        <translation>没有可以建议的新修改。</translation>
+    </message>
+    <message>
+        <source>The author approves each suggestion separately. If one of them changes the number of paragraphs, later suggestions in the same chapter may need the author&apos;s attention.</source>
+        <translation>作者会逐条批准建议。如果某条建议改变了段落数量，同一章节中后面的建议可能需要作者留意。</translation>
+    </message>
+    <message>
+        <source>Project space required</source>
+        <translation>需要项目空间</translation>
+    </message>
+    <message>
+        <source>Please create or choose your project space first.</source>
+        <translation>请先创建或选择你的项目空间。</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is open as a suggestion copy. Change anything you like, then click &quot;Send my suggestions&quot;: the author sees each change and decides.</source>
+        <translation>“{title}”已作为建议副本打开。随意修改，然后点击“发送我的建议”：作者会查看每处修改并决定。</translation>
+    </message>
+    <message>
+        <source>Send my suggestions</source>
+        <translation>发送我的建议</translation>
+    </message>
+    <message>
+        <source>{count} suggestion(s) will be sent to the author.</source>
+        <translation>将向作者发送 {count} 条建议。</translation>
+    </message>
+    <message>
+        <source>Checking how you can change &quot;{title}&quot;…</source>
+        <translation>正在确认你可以如何修改“{title}”…</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is your own story now. With Synchronisation with web platform on, your changes are saved to Crowdly.</source>
+        <translation>“{title}”现在是你自己的故事。开启与网页平台同步后，你的修改会保存到 Crowdly。</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is open for editing. With Synchronisation with web platform on, your changes are saved to Crowdly.</source>
+        <translation>“{title}”已打开以供编辑。开启与网页平台同步后，你的修改会保存到 Crowdly。</translation>
+    </message>
+    <message>
+        <source>Error</source>
+        <translation>错误</translation>
+    </message>
+    <message>
+        <source>Failed to save the imported story locally.</source>
+        <translation>无法在本地保存导入的故事。</translation>
+    </message>
+    <message>
+        <source>Making your own version…</source>
+        <translation>正在创建你自己的版本…</translation>
+    </message>
+    <message>
+        <source>Suggestion copy of &quot;{title}&quot; - your edits are sent to the author as suggestions.</source>
+        <translation>“{title}”的建议副本——你的修改会作为建议发送给作者。</translation>
+    </message>
+    <message>
+        <source>These changes can&apos;t be sent as suggestions (use &quot;Make my own version&quot; for them):</source>
+        <translation>这些修改无法作为建议发送（请使用“创建我自己的版本”）：</translation>
+    </message>
+    <message>
+        <source>Sent {count} suggestion(s). The author will review them on Crowdly.</source>
+        <translation>已发送 {count} 条建议。作者会在 Crowdly 上审阅。</translation>
+    </message>
+    <message>
+        <source>Starting the translation…</source>
+        <translation>正在开始翻译…</translation>
+    </message>
+    <message>
+        <source>These changes can&apos;t be sent as suggestions:</source>
+        <translation>这些修改无法作为建议发送：</translation>
+    </message>
+    <message>
+        <source>Ask to collaborate</source>
+        <translation>申请协作</translation>
+    </message>
+    <message>
+        <source>Your request was sent to the author of &quot;{title}&quot;. Once they accept it, &quot;I want to change this story&quot; opens the story for direct editing.</source>
+        <translation>你的申请已发送给“{title}”的作者。对方接受后，“修改这个故事”会直接打开故事供你编辑。</translation>
+    </message>
+    <message>
+        <source>My own work</source>
+        <translation>我自己的作品</translation>
+    </message>
+    <message>
+        <source>Public domain</source>
+        <translation>公有领域</translation>
+    </message>
+    <message>
+        <source>Creative Commons licence that allows changes</source>
+        <translation>允许修改的知识共享许可</translation>
+    </message>
+    <message>
+        <source>Someone else&apos;s book (my personal copy)</source>
+        <translation>别人的书（我的个人副本）</translation>
+    </message>
+    <message>
+        <source>Who wrote &quot;{title}&quot;?
+
+Your own work, public-domain and Creative Commons books open as a story you can publish on Crowdly. Someone else&apos;s book opens as a private copy that stays on this computer.</source>
+        <translation>“{title}”是谁写的？
+
+你自己的作品、公有领域和知识共享图书会作为可在 Crowdly 发布的故事打开。别人的书会作为只保存在这台电脑上的私人副本打开。</translation>
+    </message>
+    <message>
+        <source>Private copy of &quot;{title}&quot; - only on this computer, never synced or published.</source>
+        <translation>“{title}”的私人副本——只在这台电脑上，永远不会同步或发布。</translation>
+    </message>
+    <message>
+        <source>Import failed</source>
+        <translation>导入失败</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>
@@ -1275,6 +1407,10 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
         <source>Click to sync now</source>
         <translation>点击立即同步</translation>
     </message>
+    <message>
+        <source>✎ Change this story</source>
+        <translation>✎ 修改这个故事</translation>
+    </message>
 </context>
 <context>
     <name>ReaderWidget</name>
@@ -1393,6 +1529,14 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
     <message>
         <source>Dark</source>
         <translation>深色</translation>
+    </message>
+    <message>
+        <source>✎ Change this story</source>
+        <translation>✎ 修改这个故事</translation>
+    </message>
+    <message>
+        <source>Edit, suggest changes, make your own version or translate (Ctrl+E)</source>
+        <translation>编辑、建议修改、创建自己的版本或翻译 (Ctrl+E)</translation>
     </message>
 </context>
 <context>
@@ -1918,6 +2062,97 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
 Your books stay private to you.</source>
         <translation>将 EPUB、PDF、音频或文本文件拖放到这里，或使用“+ 添加图书”。
 你的图书仅你可见。</translation>
+    </message>
+</context>
+<context>
+    <name>ChangeStoryDialog</name>
+    <message>
+        <source>Change this story</source>
+        <translation>修改这个故事</translation>
+    </message>
+    <message>
+        <source>Translate into</source>
+        <translation>翻译成</translation>
+    </message>
+    <message>
+        <source>Start from a copy of the original text</source>
+        <translation>从原文副本开始</translation>
+    </message>
+    <message>
+        <source>Start with empty chapters</source>
+        <translation>从空白章节开始</translation>
+    </message>
+    <message>
+        <source>Hi! I&apos;d love to help with this story…</source>
+        <translation>你好！我很想帮忙完善这个故事…</translation>
+    </message>
+    <message>
+        <source>Continue</source>
+        <translation>继续</translation>
+    </message>
+    <message>
+        <source>Suggest changes</source>
+        <translation>建议修改</translation>
+    </message>
+    <message>
+        <source>Edit the story in Creation; your changes are sent to the author as suggestions to approve.</source>
+        <translation>在创作模式中编辑故事；你的修改会作为待批准的建议发送给作者。</translation>
+    </message>
+    <message>
+        <source>Make my own version</source>
+        <translation>创建我自己的版本</translation>
+    </message>
+    <message>
+        <source>Copy the story into a new story of your own that you can change freely.</source>
+        <translation>把故事复制成你自己的新故事，可以自由修改。</translation>
+    </message>
+    <message>
+        <source>The author doesn&apos;t allow copies of this story.</source>
+        <translation>作者不允许复制这个故事。</translation>
+    </message>
+    <message>
+        <source>Translate</source>
+        <translation>翻译</translation>
+    </message>
+    <message>
+        <source>Start a translation into another language, as a new story of your own.</source>
+        <translation>以你自己的新故事开始翻译成另一种语言。</translation>
+    </message>
+    <message>
+        <source>The author doesn&apos;t allow translations of this story.</source>
+        <translation>作者不允许翻译这个故事。</translation>
+    </message>
+    <message>
+        <source>Ask to collaborate</source>
+        <translation>申请协作</translation>
+    </message>
+    <message>
+        <source>Ask the author to invite you, so you can change the story directly.</source>
+        <translation>请作者邀请你，以便直接修改故事。</translation>
+    </message>
+    <message>
+        <source>You already asked; the author hasn&apos;t answered yet.</source>
+        <translation>你已经申请过了；作者还没有回复。</translation>
+    </message>
+    <message>
+        <source>The author declined your earlier request to collaborate.</source>
+        <translation>作者拒绝了你之前的协作申请。</translation>
+    </message>
+    <message>
+        <source>Message to the author (optional):</source>
+        <translation>给作者的留言（可选）：</translation>
+    </message>
+    <message>
+        <source>Start translation</source>
+        <translation>开始翻译</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; belongs to another author, so you can&apos;t change it directly. How would you like to change it?</source>
+        <translation>“{title}”属于另一位作者，所以你不能直接修改。你想怎样修改？</translation>
+    </message>
+    <message>
+        <source>Send request</source>
+        <translation>发送申请</translation>
     </message>
 </context>
 </TS>

@@ -633,6 +633,138 @@ Details: {error}</translation>
         <source>&quot;{title}&quot; is now open in Creation mode as {file}. With Synchronisation with web platform on, it becomes a Crowdly story when it is saved.</source>
         <translation>&quot;{title}&quot;이(가) 이제 크리에이션 모드에서 {file}(으)로 열렸습니다. 웹 플랫폼 동기화가 켜져 있으면 저장할 때 Crowdly 스토리가 됩니다.</translation>
     </message>
+    <message>
+        <source>Change this story</source>
+        <translation>이 스토리 변경</translation>
+    </message>
+    <message>
+        <source>Opening the story in Creation…</source>
+        <translation>크리에이션에서 스토리를 여는 중…</translation>
+    </message>
+    <message>
+        <source>You can&apos;t change this story directly</source>
+        <translation>이 스토리를 직접 변경할 수 없습니다</translation>
+    </message>
+    <message>
+        <source>Only the author and invited collaborators can change this story directly.
+
+Turn this file into a suggestion copy? Your edits are kept and you can send them to the author as suggestions.</source>
+        <translation>이 스토리는 작가와 초대된 공동 작업자만 직접 변경할 수 있습니다.
+
+이 파일을 제안 사본으로 바꿀까요? 수정 내용은 유지되며 작가에게 제안으로 보낼 수 있습니다.</translation>
+    </message>
+    <message>
+        <source>There are no new changes to suggest.</source>
+        <translation>제안할 새 변경 사항이 없습니다.</translation>
+    </message>
+    <message>
+        <source>The author approves each suggestion separately. If one of them changes the number of paragraphs, later suggestions in the same chapter may need the author&apos;s attention.</source>
+        <translation>작가는 각 제안을 따로 승인합니다. 그중 하나가 문단 수를 바꾸면 같은 챕터의 이후 제안은 작가의 확인이 필요할 수 있습니다.</translation>
+    </message>
+    <message>
+        <source>Project space required</source>
+        <translation>프로젝트 공간이 필요합니다</translation>
+    </message>
+    <message>
+        <source>Please create or choose your project space first.</source>
+        <translation>먼저 프로젝트 공간을 만들거나 선택하세요.</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is open as a suggestion copy. Change anything you like, then click &quot;Send my suggestions&quot;: the author sees each change and decides.</source>
+        <translation>&quot;{title}&quot;이(가) 제안 사본으로 열렸습니다. 원하는 대로 바꾼 뒤 &quot;내 제안 보내기&quot;를 누르면 작가가 각 변경을 보고 결정합니다.</translation>
+    </message>
+    <message>
+        <source>Send my suggestions</source>
+        <translation>내 제안 보내기</translation>
+    </message>
+    <message>
+        <source>{count} suggestion(s) will be sent to the author.</source>
+        <translation>{count}개의 제안이 작가에게 전송됩니다.</translation>
+    </message>
+    <message>
+        <source>Checking how you can change &quot;{title}&quot;…</source>
+        <translation>&quot;{title}&quot;을(를) 변경할 수 있는 방법을 확인하는 중…</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is your own story now. With Synchronisation with web platform on, your changes are saved to Crowdly.</source>
+        <translation>&quot;{title}&quot;은(는) 이제 나만의 스토리입니다. 웹 플랫폼 동기화가 켜져 있으면 변경 내용이 Crowdly에 저장됩니다.</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is open for editing. With Synchronisation with web platform on, your changes are saved to Crowdly.</source>
+        <translation>&quot;{title}&quot;을(를) 편집용으로 열었습니다. 웹 플랫폼 동기화가 켜져 있으면 변경 내용이 Crowdly에 저장됩니다.</translation>
+    </message>
+    <message>
+        <source>Error</source>
+        <translation>오류</translation>
+    </message>
+    <message>
+        <source>Failed to save the imported story locally.</source>
+        <translation>가져온 스토리를 로컬에 저장하지 못했습니다.</translation>
+    </message>
+    <message>
+        <source>Making your own version…</source>
+        <translation>나만의 버전을 만드는 중…</translation>
+    </message>
+    <message>
+        <source>Suggestion copy of &quot;{title}&quot; - your edits are sent to the author as suggestions.</source>
+        <translation>&quot;{title}&quot;의 제안 사본 - 수정 내용은 작가에게 제안으로 전송됩니다.</translation>
+    </message>
+    <message>
+        <source>These changes can&apos;t be sent as suggestions (use &quot;Make my own version&quot; for them):</source>
+        <translation>이 변경 사항은 제안으로 보낼 수 없습니다(&quot;나만의 버전 만들기&quot;를 사용하세요):</translation>
+    </message>
+    <message>
+        <source>Sent {count} suggestion(s). The author will review them on Crowdly.</source>
+        <translation>{count}개의 제안을 보냈습니다. 작가가 Crowdly에서 검토합니다.</translation>
+    </message>
+    <message>
+        <source>Starting the translation…</source>
+        <translation>번역을 시작하는 중…</translation>
+    </message>
+    <message>
+        <source>These changes can&apos;t be sent as suggestions:</source>
+        <translation>이 변경 사항은 제안으로 보낼 수 없습니다:</translation>
+    </message>
+    <message>
+        <source>Ask to collaborate</source>
+        <translation>공동 작업 요청</translation>
+    </message>
+    <message>
+        <source>Your request was sent to the author of &quot;{title}&quot;. Once they accept it, &quot;I want to change this story&quot; opens the story for direct editing.</source>
+        <translation>&quot;{title}&quot;의 작가에게 요청을 보냈습니다. 수락되면 &quot;이 스토리 변경&quot;으로 스토리를 직접 편집할 수 있습니다.</translation>
+    </message>
+    <message>
+        <source>My own work</source>
+        <translation>내 작품</translation>
+    </message>
+    <message>
+        <source>Public domain</source>
+        <translation>퍼블릭 도메인</translation>
+    </message>
+    <message>
+        <source>Creative Commons licence that allows changes</source>
+        <translation>변경을 허용하는 크리에이티브 커먼즈 라이선스</translation>
+    </message>
+    <message>
+        <source>Someone else&apos;s book (my personal copy)</source>
+        <translation>다른 사람의 책(개인 사본)</translation>
+    </message>
+    <message>
+        <source>Who wrote &quot;{title}&quot;?
+
+Your own work, public-domain and Creative Commons books open as a story you can publish on Crowdly. Someone else&apos;s book opens as a private copy that stays on this computer.</source>
+        <translation>&quot;{title}&quot;은(는) 누가 썼나요?
+
+본인 작품, 퍼블릭 도메인, 크리에이티브 커먼즈 도서는 Crowdly에 게시할 수 있는 스토리로 열립니다. 다른 사람의 책은 이 컴퓨터에만 남는 비공개 사본으로 열립니다.</translation>
+    </message>
+    <message>
+        <source>Private copy of &quot;{title}&quot; - only on this computer, never synced or published.</source>
+        <translation>&quot;{title}&quot;의 비공개 사본 - 이 컴퓨터에만 있으며 동기화되거나 게시되지 않습니다.</translation>
+    </message>
+    <message>
+        <source>Import failed</source>
+        <translation>가져오기 실패</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>
@@ -1275,6 +1407,10 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
         <source>Click to sync now</source>
         <translation>클릭하여 지금 동기화</translation>
     </message>
+    <message>
+        <source>✎ Change this story</source>
+        <translation>✎ 이 스토리 변경</translation>
+    </message>
 </context>
 <context>
     <name>ReaderWidget</name>
@@ -1393,6 +1529,14 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
     <message>
         <source>Dark</source>
         <translation>어둡게</translation>
+    </message>
+    <message>
+        <source>✎ Change this story</source>
+        <translation>✎ 이 스토리 변경</translation>
+    </message>
+    <message>
+        <source>Edit, suggest changes, make your own version or translate (Ctrl+E)</source>
+        <translation>편집, 변경 제안, 나만의 버전 만들기 또는 번역 (Ctrl+E)</translation>
     </message>
 </context>
 <context>
@@ -1918,6 +2062,97 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
 Your books stay private to you.</source>
         <translation>EPUB, PDF, 오디오 또는 텍스트 파일을 여기에 놓거나 &quot;+ 책 추가&quot;를 사용하세요.
 책은 나만 볼 수 있습니다.</translation>
+    </message>
+</context>
+<context>
+    <name>ChangeStoryDialog</name>
+    <message>
+        <source>Change this story</source>
+        <translation>이 스토리 변경</translation>
+    </message>
+    <message>
+        <source>Translate into</source>
+        <translation>번역할 언어</translation>
+    </message>
+    <message>
+        <source>Start from a copy of the original text</source>
+        <translation>원문 사본으로 시작</translation>
+    </message>
+    <message>
+        <source>Start with empty chapters</source>
+        <translation>빈 챕터로 시작</translation>
+    </message>
+    <message>
+        <source>Hi! I&apos;d love to help with this story…</source>
+        <translation>안녕하세요! 이 스토리를 돕고 싶어요…</translation>
+    </message>
+    <message>
+        <source>Continue</source>
+        <translation>계속</translation>
+    </message>
+    <message>
+        <source>Suggest changes</source>
+        <translation>변경 제안</translation>
+    </message>
+    <message>
+        <source>Edit the story in Creation; your changes are sent to the author as suggestions to approve.</source>
+        <translation>크리에이션에서 스토리를 편집하면 변경 내용이 승인용 제안으로 작가에게 전송됩니다.</translation>
+    </message>
+    <message>
+        <source>Make my own version</source>
+        <translation>나만의 버전 만들기</translation>
+    </message>
+    <message>
+        <source>Copy the story into a new story of your own that you can change freely.</source>
+        <translation>스토리를 자유롭게 바꿀 수 있는 나만의 새 스토리로 복사합니다.</translation>
+    </message>
+    <message>
+        <source>The author doesn&apos;t allow copies of this story.</source>
+        <translation>작가가 이 스토리의 복사를 허용하지 않습니다.</translation>
+    </message>
+    <message>
+        <source>Translate</source>
+        <translation>번역</translation>
+    </message>
+    <message>
+        <source>Start a translation into another language, as a new story of your own.</source>
+        <translation>나만의 새 스토리로 다른 언어 번역을 시작합니다.</translation>
+    </message>
+    <message>
+        <source>The author doesn&apos;t allow translations of this story.</source>
+        <translation>작가가 이 스토리의 번역을 허용하지 않습니다.</translation>
+    </message>
+    <message>
+        <source>Ask to collaborate</source>
+        <translation>공동 작업 요청</translation>
+    </message>
+    <message>
+        <source>Ask the author to invite you, so you can change the story directly.</source>
+        <translation>작가에게 초대를 요청하면 스토리를 직접 변경할 수 있습니다.</translation>
+    </message>
+    <message>
+        <source>You already asked; the author hasn&apos;t answered yet.</source>
+        <translation>이미 요청했습니다. 작가가 아직 답하지 않았습니다.</translation>
+    </message>
+    <message>
+        <source>The author declined your earlier request to collaborate.</source>
+        <translation>작가가 이전 공동 작업 요청을 거절했습니다.</translation>
+    </message>
+    <message>
+        <source>Message to the author (optional):</source>
+        <translation>작가에게 보낼 메시지(선택):</translation>
+    </message>
+    <message>
+        <source>Start translation</source>
+        <translation>번역 시작</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; belongs to another author, so you can&apos;t change it directly. How would you like to change it?</source>
+        <translation>&quot;{title}&quot;은(는) 다른 작가의 스토리라 직접 변경할 수 없습니다. 어떻게 변경할까요?</translation>
+    </message>
+    <message>
+        <source>Send request</source>
+        <translation>요청 보내기</translation>
     </message>
 </context>
 </TS>

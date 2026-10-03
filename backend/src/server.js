@@ -31,6 +31,7 @@ import translationsRouter from './translations.js';
 import editionsRouter from './editions.js';
 import libraryRouter, { deleteUserLibraryFiles } from './library.js';
 import shelvesRouter from './shelves.js';
+import collaborationRouter from './collaboration.js';
 import {
   fetchNewestStories,
   fetchMostActiveStories,
@@ -180,6 +181,9 @@ app.use(libraryRouter);
 app.use(shelvesRouter);
 // The web app reaches shelves under /api (its /shelves page shares the path).
 app.use('/api', shelvesRouter);
+// "Ask to collaborate" requests (desktop and web).
+app.use(collaborationRouter);
+app.use('/api', collaborationRouter);
 app.use(chapterMediaRouter);
 app.use(aiRouter);
 // Not statically served (unlike /uploads below) — Space items can be
@@ -236,6 +240,30 @@ async function getStoryAccessRole(storyTitleId, userId) {
     return null;
   }
 }
+
+// Desktop sync (POST .../sync-desktop) replaces a story's or screenplay's
+// whole text, so only its own team may use it: the creator, or a user with an
+// explicit story_access / screenplay_access row (an invited collaborator).
+// Other readers suggest changes (proposals), clone or translate instead.
+// Returns true / false, or null when the story / screenplay does not exist.
+async function canDesktopSync(kind, contentId, userId) {
+  const table = kind === 'screenplay' ? 'screenplay_title' : 'story_title';
+  const idColumn = kind === 'screenplay' ? 'screenplay_id' : 'story_title_id';
+  const accessTable = kind === 'screenplay' ? 'screenplay_access' : 'story_access';
+  const { rows } = await pool.query(`SELECT creator_id FROM ${table} WHERE ${idColumn} = $1`, [contentId]);
+  if (rows.length === 0) return null;
+  if (rows[0].creator_id === userId) return true;
+  const access = await pool.query(`SELECT 1 FROM ${accessTable} WHERE ${idColumn} = $1 AND user_id = $2`, [
+    contentId,
+    userId,
+  ]);
+  return access.rows.length > 0;
+}
+
+const DESKTOP_SYNC_FORBIDDEN = {
+  error: 'not_permitted',
+  message: "You can't change this story directly. Suggest changes instead, or ask the author to invite you.",
+};
 
 // Mirrors the frontend's hasRole("platform_admin") / hasRole("editor")
 // checks — platform staff can moderate any story regardless of story_access.
@@ -3186,15 +3214,24 @@ app.post('/screenplays/import/pdf', async (_req, res) => {
 // from the desktop editor. The operation is transactional: on success the
 // database state matches the payload; on failure the previous state is
 // preserved.
-app.post('/screenplays/:screenplayId/sync-desktop', async (req, res) => {
+app.post('/screenplays/:screenplayId/sync-desktop', requireAuth, async (req, res) => {
   const { screenplayId } = req.params;
-  const { userId, title, formatType, scenes, remoteUpdatedAt } = req.body ?? {};
-
-  if (!userId) {
-    return res.status(400).json({ error: 'userId is required' });
+  const { userId: bodyUserId, title, formatType, scenes, remoteUpdatedAt } = req.body ?? {};
+  // The session decides who is syncing; a different body userId is refused.
+  const userId = req.user.id;
+  if (bodyUserId && bodyUserId !== userId) {
+    return res.status(403).json(DESKTOP_SYNC_FORBIDDEN);
   }
+
   if (!screenplayId) {
     return res.status(400).json({ error: 'screenplayId is required' });
+  }
+  const allowed = await canDesktopSync('screenplay', screenplayId, userId);
+  if (allowed === null) {
+    return res.status(404).json({ error: 'Screenplay not found' });
+  }
+  if (!allowed) {
+    return res.status(403).json(DESKTOP_SYNC_FORBIDDEN);
   }
   if (typeof title !== 'string' || !title.trim()) {
     return res.status(400).json({ error: 'title is required' });
@@ -3341,23 +3378,8 @@ app.post('/screenplays/:screenplayId/sync-desktop', async (req, res) => {
 
     await client.query('COMMIT');
 
-    // Best-effort: ensure the syncing user shows up as a collaborator.
-    // Must run AFTER commit, not before: ensureScreenplayAccessRow uses the
-    // plain `pool` (a different connection than `client`), and its INSERT
-    // needs a FOR KEY SHARE lock on the screenplay_title row to validate the
-    // FK — which deadlocks against this same request's own `FOR UPDATE` lock
-    // on that row (taken above) for as long as this transaction stays open.
-    // This was a pre-existing bug (every real desktop sync call hung here
-    // indefinitely) surfaced while adding the revision-trail write above;
-    // fixed as part of the same change since both touch this call site.
-    try {
-      await ensureScreenplayAccessRow(screenplayId, userId, 'contributor');
-    } catch (errAccess) {
-      console.error(
-        '[POST /screenplays/:screenplayId/sync-desktop] failed to insert screenplay_access row:',
-        errAccess,
-      );
-    }
+    // Syncing no longer grants collaborator access: only the screenplay's
+    // own team gets this far (see canDesktopSync).
 
     return res.json({
       ok: true,
@@ -9056,15 +9078,24 @@ app.patch('/story-titles/:storyTitleId/settings', async (req, res) => {
 //   metadata?: { author_id?: uuid, initiator_id?: uuid, genre?: string|null, tags?: string[]|null },
 //   chapters: [{ chapterTitle: string, paragraphs: string[] }]
 // }
-app.post('/story-titles/:storyTitleId/sync-desktop', async (req, res) => {
+app.post('/story-titles/:storyTitleId/sync-desktop', requireAuth, async (req, res) => {
   const { storyTitleId } = req.params;
-  const { userId, title, metadata, chapters, bodyType, creativeSpaceId, spaceId } = req.body ?? {};
-
-  if (!userId) {
-    return res.status(400).json({ error: 'userId is required' });
+  const { userId: bodyUserId, title, metadata, chapters, bodyType, creativeSpaceId, spaceId } = req.body ?? {};
+  // The session decides who is syncing; a different body userId is refused.
+  const userId = req.user.id;
+  if (bodyUserId && bodyUserId !== userId) {
+    return res.status(403).json(DESKTOP_SYNC_FORBIDDEN);
   }
+
   if (!storyTitleId) {
     return res.status(400).json({ error: 'storyTitleId is required' });
+  }
+  const allowed = await canDesktopSync('story', storyTitleId, userId);
+  if (allowed === null) {
+    return res.status(404).json({ error: 'Story not found' });
+  }
+  if (!allowed) {
+    return res.status(403).json(DESKTOP_SYNC_FORBIDDEN);
   }
   if (typeof title !== 'string' || !title.trim()) {
     return res.status(400).json({ error: 'title is required' });
@@ -9320,18 +9351,6 @@ app.post('/story-titles/:storyTitleId/sync-desktop', async (req, res) => {
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
         [chapterId, null, inc.chapterTitle, null, inc.paragraphs, userId, nextRev, 'Desktop sync (created)', 'en'],
       );
-
-      // Ensure story_access contributor row exists (best-effort)
-      try {
-        await client.query(
-          `INSERT INTO story_access (story_title_id, user_id, role)
-           VALUES ($1, $2, $3)
-           ON CONFLICT (story_title_id, user_id) DO NOTHING`,
-          [storyTitleId, userId, 'contributor'],
-        );
-      } catch (errAccess) {
-        console.error('[POST /story-titles/:storyTitleId/sync-desktop] failed to insert story_access row:', errAccess);
-      }
     }
 
     // Delete extra chapters if local has fewer

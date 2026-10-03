@@ -1,6 +1,7 @@
 // Route authorisation matrix for Discovery (BookOrbit idea, see
 // "BookOrbit potential benefits for Crowdly.md"): every /library, /reading,
-// /shelves and /me route must refuse a request without a session.
+// /shelves, /me, collaboration-request and desktop sync route must refuse a
+// request without a session.
 //
 // Run against a running backend:  npm run test:discovery-auth
 //   (BASE_URL defaults to http://localhost:4000)
@@ -38,6 +39,13 @@ const ROUTES = [
   ['GET', '/discover/home'],
   ['PUT', `/library/items/${ID}/cover`],
   ['GET', `/library/items/${ID}/cover`],
+  ['POST', `/story-titles/${ID}/sync-desktop`],
+  ['POST', `/screenplays/${ID}/sync-desktop`],
+  ['POST', `/stories/${ID}/collaboration-requests`],
+  ['GET', `/stories/${ID}/collaboration-requests`],
+  ['GET', `/stories/${ID}/collaboration-requests/mine`],
+  ['POST', `/collaboration-requests/${ID}/approve`],
+  ['POST', `/collaboration-requests/${ID}/decline`],
 ];
 
 for (const [method, path] of ROUTES) {

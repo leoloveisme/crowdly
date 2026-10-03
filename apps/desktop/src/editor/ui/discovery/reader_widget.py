@@ -16,7 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from PySide6.QtCore import QEvent, QObject, QPoint, QPointF, Qt, QTimer, QUrl, Signal
-from PySide6.QtGui import QColor, QTextCharFormat, QTextCursor
+from PySide6.QtGui import QColor, QKeySequence, QShortcut, QTextCharFormat, QTextCursor
 from PySide6.QtWidgets import (
     QComboBox,
     QHBoxLayout,
@@ -151,6 +151,7 @@ class ReaderWidget(QWidget):
     highlightDeleted = Signal(str, str)  # item_id, highlight_id
     sessionFinished = Signal(str, str, str, int)
     prefsChanged = Signal(dict)
+    changeRequested = Signal()
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -196,6 +197,16 @@ class ReaderWidget(QWidget):
         self._btn_note = QPushButton(bar)
         self._btn_note.clicked.connect(self._note_on_selection)
         bar_layout.addWidget(self._btn_note)
+        # "✎ Change this story": go from reading to editing (Crowdly stories).
+        # Added at the right end of the toolbar below, as the primary action.
+        self._btn_change = QPushButton(bar)
+        self._btn_change.clicked.connect(self.changeRequested)
+        self._btn_change.setVisible(False)
+        self._btn_change.setStyleSheet(
+            "QPushButton { background: #4b3fa8; color: white; border: none; border-radius: 5px;"
+            " padding: 5px 12px; font-weight: bold; }"
+            "QPushButton:hover { background: #3d3290; }"
+        )
         # "Shelves ▾": Favorite / Living / Lived and Add to shelf for the open
         # item (menu supplied by the Discovery view, see set_shelf_menu).
         self._btn_shelves = QToolButton(bar)
@@ -231,6 +242,7 @@ class ReaderWidget(QWidget):
         self._btn_panel.setChecked(True)
         self._btn_panel.toggled.connect(lambda on: self._panel.setVisible(on))
         bar_layout.addWidget(self._btn_panel)
+        bar_layout.addWidget(self._btn_change)
         layout.addWidget(bar)
 
         # Content + highlights panel ----------------------------------------
@@ -242,6 +254,8 @@ class ReaderWidget(QWidget):
         self._text.setReadOnly(True)
         self._text.document().setDocumentMargin(32)
         self._text.verticalScrollBar().valueChanged.connect(self._schedule_position)
+        self._text.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self._text.customContextMenuRequested.connect(self._text_context_menu)
         self._stack.addWidget(self._text)
 
         self._pdf_view = None
@@ -278,6 +292,11 @@ class ReaderWidget(QWidget):
         self._text.viewport().installEventFilter(self._activity_filter)
         self._text.installEventFilter(self._activity_filter)
 
+        # Ctrl/Cmd+E: change the open Crowdly story.
+        self._shortcut_change = QShortcut(QKeySequence("Ctrl+E"), self)
+        self._shortcut_change.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+        self._shortcut_change.activated.connect(self._change_from_shortcut)
+
         self.retranslate()
         self.set_prefs(None)
 
@@ -285,6 +304,8 @@ class ReaderWidget(QWidget):
 
     def retranslate(self) -> None:
         self._btn_back.setText(self.tr("← Back"))
+        self._btn_change.setText(self.tr("✎ Change this story"))
+        self._btn_change.setToolTip(self.tr("Edit, suggest changes, make your own version or translate (Ctrl+E)"))
         self._btn_type.setText("Aa")
         self._btn_type.setToolTip(self.tr("Text size, font and colours"))
         self._act_smaller.setText(self.tr("Smaller text"))
@@ -346,6 +367,42 @@ class ReaderWidget(QWidget):
         prefs[key] = value
         self.set_prefs(prefs)
         self.prefsChanged.emit(self.prefs())
+
+    def set_change_enabled(self, enabled: bool) -> None:
+        """Offer "Change this story" (toolbar, right-click, Ctrl+E) - Crowdly stories only."""
+
+        self._change_enabled = enabled
+        self._btn_change.setVisible(enabled)
+
+    def change_enabled(self) -> bool:
+        return getattr(self, "_change_enabled", False)
+
+    def _change_from_shortcut(self) -> None:
+        if self.change_enabled() and self._item_id is not None:
+            self.changeRequested.emit()
+
+    def build_text_context_menu(self, pos) -> QMenu:
+        """The reader's right-click menu: Qt's copy/select actions plus ours."""
+
+        menu = self._text.createStandardContextMenu(pos)
+        menu.addSeparator()
+        has_selection = self._kind == "text" and self._selection() is not None
+        highlight = menu.addMenu(self.tr("Highlight"))
+        highlight.setEnabled(has_selection)
+        colors = {"yellow": self.tr("Yellow"), "green": self.tr("Green"), "blue": self.tr("Blue"), "pink": self.tr("Pink")}
+        for name, label in colors.items():
+            highlight.addAction(label, lambda n=name: self._highlight_selection(n))
+        note = menu.addAction(self.tr("Add note"), self._note_on_selection)
+        note.setEnabled(has_selection)
+        if self.change_enabled():
+            menu.addSeparator()
+            menu.addAction(self.tr("✎ Change this story"), self.changeRequested.emit)
+        return menu
+
+    def _text_context_menu(self, pos) -> None:  # pragma: no cover - UI wiring
+        menu = self.build_text_context_menu(pos)
+        menu.exec(self._text.viewport().mapToGlobal(pos))
+        menu.deleteLater()
 
     def set_shelf_menu(self, menu: QMenu | None) -> None:
         """Show *menu* behind the toolbar's "Shelves" button (hidden if None)."""
@@ -631,9 +688,19 @@ class ReaderWidget(QWidget):
         view.setZoomMode(QPdfView.ZoomMode.FitToWidth)
         view.pageNavigator().currentPageChanged.connect(self._schedule_position)
         view.viewport().installEventFilter(self._activity_filter)
+        view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        view.customContextMenuRequested.connect(self._pdf_context_menu)
         self._stack.addWidget(view)
         self._pdf_view = view
         return view
+
+    def _pdf_context_menu(self, pos) -> None:  # pragma: no cover - UI wiring
+        if not self.change_enabled() or self._pdf_view is None:
+            return
+        menu = QMenu(self)
+        menu.addAction(self.tr("✎ Change this story"), self.changeRequested.emit)
+        menu.exec(self._pdf_view.viewport().mapToGlobal(pos))
+        menu.deleteLater()
 
     def _restore_pdf_page(self, page: int) -> None:
         try:

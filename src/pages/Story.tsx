@@ -5,6 +5,7 @@ import CrowdlyHeader from "@/components/CrowdlyHeader";
 import CrowdlyFooter from "@/components/CrowdlyFooter";
 import EditableText from "@/components/EditableText";
 import AddToShelfButton from "@/modules/AddToShelfButton";
+import CollaborationRequestsPanel from "@/modules/CollaborationRequestsPanel";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -3070,6 +3071,7 @@ const Story = () => {
                 </div>
               )}
               {translationNotice}
+              {isOwner && <CollaborationRequestsPanel storyTitleId={story.story_title_id} />}
             </section>
 
             <TranslateStoryDialog

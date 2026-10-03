@@ -67,6 +67,138 @@
         <source>&quot;{title}&quot; is now open in Creation mode as {file}. With Synchronisation with web platform on, it becomes a Crowdly story when it is saved.</source>
         <translation>&quot;{title}&quot; अब रचना मोड में {file} के रूप में खुला है। वेब प्लेटफ़ॉर्म के साथ सिंक चालू होने पर, सहेजते ही यह Crowdly कहानी बन जाता है।</translation>
     </message>
+    <message>
+        <source>Change this story</source>
+        <translation>यह कहानी बदलें</translation>
+    </message>
+    <message>
+        <source>Opening the story in Creation…</source>
+        <translation>कहानी रचना में खुल रही है…</translation>
+    </message>
+    <message>
+        <source>You can&apos;t change this story directly</source>
+        <translation>आप यह कहानी सीधे नहीं बदल सकते</translation>
+    </message>
+    <message>
+        <source>Only the author and invited collaborators can change this story directly.
+
+Turn this file into a suggestion copy? Your edits are kept and you can send them to the author as suggestions.</source>
+        <translation>केवल लेखक और आमंत्रित सहयोगी ही यह कहानी सीधे बदल सकते हैं।
+
+क्या इस फ़ाइल को सुझाव प्रति में बदलें? आपके बदलाव सुरक्षित रहेंगे और आप उन्हें लेखक को सुझाव के रूप में भेज सकते हैं।</translation>
+    </message>
+    <message>
+        <source>There are no new changes to suggest.</source>
+        <translation>सुझाने के लिए कोई नया बदलाव नहीं है।</translation>
+    </message>
+    <message>
+        <source>The author approves each suggestion separately. If one of them changes the number of paragraphs, later suggestions in the same chapter may need the author&apos;s attention.</source>
+        <translation>लेखक हर सुझाव को अलग से स्वीकार करता है। यदि कोई सुझाव अनुच्छेदों की संख्या बदलता है, तो उसी अध्याय के बाद वाले सुझावों पर लेखक को ध्यान देना पड़ सकता है।</translation>
+    </message>
+    <message>
+        <source>Project space required</source>
+        <translation>प्रोजेक्ट स्पेस आवश्यक है</translation>
+    </message>
+    <message>
+        <source>Please create or choose your project space first.</source>
+        <translation>कृपया पहले अपना प्रोजेक्ट स्पेस बनाएँ या चुनें।</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is open as a suggestion copy. Change anything you like, then click &quot;Send my suggestions&quot;: the author sees each change and decides.</source>
+        <translation>&quot;{title}&quot; सुझाव प्रति के रूप में खुला है। जो चाहें बदलें, फिर &quot;मेरे सुझाव भेजें&quot; पर क्लिक करें: लेखक हर बदलाव देखकर फ़ैसला करेगा।</translation>
+    </message>
+    <message>
+        <source>Send my suggestions</source>
+        <translation>मेरे सुझाव भेजें</translation>
+    </message>
+    <message>
+        <source>{count} suggestion(s) will be sent to the author.</source>
+        <translation>{count} सुझाव लेखक को भेजे जाएँगे।</translation>
+    </message>
+    <message>
+        <source>Checking how you can change &quot;{title}&quot;…</source>
+        <translation>जाँच रहे हैं कि आप &quot;{title}&quot; कैसे बदल सकते हैं…</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is your own story now. With Synchronisation with web platform on, your changes are saved to Crowdly.</source>
+        <translation>&quot;{title}&quot; अब आपकी अपनी कहानी है। वेब प्लेटफ़ॉर्म के साथ सिंक चालू होने पर आपके बदलाव Crowdly पर सहेजे जाते हैं।</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is open for editing. With Synchronisation with web platform on, your changes are saved to Crowdly.</source>
+        <translation>&quot;{title}&quot; संपादन के लिए खुला है। वेब प्लेटफ़ॉर्म के साथ सिंक चालू होने पर आपके बदलाव Crowdly पर सहेजे जाते हैं।</translation>
+    </message>
+    <message>
+        <source>Error</source>
+        <translation>त्रुटि</translation>
+    </message>
+    <message>
+        <source>Failed to save the imported story locally.</source>
+        <translation>आयात की गई कहानी स्थानीय रूप से सहेजी नहीं जा सकी।</translation>
+    </message>
+    <message>
+        <source>Making your own version…</source>
+        <translation>आपका अपना संस्करण बन रहा है…</translation>
+    </message>
+    <message>
+        <source>Suggestion copy of &quot;{title}&quot; - your edits are sent to the author as suggestions.</source>
+        <translation>&quot;{title}&quot; की सुझाव प्रति - आपके बदलाव लेखक को सुझाव के रूप में भेजे जाते हैं।</translation>
+    </message>
+    <message>
+        <source>These changes can&apos;t be sent as suggestions (use &quot;Make my own version&quot; for them):</source>
+        <translation>ये बदलाव सुझाव के रूप में नहीं भेजे जा सकते (इनके लिए &quot;अपना संस्करण बनाएँ&quot; का उपयोग करें):</translation>
+    </message>
+    <message>
+        <source>Sent {count} suggestion(s). The author will review them on Crowdly.</source>
+        <translation>{count} सुझाव भेजे गए। लेखक उन्हें Crowdly पर देखेगा।</translation>
+    </message>
+    <message>
+        <source>Starting the translation…</source>
+        <translation>अनुवाद शुरू हो रहा है…</translation>
+    </message>
+    <message>
+        <source>These changes can&apos;t be sent as suggestions:</source>
+        <translation>ये बदलाव सुझाव के रूप में नहीं भेजे जा सकते:</translation>
+    </message>
+    <message>
+        <source>Ask to collaborate</source>
+        <translation>सहयोग का अनुरोध करें</translation>
+    </message>
+    <message>
+        <source>Your request was sent to the author of &quot;{title}&quot;. Once they accept it, &quot;I want to change this story&quot; opens the story for direct editing.</source>
+        <translation>आपका अनुरोध &quot;{title}&quot; के लेखक को भेज दिया गया। स्वीकार होते ही &quot;मैं यह कहानी बदलना चाहता हूँ&quot; कहानी को सीधे संपादन के लिए खोलेगा।</translation>
+    </message>
+    <message>
+        <source>My own work</source>
+        <translation>मेरी अपनी रचना</translation>
+    </message>
+    <message>
+        <source>Public domain</source>
+        <translation>सार्वजनिक डोमेन</translation>
+    </message>
+    <message>
+        <source>Creative Commons licence that allows changes</source>
+        <translation>बदलाव की अनुमति देने वाला Creative Commons लाइसेंस</translation>
+    </message>
+    <message>
+        <source>Someone else&apos;s book (my personal copy)</source>
+        <translation>किसी और की किताब (मेरी निजी प्रति)</translation>
+    </message>
+    <message>
+        <source>Who wrote &quot;{title}&quot;?
+
+Your own work, public-domain and Creative Commons books open as a story you can publish on Crowdly. Someone else&apos;s book opens as a private copy that stays on this computer.</source>
+        <translation>&quot;{title}&quot; किसने लिखी?
+
+आपकी अपनी रचना, सार्वजनिक डोमेन और Creative Commons किताबें ऐसी कहानी के रूप में खुलती हैं जिसे आप Crowdly पर प्रकाशित कर सकते हैं। किसी और की किताब एक निजी प्रति के रूप में खुलती है जो इसी कंप्यूटर पर रहती है।</translation>
+    </message>
+    <message>
+        <source>Private copy of &quot;{title}&quot; - only on this computer, never synced or published.</source>
+        <translation>&quot;{title}&quot; की निजी प्रति - केवल इस कंप्यूटर पर, कभी सिंक या प्रकाशित नहीं होती।</translation>
+    </message>
+    <message>
+        <source>Import failed</source>
+        <translation>आयात विफल रहा</translation>
+    </message>
 </context>
 <context>
     <name>CompareRevisionsWindow</name>
@@ -412,6 +544,10 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
         <source>Click to sync now</source>
         <translation>अभी सिंक करने के लिए क्लिक करें</translation>
     </message>
+    <message>
+        <source>✎ Change this story</source>
+        <translation>✎ यह कहानी बदलें</translation>
+    </message>
 </context>
 <context>
     <name>ReaderWidget</name>
@@ -530,6 +666,14 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
     <message>
         <source>Dark</source>
         <translation>गहरा</translation>
+    </message>
+    <message>
+        <source>✎ Change this story</source>
+        <translation>✎ यह कहानी बदलें</translation>
+    </message>
+    <message>
+        <source>Edit, suggest changes, make your own version or translate (Ctrl+E)</source>
+        <translation>संपादित करें, बदलाव सुझाएँ, अपना संस्करण बनाएँ या अनुवाद करें (Ctrl+E)</translation>
     </message>
 </context>
 <context>
@@ -1055,6 +1199,97 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
 Your books stay private to you.</source>
         <translation>EPUB, PDF, ऑडियो या टेक्स्ट फ़ाइलें यहाँ छोड़ें, या &quot;+ किताबें जोड़ें&quot; का उपयोग करें।
 आपकी किताबें निजी रहती हैं।</translation>
+    </message>
+</context>
+<context>
+    <name>ChangeStoryDialog</name>
+    <message>
+        <source>Change this story</source>
+        <translation>यह कहानी बदलें</translation>
+    </message>
+    <message>
+        <source>Translate into</source>
+        <translation>इसमें अनुवाद करें</translation>
+    </message>
+    <message>
+        <source>Start from a copy of the original text</source>
+        <translation>मूल पाठ की प्रति से शुरू करें</translation>
+    </message>
+    <message>
+        <source>Start with empty chapters</source>
+        <translation>खाली अध्यायों से शुरू करें</translation>
+    </message>
+    <message>
+        <source>Hi! I&apos;d love to help with this story…</source>
+        <translation>नमस्ते! मैं इस कहानी में मदद करना चाहूँगा…</translation>
+    </message>
+    <message>
+        <source>Continue</source>
+        <translation>जारी रखें</translation>
+    </message>
+    <message>
+        <source>Suggest changes</source>
+        <translation>बदलाव सुझाएँ</translation>
+    </message>
+    <message>
+        <source>Edit the story in Creation; your changes are sent to the author as suggestions to approve.</source>
+        <translation>रचना में कहानी संपादित करें; आपके बदलाव स्वीकृति के लिए सुझाव के रूप में लेखक को भेजे जाते हैं।</translation>
+    </message>
+    <message>
+        <source>Make my own version</source>
+        <translation>अपना संस्करण बनाएँ</translation>
+    </message>
+    <message>
+        <source>Copy the story into a new story of your own that you can change freely.</source>
+        <translation>कहानी को अपनी एक नई कहानी में कॉपी करें, जिसे आप स्वतंत्र रूप से बदल सकें।</translation>
+    </message>
+    <message>
+        <source>The author doesn&apos;t allow copies of this story.</source>
+        <translation>लेखक इस कहानी की प्रतियाँ बनाने की अनुमति नहीं देता।</translation>
+    </message>
+    <message>
+        <source>Translate</source>
+        <translation>अनुवाद करें</translation>
+    </message>
+    <message>
+        <source>Start a translation into another language, as a new story of your own.</source>
+        <translation>अपनी नई कहानी के रूप में किसी दूसरी भाषा में अनुवाद शुरू करें।</translation>
+    </message>
+    <message>
+        <source>The author doesn&apos;t allow translations of this story.</source>
+        <translation>लेखक इस कहानी के अनुवाद की अनुमति नहीं देता।</translation>
+    </message>
+    <message>
+        <source>Ask to collaborate</source>
+        <translation>सहयोग का अनुरोध करें</translation>
+    </message>
+    <message>
+        <source>Ask the author to invite you, so you can change the story directly.</source>
+        <translation>लेखक से आपको आमंत्रित करने को कहें, ताकि आप कहानी सीधे बदल सकें।</translation>
+    </message>
+    <message>
+        <source>You already asked; the author hasn&apos;t answered yet.</source>
+        <translation>आप पहले ही अनुरोध कर चुके हैं; लेखक ने अभी जवाब नहीं दिया।</translation>
+    </message>
+    <message>
+        <source>The author declined your earlier request to collaborate.</source>
+        <translation>लेखक ने सहयोग का आपका पिछला अनुरोध अस्वीकार कर दिया।</translation>
+    </message>
+    <message>
+        <source>Message to the author (optional):</source>
+        <translation>लेखक के लिए संदेश (वैकल्पिक):</translation>
+    </message>
+    <message>
+        <source>Start translation</source>
+        <translation>अनुवाद शुरू करें</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; belongs to another author, so you can&apos;t change it directly. How would you like to change it?</source>
+        <translation>&quot;{title}&quot; किसी दूसरे लेखक की है, इसलिए आप इसे सीधे नहीं बदल सकते। आप इसे कैसे बदलना चाहेंगे?</translation>
+    </message>
+    <message>
+        <source>Send request</source>
+        <translation>अनुरोध भेजें</translation>
     </message>
 </context>
 </TS>

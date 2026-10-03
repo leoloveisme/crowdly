@@ -633,6 +633,138 @@ Details: {error}</translation>
         <source>&quot;{title}&quot; is now open in Creation mode as {file}. With Synchronisation with web platform on, it becomes a Crowdly story when it is saved.</source>
         <translation>«{title}» مفتوح الآن في وضع الإبداع باسم {file}. عند تفعيل المزامنة مع المنصة على الويب يصبح قصة على Crowdly عند حفظه.</translation>
     </message>
+    <message>
+        <source>Change this story</source>
+        <translation>تغيير هذه القصة</translation>
+    </message>
+    <message>
+        <source>Opening the story in Creation…</source>
+        <translation>جارٍ فتح القصة في الإبداع…</translation>
+    </message>
+    <message>
+        <source>You can&apos;t change this story directly</source>
+        <translation>لا يمكنك تغيير هذه القصة مباشرةً</translation>
+    </message>
+    <message>
+        <source>Only the author and invited collaborators can change this story directly.
+
+Turn this file into a suggestion copy? Your edits are kept and you can send them to the author as suggestions.</source>
+        <translation>لا يمكن تغيير هذه القصة مباشرةً إلا للمؤلف والمتعاونين المدعوين.
+
+هل تريد تحويل هذا الملف إلى نسخة اقتراحات؟ تُحفظ تعديلاتك ويمكنك إرسالها إلى المؤلف كاقتراحات.</translation>
+    </message>
+    <message>
+        <source>There are no new changes to suggest.</source>
+        <translation>لا توجد تغييرات جديدة لاقتراحها.</translation>
+    </message>
+    <message>
+        <source>The author approves each suggestion separately. If one of them changes the number of paragraphs, later suggestions in the same chapter may need the author&apos;s attention.</source>
+        <translation>يوافق المؤلف على كل اقتراح على حدة. إذا غيّر أحدها عدد الفقرات، فقد تحتاج الاقتراحات اللاحقة في الفصل نفسه إلى انتباه المؤلف.</translation>
+    </message>
+    <message>
+        <source>Project space required</source>
+        <translation>مطلوب مساحة مشروع</translation>
+    </message>
+    <message>
+        <source>Please create or choose your project space first.</source>
+        <translation>يُرجى إنشاء مساحة المشروع أو اختيارها أولًا.</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is open as a suggestion copy. Change anything you like, then click &quot;Send my suggestions&quot;: the author sees each change and decides.</source>
+        <translation>«{title}» مفتوح كنسخة اقتراحات. غيّر ما تشاء، ثم انقر «إرسال اقتراحاتي»: يرى المؤلف كل تغيير ويقرر.</translation>
+    </message>
+    <message>
+        <source>Send my suggestions</source>
+        <translation>إرسال اقتراحاتي</translation>
+    </message>
+    <message>
+        <source>{count} suggestion(s) will be sent to the author.</source>
+        <translation>سيُرسل {count} اقتراح إلى المؤلف.</translation>
+    </message>
+    <message>
+        <source>Checking how you can change &quot;{title}&quot;…</source>
+        <translation>جارٍ التحقق من كيفية تغيير «{title}»…</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is your own story now. With Synchronisation with web platform on, your changes are saved to Crowdly.</source>
+        <translation>«{title}» أصبحت قصتك الآن. مع تفعيل المزامنة مع منصة الويب تُحفظ تغييراتك على Crowdly.</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is open for editing. With Synchronisation with web platform on, your changes are saved to Crowdly.</source>
+        <translation>«{title}» مفتوح للتحرير. مع تفعيل المزامنة مع منصة الويب تُحفظ تغييراتك على Crowdly.</translation>
+    </message>
+    <message>
+        <source>Error</source>
+        <translation>خطأ</translation>
+    </message>
+    <message>
+        <source>Failed to save the imported story locally.</source>
+        <translation>تعذّر حفظ القصة المستوردة محليًا.</translation>
+    </message>
+    <message>
+        <source>Making your own version…</source>
+        <translation>جارٍ إنشاء نسختك الخاصة…</translation>
+    </message>
+    <message>
+        <source>Suggestion copy of &quot;{title}&quot; - your edits are sent to the author as suggestions.</source>
+        <translation>نسخة اقتراحات من «{title}» - تُرسل تعديلاتك إلى المؤلف كاقتراحات.</translation>
+    </message>
+    <message>
+        <source>These changes can&apos;t be sent as suggestions (use &quot;Make my own version&quot; for them):</source>
+        <translation>لا يمكن إرسال هذه التغييرات كاقتراحات (استخدم «إنشاء نسختي الخاصة» لها):</translation>
+    </message>
+    <message>
+        <source>Sent {count} suggestion(s). The author will review them on Crowdly.</source>
+        <translation>أُرسل {count} اقتراح. سيراجعها المؤلف على Crowdly.</translation>
+    </message>
+    <message>
+        <source>Starting the translation…</source>
+        <translation>جارٍ بدء الترجمة…</translation>
+    </message>
+    <message>
+        <source>These changes can&apos;t be sent as suggestions:</source>
+        <translation>لا يمكن إرسال هذه التغييرات كاقتراحات:</translation>
+    </message>
+    <message>
+        <source>Ask to collaborate</source>
+        <translation>طلب التعاون</translation>
+    </message>
+    <message>
+        <source>Your request was sent to the author of &quot;{title}&quot;. Once they accept it, &quot;I want to change this story&quot; opens the story for direct editing.</source>
+        <translation>أُرسل طلبك إلى مؤلف «{title}». بعد قبوله، يفتح «أريد تغيير هذه القصة» القصة للتحرير المباشر.</translation>
+    </message>
+    <message>
+        <source>My own work</source>
+        <translation>عملي الخاص</translation>
+    </message>
+    <message>
+        <source>Public domain</source>
+        <translation>ملكية عامة</translation>
+    </message>
+    <message>
+        <source>Creative Commons licence that allows changes</source>
+        <translation>رخصة المشاع الإبداعي التي تسمح بالتعديل</translation>
+    </message>
+    <message>
+        <source>Someone else&apos;s book (my personal copy)</source>
+        <translation>كتاب لشخص آخر (نسختي الشخصية)</translation>
+    </message>
+    <message>
+        <source>Who wrote &quot;{title}&quot;?
+
+Your own work, public-domain and Creative Commons books open as a story you can publish on Crowdly. Someone else&apos;s book opens as a private copy that stays on this computer.</source>
+        <translation>من كتب «{title}»؟
+
+تُفتح أعمالك الخاصة وكتب الملكية العامة والمشاع الإبداعي كقصة يمكنك نشرها على Crowdly. ويُفتح كتاب شخص آخر كنسخة خاصة تبقى على هذا الكمبيوتر.</translation>
+    </message>
+    <message>
+        <source>Private copy of &quot;{title}&quot; - only on this computer, never synced or published.</source>
+        <translation>نسخة خاصة من «{title}» - على هذا الكمبيوتر فقط، لا تُزامن ولا تُنشر أبدًا.</translation>
+    </message>
+    <message>
+        <source>Import failed</source>
+        <translation>فشل الاستيراد</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>
@@ -1275,6 +1407,10 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
         <source>Click to sync now</source>
         <translation>انقر للمزامنة الآن</translation>
     </message>
+    <message>
+        <source>✎ Change this story</source>
+        <translation>✎ تغيير هذه القصة</translation>
+    </message>
 </context>
 <context>
     <name>ReaderWidget</name>
@@ -1393,6 +1529,14 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
     <message>
         <source>Dark</source>
         <translation>داكن</translation>
+    </message>
+    <message>
+        <source>✎ Change this story</source>
+        <translation>✎ تغيير هذه القصة</translation>
+    </message>
+    <message>
+        <source>Edit, suggest changes, make your own version or translate (Ctrl+E)</source>
+        <translation>حرّر، اقترح تغييرات، أنشئ نسختك الخاصة أو ترجم (Ctrl+E)</translation>
     </message>
 </context>
 <context>
@@ -1918,6 +2062,97 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
 Your books stay private to you.</source>
         <translation>أفلت هنا ملفات EPUB أو PDF أو صوتية أو نصية، أو استخدم «+ إضافة كتب».
 تبقى كتبك خاصة بك.</translation>
+    </message>
+</context>
+<context>
+    <name>ChangeStoryDialog</name>
+    <message>
+        <source>Change this story</source>
+        <translation>تغيير هذه القصة</translation>
+    </message>
+    <message>
+        <source>Translate into</source>
+        <translation>الترجمة إلى</translation>
+    </message>
+    <message>
+        <source>Start from a copy of the original text</source>
+        <translation>البدء من نسخة من النص الأصلي</translation>
+    </message>
+    <message>
+        <source>Start with empty chapters</source>
+        <translation>البدء بفصول فارغة</translation>
+    </message>
+    <message>
+        <source>Hi! I&apos;d love to help with this story…</source>
+        <translation>مرحبًا! أودّ المساعدة في هذه القصة…</translation>
+    </message>
+    <message>
+        <source>Continue</source>
+        <translation>متابعة</translation>
+    </message>
+    <message>
+        <source>Suggest changes</source>
+        <translation>اقتراح تغييرات</translation>
+    </message>
+    <message>
+        <source>Edit the story in Creation; your changes are sent to the author as suggestions to approve.</source>
+        <translation>حرّر القصة في الإبداع؛ تُرسل تغييراتك إلى المؤلف كاقتراحات للموافقة عليها.</translation>
+    </message>
+    <message>
+        <source>Make my own version</source>
+        <translation>إنشاء نسختي الخاصة</translation>
+    </message>
+    <message>
+        <source>Copy the story into a new story of your own that you can change freely.</source>
+        <translation>انسخ القصة إلى قصة جديدة خاصة بك يمكنك تغييرها بحرية.</translation>
+    </message>
+    <message>
+        <source>The author doesn&apos;t allow copies of this story.</source>
+        <translation>لا يسمح المؤلف بنسخ هذه القصة.</translation>
+    </message>
+    <message>
+        <source>Translate</source>
+        <translation>ترجمة</translation>
+    </message>
+    <message>
+        <source>Start a translation into another language, as a new story of your own.</source>
+        <translation>ابدأ ترجمة إلى لغة أخرى كقصة جديدة خاصة بك.</translation>
+    </message>
+    <message>
+        <source>The author doesn&apos;t allow translations of this story.</source>
+        <translation>لا يسمح المؤلف بترجمة هذه القصة.</translation>
+    </message>
+    <message>
+        <source>Ask to collaborate</source>
+        <translation>طلب التعاون</translation>
+    </message>
+    <message>
+        <source>Ask the author to invite you, so you can change the story directly.</source>
+        <translation>اطلب من المؤلف دعوتك لتتمكن من تغيير القصة مباشرةً.</translation>
+    </message>
+    <message>
+        <source>You already asked; the author hasn&apos;t answered yet.</source>
+        <translation>لقد طلبت بالفعل؛ لم يرد المؤلف بعد.</translation>
+    </message>
+    <message>
+        <source>The author declined your earlier request to collaborate.</source>
+        <translation>رفض المؤلف طلبك السابق للتعاون.</translation>
+    </message>
+    <message>
+        <source>Message to the author (optional):</source>
+        <translation>رسالة إلى المؤلف (اختيارية):</translation>
+    </message>
+    <message>
+        <source>Start translation</source>
+        <translation>بدء الترجمة</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; belongs to another author, so you can&apos;t change it directly. How would you like to change it?</source>
+        <translation>«{title}» يخص مؤلفًا آخر، لذا لا يمكنك تغييرها مباشرةً. كيف تريد تغييرها؟</translation>
+    </message>
+    <message>
+        <source>Send request</source>
+        <translation>إرسال الطلب</translation>
     </message>
 </context>
 </TS>

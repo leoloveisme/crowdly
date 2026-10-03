@@ -24,9 +24,17 @@ class _Task(QRunnable):
             result = self.fn()
         except Exception as exc:  # report every failure to the UI
             traceback.print_exc()
-            self.signals.failed.emit(str(exc) or exc.__class__.__name__)
+            self._emit(self.signals.failed, str(exc) or exc.__class__.__name__)
             return
-        self.signals.done.emit(result)
+        self._emit(self.signals.done, result)
+
+    def _emit(self, signal, value) -> None:
+        # The widget that started the task may be gone (window closed) by
+        # the time the result arrives; that is not an error.
+        try:
+            signal.emit(value)
+        except RuntimeError:
+            pass
 
 
 _live: set[_Task] = set()

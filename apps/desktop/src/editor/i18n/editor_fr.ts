@@ -67,6 +67,138 @@
         <source>&quot;{title}&quot; is now open in Creation mode as {file}. With Synchronisation with web platform on, it becomes a Crowdly story when it is saved.</source>
         <translation>« {title} » est maintenant ouvert en mode Création sous le nom {file}. Avec la synchronisation avec la plateforme web activée, il devient une histoire Crowdly à l&apos;enregistrement.</translation>
     </message>
+    <message>
+        <source>Change this story</source>
+        <translation>Modifier cette histoire</translation>
+    </message>
+    <message>
+        <source>Opening the story in Creation…</source>
+        <translation>Ouverture de l&apos;histoire en mode Création…</translation>
+    </message>
+    <message>
+        <source>You can&apos;t change this story directly</source>
+        <translation>Vous ne pouvez pas modifier cette histoire directement</translation>
+    </message>
+    <message>
+        <source>Only the author and invited collaborators can change this story directly.
+
+Turn this file into a suggestion copy? Your edits are kept and you can send them to the author as suggestions.</source>
+        <translation>Seuls l&apos;auteur et les collaborateurs invités peuvent modifier cette histoire directement.
+
+Transformer ce fichier en copie de suggestions ? Vos modifications sont conservées et vous pouvez les envoyer à l&apos;auteur sous forme de suggestions.</translation>
+    </message>
+    <message>
+        <source>There are no new changes to suggest.</source>
+        <translation>Il n&apos;y a pas de nouvelles modifications à suggérer.</translation>
+    </message>
+    <message>
+        <source>The author approves each suggestion separately. If one of them changes the number of paragraphs, later suggestions in the same chapter may need the author&apos;s attention.</source>
+        <translation>L&apos;auteur approuve chaque suggestion séparément. Si l&apos;une d&apos;elles change le nombre de paragraphes, les suggestions suivantes du même chapitre pourront demander son attention.</translation>
+    </message>
+    <message>
+        <source>Project space required</source>
+        <translation>Espace de projet requis</translation>
+    </message>
+    <message>
+        <source>Please create or choose your project space first.</source>
+        <translation>Veuillez d&apos;abord créer ou choisir votre espace de projet.</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is open as a suggestion copy. Change anything you like, then click &quot;Send my suggestions&quot;: the author sees each change and decides.</source>
+        <translation>« {title} » est ouvert comme copie de suggestions. Modifiez ce que vous voulez, puis cliquez sur « Envoyer mes suggestions » : l&apos;auteur voit chaque modification et décide.</translation>
+    </message>
+    <message>
+        <source>Send my suggestions</source>
+        <translation>Envoyer mes suggestions</translation>
+    </message>
+    <message>
+        <source>{count} suggestion(s) will be sent to the author.</source>
+        <translation>{count} suggestion(s) seront envoyées à l&apos;auteur.</translation>
+    </message>
+    <message>
+        <source>Checking how you can change &quot;{title}&quot;…</source>
+        <translation>Vérification des façons de modifier « {title} »…</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is your own story now. With Synchronisation with web platform on, your changes are saved to Crowdly.</source>
+        <translation>« {title} » est maintenant votre propre histoire. Avec la synchronisation avec la plateforme web activée, vos modifications sont enregistrées sur Crowdly.</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is open for editing. With Synchronisation with web platform on, your changes are saved to Crowdly.</source>
+        <translation>« {title} » est ouvert pour modification. Avec la synchronisation avec la plateforme web activée, vos modifications sont enregistrées sur Crowdly.</translation>
+    </message>
+    <message>
+        <source>Error</source>
+        <translation>Erreur</translation>
+    </message>
+    <message>
+        <source>Failed to save the imported story locally.</source>
+        <translation>Impossible d&apos;enregistrer localement l&apos;histoire importée.</translation>
+    </message>
+    <message>
+        <source>Making your own version…</source>
+        <translation>Création de votre propre version…</translation>
+    </message>
+    <message>
+        <source>Suggestion copy of &quot;{title}&quot; - your edits are sent to the author as suggestions.</source>
+        <translation>Copie de suggestions de « {title} » - vos modifications sont envoyées à l&apos;auteur sous forme de suggestions.</translation>
+    </message>
+    <message>
+        <source>These changes can&apos;t be sent as suggestions (use &quot;Make my own version&quot; for them):</source>
+        <translation>Ces modifications ne peuvent pas être envoyées comme suggestions (utilisez « Créer ma propre version ») :</translation>
+    </message>
+    <message>
+        <source>Sent {count} suggestion(s). The author will review them on Crowdly.</source>
+        <translation>{count} suggestion(s) envoyée(s). L&apos;auteur les examinera sur Crowdly.</translation>
+    </message>
+    <message>
+        <source>Starting the translation…</source>
+        <translation>Démarrage de la traduction…</translation>
+    </message>
+    <message>
+        <source>These changes can&apos;t be sent as suggestions:</source>
+        <translation>Ces modifications ne peuvent pas être envoyées comme suggestions :</translation>
+    </message>
+    <message>
+        <source>Ask to collaborate</source>
+        <translation>Demander à collaborer</translation>
+    </message>
+    <message>
+        <source>Your request was sent to the author of &quot;{title}&quot;. Once they accept it, &quot;I want to change this story&quot; opens the story for direct editing.</source>
+        <translation>Votre demande a été envoyée à l&apos;auteur de « {title} ». Dès qu&apos;il l&apos;accepte, « Je veux modifier cette histoire » ouvre l&apos;histoire en modification directe.</translation>
+    </message>
+    <message>
+        <source>My own work</source>
+        <translation>Ma propre œuvre</translation>
+    </message>
+    <message>
+        <source>Public domain</source>
+        <translation>Domaine public</translation>
+    </message>
+    <message>
+        <source>Creative Commons licence that allows changes</source>
+        <translation>Licence Creative Commons autorisant les modifications</translation>
+    </message>
+    <message>
+        <source>Someone else&apos;s book (my personal copy)</source>
+        <translation>Le livre de quelqu&apos;un d&apos;autre (ma copie personnelle)</translation>
+    </message>
+    <message>
+        <source>Who wrote &quot;{title}&quot;?
+
+Your own work, public-domain and Creative Commons books open as a story you can publish on Crowdly. Someone else&apos;s book opens as a private copy that stays on this computer.</source>
+        <translation>Qui a écrit « {title} » ?
+
+Vos propres œuvres et les livres du domaine public ou sous Creative Commons s&apos;ouvrent comme une histoire que vous pouvez publier sur Crowdly. Le livre de quelqu&apos;un d&apos;autre s&apos;ouvre comme une copie privée qui reste sur cet ordinateur.</translation>
+    </message>
+    <message>
+        <source>Private copy of &quot;{title}&quot; - only on this computer, never synced or published.</source>
+        <translation>Copie privée de « {title} » - uniquement sur cet ordinateur, jamais synchronisée ni publiée.</translation>
+    </message>
+    <message>
+        <source>Import failed</source>
+        <translation>Échec de l&apos;importation</translation>
+    </message>
 </context>
 <context>
     <name>CompareRevisionsWindow</name>
@@ -412,6 +544,10 @@ Seuls vos propres œuvres, les livres du domaine public ou sous Creative Commons
         <source>Click to sync now</source>
         <translation>Cliquez pour synchroniser maintenant</translation>
     </message>
+    <message>
+        <source>✎ Change this story</source>
+        <translation>✎ Modifier cette histoire</translation>
+    </message>
 </context>
 <context>
     <name>ReaderWidget</name>
@@ -530,6 +666,14 @@ Seuls vos propres œuvres, les livres du domaine public ou sous Creative Commons
     <message>
         <source>Dark</source>
         <translation>Sombre</translation>
+    </message>
+    <message>
+        <source>✎ Change this story</source>
+        <translation>✎ Modifier cette histoire</translation>
+    </message>
+    <message>
+        <source>Edit, suggest changes, make your own version or translate (Ctrl+E)</source>
+        <translation>Modifier, suggérer des changements, créer votre version ou traduire (Ctrl+E)</translation>
     </message>
 </context>
 <context>
@@ -1055,6 +1199,97 @@ Seuls vos propres œuvres, les livres du domaine public ou sous Creative Commons
 Your books stay private to you.</source>
         <translation>Déposez ici des fichiers EPUB, PDF, audio ou texte, ou utilisez « + Ajouter des livres ».
 Vos livres restent privés.</translation>
+    </message>
+</context>
+<context>
+    <name>ChangeStoryDialog</name>
+    <message>
+        <source>Change this story</source>
+        <translation>Modifier cette histoire</translation>
+    </message>
+    <message>
+        <source>Translate into</source>
+        <translation>Traduire en</translation>
+    </message>
+    <message>
+        <source>Start from a copy of the original text</source>
+        <translation>Partir d&apos;une copie du texte original</translation>
+    </message>
+    <message>
+        <source>Start with empty chapters</source>
+        <translation>Partir de chapitres vides</translation>
+    </message>
+    <message>
+        <source>Hi! I&apos;d love to help with this story…</source>
+        <translation>Bonjour ! J&apos;aimerais beaucoup aider sur cette histoire…</translation>
+    </message>
+    <message>
+        <source>Continue</source>
+        <translation>Continuer</translation>
+    </message>
+    <message>
+        <source>Suggest changes</source>
+        <translation>Suggérer des modifications</translation>
+    </message>
+    <message>
+        <source>Edit the story in Creation; your changes are sent to the author as suggestions to approve.</source>
+        <translation>Modifiez l&apos;histoire en mode Création ; vos modifications sont envoyées à l&apos;auteur comme suggestions à approuver.</translation>
+    </message>
+    <message>
+        <source>Make my own version</source>
+        <translation>Créer ma propre version</translation>
+    </message>
+    <message>
+        <source>Copy the story into a new story of your own that you can change freely.</source>
+        <translation>Copiez l&apos;histoire dans une nouvelle histoire à vous que vous pouvez modifier librement.</translation>
+    </message>
+    <message>
+        <source>The author doesn&apos;t allow copies of this story.</source>
+        <translation>L&apos;auteur n&apos;autorise pas les copies de cette histoire.</translation>
+    </message>
+    <message>
+        <source>Translate</source>
+        <translation>Traduire</translation>
+    </message>
+    <message>
+        <source>Start a translation into another language, as a new story of your own.</source>
+        <translation>Commencez une traduction dans une autre langue, comme une nouvelle histoire à vous.</translation>
+    </message>
+    <message>
+        <source>The author doesn&apos;t allow translations of this story.</source>
+        <translation>L&apos;auteur n&apos;autorise pas les traductions de cette histoire.</translation>
+    </message>
+    <message>
+        <source>Ask to collaborate</source>
+        <translation>Demander à collaborer</translation>
+    </message>
+    <message>
+        <source>Ask the author to invite you, so you can change the story directly.</source>
+        <translation>Demandez à l&apos;auteur de vous inviter pour pouvoir modifier l&apos;histoire directement.</translation>
+    </message>
+    <message>
+        <source>You already asked; the author hasn&apos;t answered yet.</source>
+        <translation>Vous avez déjà demandé ; l&apos;auteur n&apos;a pas encore répondu.</translation>
+    </message>
+    <message>
+        <source>The author declined your earlier request to collaborate.</source>
+        <translation>L&apos;auteur a refusé votre précédente demande de collaboration.</translation>
+    </message>
+    <message>
+        <source>Message to the author (optional):</source>
+        <translation>Message à l&apos;auteur (facultatif) :</translation>
+    </message>
+    <message>
+        <source>Start translation</source>
+        <translation>Commencer la traduction</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; belongs to another author, so you can&apos;t change it directly. How would you like to change it?</source>
+        <translation>« {title} » appartient à un autre auteur, vous ne pouvez donc pas la modifier directement. Comment voulez-vous la modifier ?</translation>
+    </message>
+    <message>
+        <source>Send request</source>
+        <translation>Envoyer la demande</translation>
     </message>
 </context>
 </TS>

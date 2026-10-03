@@ -83,7 +83,11 @@ export const LiveUpdatesProvider: React.FC<{ children: React.ReactNode }> = ({ c
       setAnnouncement(
         notification.type === "friend_request"
           ? `New friend request from ${notification.payload.fromEmail ?? "someone"}`
-          : `${notification.payload.byEmail ?? "Someone"} accepted your friend request`,
+          : notification.type === "collaboration_request"
+            ? `New request to collaborate on ${notification.payload.storyTitle ?? "your story"}`
+            : notification.type === "collaboration_request_decided"
+              ? `Your request to collaborate on ${notification.payload.storyTitle ?? "a story"} was answered`
+              : `${notification.payload.byEmail ?? "Someone"} accepted your friend request`,
       );
     });
 

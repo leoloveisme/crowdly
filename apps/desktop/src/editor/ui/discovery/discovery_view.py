@@ -164,6 +164,8 @@ class DiscoveryView(QWidget):
     titleChanged = Signal(str)
     statusMessage = Signal(str)
     convertRequested = Signal(str)  # library item id
+    changeStoryRequested = Signal(str, str)  # story_title_id, title
+    changeBookRequested = Signal(str)  # library item id of an imported book
 
     def __init__(
         self,
@@ -290,6 +292,9 @@ class DiscoveryView(QWidget):
         self._reader.highlightDeleted.connect(self._on_highlight_deleted)
         self._reader.set_prefs(self._prefs())
         self._reader.prefsChanged.connect(self._reader_prefs_changed)
+        self._reader.changeRequested.connect(self._change_open_story)
+        self._reader_story: tuple[str, str] | None = None
+        self._reader_book: str | None = None
         self._stack.addWidget(self._reader)
 
         self._details = DetailsPanel(self.covers, self._splitter)
@@ -526,6 +531,9 @@ class DiscoveryView(QWidget):
         primary_label = self.tr("Listen") if card.get("format") == "audio" else self.tr("Read")
         primary = None if card.get("type") == "screenplay" else (primary_label, lambda c=card: self.open_card(c))
         extra = []
+        change_callback = self._change_callback(card)
+        if change_callback is not None:
+            extra.append((self.tr("✎ Change this story"), change_callback))
         if local is not None and local.kind == KIND_IMPORTED:
             extra.append((self.tr("Book rights…"), lambda i=local: self._edit_rights(i)))
             if local.rights_status in CONVERTIBLE_RIGHTS and local.format in ("epub", "text", "pdf"):
@@ -562,6 +570,10 @@ class DiscoveryView(QWidget):
         if card.get("type") != "screenplay":
             open_action = menu.addAction(self.tr("Listen") if card.get("format") == "audio" else self.tr("Read"))
         details = menu.addAction(self.tr("Details"))
+        change = None
+        change_callback = self._change_callback(card)
+        if change_callback is not None:
+            change = menu.addAction(self.tr("✎ Change this story"))
         shelf_menu = self._shelf_menu_for(card, menu)
         if shelf_menu is not None:
             menu.addMenu(shelf_menu)
@@ -582,6 +594,8 @@ class DiscoveryView(QWidget):
             self.open_card(card)
         elif chosen is details:
             self.show_details(card)
+        elif change is not None and chosen is change:
+            change_callback()
         elif chosen is rights:
             self._edit_rights(local)
         elif chosen is convert:
@@ -610,6 +624,22 @@ class DiscoveryView(QWidget):
             self._open_story(card["id"], card.get("title") or "")
         elif kind == "screenplay":
             self.statusMessage.emit(self.tr("Screenplays can't be read in Discovery yet - open them on the web platform."))
+
+    def _change_open_story(self) -> None:
+        if self._reader_story is not None:
+            self.changeStoryRequested.emit(*self._reader_story)
+        elif self._reader_book is not None:
+            self.changeBookRequested.emit(self._reader_book)
+
+    def _change_callback(self, card: dict):
+        """What "✎ Change this story" does for *card*, or None if it can't."""
+
+        if card.get("type") == "story" and card.get("id"):
+            return lambda c=card: self.changeStoryRequested.emit(c["id"], c.get("title") or "")
+        local = self._local_item(card)
+        if local is not None and local.kind == KIND_IMPORTED and local.format != "audio":
+            return lambda i=local: self.changeBookRequested.emit(i.id)
+        return None
 
     # -- browse ------------------------------------------------------------------
 
@@ -746,6 +776,11 @@ class DiscoveryView(QWidget):
             )
             return
         self._library.mark_opened(item.id)
+        # Imported books can be changed too (own work -> story draft,
+        # someone else's book -> private copy); audiobooks have no text.
+        self._reader_story = None
+        self._reader_book = item.id if item.format != "audio" else None
+        self._reader.set_change_enabled(self._reader_book is not None)
         self._reader.set_shelf_menu(self._shelf_menu("library_item", item.remote_id, self._reader))
         if item.format == "pdf":
             self._reader.open_pdf(item.id, item.title, path, item.position)
@@ -834,6 +869,9 @@ class DiscoveryView(QWidget):
             self._library.mark_opened(item.id)
             html = markdown.markdown(story.body, extensions=["extra", "sane_lists"])
             self._reader.set_shelf_menu(self._shelf_menu("story", story_title_id, self._reader))
+            self._reader_story = (story_title_id, item.title)
+            self._reader_book = None
+            self._reader.set_change_enabled(True)
             self._reader.open_text(item.id, item.title, html, item.position, self._library.visible_highlights(item.id))
             self.show_page(PAGE_READER)
             self._mark_living(story_title_id)

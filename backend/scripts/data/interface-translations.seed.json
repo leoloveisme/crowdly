@@ -10085,5 +10085,47 @@
     "en": "My shelves: Favorites, Living, Lived and your own shelves →",
     "ru": "Мои полки: избранное, проживаемые, прожитые и ваши собственные полки →",
     "de": "Meine Regale: Favoriten, gerade erlebt, erlebt und deine eigenen Regale →"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "header-notif-collab-request",
+    "en": "asks to collaborate on",
+    "ru": "просит о соавторстве в истории",
+    "de": "möchte mitschreiben an"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "header-notif-collab-approved",
+    "en": "you are now a collaborator",
+    "ru": "теперь вы соавтор",
+    "de": "du bist jetzt Mitautor:in"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "header-notif-collab-declined",
+    "en": "the author declined your request",
+    "ru": "автор отклонил ваш запрос",
+    "de": "der Autor hat deine Anfrage abgelehnt"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-collab-requests-title",
+    "en": "Requests to collaborate on this story",
+    "ru": "Запросы на соавторство в этой истории",
+    "de": "Anfragen zur Mitarbeit an dieser Geschichte"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-collab-approve",
+    "en": "Invite as collaborator",
+    "ru": "Пригласить в соавторы",
+    "de": "Als Mitautor:in einladen"
+  },
+  {
+    "page_key": "/story/:story_id",
+    "element_id": "story-collab-decline",
+    "en": "Decline",
+    "ru": "Отклонить",
+    "de": "Ablehnen"
   }
 ]

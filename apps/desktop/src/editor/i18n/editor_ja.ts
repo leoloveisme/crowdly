@@ -633,6 +633,138 @@ Details: {error}</translation>
         <source>&quot;{title}&quot; is now open in Creation mode as {file}. With Synchronisation with web platform on, it becomes a Crowdly story when it is saved.</source>
         <translation>「{title}」はクリエーションモードで {file} として開かれています。Web プラットフォームとの同期がオンなら、保存すると Crowdly のストーリーになります。</translation>
     </message>
+    <message>
+        <source>Change this story</source>
+        <translation>このストーリーを変更</translation>
+    </message>
+    <message>
+        <source>Opening the story in Creation…</source>
+        <translation>クリエーションでストーリーを開いています…</translation>
+    </message>
+    <message>
+        <source>You can&apos;t change this story directly</source>
+        <translation>このストーリーを直接変更することはできません</translation>
+    </message>
+    <message>
+        <source>Only the author and invited collaborators can change this story directly.
+
+Turn this file into a suggestion copy? Your edits are kept and you can send them to the author as suggestions.</source>
+        <translation>このストーリーを直接変更できるのは作者と招待された共同作業者だけです。
+
+このファイルを提案用コピーにしますか？編集内容は保持され、作者に提案として送ることができます。</translation>
+    </message>
+    <message>
+        <source>There are no new changes to suggest.</source>
+        <translation>提案する新しい変更はありません。</translation>
+    </message>
+    <message>
+        <source>The author approves each suggestion separately. If one of them changes the number of paragraphs, later suggestions in the same chapter may need the author&apos;s attention.</source>
+        <translation>作者は提案を一つずつ承認します。どれかが段落の数を変えると、同じ章の後の提案は作者の確認が必要になることがあります。</translation>
+    </message>
+    <message>
+        <source>Project space required</source>
+        <translation>プロジェクトスペースが必要です</translation>
+    </message>
+    <message>
+        <source>Please create or choose your project space first.</source>
+        <translation>まずプロジェクトスペースを作成または選択してください。</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is open as a suggestion copy. Change anything you like, then click &quot;Send my suggestions&quot;: the author sees each change and decides.</source>
+        <translation>「{title}」を提案用コピーとして開きました。自由に変更してから「提案を送信」をクリックすると、作者が各変更を確認して判断します。</translation>
+    </message>
+    <message>
+        <source>Send my suggestions</source>
+        <translation>提案を送信</translation>
+    </message>
+    <message>
+        <source>{count} suggestion(s) will be sent to the author.</source>
+        <translation>{count} 件の提案を作者に送ります。</translation>
+    </message>
+    <message>
+        <source>Checking how you can change &quot;{title}&quot;…</source>
+        <translation>「{title}」の変更方法を確認しています…</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is your own story now. With Synchronisation with web platform on, your changes are saved to Crowdly.</source>
+        <translation>「{title}」はあなた自身のストーリーになりました。Web プラットフォームとの同期がオンなら、変更は Crowdly に保存されます。</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is open for editing. With Synchronisation with web platform on, your changes are saved to Crowdly.</source>
+        <translation>「{title}」を編集用に開きました。Web プラットフォームとの同期がオンなら、変更は Crowdly に保存されます。</translation>
+    </message>
+    <message>
+        <source>Error</source>
+        <translation>エラー</translation>
+    </message>
+    <message>
+        <source>Failed to save the imported story locally.</source>
+        <translation>インポートしたストーリーをローカルに保存できませんでした。</translation>
+    </message>
+    <message>
+        <source>Making your own version…</source>
+        <translation>あなた自身のバージョンを作成中…</translation>
+    </message>
+    <message>
+        <source>Suggestion copy of &quot;{title}&quot; - your edits are sent to the author as suggestions.</source>
+        <translation>「{title}」の提案用コピー - 編集は作者に提案として送られます。</translation>
+    </message>
+    <message>
+        <source>These changes can&apos;t be sent as suggestions (use &quot;Make my own version&quot; for them):</source>
+        <translation>これらの変更は提案として送れません（「自分のバージョンを作る」を使ってください）:</translation>
+    </message>
+    <message>
+        <source>Sent {count} suggestion(s). The author will review them on Crowdly.</source>
+        <translation>{count} 件の提案を送信しました。作者が Crowdly で確認します。</translation>
+    </message>
+    <message>
+        <source>Starting the translation…</source>
+        <translation>翻訳を開始しています…</translation>
+    </message>
+    <message>
+        <source>These changes can&apos;t be sent as suggestions:</source>
+        <translation>これらの変更は提案として送れません:</translation>
+    </message>
+    <message>
+        <source>Ask to collaborate</source>
+        <translation>共同作業を依頼</translation>
+    </message>
+    <message>
+        <source>Your request was sent to the author of &quot;{title}&quot;. Once they accept it, &quot;I want to change this story&quot; opens the story for direct editing.</source>
+        <translation>「{title}」の作者に依頼を送りました。承認されると「このストーリーを変更」で直接編集できるようになります。</translation>
+    </message>
+    <message>
+        <source>My own work</source>
+        <translation>自分の作品</translation>
+    </message>
+    <message>
+        <source>Public domain</source>
+        <translation>パブリックドメイン</translation>
+    </message>
+    <message>
+        <source>Creative Commons licence that allows changes</source>
+        <translation>改変を許可するクリエイティブ・コモンズ・ライセンス</translation>
+    </message>
+    <message>
+        <source>Someone else&apos;s book (my personal copy)</source>
+        <translation>他の人の本（個人用のコピー）</translation>
+    </message>
+    <message>
+        <source>Who wrote &quot;{title}&quot;?
+
+Your own work, public-domain and Creative Commons books open as a story you can publish on Crowdly. Someone else&apos;s book opens as a private copy that stays on this computer.</source>
+        <translation>「{title}」を書いたのは誰ですか？
+
+自分の作品、パブリックドメイン、クリエイティブ・コモンズの本は Crowdly で公開できるストーリーとして開きます。他の人の本は、このコンピューターだけに残る非公開コピーとして開きます。</translation>
+    </message>
+    <message>
+        <source>Private copy of &quot;{title}&quot; - only on this computer, never synced or published.</source>
+        <translation>「{title}」の非公開コピー - このコンピューターだけに保存され、同期も公開もされません。</translation>
+    </message>
+    <message>
+        <source>Import failed</source>
+        <translation>インポートに失敗しました</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>
@@ -1275,6 +1407,10 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
         <source>Click to sync now</source>
         <translation>クリックして今すぐ同期</translation>
     </message>
+    <message>
+        <source>✎ Change this story</source>
+        <translation>✎ このストーリーを変更</translation>
+    </message>
 </context>
 <context>
     <name>ReaderWidget</name>
@@ -1393,6 +1529,14 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
     <message>
         <source>Dark</source>
         <translation>ダーク</translation>
+    </message>
+    <message>
+        <source>✎ Change this story</source>
+        <translation>✎ このストーリーを変更</translation>
+    </message>
+    <message>
+        <source>Edit, suggest changes, make your own version or translate (Ctrl+E)</source>
+        <translation>編集・変更の提案・自分のバージョン作成・翻訳 (Ctrl+E)</translation>
     </message>
 </context>
 <context>
@@ -1918,6 +2062,97 @@ Only your own work, public-domain or Creative Commons (without &quot;no derivati
 Your books stay private to you.</source>
         <translation>EPUB、PDF、音声、テキストのファイルをここにドロップするか、「+ 本を追加」を使ってください。
 本は非公開のままです。</translation>
+    </message>
+</context>
+<context>
+    <name>ChangeStoryDialog</name>
+    <message>
+        <source>Change this story</source>
+        <translation>このストーリーを変更</translation>
+    </message>
+    <message>
+        <source>Translate into</source>
+        <translation>翻訳先</translation>
+    </message>
+    <message>
+        <source>Start from a copy of the original text</source>
+        <translation>原文のコピーから始める</translation>
+    </message>
+    <message>
+        <source>Start with empty chapters</source>
+        <translation>空の章から始める</translation>
+    </message>
+    <message>
+        <source>Hi! I&apos;d love to help with this story…</source>
+        <translation>こんにちは！このストーリーを手伝いたいです…</translation>
+    </message>
+    <message>
+        <source>Continue</source>
+        <translation>続ける</translation>
+    </message>
+    <message>
+        <source>Suggest changes</source>
+        <translation>変更を提案</translation>
+    </message>
+    <message>
+        <source>Edit the story in Creation; your changes are sent to the author as suggestions to approve.</source>
+        <translation>クリエーションでストーリーを編集すると、変更が承認待ちの提案として作者に送られます。</translation>
+    </message>
+    <message>
+        <source>Make my own version</source>
+        <translation>自分のバージョンを作る</translation>
+    </message>
+    <message>
+        <source>Copy the story into a new story of your own that you can change freely.</source>
+        <translation>ストーリーを自由に変更できる自分の新しいストーリーにコピーします。</translation>
+    </message>
+    <message>
+        <source>The author doesn&apos;t allow copies of this story.</source>
+        <translation>作者はこのストーリーのコピーを許可していません。</translation>
+    </message>
+    <message>
+        <source>Translate</source>
+        <translation>翻訳</translation>
+    </message>
+    <message>
+        <source>Start a translation into another language, as a new story of your own.</source>
+        <translation>自分の新しいストーリーとして別の言語への翻訳を始めます。</translation>
+    </message>
+    <message>
+        <source>The author doesn&apos;t allow translations of this story.</source>
+        <translation>作者はこのストーリーの翻訳を許可していません。</translation>
+    </message>
+    <message>
+        <source>Ask to collaborate</source>
+        <translation>共同作業を依頼</translation>
+    </message>
+    <message>
+        <source>Ask the author to invite you, so you can change the story directly.</source>
+        <translation>作者に招待を依頼すると、ストーリーを直接変更できるようになります。</translation>
+    </message>
+    <message>
+        <source>You already asked; the author hasn&apos;t answered yet.</source>
+        <translation>すでに依頼済みです。作者はまだ返答していません。</translation>
+    </message>
+    <message>
+        <source>The author declined your earlier request to collaborate.</source>
+        <translation>作者は以前の共同作業の依頼を断りました。</translation>
+    </message>
+    <message>
+        <source>Message to the author (optional):</source>
+        <translation>作者へのメッセージ（任意）:</translation>
+    </message>
+    <message>
+        <source>Start translation</source>
+        <translation>翻訳を始める</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; belongs to another author, so you can&apos;t change it directly. How would you like to change it?</source>
+        <translation>「{title}」は別の作者のものなので、直接変更できません。どのように変更しますか？</translation>
+    </message>
+    <message>
+        <source>Send request</source>
+        <translation>依頼を送信</translation>
     </message>
 </context>
 </TS>
