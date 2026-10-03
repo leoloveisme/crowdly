@@ -9504,5 +9504,103 @@
     "en": "Drag a page thumbnail, or use the arrows under it, to change the page order.",
     "ru": "Перетащите миниатюру страницы или используйте стрелки под ней, чтобы изменить порядок страниц.",
     "de": "Ziehe eine Seitenvorschau oder nutze die Pfeile darunter, um die Seitenreihenfolge zu ändern."
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-download-discovery",
+    "en": "Crowdly Discovery (desktop app)",
+    "ru": "Crowdly Discovery (приложение для компьютера)",
+    "de": "Crowdly Discovery (Desktop-App)"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-download-creation",
+    "en": "Crowdly Creation (desktop app)",
+    "ru": "Crowdly Creation (приложение для компьютера)",
+    "de": "Crowdly Creation (Desktop-App)"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-desktop-title",
+    "en": "Crowdly desktop app",
+    "ru": "Приложение Crowdly для компьютера",
+    "de": "Crowdly-Desktop-App"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-desktop-intro",
+    "en": "One app with two modes: Discovery for reading and listening, Creation for writing. Choose the mode you want to start in - you can switch at any time.",
+    "ru": "Одно приложение с двумя режимами: Discovery — чтобы читать и слушать, Creation — чтобы писать. Выберите режим, с которого хотите начать, — переключаться можно в любой момент.",
+    "de": "Eine App mit zwei Modi: Discovery zum Lesen und Hören, Creation zum Schreiben. Wähle den Modus, mit dem du starten möchtest – du kannst jederzeit wechseln."
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-discovery-title",
+    "en": "Crowdly Discovery",
+    "ru": "Crowdly Discovery",
+    "de": "Crowdly Discovery"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-discovery-desc",
+    "en": "Read and listen: your private library of books and audiobooks, Crowdly stories, and reading positions, highlights and notes synced across your devices.",
+    "ru": "Читайте и слушайте: личная библиотека книг и аудиокниг, истории Crowdly, а также место чтения, выделения и заметки, синхронизированные между вашими устройствами.",
+    "de": "Lesen und hören: deine private Bibliothek mit Büchern und Hörbüchern, Crowdly-Geschichten sowie Lesepositionen, Markierungen und Notizen, synchronisiert auf all deinen Geräten."
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-creation-title",
+    "en": "Crowdly Creation",
+    "ru": "Crowdly Creation",
+    "de": "Crowdly Creation"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-creation-desc",
+    "en": "Write: a distraction-free editor for stories and screenplays that syncs with Crowdly, your creative Spaces, GitHub and Google Drive.",
+    "ru": "Пишите: редактор без отвлекающих элементов для историй и сценариев, синхронизируемый с Crowdly, вашими творческими пространствами, GitHub и Google Drive.",
+    "de": "Schreiben: ein ablenkungsfreier Editor für Geschichten und Drehbücher, der mit Crowdly, deinen kreativen Spaces, GitHub und Google Drive synchronisiert."
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-download-discovery",
+    "en": "Download",
+    "ru": "Скачать",
+    "de": "Herunterladen"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-download-creation",
+    "en": "Download",
+    "ru": "Скачать",
+    "de": "Herunterladen"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-download-soon",
+    "en": "Download - coming soon",
+    "ru": "Скачать — скоро",
+    "de": "Download – demnächst"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-desktop-platforms",
+    "en": "macOS, Windows and Linux",
+    "ru": "macOS, Windows и Linux",
+    "de": "macOS, Windows und Linux"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-desktop-alpha-note",
+    "en": "Crowdly is invite-only during the alpha, so the app asks for your Crowdly account.",
+    "ru": "Во время альфа-версии Crowdly доступен только по приглашениям, поэтому приложение попросит вашу учётную запись Crowdly.",
+    "de": "Crowdly ist während der Alpha-Phase nur auf Einladung zugänglich, daher fragt die App nach deinem Crowdly-Konto."
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-mobile-soon",
+    "en": "Crowdly Discovery and Crowdly Creation for Android (Google Play) and iPhone/iPad (App Store) will follow.",
+    "ru": "Crowdly Discovery и Crowdly Creation для Android (Google Play) и iPhone/iPad (App Store) появятся позже.",
+    "de": "Crowdly Discovery und Crowdly Creation für Android (Google Play) und iPhone/iPad (App Store) folgen."
   }
 ]

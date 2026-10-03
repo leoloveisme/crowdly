@@ -29,6 +29,7 @@ import galleryRouter, { ensureStoryGalleryImagesTable, UPLOADS_ROOT } from './ga
 import comicsRouter, { ensureComicTables } from './comics.js';
 import translationsRouter from './translations.js';
 import editionsRouter from './editions.js';
+import libraryRouter, { deleteUserLibraryFiles } from './library.js';
 import chapterMediaRouter from './chapterMedia.js';
 import aiRouter from './ai/router.js';
 import { startAiWorker } from './ai/jobs.js';
@@ -162,6 +163,9 @@ app.use(galleryRouter);
 app.use(comicsRouter);
 app.use(translationsRouter);
 app.use(editionsRouter);
+// Discovery mode (desktop): private library + reading data. Must come after
+// express.json; the file upload route parses its own raw body.
+app.use(libraryRouter);
 app.use(chapterMediaRouter);
 app.use(aiRouter);
 // Not statically served (unlike /uploads below) — Space items can be
@@ -1836,6 +1840,13 @@ app.post('/auth/delete-account', async (req, res) => {
 
   try {
     await deleteAccountWithPassword(userId, password);
+    // Imported library books are deleted with the account (their rows go
+    // with it through ON DELETE CASCADE; the files live on disk).
+    try {
+      await deleteUserLibraryFiles(userId);
+    } catch (cleanupErr) {
+      console.error('[auth/delete-account] failed to delete library files:', cleanupErr);
+    }
     return res.status(204).send();
   } catch (err) {
     console.error('[auth/delete-account] failed:', err);

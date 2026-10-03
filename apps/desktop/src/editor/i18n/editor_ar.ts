@@ -589,6 +589,50 @@ Details: {error}</translation>
         <source>Your Google sign-in doesn&apos;t include Drive access yet. Your browser will open again: on Google&apos;s permission screen, tick the box &quot;See, edit, create, and delete all of your Google Drive files&quot;.</source>
         <translation>تسجيل دخولك إلى Google لا يتضمن الوصول إلى Drive بعد. سيفتح المتصفح مرة أخرى: في شاشة أذونات Google حدّد المربع &quot;عرض جميع ملفاتك على Google Drive وتعديلها وإنشاؤها وحذفها&quot;.</translation>
     </message>
+    <message>
+        <source>Add books…</source>
+        <translation>إضافة كتب…</translation>
+    </message>
+    <message>
+        <source>Startup</source>
+        <translation>بدء التشغيل</translation>
+    </message>
+    <message>
+        <source>Start in</source>
+        <translation>البدء في</translation>
+    </message>
+    <message>
+        <source>On launch</source>
+        <translation>عند التشغيل</translation>
+    </message>
+    <message>
+        <source>Start where I left off</source>
+        <translation>المتابعة من حيث توقفت</translation>
+    </message>
+    <message>
+        <source>Start with default settings</source>
+        <translation>البدء بالإعدادات الافتراضية</translation>
+    </message>
+    <message>
+        <source>Switch to Creation</source>
+        <translation>التبديل إلى الإبداع</translation>
+    </message>
+    <message>
+        <source>Switch to Discovery</source>
+        <translation>التبديل إلى الاكتشاف</translation>
+    </message>
+    <message>
+        <source>Convert to Crowdly story</source>
+        <translation>تحويل إلى قصة على Crowdly</translation>
+    </message>
+    <message>
+        <source>Only your own work, public-domain books or books under a Creative Commons licence that allows changes can become Crowdly stories. Set the book&apos;s rights first.</source>
+        <translation>يمكن أن تصبح قصصًا على Crowdly أعمالك الخاصة فقط، أو كتب الملكية العامة، أو الكتب المرخّصة برخصة المشاع الإبداعي التي تسمح بالتعديل. حدّد حقوق الكتاب أولًا.</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is now open in Creation mode as {file}. With Synchronisation with web platform on, it becomes a Crowdly story when it is saved.</source>
+        <translation>«{title}» مفتوح الآن في وضع الإبداع باسم {file}. عند تفعيل المزامنة مع المنصة على الويب يصبح قصة على Crowdly عند حفظه.</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>
@@ -888,6 +932,335 @@ Details: {error}</translation>
 {error}</source>
         <translation>تعذّر إنشاء المجلد:
 {error}</translation>
+    </message>
+</context>
+<context>
+    <name>AppModes</name>
+    <message>
+        <source>Crowdly Discovery</source>
+        <translation>Crowdly Discovery</translation>
+    </message>
+    <message>
+        <source>Crowdly Creation</source>
+        <translation>Crowdly Creation</translation>
+    </message>
+    <message>
+        <source>Discovery</source>
+        <translation>الاكتشاف</translation>
+    </message>
+    <message>
+        <source>Creation</source>
+        <translation>الإبداع</translation>
+    </message>
+</context>
+<context>
+    <name>App</name>
+    <message>
+        <source>Files from your last session that could not be found: {count}</source>
+        <translation>ملفات من جلستك السابقة تعذّر العثور عليها: {count}</translation>
+    </message>
+</context>
+<context>
+    <name>RightsConfirmationDialog</name>
+    <message>
+        <source>Before your books sync</source>
+        <translation>قبل مزامنة كتبك</translation>
+    </message>
+    <message>
+        <source>With synchronisation on, the books you import are uploaded to your own Crowdly account so they are available on your other devices.
+
+• They stay private: only you can open them. Crowdly never shares, lists or links them for anyone else.
+• Only upload books you have the right to keep a copy of - books you bought DRM-free, your own work, public-domain or openly licensed books.
+• DRM-protected files are never imported.
+• Rights holders can ask Crowdly to remove a file, and your files are deleted when you delete your account.</source>
+        <translation>عند تفعيل المزامنة تُرفع الكتب التي تستوردها إلى حسابك على Crowdly لتكون متاحة على أجهزتك الأخرى.
+
+• تبقى خاصة: أنت وحدك من يمكنه فتحها. لا يشاركها Crowdly ولا يدرجها ولا يضع روابط لها لأي شخص آخر.
+• ارفع فقط الكتب التي يحق لك الاحتفاظ بنسخة منها - كتب اشتريتها بلا DRM، أو أعمالك الخاصة، أو كتب الملكية العامة أو المرخّصة ترخيصًا مفتوحًا.
+• لا تُستورد أبدًا الملفات المحمية بـ DRM.
+• يمكن لأصحاب الحقوق أن يطلبوا من Crowdly إزالة ملف، وتُحذف ملفاتك عند حذف حسابك.</translation>
+    </message>
+    <message>
+        <source>I have the right to keep these books in my account</source>
+        <translation>يحق لي الاحتفاظ بهذه الكتب في حسابي</translation>
+    </message>
+    <message>
+        <source>Sync my library</source>
+        <translation>مزامنة مكتبتي</translation>
+    </message>
+</context>
+<context>
+    <name>DiscoveryView</name>
+    <message>
+        <source>My library</source>
+        <translation>مكتبتي</translation>
+    </message>
+    <message>
+        <source>Reading on Crowdly</source>
+        <translation>أقرأ على Crowdly</translation>
+    </message>
+    <message>
+        <source>Browse Crowdly</source>
+        <translation>تصفّح Crowdly</translation>
+    </message>
+    <message>
+        <source>Add books…</source>
+        <translation>إضافة كتب…</translation>
+    </message>
+    <message>
+        <source>Sync now</source>
+        <translation>مزامنة الآن</translation>
+    </message>
+    <message>
+        <source>Crowdly is invite-only while it is in alpha.
+Log in with your Crowdly account to use Discovery.</source>
+        <translation>Crowdly متاح بالدعوة فقط خلال مرحلة ألفا.
+سجّل الدخول بحسابك على Crowdly لاستخدام الاكتشاف.</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly</source>
+        <translation>تسجيل الدخول إلى Crowdly</translation>
+    </message>
+    <message>
+        <source>Your library is empty. Use &quot;Add books…&quot; to import EPUB, PDF, audio or text files. Your books stay private to you.</source>
+        <translation>مكتبتك فارغة. استخدم «إضافة كتب…» لاستيراد ملفات EPUB أو PDF أو صوتية أو نصية. تبقى كتبك خاصة بك.</translation>
+    </message>
+    <message>
+        <source>Stories you are living on Crowdly.</source>
+        <translation>القصص التي تعيشها على Crowdly.</translation>
+    </message>
+    <message>
+        <source>Search Crowdly stories</source>
+        <translation>ابحث في قصص Crowdly</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>بحث</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>أحدث القصص</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>صوت</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>نص</translation>
+    </message>
+    <message>
+        <source>{percent}% read</source>
+        <translation>قُرئ {percent}%</translation>
+    </message>
+    <message>
+        <source>synced</source>
+        <translation>تمت المزامنة</translation>
+    </message>
+    <message>
+        <source>Add books to your library</source>
+        <translation>أضف كتبًا إلى مكتبتك</translation>
+    </message>
+    <message>
+        <source>Books and audiobooks ({patterns})</source>
+        <translation>كتب وكتب صوتية ({patterns})</translation>
+    </message>
+    <message>
+        <source>All files (*)</source>
+        <translation>كل الملفات (*)</translation>
+    </message>
+    <message>
+        <source>Some files were not added</source>
+        <translation>لم تُضف بعض الملفات</translation>
+    </message>
+    <message>
+        <source>Books added to your library: {count}</source>
+        <translation>الكتب المضافة إلى مكتبتك: {count}</translation>
+    </message>
+    <message>
+        <source>Book not available</source>
+        <translation>الكتاب غير متاح</translation>
+    </message>
+    <message>
+        <source>The file for this book is missing. Sync again or re-import it.</source>
+        <translation>ملف هذا الكتاب مفقود. زامِن مجددًا أو أعد استيراده.</translation>
+    </message>
+    <message>
+        <source>Could not read this EPUB:</source>
+        <translation>تعذّرت قراءة ملف EPUB هذا:</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>فتح</translation>
+    </message>
+    <message>
+        <source>Book rights…</source>
+        <translation>حقوق الكتاب…</translation>
+    </message>
+    <message>
+        <source>Convert to Crowdly story</source>
+        <translation>تحويل إلى قصة على Crowdly</translation>
+    </message>
+    <message>
+        <source>Remove from library</source>
+        <translation>إزالة من المكتبة</translation>
+    </message>
+    <message>
+        <source>Remove &quot;{title}&quot; from your library on all your devices?</source>
+        <translation>هل تريد إزالة «{title}» من مكتبتك على جميع أجهزتك؟</translation>
+    </message>
+    <message>
+        <source>Not specified</source>
+        <translation>غير محدد</translation>
+    </message>
+    <message>
+        <source>My personal copy (private only)</source>
+        <translation>نسختي الشخصية (خاصة فقط)</translation>
+    </message>
+    <message>
+        <source>My own work</source>
+        <translation>عملي الخاص</translation>
+    </message>
+    <message>
+        <source>Public domain</source>
+        <translation>ملكية عامة</translation>
+    </message>
+    <message>
+        <source>Creative Commons licence that allows changes</source>
+        <translation>رخصة المشاع الإبداعي التي تسمح بالتعديل</translation>
+    </message>
+    <message>
+        <source>Book rights</source>
+        <translation>حقوق الكتاب</translation>
+    </message>
+    <message>
+        <source>Who holds the rights to &quot;{title}&quot;?
+Only your own work, public-domain or Creative Commons (without &quot;no derivatives&quot;) books can become Crowdly stories others can read and co-create.</source>
+        <translation>من يملك حقوق «{title}»؟
+يمكن أن تصبح قصصًا على Crowdly يقرؤها الآخرون ويشاركون في إبداعها أعمالك الخاصة وكتب الملكية العامة وكتب المشاع الإبداعي (دون «منع الاشتقاق») فقط.</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>بلا عنوان</translation>
+    </message>
+    <message>
+        <source>(No stories yet - mark a story as &quot;living&quot; on Crowdly.)</source>
+        <translation>(لا قصص بعد - ضع علامة «أعيشها» على قصة في Crowdly.)</translation>
+    </message>
+    <message>
+        <source>Search results</source>
+        <translation>نتائج البحث</translation>
+    </message>
+    <message>
+        <source>No stories found.</source>
+        <translation>لم يُعثر على قصص.</translation>
+    </message>
+    <message>
+        <source>Opening &quot;{title}&quot;…</source>
+        <translation>جارٍ فتح «{title}»…</translation>
+    </message>
+    <message>
+        <source>Crowdly could not be reached: {error}</source>
+        <translation>تعذّر الوصول إلى Crowdly: {error}</translation>
+    </message>
+    <message>
+        <source>Turn on Settings → Synchronisation with → web platform to sync your library.</source>
+        <translation>فعّل الإعدادات ← المزامنة مع ← منصة الويب لمزامنة مكتبتك.</translation>
+    </message>
+    <message>
+        <source>Syncing…</source>
+        <translation>جارٍ المزامنة…</translation>
+    </message>
+    <message>
+        <source>Synced with problems</source>
+        <translation>تمت المزامنة مع وجود مشكلات</translation>
+    </message>
+    <message>
+        <source>Library synced</source>
+        <translation>تمت مزامنة المكتبة</translation>
+    </message>
+    <message>
+        <source>Sync failed</source>
+        <translation>فشلت المزامنة</translation>
+    </message>
+</context>
+<context>
+    <name>ReaderWidget</name>
+    <message>
+        <source>← Library</source>
+        <translation>→ المكتبة</translation>
+    </message>
+    <message>
+        <source>Highlight</source>
+        <translation>تمييز</translation>
+    </message>
+    <message>
+        <source>Add note</source>
+        <translation>إضافة ملاحظة</translation>
+    </message>
+    <message>
+        <source>Highlights</source>
+        <translation>التمييزات</translation>
+    </message>
+    <message>
+        <source>Highlights and notes</source>
+        <translation>التمييزات والملاحظات</translation>
+    </message>
+    <message>
+        <source>PDF viewing is not available in this build.</source>
+        <translation>عرض ملفات PDF غير متاح في هذا الإصدار.</translation>
+    </message>
+    <message>
+        <source>Yellow</source>
+        <translation>أصفر</translation>
+    </message>
+    <message>
+        <source>Green</source>
+        <translation>أخضر</translation>
+    </message>
+    <message>
+        <source>Blue</source>
+        <translation>أزرق</translation>
+    </message>
+    <message>
+        <source>Pink</source>
+        <translation>وردي</translation>
+    </message>
+    <message>
+        <source>Play / Pause</source>
+        <translation>تشغيل / إيقاف مؤقت</translation>
+    </message>
+    <message>
+        <source>Speed</source>
+        <translation>السرعة</translation>
+    </message>
+    <message>
+        <source>Sleep timer</source>
+        <translation>مؤقت النوم</translation>
+    </message>
+    <message>
+        <source>Off</source>
+        <translation>إيقاف</translation>
+    </message>
+    <message>
+        <source>{count} min</source>
+        <translation>{count} دقيقة</translation>
+    </message>
+    <message>
+        <source>Note:</source>
+        <translation>الملاحظة:</translation>
+    </message>
+    <message>
+        <source>(text changed) </source>
+        <translation>(تغيّر النص) </translation>
+    </message>
+    <message>
+        <source>Edit note</source>
+        <translation>تعديل الملاحظة</translation>
+    </message>
+    <message>
+        <source>Delete highlight</source>
+        <translation>حذف التمييز</translation>
     </message>
 </context>
 </TS>

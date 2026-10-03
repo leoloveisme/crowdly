@@ -589,6 +589,50 @@ Details: {error}</translation>
         <source>Your Google sign-in doesn&apos;t include Drive access yet. Your browser will open again: on Google&apos;s permission screen, tick the box &quot;See, edit, create, and delete all of your Google Drive files&quot;.</source>
         <translation>Google へのサインインにはまだドライブへのアクセスが含まれていません。ブラウザがもう一度開きます。Google の許可画面で「Google ドライブのすべてのファイルの表示、編集、作成、削除」にチェックを入れてください。</translation>
     </message>
+    <message>
+        <source>Add books…</source>
+        <translation>本を追加…</translation>
+    </message>
+    <message>
+        <source>Startup</source>
+        <translation>起動</translation>
+    </message>
+    <message>
+        <source>Start in</source>
+        <translation>起動モード</translation>
+    </message>
+    <message>
+        <source>On launch</source>
+        <translation>起動時</translation>
+    </message>
+    <message>
+        <source>Start where I left off</source>
+        <translation>前回の続きから開始</translation>
+    </message>
+    <message>
+        <source>Start with default settings</source>
+        <translation>既定の設定で開始</translation>
+    </message>
+    <message>
+        <source>Switch to Creation</source>
+        <translation>クリエーションに切り替え</translation>
+    </message>
+    <message>
+        <source>Switch to Discovery</source>
+        <translation>ディスカバリーに切り替え</translation>
+    </message>
+    <message>
+        <source>Convert to Crowdly story</source>
+        <translation>Crowdly のストーリーに変換</translation>
+    </message>
+    <message>
+        <source>Only your own work, public-domain books or books under a Creative Commons licence that allows changes can become Crowdly stories. Set the book&apos;s rights first.</source>
+        <translation>Crowdly のストーリーにできるのは、自分の作品、パブリックドメインの本、または改変を許可するクリエイティブ・コモンズ・ライセンスの本だけです。まず本の権利を設定してください。</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is now open in Creation mode as {file}. With Synchronisation with web platform on, it becomes a Crowdly story when it is saved.</source>
+        <translation>「{title}」はクリエーションモードで {file} として開かれています。Web プラットフォームとの同期がオンなら、保存すると Crowdly のストーリーになります。</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>
@@ -888,6 +932,335 @@ Details: {error}</translation>
 {error}</source>
         <translation>フォルダを作成できませんでした:
 {error}</translation>
+    </message>
+</context>
+<context>
+    <name>AppModes</name>
+    <message>
+        <source>Crowdly Discovery</source>
+        <translation>Crowdly Discovery</translation>
+    </message>
+    <message>
+        <source>Crowdly Creation</source>
+        <translation>Crowdly Creation</translation>
+    </message>
+    <message>
+        <source>Discovery</source>
+        <translation>ディスカバリー</translation>
+    </message>
+    <message>
+        <source>Creation</source>
+        <translation>クリエーション</translation>
+    </message>
+</context>
+<context>
+    <name>App</name>
+    <message>
+        <source>Files from your last session that could not be found: {count}</source>
+        <translation>前回のセッションで見つからなかったファイル: {count}</translation>
+    </message>
+</context>
+<context>
+    <name>RightsConfirmationDialog</name>
+    <message>
+        <source>Before your books sync</source>
+        <translation>本を同期する前に</translation>
+    </message>
+    <message>
+        <source>With synchronisation on, the books you import are uploaded to your own Crowdly account so they are available on your other devices.
+
+• They stay private: only you can open them. Crowdly never shares, lists or links them for anyone else.
+• Only upload books you have the right to keep a copy of - books you bought DRM-free, your own work, public-domain or openly licensed books.
+• DRM-protected files are never imported.
+• Rights holders can ask Crowdly to remove a file, and your files are deleted when you delete your account.</source>
+        <translation>同期がオンのとき、インポートした本はあなた自身の Crowdly アカウントにアップロードされ、ほかのデバイスでも使えるようになります。
+
+• 本は非公開のままです。開けるのはあなただけで、Crowdly がほかの人に共有・一覧表示・リンクすることはありません。
+• コピーを保持する権利がある本だけをアップロードしてください（DRM なしで購入した本、自分の作品、パブリックドメインまたはオープンライセンスの本）。
+• DRM で保護されたファイルはインポートされません。
+• 権利者は Crowdly にファイルの削除を求めることができ、アカウントを削除するとファイルも削除されます。</translation>
+    </message>
+    <message>
+        <source>I have the right to keep these books in my account</source>
+        <translation>これらの本をアカウントに保管する権利があります</translation>
+    </message>
+    <message>
+        <source>Sync my library</source>
+        <translation>ライブラリを同期</translation>
+    </message>
+</context>
+<context>
+    <name>DiscoveryView</name>
+    <message>
+        <source>My library</source>
+        <translation>マイライブラリ</translation>
+    </message>
+    <message>
+        <source>Reading on Crowdly</source>
+        <translation>Crowdly で読書中</translation>
+    </message>
+    <message>
+        <source>Browse Crowdly</source>
+        <translation>Crowdly を見る</translation>
+    </message>
+    <message>
+        <source>Add books…</source>
+        <translation>本を追加…</translation>
+    </message>
+    <message>
+        <source>Sync now</source>
+        <translation>今すぐ同期</translation>
+    </message>
+    <message>
+        <source>Crowdly is invite-only while it is in alpha.
+Log in with your Crowdly account to use Discovery.</source>
+        <translation>Crowdly はアルファ版の間、招待制です。
+ディスカバリーを使うには Crowdly アカウントでログインしてください。</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly</source>
+        <translation>Crowdly にログイン</translation>
+    </message>
+    <message>
+        <source>Your library is empty. Use &quot;Add books…&quot; to import EPUB, PDF, audio or text files. Your books stay private to you.</source>
+        <translation>ライブラリは空です。「本を追加…」で EPUB、PDF、音声、テキストファイルをインポートできます。本は非公開のままです。</translation>
+    </message>
+    <message>
+        <source>Stories you are living on Crowdly.</source>
+        <translation>Crowdly で体験中のストーリー。</translation>
+    </message>
+    <message>
+        <source>Search Crowdly stories</source>
+        <translation>Crowdly のストーリーを検索</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>検索</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>最新のストーリー</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>音声</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>テキスト</translation>
+    </message>
+    <message>
+        <source>{percent}% read</source>
+        <translation>{percent}% 読了</translation>
+    </message>
+    <message>
+        <source>synced</source>
+        <translation>同期済み</translation>
+    </message>
+    <message>
+        <source>Add books to your library</source>
+        <translation>ライブラリに本を追加</translation>
+    </message>
+    <message>
+        <source>Books and audiobooks ({patterns})</source>
+        <translation>本とオーディオブック ({patterns})</translation>
+    </message>
+    <message>
+        <source>All files (*)</source>
+        <translation>すべてのファイル (*)</translation>
+    </message>
+    <message>
+        <source>Some files were not added</source>
+        <translation>一部のファイルは追加されませんでした</translation>
+    </message>
+    <message>
+        <source>Books added to your library: {count}</source>
+        <translation>ライブラリに追加した本: {count}</translation>
+    </message>
+    <message>
+        <source>Book not available</source>
+        <translation>本を開けません</translation>
+    </message>
+    <message>
+        <source>The file for this book is missing. Sync again or re-import it.</source>
+        <translation>この本のファイルが見つかりません。もう一度同期するか、再インポートしてください。</translation>
+    </message>
+    <message>
+        <source>Could not read this EPUB:</source>
+        <translation>この EPUB を読み込めませんでした:</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>開く</translation>
+    </message>
+    <message>
+        <source>Book rights…</source>
+        <translation>本の権利…</translation>
+    </message>
+    <message>
+        <source>Convert to Crowdly story</source>
+        <translation>Crowdly のストーリーに変換</translation>
+    </message>
+    <message>
+        <source>Remove from library</source>
+        <translation>ライブラリから削除</translation>
+    </message>
+    <message>
+        <source>Remove &quot;{title}&quot; from your library on all your devices?</source>
+        <translation>すべてのデバイスのライブラリから「{title}」を削除しますか？</translation>
+    </message>
+    <message>
+        <source>Not specified</source>
+        <translation>未指定</translation>
+    </message>
+    <message>
+        <source>My personal copy (private only)</source>
+        <translation>個人用のコピー（非公開のみ）</translation>
+    </message>
+    <message>
+        <source>My own work</source>
+        <translation>自分の作品</translation>
+    </message>
+    <message>
+        <source>Public domain</source>
+        <translation>パブリックドメイン</translation>
+    </message>
+    <message>
+        <source>Creative Commons licence that allows changes</source>
+        <translation>改変を許可するクリエイティブ・コモンズ・ライセンス</translation>
+    </message>
+    <message>
+        <source>Book rights</source>
+        <translation>本の権利</translation>
+    </message>
+    <message>
+        <source>Who holds the rights to &quot;{title}&quot;?
+Only your own work, public-domain or Creative Commons (without &quot;no derivatives&quot;) books can become Crowdly stories others can read and co-create.</source>
+        <translation>「{title}」の権利は誰にありますか？
+ほかの人が読んだり共同で創作したりできる Crowdly のストーリーにできるのは、自分の作品、パブリックドメイン、またはクリエイティブ・コモンズ（「改変禁止」なし）の本だけです。</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>無題</translation>
+    </message>
+    <message>
+        <source>(No stories yet - mark a story as &quot;living&quot; on Crowdly.)</source>
+        <translation>（まだストーリーがありません - Crowdly でストーリーを「体験中」にしてください。）</translation>
+    </message>
+    <message>
+        <source>Search results</source>
+        <translation>検索結果</translation>
+    </message>
+    <message>
+        <source>No stories found.</source>
+        <translation>ストーリーが見つかりません。</translation>
+    </message>
+    <message>
+        <source>Opening &quot;{title}&quot;…</source>
+        <translation>「{title}」を開いています…</translation>
+    </message>
+    <message>
+        <source>Crowdly could not be reached: {error}</source>
+        <translation>Crowdly に接続できません: {error}</translation>
+    </message>
+    <message>
+        <source>Turn on Settings → Synchronisation with → web platform to sync your library.</source>
+        <translation>ライブラリを同期するには、設定 → 同期先 → Web プラットフォームをオンにしてください。</translation>
+    </message>
+    <message>
+        <source>Syncing…</source>
+        <translation>同期中…</translation>
+    </message>
+    <message>
+        <source>Synced with problems</source>
+        <translation>同期しましたが問題があります</translation>
+    </message>
+    <message>
+        <source>Library synced</source>
+        <translation>ライブラリを同期しました</translation>
+    </message>
+    <message>
+        <source>Sync failed</source>
+        <translation>同期に失敗しました</translation>
+    </message>
+</context>
+<context>
+    <name>ReaderWidget</name>
+    <message>
+        <source>← Library</source>
+        <translation>← ライブラリ</translation>
+    </message>
+    <message>
+        <source>Highlight</source>
+        <translation>ハイライト</translation>
+    </message>
+    <message>
+        <source>Add note</source>
+        <translation>メモを追加</translation>
+    </message>
+    <message>
+        <source>Highlights</source>
+        <translation>ハイライト</translation>
+    </message>
+    <message>
+        <source>Highlights and notes</source>
+        <translation>ハイライトとメモ</translation>
+    </message>
+    <message>
+        <source>PDF viewing is not available in this build.</source>
+        <translation>このビルドでは PDF を表示できません。</translation>
+    </message>
+    <message>
+        <source>Yellow</source>
+        <translation>黄</translation>
+    </message>
+    <message>
+        <source>Green</source>
+        <translation>緑</translation>
+    </message>
+    <message>
+        <source>Blue</source>
+        <translation>青</translation>
+    </message>
+    <message>
+        <source>Pink</source>
+        <translation>ピンク</translation>
+    </message>
+    <message>
+        <source>Play / Pause</source>
+        <translation>再生 / 一時停止</translation>
+    </message>
+    <message>
+        <source>Speed</source>
+        <translation>速度</translation>
+    </message>
+    <message>
+        <source>Sleep timer</source>
+        <translation>スリープタイマー</translation>
+    </message>
+    <message>
+        <source>Off</source>
+        <translation>オフ</translation>
+    </message>
+    <message>
+        <source>{count} min</source>
+        <translation>{count} 分</translation>
+    </message>
+    <message>
+        <source>Note:</source>
+        <translation>メモ:</translation>
+    </message>
+    <message>
+        <source>(text changed) </source>
+        <translation>（テキストが変更されました）</translation>
+    </message>
+    <message>
+        <source>Edit note</source>
+        <translation>メモを編集</translation>
+    </message>
+    <message>
+        <source>Delete highlight</source>
+        <translation>ハイライトを削除</translation>
     </message>
 </context>
 </TS>

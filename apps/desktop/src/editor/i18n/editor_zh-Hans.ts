@@ -589,6 +589,50 @@ Details: {error}</translation>
         <source>Your Google sign-in doesn&apos;t include Drive access yet. Your browser will open again: on Google&apos;s permission screen, tick the box &quot;See, edit, create, and delete all of your Google Drive files&quot;.</source>
         <translation>您的 Google 登录尚未包含云端硬盘访问权限。浏览器将再次打开：请在 Google 权限页面勾选“查看、修改、创建和删除您的所有 Google 云端硬盘文件”。</translation>
     </message>
+    <message>
+        <source>Add books…</source>
+        <translation>添加图书…</translation>
+    </message>
+    <message>
+        <source>Startup</source>
+        <translation>启动</translation>
+    </message>
+    <message>
+        <source>Start in</source>
+        <translation>启动模式</translation>
+    </message>
+    <message>
+        <source>On launch</source>
+        <translation>启动时</translation>
+    </message>
+    <message>
+        <source>Start where I left off</source>
+        <translation>从上次离开的地方开始</translation>
+    </message>
+    <message>
+        <source>Start with default settings</source>
+        <translation>使用默认设置启动</translation>
+    </message>
+    <message>
+        <source>Switch to Creation</source>
+        <translation>切换到创作</translation>
+    </message>
+    <message>
+        <source>Switch to Discovery</source>
+        <translation>切换到发现</translation>
+    </message>
+    <message>
+        <source>Convert to Crowdly story</source>
+        <translation>转换为 Crowdly 故事</translation>
+    </message>
+    <message>
+        <source>Only your own work, public-domain books or books under a Creative Commons licence that allows changes can become Crowdly stories. Set the book&apos;s rights first.</source>
+        <translation>只有你自己的作品、公有领域图书或允许修改的知识共享许可图书才能成为 Crowdly 故事。请先设置这本书的权利。</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is now open in Creation mode as {file}. With Synchronisation with web platform on, it becomes a Crowdly story when it is saved.</source>
+        <translation>“{title}”已在创作模式中以 {file} 打开。开启与网页平台同步后，保存时它会成为 Crowdly 故事。</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>
@@ -888,6 +932,335 @@ Details: {error}</translation>
 {error}</source>
         <translation>无法创建文件夹：
 {error}</translation>
+    </message>
+</context>
+<context>
+    <name>AppModes</name>
+    <message>
+        <source>Crowdly Discovery</source>
+        <translation>Crowdly Discovery</translation>
+    </message>
+    <message>
+        <source>Crowdly Creation</source>
+        <translation>Crowdly Creation</translation>
+    </message>
+    <message>
+        <source>Discovery</source>
+        <translation>发现</translation>
+    </message>
+    <message>
+        <source>Creation</source>
+        <translation>创作</translation>
+    </message>
+</context>
+<context>
+    <name>App</name>
+    <message>
+        <source>Files from your last session that could not be found: {count}</source>
+        <translation>上次会话中未找到的文件：{count}</translation>
+    </message>
+</context>
+<context>
+    <name>RightsConfirmationDialog</name>
+    <message>
+        <source>Before your books sync</source>
+        <translation>同步图书之前</translation>
+    </message>
+    <message>
+        <source>With synchronisation on, the books you import are uploaded to your own Crowdly account so they are available on your other devices.
+
+• They stay private: only you can open them. Crowdly never shares, lists or links them for anyone else.
+• Only upload books you have the right to keep a copy of - books you bought DRM-free, your own work, public-domain or openly licensed books.
+• DRM-protected files are never imported.
+• Rights holders can ask Crowdly to remove a file, and your files are deleted when you delete your account.</source>
+        <translation>开启同步后，你导入的图书会上传到你自己的 Crowdly 账户，以便在你的其他设备上使用。
+
+• 它们保持私密：只有你能打开。Crowdly 绝不会为他人分享、列出或链接这些图书。
+• 只上传你有权保留副本的图书——无 DRM 购买的图书、你自己的作品、公有领域或开放许可的图书。
+• 受 DRM 保护的文件永远不会被导入。
+• 权利人可以要求 Crowdly 删除某个文件；删除账户时你的文件也会被删除。</translation>
+    </message>
+    <message>
+        <source>I have the right to keep these books in my account</source>
+        <translation>我有权在账户中保存这些图书</translation>
+    </message>
+    <message>
+        <source>Sync my library</source>
+        <translation>同步我的书库</translation>
+    </message>
+</context>
+<context>
+    <name>DiscoveryView</name>
+    <message>
+        <source>My library</source>
+        <translation>我的书库</translation>
+    </message>
+    <message>
+        <source>Reading on Crowdly</source>
+        <translation>在 Crowdly 阅读中</translation>
+    </message>
+    <message>
+        <source>Browse Crowdly</source>
+        <translation>浏览 Crowdly</translation>
+    </message>
+    <message>
+        <source>Add books…</source>
+        <translation>添加图书…</translation>
+    </message>
+    <message>
+        <source>Sync now</source>
+        <translation>立即同步</translation>
+    </message>
+    <message>
+        <source>Crowdly is invite-only while it is in alpha.
+Log in with your Crowdly account to use Discovery.</source>
+        <translation>Crowdly 在 Alpha 阶段仅限受邀用户使用。
+请登录 Crowdly 账户以使用发现。</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly</source>
+        <translation>登录 Crowdly</translation>
+    </message>
+    <message>
+        <source>Your library is empty. Use &quot;Add books…&quot; to import EPUB, PDF, audio or text files. Your books stay private to you.</source>
+        <translation>你的书库是空的。使用“添加图书…”导入 EPUB、PDF、音频或文本文件。你的图书仅你可见。</translation>
+    </message>
+    <message>
+        <source>Stories you are living on Crowdly.</source>
+        <translation>你在 Crowdly 上正在体验的故事。</translation>
+    </message>
+    <message>
+        <source>Search Crowdly stories</source>
+        <translation>搜索 Crowdly 故事</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>搜索</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>最新故事</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>音频</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>文本</translation>
+    </message>
+    <message>
+        <source>{percent}% read</source>
+        <translation>已读 {percent}%</translation>
+    </message>
+    <message>
+        <source>synced</source>
+        <translation>已同步</translation>
+    </message>
+    <message>
+        <source>Add books to your library</source>
+        <translation>向书库添加图书</translation>
+    </message>
+    <message>
+        <source>Books and audiobooks ({patterns})</source>
+        <translation>图书和有声书 ({patterns})</translation>
+    </message>
+    <message>
+        <source>All files (*)</source>
+        <translation>所有文件 (*)</translation>
+    </message>
+    <message>
+        <source>Some files were not added</source>
+        <translation>部分文件未添加</translation>
+    </message>
+    <message>
+        <source>Books added to your library: {count}</source>
+        <translation>已添加到书库的图书：{count}</translation>
+    </message>
+    <message>
+        <source>Book not available</source>
+        <translation>图书不可用</translation>
+    </message>
+    <message>
+        <source>The file for this book is missing. Sync again or re-import it.</source>
+        <translation>此图书的文件缺失。请重新同步或重新导入。</translation>
+    </message>
+    <message>
+        <source>Could not read this EPUB:</source>
+        <translation>无法读取此 EPUB：</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>打开</translation>
+    </message>
+    <message>
+        <source>Book rights…</source>
+        <translation>图书权利…</translation>
+    </message>
+    <message>
+        <source>Convert to Crowdly story</source>
+        <translation>转换为 Crowdly 故事</translation>
+    </message>
+    <message>
+        <source>Remove from library</source>
+        <translation>从书库移除</translation>
+    </message>
+    <message>
+        <source>Remove &quot;{title}&quot; from your library on all your devices?</source>
+        <translation>要在所有设备上从书库中移除“{title}”吗？</translation>
+    </message>
+    <message>
+        <source>Not specified</source>
+        <translation>未指定</translation>
+    </message>
+    <message>
+        <source>My personal copy (private only)</source>
+        <translation>我的个人副本（仅限私人）</translation>
+    </message>
+    <message>
+        <source>My own work</source>
+        <translation>我自己的作品</translation>
+    </message>
+    <message>
+        <source>Public domain</source>
+        <translation>公有领域</translation>
+    </message>
+    <message>
+        <source>Creative Commons licence that allows changes</source>
+        <translation>允许修改的知识共享许可</translation>
+    </message>
+    <message>
+        <source>Book rights</source>
+        <translation>图书权利</translation>
+    </message>
+    <message>
+        <source>Who holds the rights to &quot;{title}&quot;?
+Only your own work, public-domain or Creative Commons (without &quot;no derivatives&quot;) books can become Crowdly stories others can read and co-create.</source>
+        <translation>谁拥有“{title}”的权利？
+只有你自己的作品、公有领域或知识共享（不含“禁止演绎”）图书，才能成为他人可以阅读和共同创作的 Crowdly 故事。</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>无标题</translation>
+    </message>
+    <message>
+        <source>(No stories yet - mark a story as &quot;living&quot; on Crowdly.)</source>
+        <translation>（还没有故事——在 Crowdly 上把故事标记为“正在体验”。）</translation>
+    </message>
+    <message>
+        <source>Search results</source>
+        <translation>搜索结果</translation>
+    </message>
+    <message>
+        <source>No stories found.</source>
+        <translation>未找到故事。</translation>
+    </message>
+    <message>
+        <source>Opening &quot;{title}&quot;…</source>
+        <translation>正在打开“{title}”…</translation>
+    </message>
+    <message>
+        <source>Crowdly could not be reached: {error}</source>
+        <translation>无法连接 Crowdly：{error}</translation>
+    </message>
+    <message>
+        <source>Turn on Settings → Synchronisation with → web platform to sync your library.</source>
+        <translation>开启 设置 → 同步到 → 网页平台 以同步你的书库。</translation>
+    </message>
+    <message>
+        <source>Syncing…</source>
+        <translation>正在同步…</translation>
+    </message>
+    <message>
+        <source>Synced with problems</source>
+        <translation>同步完成但有问题</translation>
+    </message>
+    <message>
+        <source>Library synced</source>
+        <translation>书库已同步</translation>
+    </message>
+    <message>
+        <source>Sync failed</source>
+        <translation>同步失败</translation>
+    </message>
+</context>
+<context>
+    <name>ReaderWidget</name>
+    <message>
+        <source>← Library</source>
+        <translation>← 书库</translation>
+    </message>
+    <message>
+        <source>Highlight</source>
+        <translation>高亮</translation>
+    </message>
+    <message>
+        <source>Add note</source>
+        <translation>添加笔记</translation>
+    </message>
+    <message>
+        <source>Highlights</source>
+        <translation>高亮</translation>
+    </message>
+    <message>
+        <source>Highlights and notes</source>
+        <translation>高亮和笔记</translation>
+    </message>
+    <message>
+        <source>PDF viewing is not available in this build.</source>
+        <translation>此版本不支持查看 PDF。</translation>
+    </message>
+    <message>
+        <source>Yellow</source>
+        <translation>黄色</translation>
+    </message>
+    <message>
+        <source>Green</source>
+        <translation>绿色</translation>
+    </message>
+    <message>
+        <source>Blue</source>
+        <translation>蓝色</translation>
+    </message>
+    <message>
+        <source>Pink</source>
+        <translation>粉色</translation>
+    </message>
+    <message>
+        <source>Play / Pause</source>
+        <translation>播放 / 暂停</translation>
+    </message>
+    <message>
+        <source>Speed</source>
+        <translation>速度</translation>
+    </message>
+    <message>
+        <source>Sleep timer</source>
+        <translation>睡眠定时</translation>
+    </message>
+    <message>
+        <source>Off</source>
+        <translation>关闭</translation>
+    </message>
+    <message>
+        <source>{count} min</source>
+        <translation>{count} 分钟</translation>
+    </message>
+    <message>
+        <source>Note:</source>
+        <translation>笔记：</translation>
+    </message>
+    <message>
+        <source>(text changed) </source>
+        <translation>（文本已更改）</translation>
+    </message>
+    <message>
+        <source>Edit note</source>
+        <translation>编辑笔记</translation>
+    </message>
+    <message>
+        <source>Delete highlight</source>
+        <translation>删除高亮</translation>
     </message>
 </context>
 </TS>

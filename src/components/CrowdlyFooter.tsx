@@ -63,6 +63,12 @@ const CrowdlyFooter = () => {
                 <li><Link to="/software" className="text-gray-600 hover:text-pink-600 transition">
                   <EditableText id="footer-software" layoutScoped>Apps and software</EditableText>
                 </Link></li>
+                <li><Link to="/software#discovery" className="text-gray-600 hover:text-pink-600 transition">
+                  <EditableText id="footer-download-discovery" layoutScoped>Crowdly Discovery (desktop app)</EditableText>
+                </Link></li>
+                <li><Link to="/software#creation" className="text-gray-600 hover:text-pink-600 transition">
+                  <EditableText id="footer-download-creation" layoutScoped>Crowdly Creation (desktop app)</EditableText>
+                </Link></li>
                 <li><a href="https://github.com/leoloveisme/crowdly" className="text-gray-600 hover:text-pink-600 transition">
                   <EditableText id="footer-github" layoutScoped>Crowdly on Github</EditableText>
                 </a></li>

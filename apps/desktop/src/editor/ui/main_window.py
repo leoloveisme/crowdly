@@ -33,6 +33,7 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QPushButton,
     QWidgetAction,
+    QStackedWidget,
 )
 from PySide6.QtCore import Qt, QTimer, QEvent, QCoreApplication, QObject, QThread, Signal, QUrl
 from PySide6.QtGui import (
@@ -47,7 +48,10 @@ from PySide6.QtGui import (
 )
 
 from ..document import Document
-from ..settings import Settings, save_settings, load_spaces_status_log
+from ..settings import Settings, save_settings, load_spaces_status_log, get_config_dir
+from .. import app_modes
+from ..app_modes import MODE_CREATION, MODE_DISCOVERY
+from .. import session_store
 from .. import file_metadata
 from .. import story_sync
 from .. import websync
@@ -78,10 +82,16 @@ class MainWindow(QMainWindow):
         *,
         translator: object | None = None,
         restore_sync: bool = False,
+        mode: str | None = None,
     ) -> None:
         super().__init__(parent)
 
         self._settings = settings
+
+        # Discovery / Creation mode of this window (see editor.app_modes).
+        # The Discovery page is built the first time it is shown.
+        self._mode: str = MODE_CREATION
+        self._discovery_view = None
         self._project_space_path: Path | None = settings.project_space
 
         # Known creative spaces (project-space roots) that the user can switch between.
@@ -240,6 +250,13 @@ class MainWindow(QMainWindow):
         if screen is not None:
             self.setGeometry(screen.availableGeometry())
 
+        initial_mode = (
+            app_modes.normalize_mode(mode)
+            or app_modes.normalize_mode(getattr(settings, "startup_mode", None))
+            or MODE_CREATION
+        )
+        self.set_mode(initial_mode)
+
         # Only the app's first window resumes sync from the saved settings;
         # extra windows (Cmd/Ctrl+N) must not prompt for a second login.
         if restore_sync:
@@ -269,6 +286,13 @@ class MainWindow(QMainWindow):
         self._burger_button = burger_button
 
         menu = QMenu(burger_button)
+        # Switch this window between Discovery and Creation (the label names
+        # the mode it switches *to*; see set_mode).
+        self._action_switch_mode = menu.addAction("", self._toggle_mode)
+        # Discovery only: import books into the library.
+        self._action_add_books = menu.addAction(self.tr("Add books…"), self._discovery_add_books)
+        menu.addSeparator()
+
         # These actions are placeholders for now and will be wired up in
         # later iterations (e.g. New, Open, Settings, Toggle distraction-free).
         new_menu = menu.addMenu(self.tr("New"))
@@ -460,9 +484,46 @@ class MainWindow(QMainWindow):
 
         self._update_language_actions()
 
-        self._action_session_control = settings_menu.addAction(
-            self.tr("Session control"), self._show_session_control_dialog
+        # Startup: which mode a launch opens in, and whether it resumes the
+        # last session (see editor.session_store).
+        startup_menu = settings_menu.addMenu(self.tr("Startup"))
+        self._startup_menu = startup_menu
+        startup_menu.aboutToShow.connect(self._update_startup_actions)
+
+        self._start_in_menu = startup_menu.addMenu(self.tr("Start in"))
+        start_in_group = QActionGroup(self)
+        start_in_group.setExclusive(True)
+        self._action_start_in_discovery = self._start_in_menu.addAction(
+            app_modes.display_name(MODE_DISCOVERY)
         )
+        self._action_start_in_creation = self._start_in_menu.addAction(
+            app_modes.display_name(MODE_CREATION)
+        )
+        for action, value in (
+            (self._action_start_in_discovery, MODE_DISCOVERY),
+            (self._action_start_in_creation, MODE_CREATION),
+        ):
+            action.setCheckable(True)
+            start_in_group.addAction(action)
+            action.triggered.connect(lambda _=False, v=value: self._set_startup_mode(v))
+
+        self._on_launch_menu = startup_menu.addMenu(self.tr("On launch"))
+        on_launch_group = QActionGroup(self)
+        on_launch_group.setExclusive(True)
+        self._action_launch_resume = self._on_launch_menu.addAction(
+            self.tr("Start where I left off")
+        )
+        self._action_launch_defaults = self._on_launch_menu.addAction(
+            self.tr("Start with default settings")
+        )
+        for action, value in (
+            (self._action_launch_resume, "keep_session"),
+            (self._action_launch_defaults, "close_all"),
+        ):
+            action.setCheckable(True)
+            on_launch_group.addAction(action)
+            action.triggered.connect(lambda _=False, v=value: self._set_session_control(v))
+        self._update_startup_actions()
 
         # "View" menu removed; pane visibility is now controlled via
         # checkboxes in the top bar.
@@ -510,6 +571,23 @@ class MainWindow(QMainWindow):
         self._menu = menu
 
         top_layout.addWidget(burger_button)
+
+        # Discovery | Creation segmented toggle for this window.
+        self._mode_button_group = QButtonGroup(top_bar)
+        self._mode_button_group.setExclusive(True)
+        self._btn_mode_discovery = QToolButton(top_bar)
+        self._btn_mode_creation = QToolButton(top_bar)
+        for button, value in (
+            (self._btn_mode_discovery, MODE_DISCOVERY),
+            (self._btn_mode_creation, MODE_CREATION),
+        ):
+            button.setCheckable(True)
+            button.setAutoRaise(True)
+            self._mode_button_group.addButton(button)
+            button.clicked.connect(lambda _=False, v=value: self.set_mode(v))
+            top_layout.addWidget(button)
+        self._btn_mode_creation.setChecked(True)
+
         top_layout.addStretch(1)
 
         # Checkboxes in the top-right to control which panes are visible.
@@ -597,10 +675,19 @@ class MainWindow(QMainWindow):
         # Create the initial tab backed by the initial in-memory document.
         self._create_tab_for_document(self._document)
 
-        # Assemble layout: top bar above the search bar and tab widget.
+        # Assemble layout: the top bar above a stack holding the Creation page
+        # (search bar + tab widget) and, once used, the Discovery page.
+        self._mode_stack = QStackedWidget(container)
+        self._creation_page = QWidget(self._mode_stack)
+        creation_layout = QVBoxLayout(self._creation_page)
+        creation_layout.setContentsMargins(0, 0, 0, 0)
+        creation_layout.setSpacing(0)
+        creation_layout.addWidget(self._search_bar)
+        creation_layout.addWidget(self._tab_widget, 1)
+        self._mode_stack.addWidget(self._creation_page)
+
         root_layout.addWidget(top_bar)
-        root_layout.addWidget(self._search_bar)
-        root_layout.addWidget(self._tab_widget, 1)
+        root_layout.addWidget(self._mode_stack, 1)
 
         self.setCentralWidget(container)
 
@@ -683,8 +770,19 @@ class MainWindow(QMainWindow):
         both in a single title, e.g. "document.md — Distraction-Free Editor".
         """
 
-        app_name = self.tr("Distraction-Free Editor")
+        app_name = app_modes.display_name(getattr(self, "_mode", MODE_CREATION))
         title = app_name
+
+        if getattr(self, "_mode", MODE_CREATION) == MODE_DISCOVERY:
+            view = getattr(self, "_discovery_view", None)
+            name = view.current_title() if view is not None else ""
+            if name:
+                title = f"{name} — {app_name}"
+            try:
+                self.setWindowTitle(title)
+            except Exception:
+                pass
+            return
 
         path = getattr(self._document, "path", None)
         if isinstance(path, Path):
@@ -2359,30 +2457,35 @@ class MainWindow(QMainWindow):
                 self._settings.session_open_tabs = []
                 self._settings.session_tab_titles = []
                 self._settings.session_active_tab = 0
+                self._settings.session_state = {}
                 save_settings(self._settings)
             except Exception:
                 pass
         else:
-            # "keep_session" – persist every open tab that has a saved file so
-            # they can be re-opened on the next launch.
+            # "keep_session" ("Start where I left off"): snapshot every open
+            # window at once (see editor.session_store), but only when the
+            # whole app is closing. A single extra window closed on its own
+            # just drops out of the next snapshot instead of overwriting it.
             try:
-                tab_paths: list[str] = []
-                tab_titles: list[str] = []
-                for i, doc in enumerate(self._tab_documents):
-                    p = getattr(doc, "path", None)
-                    if isinstance(p, Path) and p.is_file():
-                        tab_paths.append(str(p))
-                        # Save the current tab title.  If it matches the
-                        # filename the user did not rename it, so store an
-                        # empty string (meaning "use the filename").
-                        title = self._tab_widget.tabText(i) if i < self._tab_widget.count() else ""
-                        if title == p.name:
-                            title = ""
-                        tab_titles.append(title)
-                self._settings.session_open_tabs = tab_paths
-                self._settings.session_tab_titles = tab_titles
-                self._settings.session_active_tab = self._current_tab_index
-                save_settings(self._settings)
+                app = QCoreApplication.instance()
+                if app is not None and self._closing_whole_app(app):
+                    if not getattr(app, "_crowdly_session_captured", False):
+                        windows = self._live_main_windows(app)
+                        if self not in windows:
+                            windows.insert(0, self)
+                        self._settings.session_state = session_store.capture_session(windows)
+                        self._sync_legacy_session_keys()
+                        save_settings(self._settings)
+                        setattr(app, "_crowdly_session_captured", True)
+            except Exception:
+                import traceback
+
+                traceback.print_exc()
+
+        # Flush the reading position and session of an open book.
+        if self._discovery_view is not None:
+            try:
+                self._discovery_view.deactivate()
             except Exception:
                 pass
 
@@ -2710,8 +2813,19 @@ class MainWindow(QMainWindow):
                 self._action_login_logout.setText(self.tr("Logout"))
             else:
                 self._action_login_logout.setText(self.tr("Login"))
-        if hasattr(self, "_action_session_control"):
-            self._action_session_control.setText(self.tr("Session control"))
+        if hasattr(self, "_startup_menu"):
+            self._startup_menu.setTitle(self.tr("Startup"))
+            self._start_in_menu.setTitle(self.tr("Start in"))
+            self._action_start_in_discovery.setText(app_modes.display_name(MODE_DISCOVERY))
+            self._action_start_in_creation.setText(app_modes.display_name(MODE_CREATION))
+            self._on_launch_menu.setTitle(self.tr("On launch"))
+            self._action_launch_resume.setText(self.tr("Start where I left off"))
+            self._action_launch_defaults.setText(self.tr("Start with default settings"))
+        if hasattr(self, "_action_add_books"):
+            self._action_add_books.setText(self.tr("Add books…"))
+        self._update_mode_labels()
+        if getattr(self, "_discovery_view", None) is not None:
+            self._discovery_view.retranslate()
         if hasattr(self, "_action_quit"):
             self._action_quit.setText(self.tr("Quit"))
 
@@ -3459,8 +3573,11 @@ class MainWindow(QMainWindow):
             return
 
         try:
-            # Reuse the current settings instance so preferences are shared.
-            new_window = MainWindow(self._settings, parent=None, translator=self._translator)
+            # Reuse the current settings instance so preferences are shared,
+            # and open in this window's mode.
+            new_window = MainWindow(
+                self._settings, parent=None, translator=self._translator, mode=self._mode
+            )
             new_window.show()
 
             # Explicitly raise and activate the window so it opens in front.
@@ -6574,6 +6691,10 @@ class MainWindow(QMainWindow):
         if not valid_paths:
             return
 
+        # Documents open in the editor, i.e. in Creation mode.
+        if getattr(self, "_mode", MODE_CREATION) != MODE_CREATION:
+            self.set_mode(MODE_CREATION)
+
         # Split into `.master` files and regular documents.
         master_paths: list[Path] = []
         normal_paths: list[Path] = []
@@ -6655,77 +6776,279 @@ class MainWindow(QMainWindow):
         save_settings(self._settings)
         self._update_project_space_status()
 
-    def _show_session_control_dialog(self) -> None:  # pragma: no cover - UI wiring
-        """Open a dialog that lets the user choose session-close behaviour."""
+    # Discovery / Creation modes ------------------------------------------------
 
-        dialog = QDialog(self)
-        dialog.setWindowTitle(self.tr("Session control"))
-        dialog.setMinimumWidth(480)
+    def set_mode(self, mode: str) -> None:
+        """Show this window in Discovery or Creation mode."""
 
-        layout = QVBoxLayout(dialog)
-
-        description = QLabel(
-            self.tr(
-                "Here you can decide how the session control for closing of "
-                "the app should work."
-            )
-        )
-        description.setWordWrap(True)
-        layout.addWidget(description)
-
-        label = QLabel(self.tr("The app will:"))
-        layout.addWidget(label)
-
-        radio_close_all = QRadioButton(
-            self.tr(
-                "Close all its tabs and clear creative / project Space"
-            )
-        )
-        radio_keep_session = QRadioButton(
-            self.tr(
-                "Keep the current session (saves all the opened tabs and "
-                "windows, and the Space remains set)"
-            )
-        )
-
-        button_group = QButtonGroup(dialog)
-        button_group.addButton(radio_close_all)
-        button_group.addButton(radio_keep_session)
-
-        current = getattr(self._settings, "session_control", "close_all")
-        if current == "keep_session":
-            radio_keep_session.setChecked(True)
+        mode = app_modes.normalize_mode(mode) or MODE_CREATION
+        if mode == MODE_DISCOVERY:
+            view = self._ensure_discovery_view()
+            self._mode_stack.setCurrentWidget(view)
         else:
-            radio_close_all.setChecked(True)
+            if self._discovery_view is not None and self._mode == MODE_DISCOVERY:
+                self._discovery_view.deactivate()
+            self._mode_stack.setCurrentWidget(self._creation_page)
+        self._mode = mode
 
-        layout.addWidget(radio_close_all)
-        layout.addWidget(radio_keep_session)
+        creation = mode == MODE_CREATION
+        for menu in (
+            getattr(self, "_import_menu", None),
+            getattr(self, "_export_menu", None),
+            getattr(self, "_save_as_menu", None),
+            getattr(self, "_search_menu", None),
+            getattr(self, "_insert_menu", None),
+            getattr(self, "_story_settings_menu", None),
+        ):
+            if menu is not None:
+                menu.menuAction().setVisible(creation)
+        for shortcut in (
+            getattr(self, "_shortcut_find", None),
+            getattr(self, "_shortcut_find_next", None),
+            getattr(self, "_shortcut_find_previous", None),
+            getattr(self, "_shortcut_replace", None),
+            getattr(self, "_shortcut_new_tab", None),
+        ):
+            if shortcut is not None:
+                shortcut.setEnabled(creation)
+        self._chk_md_editor.setVisible(creation)
+        self._chk_wysiwyg.setVisible(creation)
+        self._action_add_books.setVisible(not creation)
+        if not creation and getattr(self, "_search_bar", None) is not None:
+            self._search_bar.setVisible(False)
 
-        button_layout = QHBoxLayout()
-        button_layout.addStretch()
-        save_button = QPushButton(self.tr("Save"))
-        cancel_button = QPushButton(self.tr("Cancel"))
-        button_layout.addWidget(save_button)
-        button_layout.addWidget(cancel_button)
-        layout.addLayout(button_layout)
+        self._update_mode_labels()
+        if mode == MODE_DISCOVERY:
+            self._discovery_view.activate()
+        self._update_window_title()
 
-        def _on_save() -> None:
-            if radio_keep_session.isChecked():
-                self._settings.session_control = "keep_session"
-            else:
-                self._settings.session_control = "close_all"
-                # Clear any stale session-restore data when switching to
-                # "close_all" so the next launch does not unexpectedly
-                # reopen old tabs.
-                self._settings.session_open_tabs = []
-                self._settings.session_active_tab = 0
-            save_settings(self._settings)
-            dialog.accept()
+    def mode(self) -> str:
+        return self._mode
 
-        save_button.clicked.connect(_on_save)
-        cancel_button.clicked.connect(dialog.reject)
+    def discovery_view(self):
+        """The window's Discovery page (created on demand)."""
 
-        dialog.exec()
+        return self._ensure_discovery_view()
+
+    def _toggle_mode(self) -> None:  # pragma: no cover - UI wiring
+        self.set_mode(MODE_CREATION if self._mode == MODE_DISCOVERY else MODE_DISCOVERY)
+
+    def _update_mode_labels(self) -> None:
+        if not hasattr(self, "_btn_mode_discovery"):
+            return
+        self._btn_mode_discovery.setText(app_modes.short_name(MODE_DISCOVERY))
+        self._btn_mode_creation.setText(app_modes.short_name(MODE_CREATION))
+        self._btn_mode_discovery.setToolTip(app_modes.display_name(MODE_DISCOVERY))
+        self._btn_mode_creation.setToolTip(app_modes.display_name(MODE_CREATION))
+        button = self._btn_mode_discovery if self._mode == MODE_DISCOVERY else self._btn_mode_creation
+        button.setChecked(True)
+        if self._mode == MODE_DISCOVERY:
+            self._action_switch_mode.setText(self.tr("Switch to Creation"))
+        else:
+            self._action_switch_mode.setText(self.tr("Switch to Discovery"))
+
+    def _shared_library(self):
+        """One LocalLibrary per app, shared by every window's Discovery page."""
+
+        from ..library.store import LocalLibrary
+
+        app = QCoreApplication.instance()
+        library = getattr(app, "_crowdly_library", None) if app is not None else None
+        if library is None:
+            library = LocalLibrary(get_config_dir() / "library")
+            if app is not None:
+                setattr(app, "_crowdly_library", library)
+        return library
+
+    def _ensure_discovery_view(self):
+        if self._discovery_view is not None:
+            return self._discovery_view
+        from .discovery import DiscoveryView
+
+        view = DiscoveryView(
+            self._settings,
+            self._shared_library(),
+            api_base=lambda: websync._build_api_base(self._settings),
+            credentials=self._discovery_credentials,
+            sync_enabled=lambda: bool(getattr(self, "_sync_web_platform", False)),
+            on_rights_confirmed=self._confirm_library_rights,
+            parent=self._mode_stack,
+        )
+        view.titleChanged.connect(lambda _title: self._update_window_title())
+        view.statusMessage.connect(lambda message: self.statusBar().showMessage(message, 8000))
+        view.convertRequested.connect(self._convert_library_item_to_story)
+        self._mode_stack.addWidget(view)
+        self._discovery_view = view
+        return view
+
+    def _discovery_credentials(self, prompt: bool) -> tuple[str, str] | None:
+        """Crowdly credentials for Discovery; prompts for a login only if *prompt*."""
+
+        if self._crowdly_web_credentials is not None:
+            return self._crowdly_web_credentials
+        remembered = crowdly_session.load(self._settings)
+        if remembered is not None:
+            self._crowdly_web_credentials = remembered
+            return remembered
+        if prompt:
+            return self._ensure_crowdly_web_credentials()
+        return None
+
+    def _confirm_library_rights(self) -> None:
+        self._settings.library_rights_confirmed = True
+        save_settings(self._settings)
+
+    def _discovery_add_books(self) -> None:  # pragma: no cover - UI wiring
+        if self._mode != MODE_DISCOVERY:
+            self.set_mode(MODE_DISCOVERY)
+        view = self._ensure_discovery_view()
+        if view.has_access():
+            view.add_books()
+
+    def _convert_library_item_to_story(self, item_id: str) -> None:  # pragma: no cover - UI wiring
+        """Turn an imported book the user holds the rights to into a story draft.
+
+        The book is converted to Markdown (same importer as Import from
+        file), saved into the project Space and opened in Creation mode.
+        From there the existing story pipeline takes over: with web sync on,
+        the document becomes a Crowdly story like any other local story.
+        """
+
+        from ..library.store import CONVERTIBLE_RIGHTS
+
+        library = self._shared_library()
+        item = library.get(item_id)
+        if item is None:
+            return
+        if item.rights_status not in CONVERTIBLE_RIGHTS:
+            QMessageBox.information(
+                self,
+                self.tr("Convert to Crowdly story"),
+                self.tr(
+                    "Only your own work, public-domain books or books under a "
+                    "Creative Commons licence that allows changes can become "
+                    "Crowdly stories. Set the book's rights first."
+                ),
+            )
+            return
+        source = library.file_path(item)
+        if source is None:
+            return
+
+        if self._project_space_path is None:
+            QMessageBox.information(
+                self,
+                self.tr("Project space required"),
+                self.tr("Please create or choose your project space first."),
+            )
+            self._choose_project_space()
+            if self._project_space_path is None:
+                return
+
+        try:
+            markdown_text, _metadata = importing_controller.import_to_markdown(source)
+        except Exception as exc:
+            QMessageBox.warning(self, self.tr("Import failed"), str(exc))
+            return
+        if not markdown_text.strip():
+            QMessageBox.information(
+                self,
+                self.tr("Import"),
+                self.tr("The selected file did not contain any importable content."),
+            )
+            return
+
+        safe = "".join(c for c in item.title if c.isalnum() or c in " -_").strip() or "Book"
+        target = self._project_space_path / f"{safe}.md"
+        counter = 2
+        while target.exists():
+            target = self._project_space_path / f"{safe} {counter}.md"
+            counter += 1
+        header = f"# {item.title}\n\n" if not markdown_text.lstrip().startswith("#") else ""
+        target.write_text(header + markdown_text, encoding="utf-8")
+
+        self.set_mode(MODE_CREATION)
+        self._open_paths_from_cli([str(target)])
+
+        if item.remote_id and getattr(self, "_sync_web_platform", False):
+            creds = self._discovery_credentials(False)
+            if creds is not None:
+                from .discovery.tasks import run_in_background
+
+                base = websync._build_api_base(self._settings)
+                remote_id = item.remote_id
+                run_in_background(
+                    lambda: _record_conversion(base, creds, remote_id), None, None
+                )
+
+        QMessageBox.information(
+            self,
+            self.tr("Convert to Crowdly story"),
+            self.tr(
+                "\"{title}\" is now open in Creation mode as {file}. With "
+                "Synchronisation with web platform on, it becomes a Crowdly story "
+                "when it is saved."
+            ).format(title=item.title, file=target.name),
+        )
+
+    def _update_startup_actions(self) -> None:
+        mode = app_modes.normalize_mode(getattr(self._settings, "startup_mode", None)) or MODE_CREATION
+        self._action_start_in_discovery.setChecked(mode == MODE_DISCOVERY)
+        self._action_start_in_creation.setChecked(mode == MODE_CREATION)
+        resume = getattr(self._settings, "session_control", "close_all") == "keep_session"
+        self._action_launch_resume.setChecked(resume)
+        self._action_launch_defaults.setChecked(not resume)
+
+    def _set_startup_mode(self, mode: str) -> None:  # pragma: no cover - UI wiring
+        self._settings.startup_mode = app_modes.normalize_mode(mode) or MODE_CREATION
+        save_settings(self._settings)
+
+    def _set_session_control(self, value: str) -> None:  # pragma: no cover - UI wiring
+        self._settings.session_control = value
+        if value == "close_all":
+            # Clear stale session-restore data so the next launch does not
+            # unexpectedly reopen old windows and tabs.
+            self._settings.session_open_tabs = []
+            self._settings.session_tab_titles = []
+            self._settings.session_active_tab = 0
+            self._settings.session_state = {}
+        save_settings(self._settings)
+
+    def _live_main_windows(self, app) -> list:
+        """Visible MainWindows, the primary window first."""
+
+        windows: list = []
+        primary = getattr(app, "_main_window", None)
+        candidates = [primary] + list(getattr(app, "_extra_windows", None) or [])
+        for win in candidates:
+            if not isinstance(win, MainWindow) or win in windows:
+                continue
+            try:
+                if win.isVisible():
+                    windows.append(win)
+            except RuntimeError:
+                continue
+        return windows
+
+    def _closing_whole_app(self, app) -> bool:
+        """True when this close ends the app rather than one extra window."""
+
+        if getattr(app, "_crowdly_quitting", False):
+            return True
+        if getattr(app, "_main_window", None) is self:
+            return True
+        others = [w for w in self._live_main_windows(app) if w is not self]
+        return not others
+
+    def _sync_legacy_session_keys(self) -> None:
+        """Mirror the first window's tabs into the pre-v2 session keys."""
+
+        windows = (self._settings.session_state or {}).get("windows") or []
+        first = windows[0] if windows else {}
+        tabs = first.get("tabs") or []
+        self._settings.session_open_tabs = [t["path"] for t in tabs if t.get("path")]
+        self._settings.session_tab_titles = [t.get("title") or "" for t in tabs]
+        self._settings.session_active_tab = int(first.get("active_tab") or 0)
 
     def _get_current_document_path(self) -> Path | None:
         """Return the current document path, if it exists on disk."""
@@ -8816,3 +9139,13 @@ class _GoogleDriveSyncThread(QThread):
             except Exception as exc:  # pragma: no cover - network dependent
                 outcomes.append((root, None, str(exc)))
         self.syncFinished.emit(outcomes)
+
+
+def _record_conversion(base_url: str, credentials: tuple[str, str], remote_id: str) -> None:
+    """Tell the backend a library item was converted (it re-checks the rights)."""
+
+    from ..library.sync import LibrarySyncClient
+
+    client = LibrarySyncClient(base_url, credentials)
+    client.login()
+    client.convert_to_story(remote_id, "")

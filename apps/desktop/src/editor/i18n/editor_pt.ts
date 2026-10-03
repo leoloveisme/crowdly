@@ -589,6 +589,50 @@ Details: {error}</translation>
         <source>Your Google sign-in doesn&apos;t include Drive access yet. Your browser will open again: on Google&apos;s permission screen, tick the box &quot;See, edit, create, and delete all of your Google Drive files&quot;.</source>
         <translation>Seu login no Google ainda não inclui acesso ao Drive. O navegador abrirá novamente: na tela de permissões do Google, marque a caixa &quot;Ver, editar, criar e excluir todos os seus arquivos do Google Drive&quot;.</translation>
     </message>
+    <message>
+        <source>Add books…</source>
+        <translation>Adicionar livros…</translation>
+    </message>
+    <message>
+        <source>Startup</source>
+        <translation>Inicialização</translation>
+    </message>
+    <message>
+        <source>Start in</source>
+        <translation>Iniciar em</translation>
+    </message>
+    <message>
+        <source>On launch</source>
+        <translation>Ao iniciar</translation>
+    </message>
+    <message>
+        <source>Start where I left off</source>
+        <translation>Continuar de onde parei</translation>
+    </message>
+    <message>
+        <source>Start with default settings</source>
+        <translation>Iniciar com as configurações padrão</translation>
+    </message>
+    <message>
+        <source>Switch to Creation</source>
+        <translation>Mudar para Criação</translation>
+    </message>
+    <message>
+        <source>Switch to Discovery</source>
+        <translation>Mudar para Descoberta</translation>
+    </message>
+    <message>
+        <source>Convert to Crowdly story</source>
+        <translation>Converter em história do Crowdly</translation>
+    </message>
+    <message>
+        <source>Only your own work, public-domain books or books under a Creative Commons licence that allows changes can become Crowdly stories. Set the book&apos;s rights first.</source>
+        <translation>Somente obras próprias, livros em domínio público ou livros com uma licença Creative Commons que permita alterações podem virar histórias do Crowdly. Defina primeiro os direitos do livro.</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is now open in Creation mode as {file}. With Synchronisation with web platform on, it becomes a Crowdly story when it is saved.</source>
+        <translation>&quot;{title}&quot; agora está aberto no modo Criação como {file}. Com a sincronização com a plataforma web ativada, ele vira uma história do Crowdly ao ser salvo.</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>
@@ -888,6 +932,335 @@ Details: {error}</translation>
 {error}</source>
         <translation>Não foi possível criar a pasta:
 {error}</translation>
+    </message>
+</context>
+<context>
+    <name>AppModes</name>
+    <message>
+        <source>Crowdly Discovery</source>
+        <translation>Crowdly Discovery</translation>
+    </message>
+    <message>
+        <source>Crowdly Creation</source>
+        <translation>Crowdly Creation</translation>
+    </message>
+    <message>
+        <source>Discovery</source>
+        <translation>Descoberta</translation>
+    </message>
+    <message>
+        <source>Creation</source>
+        <translation>Criação</translation>
+    </message>
+</context>
+<context>
+    <name>App</name>
+    <message>
+        <source>Files from your last session that could not be found: {count}</source>
+        <translation>Arquivos da última sessão que não foram encontrados: {count}</translation>
+    </message>
+</context>
+<context>
+    <name>RightsConfirmationDialog</name>
+    <message>
+        <source>Before your books sync</source>
+        <translation>Antes de sincronizar seus livros</translation>
+    </message>
+    <message>
+        <source>With synchronisation on, the books you import are uploaded to your own Crowdly account so they are available on your other devices.
+
+• They stay private: only you can open them. Crowdly never shares, lists or links them for anyone else.
+• Only upload books you have the right to keep a copy of - books you bought DRM-free, your own work, public-domain or openly licensed books.
+• DRM-protected files are never imported.
+• Rights holders can ask Crowdly to remove a file, and your files are deleted when you delete your account.</source>
+        <translation>Com a sincronização ativada, os livros que você importa são enviados para a sua própria conta do Crowdly para ficarem disponíveis nos seus outros dispositivos.
+
+• Eles continuam privados: só você pode abri-los. O Crowdly nunca os compartilha, lista ou cria links para outras pessoas.
+• Envie apenas livros dos quais você tem o direito de manter uma cópia - livros comprados sem DRM, obras próprias, livros em domínio público ou com licença aberta.
+• Arquivos protegidos por DRM nunca são importados.
+• Titulares de direitos podem pedir ao Crowdly que remova um arquivo, e seus arquivos são apagados quando você exclui sua conta.</translation>
+    </message>
+    <message>
+        <source>I have the right to keep these books in my account</source>
+        <translation>Tenho o direito de manter estes livros na minha conta</translation>
+    </message>
+    <message>
+        <source>Sync my library</source>
+        <translation>Sincronizar minha biblioteca</translation>
+    </message>
+</context>
+<context>
+    <name>DiscoveryView</name>
+    <message>
+        <source>My library</source>
+        <translation>Minha biblioteca</translation>
+    </message>
+    <message>
+        <source>Reading on Crowdly</source>
+        <translation>Lendo no Crowdly</translation>
+    </message>
+    <message>
+        <source>Browse Crowdly</source>
+        <translation>Explorar o Crowdly</translation>
+    </message>
+    <message>
+        <source>Add books…</source>
+        <translation>Adicionar livros…</translation>
+    </message>
+    <message>
+        <source>Sync now</source>
+        <translation>Sincronizar agora</translation>
+    </message>
+    <message>
+        <source>Crowdly is invite-only while it is in alpha.
+Log in with your Crowdly account to use Discovery.</source>
+        <translation>O Crowdly é apenas para convidados enquanto está em alfa.
+Entre com sua conta do Crowdly para usar a Descoberta.</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly</source>
+        <translation>Entrar no Crowdly</translation>
+    </message>
+    <message>
+        <source>Your library is empty. Use &quot;Add books…&quot; to import EPUB, PDF, audio or text files. Your books stay private to you.</source>
+        <translation>Sua biblioteca está vazia. Use &quot;Adicionar livros…&quot; para importar arquivos EPUB, PDF, de áudio ou de texto. Seus livros continuam privados.</translation>
+    </message>
+    <message>
+        <source>Stories you are living on Crowdly.</source>
+        <translation>Histórias que você está vivendo no Crowdly.</translation>
+    </message>
+    <message>
+        <source>Search Crowdly stories</source>
+        <translation>Pesquisar histórias do Crowdly</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Pesquisar</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>Histórias mais recentes</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>Áudio</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>Texto</translation>
+    </message>
+    <message>
+        <source>{percent}% read</source>
+        <translation>{percent}% lido</translation>
+    </message>
+    <message>
+        <source>synced</source>
+        <translation>sincronizado</translation>
+    </message>
+    <message>
+        <source>Add books to your library</source>
+        <translation>Adicionar livros à sua biblioteca</translation>
+    </message>
+    <message>
+        <source>Books and audiobooks ({patterns})</source>
+        <translation>Livros e audiolivros ({patterns})</translation>
+    </message>
+    <message>
+        <source>All files (*)</source>
+        <translation>Todos os arquivos (*)</translation>
+    </message>
+    <message>
+        <source>Some files were not added</source>
+        <translation>Alguns arquivos não foram adicionados</translation>
+    </message>
+    <message>
+        <source>Books added to your library: {count}</source>
+        <translation>Livros adicionados à sua biblioteca: {count}</translation>
+    </message>
+    <message>
+        <source>Book not available</source>
+        <translation>Livro indisponível</translation>
+    </message>
+    <message>
+        <source>The file for this book is missing. Sync again or re-import it.</source>
+        <translation>O arquivo deste livro está faltando. Sincronize novamente ou importe-o de novo.</translation>
+    </message>
+    <message>
+        <source>Could not read this EPUB:</source>
+        <translation>Não foi possível ler este EPUB:</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>Abrir</translation>
+    </message>
+    <message>
+        <source>Book rights…</source>
+        <translation>Direitos do livro…</translation>
+    </message>
+    <message>
+        <source>Convert to Crowdly story</source>
+        <translation>Converter em história do Crowdly</translation>
+    </message>
+    <message>
+        <source>Remove from library</source>
+        <translation>Remover da biblioteca</translation>
+    </message>
+    <message>
+        <source>Remove &quot;{title}&quot; from your library on all your devices?</source>
+        <translation>Remover &quot;{title}&quot; da sua biblioteca em todos os seus dispositivos?</translation>
+    </message>
+    <message>
+        <source>Not specified</source>
+        <translation>Não especificado</translation>
+    </message>
+    <message>
+        <source>My personal copy (private only)</source>
+        <translation>Minha cópia pessoal (somente privada)</translation>
+    </message>
+    <message>
+        <source>My own work</source>
+        <translation>Minha própria obra</translation>
+    </message>
+    <message>
+        <source>Public domain</source>
+        <translation>Domínio público</translation>
+    </message>
+    <message>
+        <source>Creative Commons licence that allows changes</source>
+        <translation>Licença Creative Commons que permite alterações</translation>
+    </message>
+    <message>
+        <source>Book rights</source>
+        <translation>Direitos do livro</translation>
+    </message>
+    <message>
+        <source>Who holds the rights to &quot;{title}&quot;?
+Only your own work, public-domain or Creative Commons (without &quot;no derivatives&quot;) books can become Crowdly stories others can read and co-create.</source>
+        <translation>Quem detém os direitos de &quot;{title}&quot;?
+Somente obras próprias, livros em domínio público ou Creative Commons (sem &quot;sem derivações&quot;) podem virar histórias do Crowdly que outras pessoas leem e cocriam.</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>Sem título</translation>
+    </message>
+    <message>
+        <source>(No stories yet - mark a story as &quot;living&quot; on Crowdly.)</source>
+        <translation>(Ainda não há histórias - marque uma história como &quot;vivendo&quot; no Crowdly.)</translation>
+    </message>
+    <message>
+        <source>Search results</source>
+        <translation>Resultados da pesquisa</translation>
+    </message>
+    <message>
+        <source>No stories found.</source>
+        <translation>Nenhuma história encontrada.</translation>
+    </message>
+    <message>
+        <source>Opening &quot;{title}&quot;…</source>
+        <translation>Abrindo &quot;{title}&quot;…</translation>
+    </message>
+    <message>
+        <source>Crowdly could not be reached: {error}</source>
+        <translation>Não foi possível acessar o Crowdly: {error}</translation>
+    </message>
+    <message>
+        <source>Turn on Settings → Synchronisation with → web platform to sync your library.</source>
+        <translation>Ative Configurações → Sincronização com → plataforma web para sincronizar sua biblioteca.</translation>
+    </message>
+    <message>
+        <source>Syncing…</source>
+        <translation>Sincronizando…</translation>
+    </message>
+    <message>
+        <source>Synced with problems</source>
+        <translation>Sincronizado com problemas</translation>
+    </message>
+    <message>
+        <source>Library synced</source>
+        <translation>Biblioteca sincronizada</translation>
+    </message>
+    <message>
+        <source>Sync failed</source>
+        <translation>Falha na sincronização</translation>
+    </message>
+</context>
+<context>
+    <name>ReaderWidget</name>
+    <message>
+        <source>← Library</source>
+        <translation>← Biblioteca</translation>
+    </message>
+    <message>
+        <source>Highlight</source>
+        <translation>Destacar</translation>
+    </message>
+    <message>
+        <source>Add note</source>
+        <translation>Adicionar nota</translation>
+    </message>
+    <message>
+        <source>Highlights</source>
+        <translation>Destaques</translation>
+    </message>
+    <message>
+        <source>Highlights and notes</source>
+        <translation>Destaques e notas</translation>
+    </message>
+    <message>
+        <source>PDF viewing is not available in this build.</source>
+        <translation>A visualização de PDF não está disponível nesta versão.</translation>
+    </message>
+    <message>
+        <source>Yellow</source>
+        <translation>Amarelo</translation>
+    </message>
+    <message>
+        <source>Green</source>
+        <translation>Verde</translation>
+    </message>
+    <message>
+        <source>Blue</source>
+        <translation>Azul</translation>
+    </message>
+    <message>
+        <source>Pink</source>
+        <translation>Rosa</translation>
+    </message>
+    <message>
+        <source>Play / Pause</source>
+        <translation>Reproduzir / Pausar</translation>
+    </message>
+    <message>
+        <source>Speed</source>
+        <translation>Velocidade</translation>
+    </message>
+    <message>
+        <source>Sleep timer</source>
+        <translation>Timer para dormir</translation>
+    </message>
+    <message>
+        <source>Off</source>
+        <translation>Desligado</translation>
+    </message>
+    <message>
+        <source>{count} min</source>
+        <translation>{count} min</translation>
+    </message>
+    <message>
+        <source>Note:</source>
+        <translation>Nota:</translation>
+    </message>
+    <message>
+        <source>(text changed) </source>
+        <translation>(texto alterado) </translation>
+    </message>
+    <message>
+        <source>Edit note</source>
+        <translation>Editar nota</translation>
+    </message>
+    <message>
+        <source>Delete highlight</source>
+        <translation>Excluir destaque</translation>
     </message>
 </context>
 </TS>

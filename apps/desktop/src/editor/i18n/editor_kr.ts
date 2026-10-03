@@ -589,6 +589,50 @@ Details: {error}</translation>
         <source>Your Google sign-in doesn&apos;t include Drive access yet. Your browser will open again: on Google&apos;s permission screen, tick the box &quot;See, edit, create, and delete all of your Google Drive files&quot;.</source>
         <translation>Google 로그인에 아직 드라이브 접근 권한이 없습니다. 브라우저가 다시 열리면 Google 권한 화면에서 &quot;모든 Google 드라이브 파일 보기, 수정, 생성, 삭제&quot; 항목을 선택하세요.</translation>
     </message>
+    <message>
+        <source>Add books…</source>
+        <translation>책 추가…</translation>
+    </message>
+    <message>
+        <source>Startup</source>
+        <translation>시작</translation>
+    </message>
+    <message>
+        <source>Start in</source>
+        <translation>시작 모드</translation>
+    </message>
+    <message>
+        <source>On launch</source>
+        <translation>실행 시</translation>
+    </message>
+    <message>
+        <source>Start where I left off</source>
+        <translation>중단한 곳에서 시작</translation>
+    </message>
+    <message>
+        <source>Start with default settings</source>
+        <translation>기본 설정으로 시작</translation>
+    </message>
+    <message>
+        <source>Switch to Creation</source>
+        <translation>크리에이션으로 전환</translation>
+    </message>
+    <message>
+        <source>Switch to Discovery</source>
+        <translation>디스커버리로 전환</translation>
+    </message>
+    <message>
+        <source>Convert to Crowdly story</source>
+        <translation>Crowdly 스토리로 변환</translation>
+    </message>
+    <message>
+        <source>Only your own work, public-domain books or books under a Creative Commons licence that allows changes can become Crowdly stories. Set the book&apos;s rights first.</source>
+        <translation>본인의 작품, 퍼블릭 도메인 도서 또는 변경을 허용하는 크리에이티브 커먼즈 라이선스 도서만 Crowdly 스토리가 될 수 있습니다. 먼저 책의 권리를 설정하세요.</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is now open in Creation mode as {file}. With Synchronisation with web platform on, it becomes a Crowdly story when it is saved.</source>
+        <translation>&quot;{title}&quot;이(가) 이제 크리에이션 모드에서 {file}(으)로 열렸습니다. 웹 플랫폼 동기화가 켜져 있으면 저장할 때 Crowdly 스토리가 됩니다.</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>
@@ -888,6 +932,335 @@ Details: {error}</translation>
 {error}</source>
         <translation>폴더를 만들 수 없습니다:
 {error}</translation>
+    </message>
+</context>
+<context>
+    <name>AppModes</name>
+    <message>
+        <source>Crowdly Discovery</source>
+        <translation>Crowdly Discovery</translation>
+    </message>
+    <message>
+        <source>Crowdly Creation</source>
+        <translation>Crowdly Creation</translation>
+    </message>
+    <message>
+        <source>Discovery</source>
+        <translation>디스커버리</translation>
+    </message>
+    <message>
+        <source>Creation</source>
+        <translation>크리에이션</translation>
+    </message>
+</context>
+<context>
+    <name>App</name>
+    <message>
+        <source>Files from your last session that could not be found: {count}</source>
+        <translation>지난 세션에서 찾을 수 없는 파일: {count}</translation>
+    </message>
+</context>
+<context>
+    <name>RightsConfirmationDialog</name>
+    <message>
+        <source>Before your books sync</source>
+        <translation>책을 동기화하기 전에</translation>
+    </message>
+    <message>
+        <source>With synchronisation on, the books you import are uploaded to your own Crowdly account so they are available on your other devices.
+
+• They stay private: only you can open them. Crowdly never shares, lists or links them for anyone else.
+• Only upload books you have the right to keep a copy of - books you bought DRM-free, your own work, public-domain or openly licensed books.
+• DRM-protected files are never imported.
+• Rights holders can ask Crowdly to remove a file, and your files are deleted when you delete your account.</source>
+        <translation>동기화가 켜져 있으면 가져온 책이 내 Crowdly 계정에 업로드되어 다른 기기에서도 사용할 수 있습니다.
+
+• 책은 비공개로 유지됩니다. 나만 열 수 있으며 Crowdly는 다른 사람에게 공유하거나 목록에 올리거나 링크하지 않습니다.
+• 사본을 보관할 권리가 있는 책만 업로드하세요 - DRM 없이 구입한 책, 본인의 작품, 퍼블릭 도메인 또는 개방형 라이선스 도서.
+• DRM으로 보호된 파일은 가져오지 않습니다.
+• 권리자는 Crowdly에 파일 삭제를 요청할 수 있으며, 계정을 삭제하면 파일도 삭제됩니다.</translation>
+    </message>
+    <message>
+        <source>I have the right to keep these books in my account</source>
+        <translation>이 책들을 내 계정에 보관할 권리가 있습니다</translation>
+    </message>
+    <message>
+        <source>Sync my library</source>
+        <translation>내 서재 동기화</translation>
+    </message>
+</context>
+<context>
+    <name>DiscoveryView</name>
+    <message>
+        <source>My library</source>
+        <translation>내 서재</translation>
+    </message>
+    <message>
+        <source>Reading on Crowdly</source>
+        <translation>Crowdly에서 읽는 중</translation>
+    </message>
+    <message>
+        <source>Browse Crowdly</source>
+        <translation>Crowdly 둘러보기</translation>
+    </message>
+    <message>
+        <source>Add books…</source>
+        <translation>책 추가…</translation>
+    </message>
+    <message>
+        <source>Sync now</source>
+        <translation>지금 동기화</translation>
+    </message>
+    <message>
+        <source>Crowdly is invite-only while it is in alpha.
+Log in with your Crowdly account to use Discovery.</source>
+        <translation>Crowdly는 알파 기간 동안 초대제로 운영됩니다.
+디스커버리를 사용하려면 Crowdly 계정으로 로그인하세요.</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly</source>
+        <translation>Crowdly에 로그인</translation>
+    </message>
+    <message>
+        <source>Your library is empty. Use &quot;Add books…&quot; to import EPUB, PDF, audio or text files. Your books stay private to you.</source>
+        <translation>서재가 비어 있습니다. &quot;책 추가…&quot;로 EPUB, PDF, 오디오 또는 텍스트 파일을 가져오세요. 책은 나만 볼 수 있습니다.</translation>
+    </message>
+    <message>
+        <source>Stories you are living on Crowdly.</source>
+        <translation>Crowdly에서 경험 중인 스토리.</translation>
+    </message>
+    <message>
+        <source>Search Crowdly stories</source>
+        <translation>Crowdly 스토리 검색</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>검색</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>최신 스토리</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>오디오</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>텍스트</translation>
+    </message>
+    <message>
+        <source>{percent}% read</source>
+        <translation>{percent}% 읽음</translation>
+    </message>
+    <message>
+        <source>synced</source>
+        <translation>동기화됨</translation>
+    </message>
+    <message>
+        <source>Add books to your library</source>
+        <translation>서재에 책 추가</translation>
+    </message>
+    <message>
+        <source>Books and audiobooks ({patterns})</source>
+        <translation>책 및 오디오북 ({patterns})</translation>
+    </message>
+    <message>
+        <source>All files (*)</source>
+        <translation>모든 파일 (*)</translation>
+    </message>
+    <message>
+        <source>Some files were not added</source>
+        <translation>일부 파일이 추가되지 않았습니다</translation>
+    </message>
+    <message>
+        <source>Books added to your library: {count}</source>
+        <translation>서재에 추가된 책: {count}</translation>
+    </message>
+    <message>
+        <source>Book not available</source>
+        <translation>책을 사용할 수 없음</translation>
+    </message>
+    <message>
+        <source>The file for this book is missing. Sync again or re-import it.</source>
+        <translation>이 책의 파일이 없습니다. 다시 동기화하거나 다시 가져오세요.</translation>
+    </message>
+    <message>
+        <source>Could not read this EPUB:</source>
+        <translation>이 EPUB을 읽을 수 없습니다:</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>열기</translation>
+    </message>
+    <message>
+        <source>Book rights…</source>
+        <translation>책 권리…</translation>
+    </message>
+    <message>
+        <source>Convert to Crowdly story</source>
+        <translation>Crowdly 스토리로 변환</translation>
+    </message>
+    <message>
+        <source>Remove from library</source>
+        <translation>서재에서 제거</translation>
+    </message>
+    <message>
+        <source>Remove &quot;{title}&quot; from your library on all your devices?</source>
+        <translation>모든 기기의 서재에서 &quot;{title}&quot;을(를) 제거할까요?</translation>
+    </message>
+    <message>
+        <source>Not specified</source>
+        <translation>지정 안 됨</translation>
+    </message>
+    <message>
+        <source>My personal copy (private only)</source>
+        <translation>개인 사본(비공개 전용)</translation>
+    </message>
+    <message>
+        <source>My own work</source>
+        <translation>내 작품</translation>
+    </message>
+    <message>
+        <source>Public domain</source>
+        <translation>퍼블릭 도메인</translation>
+    </message>
+    <message>
+        <source>Creative Commons licence that allows changes</source>
+        <translation>변경을 허용하는 크리에이티브 커먼즈 라이선스</translation>
+    </message>
+    <message>
+        <source>Book rights</source>
+        <translation>책 권리</translation>
+    </message>
+    <message>
+        <source>Who holds the rights to &quot;{title}&quot;?
+Only your own work, public-domain or Creative Commons (without &quot;no derivatives&quot;) books can become Crowdly stories others can read and co-create.</source>
+        <translation>&quot;{title}&quot;의 권리는 누구에게 있나요?
+다른 사람이 읽고 함께 만들 수 있는 Crowdly 스토리가 될 수 있는 것은 본인의 작품, 퍼블릭 도메인 또는 크리에이티브 커먼즈(&quot;변경 금지&quot; 제외) 도서뿐입니다.</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>제목 없음</translation>
+    </message>
+    <message>
+        <source>(No stories yet - mark a story as &quot;living&quot; on Crowdly.)</source>
+        <translation>(아직 스토리가 없습니다 - Crowdly에서 스토리를 &quot;경험 중&quot;으로 표시하세요.)</translation>
+    </message>
+    <message>
+        <source>Search results</source>
+        <translation>검색 결과</translation>
+    </message>
+    <message>
+        <source>No stories found.</source>
+        <translation>스토리를 찾을 수 없습니다.</translation>
+    </message>
+    <message>
+        <source>Opening &quot;{title}&quot;…</source>
+        <translation>&quot;{title}&quot; 여는 중…</translation>
+    </message>
+    <message>
+        <source>Crowdly could not be reached: {error}</source>
+        <translation>Crowdly에 연결할 수 없습니다: {error}</translation>
+    </message>
+    <message>
+        <source>Turn on Settings → Synchronisation with → web platform to sync your library.</source>
+        <translation>서재를 동기화하려면 설정 → 동기화 대상 → 웹 플랫폼을 켜세요.</translation>
+    </message>
+    <message>
+        <source>Syncing…</source>
+        <translation>동기화 중…</translation>
+    </message>
+    <message>
+        <source>Synced with problems</source>
+        <translation>문제가 있지만 동기화됨</translation>
+    </message>
+    <message>
+        <source>Library synced</source>
+        <translation>서재 동기화됨</translation>
+    </message>
+    <message>
+        <source>Sync failed</source>
+        <translation>동기화 실패</translation>
+    </message>
+</context>
+<context>
+    <name>ReaderWidget</name>
+    <message>
+        <source>← Library</source>
+        <translation>← 서재</translation>
+    </message>
+    <message>
+        <source>Highlight</source>
+        <translation>하이라이트</translation>
+    </message>
+    <message>
+        <source>Add note</source>
+        <translation>메모 추가</translation>
+    </message>
+    <message>
+        <source>Highlights</source>
+        <translation>하이라이트</translation>
+    </message>
+    <message>
+        <source>Highlights and notes</source>
+        <translation>하이라이트 및 메모</translation>
+    </message>
+    <message>
+        <source>PDF viewing is not available in this build.</source>
+        <translation>이 빌드에서는 PDF 보기를 사용할 수 없습니다.</translation>
+    </message>
+    <message>
+        <source>Yellow</source>
+        <translation>노랑</translation>
+    </message>
+    <message>
+        <source>Green</source>
+        <translation>초록</translation>
+    </message>
+    <message>
+        <source>Blue</source>
+        <translation>파랑</translation>
+    </message>
+    <message>
+        <source>Pink</source>
+        <translation>분홍</translation>
+    </message>
+    <message>
+        <source>Play / Pause</source>
+        <translation>재생 / 일시정지</translation>
+    </message>
+    <message>
+        <source>Speed</source>
+        <translation>속도</translation>
+    </message>
+    <message>
+        <source>Sleep timer</source>
+        <translation>수면 타이머</translation>
+    </message>
+    <message>
+        <source>Off</source>
+        <translation>끔</translation>
+    </message>
+    <message>
+        <source>{count} min</source>
+        <translation>{count}분</translation>
+    </message>
+    <message>
+        <source>Note:</source>
+        <translation>메모:</translation>
+    </message>
+    <message>
+        <source>(text changed) </source>
+        <translation>(텍스트 변경됨) </translation>
+    </message>
+    <message>
+        <source>Edit note</source>
+        <translation>메모 편집</translation>
+    </message>
+    <message>
+        <source>Delete highlight</source>
+        <translation>하이라이트 삭제</translation>
     </message>
 </context>
 </TS>

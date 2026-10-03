@@ -685,6 +685,50 @@ Details: {error}</source>
         <source>Your Google sign-in doesn&apos;t include Drive access yet. Your browser will open again: on Google&apos;s permission screen, tick the box &quot;See, edit, create, and delete all of your Google Drive files&quot;.</source>
         <translation>Ваш вход в Google пока не включает доступ к Диску. Браузер откроется снова: на экране разрешений Google отметьте пункт «Просмотр, редактирование, создание и удаление всех ваших файлов на Google Диске».</translation>
     </message>
+    <message>
+        <source>Add books…</source>
+        <translation>Добавить книги…</translation>
+    </message>
+    <message>
+        <source>Startup</source>
+        <translation>Запуск</translation>
+    </message>
+    <message>
+        <source>Start in</source>
+        <translation>Запускать в режиме</translation>
+    </message>
+    <message>
+        <source>On launch</source>
+        <translation>При запуске</translation>
+    </message>
+    <message>
+        <source>Start where I left off</source>
+        <translation>Продолжить с того места, где я остановился</translation>
+    </message>
+    <message>
+        <source>Start with default settings</source>
+        <translation>Запускать с настройками по умолчанию</translation>
+    </message>
+    <message>
+        <source>Switch to Creation</source>
+        <translation>Перейти в режим «Творчество»</translation>
+    </message>
+    <message>
+        <source>Switch to Discovery</source>
+        <translation>Перейти в режим «Открытия»</translation>
+    </message>
+    <message>
+        <source>Convert to Crowdly story</source>
+        <translation>Превратить в историю Crowdly</translation>
+    </message>
+    <message>
+        <source>Only your own work, public-domain books or books under a Creative Commons licence that allows changes can become Crowdly stories. Set the book&apos;s rights first.</source>
+        <translation>Историями Crowdly могут стать только ваши собственные произведения, книги в общественном достоянии или книги под лицензией Creative Commons, разрешающей изменения. Сначала укажите права на книгу.</translation>
+    </message>
+    <message>
+        <source>&quot;{title}&quot; is now open in Creation mode as {file}. With Synchronisation with web platform on, it becomes a Crowdly story when it is saved.</source>
+        <translation>«{title}» открыт в режиме «Творчество» как {file}. Если включена синхронизация с веб-платформой, при сохранении он станет историей Crowdly.</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>
@@ -1132,6 +1176,335 @@ Details: {error}</source>
 {error}</source>
         <translation>Не удалось создать папку:
 {error}</translation>
+    </message>
+</context>
+<context>
+    <name>AppModes</name>
+    <message>
+        <source>Crowdly Discovery</source>
+        <translation>Crowdly Discovery</translation>
+    </message>
+    <message>
+        <source>Crowdly Creation</source>
+        <translation>Crowdly Creation</translation>
+    </message>
+    <message>
+        <source>Discovery</source>
+        <translation>Открытия</translation>
+    </message>
+    <message>
+        <source>Creation</source>
+        <translation>Творчество</translation>
+    </message>
+</context>
+<context>
+    <name>App</name>
+    <message>
+        <source>Files from your last session that could not be found: {count}</source>
+        <translation>Файлы из прошлого сеанса, которые не найдены: {count}</translation>
+    </message>
+</context>
+<context>
+    <name>RightsConfirmationDialog</name>
+    <message>
+        <source>Before your books sync</source>
+        <translation>Перед синхронизацией книг</translation>
+    </message>
+    <message>
+        <source>With synchronisation on, the books you import are uploaded to your own Crowdly account so they are available on your other devices.
+
+• They stay private: only you can open them. Crowdly never shares, lists or links them for anyone else.
+• Only upload books you have the right to keep a copy of - books you bought DRM-free, your own work, public-domain or openly licensed books.
+• DRM-protected files are never imported.
+• Rights holders can ask Crowdly to remove a file, and your files are deleted when you delete your account.</source>
+        <translation>При включённой синхронизации импортированные книги загружаются в вашу собственную учётную запись Crowdly, чтобы они были доступны на других ваших устройствах.
+
+• Они остаются личными: открыть их можете только вы. Crowdly никогда не делится ими, не показывает их в списках и не даёт на них ссылки другим людям.
+• Загружайте только книги, копию которых вы вправе хранить: купленные без DRM, ваши собственные произведения, книги в общественном достоянии или под открытой лицензией.
+• Файлы, защищённые DRM, никогда не импортируются.
+• Правообладатели могут попросить Crowdly удалить файл, а при удалении учётной записи ваши файлы удаляются.</translation>
+    </message>
+    <message>
+        <source>I have the right to keep these books in my account</source>
+        <translation>Я вправе хранить эти книги в своей учётной записи</translation>
+    </message>
+    <message>
+        <source>Sync my library</source>
+        <translation>Синхронизировать библиотеку</translation>
+    </message>
+</context>
+<context>
+    <name>DiscoveryView</name>
+    <message>
+        <source>My library</source>
+        <translation>Моя библиотека</translation>
+    </message>
+    <message>
+        <source>Reading on Crowdly</source>
+        <translation>Читаю на Crowdly</translation>
+    </message>
+    <message>
+        <source>Browse Crowdly</source>
+        <translation>Обзор Crowdly</translation>
+    </message>
+    <message>
+        <source>Add books…</source>
+        <translation>Добавить книги…</translation>
+    </message>
+    <message>
+        <source>Sync now</source>
+        <translation>Синхронизировать</translation>
+    </message>
+    <message>
+        <source>Crowdly is invite-only while it is in alpha.
+Log in with your Crowdly account to use Discovery.</source>
+        <translation>Пока Crowdly в альфа-версии, доступ только по приглашениям.
+Войдите в свою учётную запись Crowdly, чтобы пользоваться «Открытиями».</translation>
+    </message>
+    <message>
+        <source>Log in to Crowdly</source>
+        <translation>Войти в Crowdly</translation>
+    </message>
+    <message>
+        <source>Your library is empty. Use &quot;Add books…&quot; to import EPUB, PDF, audio or text files. Your books stay private to you.</source>
+        <translation>Ваша библиотека пуста. Нажмите «Добавить книги…», чтобы импортировать файлы EPUB, PDF, аудио или текст. Книги остаются личными.</translation>
+    </message>
+    <message>
+        <source>Stories you are living on Crowdly.</source>
+        <translation>Истории, которыми вы живёте на Crowdly.</translation>
+    </message>
+    <message>
+        <source>Search Crowdly stories</source>
+        <translation>Поиск историй Crowdly</translation>
+    </message>
+    <message>
+        <source>Search</source>
+        <translation>Найти</translation>
+    </message>
+    <message>
+        <source>Newest stories</source>
+        <translation>Новые истории</translation>
+    </message>
+    <message>
+        <source>Audio</source>
+        <translation>Аудио</translation>
+    </message>
+    <message>
+        <source>Text</source>
+        <translation>Текст</translation>
+    </message>
+    <message>
+        <source>{percent}% read</source>
+        <translation>прочитано {percent}%</translation>
+    </message>
+    <message>
+        <source>synced</source>
+        <translation>синхронизировано</translation>
+    </message>
+    <message>
+        <source>Add books to your library</source>
+        <translation>Добавить книги в библиотеку</translation>
+    </message>
+    <message>
+        <source>Books and audiobooks ({patterns})</source>
+        <translation>Книги и аудиокниги ({patterns})</translation>
+    </message>
+    <message>
+        <source>All files (*)</source>
+        <translation>Все файлы (*)</translation>
+    </message>
+    <message>
+        <source>Some files were not added</source>
+        <translation>Некоторые файлы не добавлены</translation>
+    </message>
+    <message>
+        <source>Books added to your library: {count}</source>
+        <translation>Добавлено книг в библиотеку: {count}</translation>
+    </message>
+    <message>
+        <source>Book not available</source>
+        <translation>Книга недоступна</translation>
+    </message>
+    <message>
+        <source>The file for this book is missing. Sync again or re-import it.</source>
+        <translation>Файл этой книги отсутствует. Синхронизируйте ещё раз или импортируйте заново.</translation>
+    </message>
+    <message>
+        <source>Could not read this EPUB:</source>
+        <translation>Не удалось прочитать этот EPUB:</translation>
+    </message>
+    <message>
+        <source>Open</source>
+        <translation>Открыть</translation>
+    </message>
+    <message>
+        <source>Book rights…</source>
+        <translation>Права на книгу…</translation>
+    </message>
+    <message>
+        <source>Convert to Crowdly story</source>
+        <translation>Превратить в историю Crowdly</translation>
+    </message>
+    <message>
+        <source>Remove from library</source>
+        <translation>Удалить из библиотеки</translation>
+    </message>
+    <message>
+        <source>Remove &quot;{title}&quot; from your library on all your devices?</source>
+        <translation>Удалить «{title}» из библиотеки на всех ваших устройствах?</translation>
+    </message>
+    <message>
+        <source>Not specified</source>
+        <translation>Не указано</translation>
+    </message>
+    <message>
+        <source>My personal copy (private only)</source>
+        <translation>Моя личная копия (только для себя)</translation>
+    </message>
+    <message>
+        <source>My own work</source>
+        <translation>Моё собственное произведение</translation>
+    </message>
+    <message>
+        <source>Public domain</source>
+        <translation>Общественное достояние</translation>
+    </message>
+    <message>
+        <source>Creative Commons licence that allows changes</source>
+        <translation>Лицензия Creative Commons, разрешающая изменения</translation>
+    </message>
+    <message>
+        <source>Book rights</source>
+        <translation>Права на книгу</translation>
+    </message>
+    <message>
+        <source>Who holds the rights to &quot;{title}&quot;?
+Only your own work, public-domain or Creative Commons (without &quot;no derivatives&quot;) books can become Crowdly stories others can read and co-create.</source>
+        <translation>Кому принадлежат права на «{title}»?
+Историями Crowdly, которые другие могут читать и создавать вместе, могут стать только ваши собственные произведения, книги в общественном достоянии или под Creative Commons (без «без производных»).</translation>
+    </message>
+    <message>
+        <source>Untitled</source>
+        <translation>Без названия</translation>
+    </message>
+    <message>
+        <source>(No stories yet - mark a story as &quot;living&quot; on Crowdly.)</source>
+        <translation>(Пока нет историй - отметьте историю как «живу» на Crowdly.)</translation>
+    </message>
+    <message>
+        <source>Search results</source>
+        <translation>Результаты поиска</translation>
+    </message>
+    <message>
+        <source>No stories found.</source>
+        <translation>Истории не найдены.</translation>
+    </message>
+    <message>
+        <source>Opening &quot;{title}&quot;…</source>
+        <translation>Открываю «{title}»…</translation>
+    </message>
+    <message>
+        <source>Crowdly could not be reached: {error}</source>
+        <translation>Не удалось связаться с Crowdly: {error}</translation>
+    </message>
+    <message>
+        <source>Turn on Settings → Synchronisation with → web platform to sync your library.</source>
+        <translation>Включите «Настройки → Синхронизация с → веб-платформой», чтобы синхронизировать библиотеку.</translation>
+    </message>
+    <message>
+        <source>Syncing…</source>
+        <translation>Синхронизация…</translation>
+    </message>
+    <message>
+        <source>Synced with problems</source>
+        <translation>Синхронизировано с ошибками</translation>
+    </message>
+    <message>
+        <source>Library synced</source>
+        <translation>Библиотека синхронизирована</translation>
+    </message>
+    <message>
+        <source>Sync failed</source>
+        <translation>Ошибка синхронизации</translation>
+    </message>
+</context>
+<context>
+    <name>ReaderWidget</name>
+    <message>
+        <source>← Library</source>
+        <translation>← Библиотека</translation>
+    </message>
+    <message>
+        <source>Highlight</source>
+        <translation>Выделить</translation>
+    </message>
+    <message>
+        <source>Add note</source>
+        <translation>Добавить заметку</translation>
+    </message>
+    <message>
+        <source>Highlights</source>
+        <translation>Выделения</translation>
+    </message>
+    <message>
+        <source>Highlights and notes</source>
+        <translation>Выделения и заметки</translation>
+    </message>
+    <message>
+        <source>PDF viewing is not available in this build.</source>
+        <translation>Просмотр PDF недоступен в этой сборке.</translation>
+    </message>
+    <message>
+        <source>Yellow</source>
+        <translation>Жёлтый</translation>
+    </message>
+    <message>
+        <source>Green</source>
+        <translation>Зелёный</translation>
+    </message>
+    <message>
+        <source>Blue</source>
+        <translation>Синий</translation>
+    </message>
+    <message>
+        <source>Pink</source>
+        <translation>Розовый</translation>
+    </message>
+    <message>
+        <source>Play / Pause</source>
+        <translation>Воспроизвести / Пауза</translation>
+    </message>
+    <message>
+        <source>Speed</source>
+        <translation>Скорость</translation>
+    </message>
+    <message>
+        <source>Sleep timer</source>
+        <translation>Таймер сна</translation>
+    </message>
+    <message>
+        <source>Off</source>
+        <translation>Выкл.</translation>
+    </message>
+    <message>
+        <source>{count} min</source>
+        <translation>{count} мин</translation>
+    </message>
+    <message>
+        <source>Note:</source>
+        <translation>Заметка:</translation>
+    </message>
+    <message>
+        <source>(text changed) </source>
+        <translation>(текст изменён) </translation>
+    </message>
+    <message>
+        <source>Edit note</source>
+        <translation>Изменить заметку</translation>
+    </message>
+    <message>
+        <source>Delete highlight</source>
+        <translation>Удалить выделение</translation>
     </message>
 </context>
 </TS>

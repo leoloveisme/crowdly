@@ -21,15 +21,11 @@ from PySide6.QtGui import QTextCharFormat, QTextCursor, QFont, QColor, QTextBloc
 import markdown
 import re
 
+from ..markdown_roundtrip import MarkdownRoundTrip
 
-# Matches an HTML/Markdown comment, e.g. `<!-- note -->`. Qt's rich-text
-# document model has no representation for a comment node, so any such
-# comment must be stripped before rendering to HTML and spliced back into
-# the regenerated Markdown afterwards (see ``PreviewWidget._extract_comments``
-# / ``_reinject_comments``) rather than being handed to ``setHtml`` verbatim.
-_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
-_COMMENT_ANCHOR_LEN = 40
-_COMMENT_MIN_ANCHOR_LEN = 8
+# One reusable converter: the round-trip renders a document chunk by chunk,
+# and building a fresh ``markdown.Markdown`` per chunk is the slow part.
+_MARKDOWN = markdown.Markdown(extensions=["extra", "sane_lists"])
 
 # Canonical color names for DSL attributes, keyed by QColor.name() hex.
 _NAMED_COLOR_BY_HEX = {
@@ -199,10 +195,12 @@ class PreviewWidget(QWidget):
         # Track zoom level for Ctrl+wheel zooming.
         self._zoom_level = 0
 
-        # Markdown comments (`<!-- ... -->`) that Qt's rich-text document
-        # model has no representation for, and would otherwise silently drop
-        # on the HTML round-trip. See ``set_markdown``/``get_markdown``.
-        self._pending_comments: list[tuple[str, str, str]] = []
+        # Keeps the loaded Markdown source as the truth so that an edit in
+        # this pane only rewrites the blocks the user touched (see
+        # ``editor.markdown_roundtrip``). ``None`` while the pane shows
+        # `.story` / `.screenplay` HTML loaded through ``set_html``.
+        self._roundtrip: MarkdownRoundTrip | None = None
+        self._editor.document().contentsChange.connect(self._on_contents_change)
 
     # Public API -----------------------------------------------------------
 
@@ -217,102 +215,39 @@ class PreviewWidget(QWidget):
         This method does not emit ``markdownEdited``.
 
         We continue to use the ``markdown`` package so that raw HTML (such as
-        ``<img src="...">``) is preserved in the rendered output.
+        ``<img src="...">``) is preserved in the rendered output. Rendering
+        and the way edits are written back are handled by
+        ``MarkdownRoundTrip``, which keeps *text* as the source of truth.
         """
 
         self._updating_from_source = True
         try:
-            # Comments have no representation in Qt's rich-text document
-            # model, so `setHtml` would silently drop them; extract them
-            # first and splice them back on the way out in `get_markdown`.
-            stripped_text, self._pending_comments = self._extract_comments(text)
-
-            # First render Markdown to HTML; raw HTML blocks (e.g. <img>) are
-            # passed through by the markdown library.
-            html = markdown.markdown(stripped_text, extensions=["extra", "sane_lists"])
-
-            # Strip explicit font-size declarations so that zooming applies
-            # uniformly to all text. This prevents parts of the document from
-            # ignoring zoom because they carry hard-coded sizes.
-            html = re.sub(
-                r"font-size:\s*[^;\"']+;?",
-                "",
-                html,
-                flags=re.IGNORECASE,
+            self._roundtrip = MarkdownRoundTrip.load(
+                self._editor, text or "", self._render_markdown_html
             )
-
-            self._editor.setHtml(html)
         finally:
             self._updating_from_source = False
 
     @staticmethod
-    def _extract_comments(text: str) -> tuple[str, list[tuple[str, str, str]]]:
-        """Strip `<!-- -->` comments from *text*, returning (stripped_text, comments).
+    def _render_markdown_html(text: str) -> str:
+        """Render a Markdown chunk to HTML for the rich-text view.
 
-        Each comment is paired with a short anchor of nearby surrounding text
-        (and which side of the comment it was taken from) so it can be
-        spliced back into the regenerated Markdown later. See
-        ``_reinject_comments``.
+        Explicit font-size declarations are stripped by the caller so that
+        zooming applies uniformly to all text.
         """
 
-        matches = list(_COMMENT_RE.finditer(text))
-        if not matches:
-            return text, []
-
-        comments: list[tuple[str, str, str]] = []
-        for match in matches:
-            comment_text = match.group(0)
-
-            after = text[match.end():match.end() + _COMMENT_ANCHOR_LEN * 2]
-            after = after.lstrip()[:_COMMENT_ANCHOR_LEN]
-
-            before = text[max(0, match.start() - _COMMENT_ANCHOR_LEN * 2):match.start()]
-            before = before.rstrip()[-_COMMENT_ANCHOR_LEN:]
-
-            if len(after.strip()) >= _COMMENT_MIN_ANCHOR_LEN:
-                anchor, anchor_side = after, "after"
-            elif len(before.strip()) >= _COMMENT_MIN_ANCHOR_LEN:
-                anchor, anchor_side = before, "before"
-            else:
-                anchor, anchor_side = (after or before), "after"
-
-            comments.append((comment_text, anchor, anchor_side))
-
-        stripped = _COMMENT_RE.sub("", text)
-        return stripped, comments
-
-    def _reinject_comments(self, markdown_text: str) -> str:
-        """Splice previously-extracted `<!-- -->` comments back into *markdown_text*.
-
-        Comments are anchored to nearby surrounding text captured when they
-        were extracted (see ``_extract_comments``). If an anchor can no
-        longer be found (its surrounding text was edited away), the comment
-        is appended at the end of the document instead of being silently
-        dropped.
-        """
-
-        result = markdown_text
-        for comment_text, anchor, anchor_side in self._pending_comments:
-            idx = result.find(anchor) if anchor else -1
-            if idx == -1:
-                result = result.rstrip("\n") + "\n\n" + comment_text + "\n"
-                continue
-
-            if anchor_side == "after":
-                result = result[:idx] + comment_text + "\n\n" + result[idx:]
-            else:
-                insert_at = idx + len(anchor)
-                result = result[:insert_at] + "\n\n" + comment_text + result[insert_at:]
-
-        return result
+        return _MARKDOWN.reset().convert(text)
 
     def get_markdown(self) -> str:
-        """Return the current content as Markdown."""
+        """Return the current content as Markdown.
 
-        markdown_text = self._editor.toMarkdown()
-        if not self._pending_comments:
-            return markdown_text
-        return self._reinject_comments(markdown_text)
+        Untouched parts of the loaded source come back byte-for-byte; only
+        the blocks edited in this pane are regenerated.
+        """
+
+        if self._roundtrip is not None:
+            return self._roundtrip.to_markdown()
+        return self._editor.toMarkdown()
 
     def set_html(self, html: str) -> None:
         """Replace the editor content with raw HTML without emitting Markdown.
@@ -329,6 +264,7 @@ class PreviewWidget(QWidget):
         """
 
         self._updating_from_source = True
+        self._roundtrip = None
         try:
             cleaned = html or ""
             cleaned = re.sub(
@@ -934,10 +870,13 @@ class PreviewWidget(QWidget):
             return
 
         # Emit Markdown so the source editor + backend receive clean Markdown,
-        # not a full HTML document (<!DOCTYPE ...><html>...). Route through
-        # get_markdown() so any pending comments (see _pending_comments) are
-        # spliced back in rather than lost.
+        # not a full HTML document (<!DOCTYPE ...><html>...).
         self.markdownEdited.emit(self.get_markdown())
+
+    def _on_contents_change(self, position: int, removed: int, added: int) -> None:
+        if self._updating_from_source or self._roundtrip is None:
+            return
+        self._roundtrip.mark_dirty(position, removed, added)
 
     def wheelEvent(self, event) -> None:  # pragma: no cover - UI wiring
         """Support Ctrl+wheel zooming for the WYSIWYG editor.
