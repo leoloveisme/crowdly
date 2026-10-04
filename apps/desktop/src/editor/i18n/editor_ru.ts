@@ -861,6 +861,34 @@ Your own work, public-domain and Creative Commons books open as a story you can 
         <source>Import failed</source>
         <translation>Ошибка импорта</translation>
     </message>
+    <message>
+        <source>Help</source>
+        <translation>Справка</translation>
+    </message>
+    <message>
+        <source>Report a bug…</source>
+        <translation>Сообщить об ошибке…</translation>
+    </message>
+    <message>
+        <source>Sending your bug report…</source>
+        <translation>Отправка отчёта об ошибке…</translation>
+    </message>
+    <message>
+        <source>Report a bug</source>
+        <translation>Сообщить об ошибке</translation>
+    </message>
+    <message>
+        <source>Thanks for reporting this bug! Our team will look into it, and you&apos;ll be notified on Crowdly when its status changes.</source>
+        <translation>Спасибо, что сообщили об ошибке! Наша команда разберётся с ней, а вы получите уведомление на Crowdly, когда её статус изменится.</translation>
+    </message>
+    <message>
+        <source>Your bug report could not be sent.
+
+Details: {error}</source>
+        <translation>Не удалось отправить отчёт об ошибке.
+
+Подробности: {error}</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>
@@ -2397,6 +2425,129 @@ Your books stay private to you.</source>
     <message>
         <source>Send request</source>
         <translation>Отправить запрос</translation>
+    </message>
+</context>
+<context>
+    <name>BugReportDialog</name>
+    <message>
+        <source>Report a bug</source>
+        <translation>Сообщить об ошибке</translation>
+    </message>
+    <message>
+        <source>The more detail you give us, the faster we can find and fix it.</source>
+        <translation>Чем подробнее вы опишете проблему, тем быстрее мы сможем её найти и исправить.</translation>
+    </message>
+    <message>
+        <source>e.g. Chapter disappears after saving</source>
+        <translation>например, глава исчезает после сохранения</translation>
+    </message>
+    <message>
+        <source>What went wrong?</source>
+        <translation>Что пошло не так?</translation>
+    </message>
+    <message>
+        <source>Desktop app</source>
+        <translation>Приложение для компьютера</translation>
+    </message>
+    <message>
+        <source>Web platform</source>
+        <translation>Веб-платформа</translation>
+    </message>
+    <message>
+        <source>Web editor</source>
+        <translation>Веб-редактор</translation>
+    </message>
+    <message>
+        <source>Other</source>
+        <translation>Другое</translation>
+    </message>
+    <message>
+        <source>Where did it happen?</source>
+        <translation>Где это произошло?</translation>
+    </message>
+    <message>
+        <source>1. Open a story
+2. Click …
+3. …</source>
+        <translation>1. Откройте историю
+2. Нажмите …
+3. …</translation>
+    </message>
+    <message>
+        <source>Steps to reproduce</source>
+        <translation>Шаги для воспроизведения</translation>
+    </message>
+    <message>
+        <source>What did you expect to happen?</source>
+        <translation>Что вы ожидали?</translation>
+    </message>
+    <message>
+        <source>What happened instead?</source>
+        <translation>Что произошло на самом деле?</translation>
+    </message>
+    <message>
+        <source>Annoying</source>
+        <translation>Мешает</translation>
+    </message>
+    <message>
+        <source>Blocks me</source>
+        <translation>Блокирует работу</translation>
+    </message>
+    <message>
+        <source>Cosmetic</source>
+        <translation>Косметическая</translation>
+    </message>
+    <message>
+        <source>How bad is it?</source>
+        <translation>Насколько это серьёзно?</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>Всегда</translation>
+    </message>
+    <message>
+        <source>Sometimes</source>
+        <translation>Иногда</translation>
+    </message>
+    <message>
+        <source>Happened once</source>
+        <translation>Случилось один раз</translation>
+    </message>
+    <message>
+        <source>How often does it happen?</source>
+        <translation>Как часто это происходит?</translation>
+    </message>
+    <message>
+        <source>Add image…</source>
+        <translation>Добавить изображение…</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>Удалить</translation>
+    </message>
+    <message>
+        <source>Screenshots (optional, up to 3)</source>
+        <translation>Снимки экрана (необязательно, до 3)</translation>
+    </message>
+    <message>
+        <source>Technical details sent with this report:</source>
+        <translation>Технические сведения, которые будут отправлены с отчётом:</translation>
+    </message>
+    <message>
+        <source>Submit bug report</source>
+        <translation>Отправить отчёт об ошибке</translation>
+    </message>
+    <message>
+        <source>Images (*.png *.jpg *.jpeg *.webp *.gif)</source>
+        <translation>Изображения (*.png *.jpg *.jpeg *.webp *.gif)</translation>
+    </message>
+    <message>
+        <source>You can attach up to 3 PNG, JPEG, WEBP or GIF images of up to 10 MB each.</source>
+        <translation>Можно прикрепить до 3 изображений PNG, JPEG, WEBP или GIF размером до 10 МБ каждое.</translation>
+    </message>
+    <message>
+        <source>Please add a title and the steps to reproduce the bug.</source>
+        <translation>Добавьте заголовок и шаги для воспроизведения ошибки.</translation>
     </message>
 </context>
 </TS>

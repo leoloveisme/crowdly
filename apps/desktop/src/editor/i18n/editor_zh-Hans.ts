@@ -765,6 +765,34 @@ Your own work, public-domain and Creative Commons books open as a story you can 
         <source>Import failed</source>
         <translation>导入失败</translation>
     </message>
+    <message>
+        <source>Help</source>
+        <translation>帮助</translation>
+    </message>
+    <message>
+        <source>Report a bug…</source>
+        <translation>报告问题…</translation>
+    </message>
+    <message>
+        <source>Sending your bug report…</source>
+        <translation>正在发送问题报告…</translation>
+    </message>
+    <message>
+        <source>Report a bug</source>
+        <translation>报告问题</translation>
+    </message>
+    <message>
+        <source>Thanks for reporting this bug! Our team will look into it, and you&apos;ll be notified on Crowdly when its status changes.</source>
+        <translation>感谢你报告这个问题！我们的团队会进行调查，状态变化时你会在 Crowdly 上收到通知。</translation>
+    </message>
+    <message>
+        <source>Your bug report could not be sent.
+
+Details: {error}</source>
+        <translation>无法发送问题报告。
+
+详细信息：{error}</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>
@@ -2153,6 +2181,129 @@ Your books stay private to you.</source>
     <message>
         <source>Send request</source>
         <translation>发送申请</translation>
+    </message>
+</context>
+<context>
+    <name>BugReportDialog</name>
+    <message>
+        <source>Report a bug</source>
+        <translation>报告问题</translation>
+    </message>
+    <message>
+        <source>The more detail you give us, the faster we can find and fix it.</source>
+        <translation>你提供的细节越多，我们就能越快找到并修复问题。</translation>
+    </message>
+    <message>
+        <source>e.g. Chapter disappears after saving</source>
+        <translation>例如：保存后章节消失</translation>
+    </message>
+    <message>
+        <source>What went wrong?</source>
+        <translation>出了什么问题？</translation>
+    </message>
+    <message>
+        <source>Desktop app</source>
+        <translation>桌面应用</translation>
+    </message>
+    <message>
+        <source>Web platform</source>
+        <translation>网页平台</translation>
+    </message>
+    <message>
+        <source>Web editor</source>
+        <translation>网页编辑器</translation>
+    </message>
+    <message>
+        <source>Other</source>
+        <translation>其他</translation>
+    </message>
+    <message>
+        <source>Where did it happen?</source>
+        <translation>问题发生在哪里？</translation>
+    </message>
+    <message>
+        <source>1. Open a story
+2. Click …
+3. …</source>
+        <translation>1. 打开一个故事
+2. 点击 …
+3. …</translation>
+    </message>
+    <message>
+        <source>Steps to reproduce</source>
+        <translation>重现步骤</translation>
+    </message>
+    <message>
+        <source>What did you expect to happen?</source>
+        <translation>你预期会发生什么？</translation>
+    </message>
+    <message>
+        <source>What happened instead?</source>
+        <translation>实际发生了什么？</translation>
+    </message>
+    <message>
+        <source>Annoying</source>
+        <translation>有影响</translation>
+    </message>
+    <message>
+        <source>Blocks me</source>
+        <translation>无法继续</translation>
+    </message>
+    <message>
+        <source>Cosmetic</source>
+        <translation>外观问题</translation>
+    </message>
+    <message>
+        <source>How bad is it?</source>
+        <translation>严重程度如何？</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>总是</translation>
+    </message>
+    <message>
+        <source>Sometimes</source>
+        <translation>有时</translation>
+    </message>
+    <message>
+        <source>Happened once</source>
+        <translation>仅发生过一次</translation>
+    </message>
+    <message>
+        <source>How often does it happen?</source>
+        <translation>发生频率如何？</translation>
+    </message>
+    <message>
+        <source>Add image…</source>
+        <translation>添加图片…</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>移除</translation>
+    </message>
+    <message>
+        <source>Screenshots (optional, up to 3)</source>
+        <translation>截图（可选，最多 3 张）</translation>
+    </message>
+    <message>
+        <source>Technical details sent with this report:</source>
+        <translation>随本报告发送的技术信息：</translation>
+    </message>
+    <message>
+        <source>Submit bug report</source>
+        <translation>提交问题报告</translation>
+    </message>
+    <message>
+        <source>Images (*.png *.jpg *.jpeg *.webp *.gif)</source>
+        <translation>图片 (*.png *.jpg *.jpeg *.webp *.gif)</translation>
+    </message>
+    <message>
+        <source>You can attach up to 3 PNG, JPEG, WEBP or GIF images of up to 10 MB each.</source>
+        <translation>最多可附加 3 张 PNG、JPEG、WEBP 或 GIF 图片，每张不超过 10 MB。</translation>
+    </message>
+    <message>
+        <source>Please add a title and the steps to reproduce the bug.</source>
+        <translation>请填写标题和重现问题的步骤。</translation>
     </message>
 </context>
 </TS>

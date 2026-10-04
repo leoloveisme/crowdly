@@ -765,6 +765,34 @@ Obras próprias e livros em domínio público ou Creative Commons abrem como uma
         <source>Import failed</source>
         <translation>Falha na importação</translation>
     </message>
+    <message>
+        <source>Help</source>
+        <translation>Ajuda</translation>
+    </message>
+    <message>
+        <source>Report a bug…</source>
+        <translation>Relatar um erro…</translation>
+    </message>
+    <message>
+        <source>Sending your bug report…</source>
+        <translation>Enviando seu relatório de erro…</translation>
+    </message>
+    <message>
+        <source>Report a bug</source>
+        <translation>Relatar um erro</translation>
+    </message>
+    <message>
+        <source>Thanks for reporting this bug! Our team will look into it, and you&apos;ll be notified on Crowdly when its status changes.</source>
+        <translation>Obrigado por relatar este erro! Nossa equipe vai analisá-lo, e você será notificado no Crowdly quando o status mudar.</translation>
+    </message>
+    <message>
+        <source>Your bug report could not be sent.
+
+Details: {error}</source>
+        <translation>Não foi possível enviar seu relatório de erro.
+
+Detalhes: {error}</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>
@@ -2153,6 +2181,129 @@ Seus livros continuam privados.</translation>
     <message>
         <source>Send request</source>
         <translation>Enviar pedido</translation>
+    </message>
+</context>
+<context>
+    <name>BugReportDialog</name>
+    <message>
+        <source>Report a bug</source>
+        <translation>Relatar um erro</translation>
+    </message>
+    <message>
+        <source>The more detail you give us, the faster we can find and fix it.</source>
+        <translation>Quanto mais detalhes você nos der, mais rápido poderemos encontrar e corrigir o problema.</translation>
+    </message>
+    <message>
+        <source>e.g. Chapter disappears after saving</source>
+        <translation>ex.: o capítulo desaparece depois de salvar</translation>
+    </message>
+    <message>
+        <source>What went wrong?</source>
+        <translation>O que deu errado?</translation>
+    </message>
+    <message>
+        <source>Desktop app</source>
+        <translation>Aplicativo para desktop</translation>
+    </message>
+    <message>
+        <source>Web platform</source>
+        <translation>Plataforma web</translation>
+    </message>
+    <message>
+        <source>Web editor</source>
+        <translation>Editor web</translation>
+    </message>
+    <message>
+        <source>Other</source>
+        <translation>Outro</translation>
+    </message>
+    <message>
+        <source>Where did it happen?</source>
+        <translation>Onde aconteceu?</translation>
+    </message>
+    <message>
+        <source>1. Open a story
+2. Click …
+3. …</source>
+        <translation>1. Abra uma história
+2. Clique em …
+3. …</translation>
+    </message>
+    <message>
+        <source>Steps to reproduce</source>
+        <translation>Passos para reproduzir</translation>
+    </message>
+    <message>
+        <source>What did you expect to happen?</source>
+        <translation>O que você esperava que acontecesse?</translation>
+    </message>
+    <message>
+        <source>What happened instead?</source>
+        <translation>O que aconteceu em vez disso?</translation>
+    </message>
+    <message>
+        <source>Annoying</source>
+        <translation>Incômodo</translation>
+    </message>
+    <message>
+        <source>Blocks me</source>
+        <translation>Me impede de continuar</translation>
+    </message>
+    <message>
+        <source>Cosmetic</source>
+        <translation>Visual</translation>
+    </message>
+    <message>
+        <source>How bad is it?</source>
+        <translation>Qual a gravidade?</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>Sempre</translation>
+    </message>
+    <message>
+        <source>Sometimes</source>
+        <translation>Às vezes</translation>
+    </message>
+    <message>
+        <source>Happened once</source>
+        <translation>Aconteceu uma vez</translation>
+    </message>
+    <message>
+        <source>How often does it happen?</source>
+        <translation>Com que frequência acontece?</translation>
+    </message>
+    <message>
+        <source>Add image…</source>
+        <translation>Adicionar imagem…</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>Remover</translation>
+    </message>
+    <message>
+        <source>Screenshots (optional, up to 3)</source>
+        <translation>Capturas de tela (opcional, até 3)</translation>
+    </message>
+    <message>
+        <source>Technical details sent with this report:</source>
+        <translation>Detalhes técnicos enviados com este relatório:</translation>
+    </message>
+    <message>
+        <source>Submit bug report</source>
+        <translation>Enviar relatório de erro</translation>
+    </message>
+    <message>
+        <source>Images (*.png *.jpg *.jpeg *.webp *.gif)</source>
+        <translation>Imagens (*.png *.jpg *.jpeg *.webp *.gif)</translation>
+    </message>
+    <message>
+        <source>You can attach up to 3 PNG, JPEG, WEBP or GIF images of up to 10 MB each.</source>
+        <translation>Você pode anexar até 3 imagens PNG, JPEG, WEBP ou GIF de até 10 MB cada.</translation>
+    </message>
+    <message>
+        <source>Please add a title and the steps to reproduce the bug.</source>
+        <translation>Adicione um título e os passos para reproduzir o erro.</translation>
     </message>
 </context>
 </TS>

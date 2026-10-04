@@ -765,6 +765,34 @@ Your own work, public-domain and Creative Commons books open as a story you can 
         <source>Import failed</source>
         <translation>فشل الاستيراد</translation>
     </message>
+    <message>
+        <source>Help</source>
+        <translation>مساعدة</translation>
+    </message>
+    <message>
+        <source>Report a bug…</source>
+        <translation>الإبلاغ عن خطأ…</translation>
+    </message>
+    <message>
+        <source>Sending your bug report…</source>
+        <translation>جارٍ إرسال تقرير الخطأ…</translation>
+    </message>
+    <message>
+        <source>Report a bug</source>
+        <translation>الإبلاغ عن خطأ</translation>
+    </message>
+    <message>
+        <source>Thanks for reporting this bug! Our team will look into it, and you&apos;ll be notified on Crowdly when its status changes.</source>
+        <translation>شكرًا لإبلاغك عن هذا الخطأ! سيتولى فريقنا فحصه، وستتلقى إشعارًا على Crowdly عند تغيّر حالته.</translation>
+    </message>
+    <message>
+        <source>Your bug report could not be sent.
+
+Details: {error}</source>
+        <translation>تعذّر إرسال تقرير الخطأ.
+
+التفاصيل: {error}</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>
@@ -2153,6 +2181,129 @@ Your books stay private to you.</source>
     <message>
         <source>Send request</source>
         <translation>إرسال الطلب</translation>
+    </message>
+</context>
+<context>
+    <name>BugReportDialog</name>
+    <message>
+        <source>Report a bug</source>
+        <translation>الإبلاغ عن خطأ</translation>
+    </message>
+    <message>
+        <source>The more detail you give us, the faster we can find and fix it.</source>
+        <translation>كلما زوّدتنا بتفاصيل أكثر، تمكّنا من العثور على المشكلة وإصلاحها بشكل أسرع.</translation>
+    </message>
+    <message>
+        <source>e.g. Chapter disappears after saving</source>
+        <translation>مثال: يختفي الفصل بعد الحفظ</translation>
+    </message>
+    <message>
+        <source>What went wrong?</source>
+        <translation>ما الذي حدث بشكل خاطئ؟</translation>
+    </message>
+    <message>
+        <source>Desktop app</source>
+        <translation>تطبيق سطح المكتب</translation>
+    </message>
+    <message>
+        <source>Web platform</source>
+        <translation>منصة الويب</translation>
+    </message>
+    <message>
+        <source>Web editor</source>
+        <translation>محرر الويب</translation>
+    </message>
+    <message>
+        <source>Other</source>
+        <translation>أخرى</translation>
+    </message>
+    <message>
+        <source>Where did it happen?</source>
+        <translation>أين حدث ذلك؟</translation>
+    </message>
+    <message>
+        <source>1. Open a story
+2. Click …
+3. …</source>
+        <translation>1. افتح قصة
+2. انقر على …
+3. …</translation>
+    </message>
+    <message>
+        <source>Steps to reproduce</source>
+        <translation>خطوات إعادة إنتاج المشكلة</translation>
+    </message>
+    <message>
+        <source>What did you expect to happen?</source>
+        <translation>ما الذي توقعت حدوثه؟</translation>
+    </message>
+    <message>
+        <source>What happened instead?</source>
+        <translation>ما الذي حدث بدلًا من ذلك؟</translation>
+    </message>
+    <message>
+        <source>Annoying</source>
+        <translation>مزعج</translation>
+    </message>
+    <message>
+        <source>Blocks me</source>
+        <translation>يمنعني من العمل</translation>
+    </message>
+    <message>
+        <source>Cosmetic</source>
+        <translation>شكلي</translation>
+    </message>
+    <message>
+        <source>How bad is it?</source>
+        <translation>ما مدى خطورته؟</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>دائمًا</translation>
+    </message>
+    <message>
+        <source>Sometimes</source>
+        <translation>أحيانًا</translation>
+    </message>
+    <message>
+        <source>Happened once</source>
+        <translation>حدث مرة واحدة</translation>
+    </message>
+    <message>
+        <source>How often does it happen?</source>
+        <translation>كم مرة يحدث ذلك؟</translation>
+    </message>
+    <message>
+        <source>Add image…</source>
+        <translation>إضافة صورة…</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>إزالة</translation>
+    </message>
+    <message>
+        <source>Screenshots (optional, up to 3)</source>
+        <translation>لقطات الشاشة (اختياري، حتى 3)</translation>
+    </message>
+    <message>
+        <source>Technical details sent with this report:</source>
+        <translation>التفاصيل التقنية المرسلة مع هذا التقرير:</translation>
+    </message>
+    <message>
+        <source>Submit bug report</source>
+        <translation>إرسال تقرير الخطأ</translation>
+    </message>
+    <message>
+        <source>Images (*.png *.jpg *.jpeg *.webp *.gif)</source>
+        <translation>الصور (*.png *.jpg *.jpeg *.webp *.gif)</translation>
+    </message>
+    <message>
+        <source>You can attach up to 3 PNG, JPEG, WEBP or GIF images of up to 10 MB each.</source>
+        <translation>يمكنك إرفاق ما يصل إلى 3 صور بصيغة PNG أو JPEG أو WEBP أو GIF بحجم أقصاه 10 ميغابايت لكل منها.</translation>
+    </message>
+    <message>
+        <source>Please add a title and the steps to reproduce the bug.</source>
+        <translation>يُرجى إضافة عنوان وخطوات إعادة إنتاج الخطأ.</translation>
     </message>
 </context>
 </TS>

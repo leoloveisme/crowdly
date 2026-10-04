@@ -21,14 +21,17 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse, urlencode
 import http.cookiejar
 import json
 import logging
+import mimetypes
 import re
 import urllib.request
 import urllib.error
+import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -868,6 +871,67 @@ class CrowdlyClient:
             f"{self.base_url}/stories/{story_id}/collaboration-requests", {"message": message}
         )
         return (data or {}).get("request") or {}
+
+    # -- Help -> Report a bug... (backend/src/support.js) ----------------------
+
+    def submit_bug_report(
+        self, fields: dict[str, str], details: dict[str, Any], attachments: list[Path]
+    ) -> str:
+        """Send a bug report as the signed-in user; returns the new report id.
+
+        Multipart so screenshots can travel with it; the backend skips the
+        CAPTCHA because the session cookie identifies the user.
+        """
+
+        self.login()
+        form = {
+            "kind": "bug",
+            "source": "desktop",
+            "subject": fields.get("subject", ""),
+            "message": fields.get("message", ""),
+            "category": fields.get("category", "other"),
+            "details": json.dumps(details),
+        }
+        boundary = f"----crowdly{uuid.uuid4().hex}"
+        parts: list[bytes] = []
+        for name, value in form.items():
+            parts.append(
+                f'--{boundary}\r\nContent-Disposition: form-data; name="{name}"\r\n\r\n'.encode("utf-8")
+                + str(value).encode("utf-8")
+                + b"\r\n"
+            )
+        for path in attachments:
+            mime = mimetypes.guess_type(path.name)[0] or "application/octet-stream"
+            safe_name = path.name.replace('"', "_")
+            parts.append(
+                (
+                    f'--{boundary}\r\nContent-Disposition: form-data; name="attachments"; '
+                    f'filename="{safe_name}"\r\nContent-Type: {mime}\r\n\r\n'
+                ).encode("utf-8")
+                + path.read_bytes()
+                + b"\r\n"
+            )
+        parts.append(f"--{boundary}--\r\n".encode("utf-8"))
+
+        req = urllib.request.Request(
+            f"{self.base_url}/api/support-requests",
+            data=b"".join(parts),
+            headers={
+                "User-Agent": "crowdly-editor/0.1",
+                "Accept": "application/json",
+                "Content-Type": f"multipart/form-data; boundary={boundary}",
+            },
+            method="POST",
+        )
+        try:
+            with self._opener.open(req, timeout=self.timeout_seconds) as resp:
+                charset = resp.headers.get_content_charset() or "utf-8"
+                data = json.loads(resp.read().decode(charset, errors="replace") or "{}")
+        except urllib.error.HTTPError as exc:
+            raise self._post_error(exc)
+        except urllib.error.URLError as exc:
+            raise CrowdlyClientError(f"Network error: {exc}", kind="network")
+        return str((data or {}).get("id") or "")
 
     def _http_get_json(self, url: str) -> Any:
         headers = {

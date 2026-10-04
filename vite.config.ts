@@ -2,6 +2,16 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
+import { execSync } from "child_process";
+
+// Short git hash of the build, attached to bug reports from /support.
+function buildVersion(): string {
+  try {
+    return execSync("git rev-parse --short HEAD", { stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
+  } catch {
+    return "dev";
+  }
+}
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -159,6 +169,9 @@ export default defineConfig(({ mode }) => ({
         proxyTimeout: 0,
       },
     },
+  },
+  define: {
+    "import.meta.env.VITE_APP_VERSION": JSON.stringify(buildVersion()),
   },
   plugins: [
     react(),

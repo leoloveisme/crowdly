@@ -765,6 +765,34 @@ Your own work, public-domain and Creative Commons books open as a story you can 
         <source>Import failed</source>
         <translation>가져오기 실패</translation>
     </message>
+    <message>
+        <source>Help</source>
+        <translation>도움말</translation>
+    </message>
+    <message>
+        <source>Report a bug…</source>
+        <translation>버그 신고…</translation>
+    </message>
+    <message>
+        <source>Sending your bug report…</source>
+        <translation>버그 신고를 보내는 중…</translation>
+    </message>
+    <message>
+        <source>Report a bug</source>
+        <translation>버그 신고</translation>
+    </message>
+    <message>
+        <source>Thanks for reporting this bug! Our team will look into it, and you&apos;ll be notified on Crowdly when its status changes.</source>
+        <translation>버그를 신고해 주셔서 감사합니다! 팀에서 확인하며, 상태가 바뀌면 Crowdly에서 알려 드립니다.</translation>
+    </message>
+    <message>
+        <source>Your bug report could not be sent.
+
+Details: {error}</source>
+        <translation>버그 신고를 보낼 수 없습니다.
+
+자세한 정보: {error}</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>
@@ -2153,6 +2181,129 @@ Your books stay private to you.</source>
     <message>
         <source>Send request</source>
         <translation>요청 보내기</translation>
+    </message>
+</context>
+<context>
+    <name>BugReportDialog</name>
+    <message>
+        <source>Report a bug</source>
+        <translation>버그 신고</translation>
+    </message>
+    <message>
+        <source>The more detail you give us, the faster we can find and fix it.</source>
+        <translation>자세히 알려 주실수록 문제를 더 빨리 찾아 고칠 수 있습니다.</translation>
+    </message>
+    <message>
+        <source>e.g. Chapter disappears after saving</source>
+        <translation>예: 저장하면 챕터가 사라짐</translation>
+    </message>
+    <message>
+        <source>What went wrong?</source>
+        <translation>어떤 문제가 있었나요?</translation>
+    </message>
+    <message>
+        <source>Desktop app</source>
+        <translation>데스크톱 앱</translation>
+    </message>
+    <message>
+        <source>Web platform</source>
+        <translation>웹 플랫폼</translation>
+    </message>
+    <message>
+        <source>Web editor</source>
+        <translation>웹 편집기</translation>
+    </message>
+    <message>
+        <source>Other</source>
+        <translation>기타</translation>
+    </message>
+    <message>
+        <source>Where did it happen?</source>
+        <translation>어디에서 발생했나요?</translation>
+    </message>
+    <message>
+        <source>1. Open a story
+2. Click …
+3. …</source>
+        <translation>1. 스토리 열기
+2. … 클릭
+3. …</translation>
+    </message>
+    <message>
+        <source>Steps to reproduce</source>
+        <translation>재현 단계</translation>
+    </message>
+    <message>
+        <source>What did you expect to happen?</source>
+        <translation>원래 어떻게 되어야 했나요?</translation>
+    </message>
+    <message>
+        <source>What happened instead?</source>
+        <translation>실제로는 어떻게 되었나요?</translation>
+    </message>
+    <message>
+        <source>Annoying</source>
+        <translation>불편함</translation>
+    </message>
+    <message>
+        <source>Blocks me</source>
+        <translation>작업 불가</translation>
+    </message>
+    <message>
+        <source>Cosmetic</source>
+        <translation>외관 문제</translation>
+    </message>
+    <message>
+        <source>How bad is it?</source>
+        <translation>얼마나 심각한가요?</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>항상</translation>
+    </message>
+    <message>
+        <source>Sometimes</source>
+        <translation>가끔</translation>
+    </message>
+    <message>
+        <source>Happened once</source>
+        <translation>한 번 발생</translation>
+    </message>
+    <message>
+        <source>How often does it happen?</source>
+        <translation>얼마나 자주 발생하나요?</translation>
+    </message>
+    <message>
+        <source>Add image…</source>
+        <translation>이미지 추가…</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>제거</translation>
+    </message>
+    <message>
+        <source>Screenshots (optional, up to 3)</source>
+        <translation>스크린샷 (선택, 최대 3개)</translation>
+    </message>
+    <message>
+        <source>Technical details sent with this report:</source>
+        <translation>이 신고와 함께 전송되는 기술 정보:</translation>
+    </message>
+    <message>
+        <source>Submit bug report</source>
+        <translation>버그 신고 보내기</translation>
+    </message>
+    <message>
+        <source>Images (*.png *.jpg *.jpeg *.webp *.gif)</source>
+        <translation>이미지 (*.png *.jpg *.jpeg *.webp *.gif)</translation>
+    </message>
+    <message>
+        <source>You can attach up to 3 PNG, JPEG, WEBP or GIF images of up to 10 MB each.</source>
+        <translation>PNG, JPEG, WEBP 또는 GIF 이미지를 각각 10MB 이하로 최대 3개까지 첨부할 수 있습니다.</translation>
+    </message>
+    <message>
+        <source>Please add a title and the steps to reproduce the bug.</source>
+        <translation>제목과 버그 재현 단계를 입력해 주세요.</translation>
     </message>
 </context>
 </TS>

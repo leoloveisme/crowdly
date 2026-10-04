@@ -17,6 +17,7 @@ import {
   SESSION_COOKIE_OPTIONS,
 } from './sessions.js';
 import feedbackRouter from './feedback.js';
+import supportRouter from './support.js';
 import friendsRouter, { ensureFriendRequestsTable } from './friends.js';
 import followsRouter, { ensureFollowsTable } from './follows.js';
 import notificationsRouter, { ensureNotificationsTable } from './notifications.js';
@@ -163,6 +164,7 @@ app.use(cookieParser());
 // apart at the same URL). The rest of this file's routes predate the SPA
 // pages that would collide with them, so they're left as-is.
 app.use('/api', feedbackRouter);
+app.use('/api', supportRouter);
 app.use('/api', friendsRouter);
 app.use('/api', followsRouter);
 app.use('/api', notificationsRouter);

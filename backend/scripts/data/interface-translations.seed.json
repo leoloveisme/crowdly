@@ -4403,6 +4403,741 @@
     "de": "Suche und finde Benutzerkonten, um Unterstützung zu leisten."
   },
   {
+    "page_key": "/support",
+    "element_id": "support-tab-help",
+    "en": "Help & support",
+    "ru": "Помощь и поддержка",
+    "de": "Hilfe & Support"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-hero-title",
+    "en": "How can we help?",
+    "ru": "Чем мы можем помочь?",
+    "de": "Wie können wir helfen?"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-hero-intro",
+    "en": "Find quick answers below, ask our team for help, or let us know about a bug so we can fix it.",
+    "ru": "Найдите быстрые ответы ниже, обратитесь за помощью к нашей команде или сообщите об ошибке, чтобы мы могли её исправить.",
+    "de": "Unten findest du schnelle Antworten, kannst unser Team um Hilfe bitten oder uns einen Fehler melden, damit wir ihn beheben können."
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-quick-contact",
+    "en": "Contact us",
+    "ru": "Свяжитесь с нами",
+    "de": "Kontakt"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-quick-feedback",
+    "en": "Send feedback",
+    "ru": "Отправить отзыв",
+    "de": "Feedback senden"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-quick-feature",
+    "en": "Suggest a feature",
+    "ru": "Предложить функцию",
+    "de": "Funktion vorschlagen"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-quick-software",
+    "en": "Apps and software",
+    "ru": "Приложения и программы",
+    "de": "Apps und Software"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-quick-bug",
+    "en": "Report a bug",
+    "ru": "Сообщить об ошибке",
+    "de": "Fehler melden"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-faq-title",
+    "en": "Frequently asked questions",
+    "ru": "Часто задаваемые вопросы",
+    "de": "Häufig gestellte Fragen"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-forms-title",
+    "en": "Still need help?",
+    "ru": "Всё ещё нужна помощь?",
+    "de": "Brauchst du noch Hilfe?"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-form-tab-request",
+    "en": "Ask for help",
+    "ru": "Попросить о помощи",
+    "de": "Um Hilfe bitten"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-form-tab-bug",
+    "en": "Report a bug",
+    "ru": "Сообщить об ошибке",
+    "de": "Fehler melden"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-bug-heading",
+    "en": "Report a bug",
+    "ru": "Сообщить об ошибке",
+    "de": "Fehler melden"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-request-heading",
+    "en": "Send a support request",
+    "ru": "Отправить запрос в поддержку",
+    "de": "Supportanfrage senden"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-bug-intro",
+    "en": "The more detail you give us, the faster we can find and fix it.",
+    "ru": "Чем подробнее вы опишете проблему, тем быстрее мы сможем её найти и исправить.",
+    "de": "Je mehr Details du uns gibst, desto schneller können wir den Fehler finden und beheben."
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-request-intro",
+    "en": "Tell us what you need and we'll get back to you by email.",
+    "ru": "Расскажите, что вам нужно, и мы ответим вам по электронной почте.",
+    "de": "Sag uns, was du brauchst, und wir melden uns per E-Mail bei dir."
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-mine-title",
+    "en": "My requests & reports",
+    "ru": "Мои запросы и отчёты",
+    "de": "Meine Anfragen & Berichte"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-mine-empty",
+    "en": "You haven't sent any support requests or bug reports yet.",
+    "ru": "Вы ещё не отправляли запросов в поддержку или отчётов об ошибках.",
+    "de": "Du hast noch keine Supportanfragen oder Fehlerberichte gesendet."
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-form-name-label",
+    "en": "Name",
+    "ru": "Имя",
+    "de": "Name"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-form-email-label",
+    "en": "Email",
+    "ru": "Электронная почта",
+    "de": "E-Mail"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-form-category-label",
+    "en": "What is it about?",
+    "ru": "О чём ваш запрос?",
+    "de": "Worum geht es?"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-form-subject-label",
+    "en": "Subject",
+    "ru": "Тема",
+    "de": "Betreff"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-form-message-label",
+    "en": "How can we help?",
+    "ru": "Чем мы можем помочь?",
+    "de": "Wie können wir helfen?"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-form-sending",
+    "en": "Sending…",
+    "ru": "Отправка…",
+    "de": "Wird gesendet…"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-request-submit",
+    "en": "Send request",
+    "ru": "Отправить запрос",
+    "de": "Anfrage senden"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-request-thanks-title",
+    "en": "Thanks, we've got your request!",
+    "ru": "Спасибо, мы получили ваш запрос!",
+    "de": "Danke, wir haben deine Anfrage erhalten!"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-request-thanks-desc",
+    "en": "We'll reply to the email address you gave us. If you're signed in, you can follow its status below.",
+    "ru": "Мы ответим на указанный вами адрес электронной почты. Если вы вошли в аккаунт, вы можете следить за статусом ниже.",
+    "de": "Wir antworten an die angegebene E-Mail-Adresse. Wenn du angemeldet bist, kannst du den Status unten verfolgen."
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-request-another",
+    "en": "Send another request",
+    "ru": "Отправить ещё один запрос",
+    "de": "Weitere Anfrage senden"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-bug-title-label",
+    "en": "What went wrong?",
+    "ru": "Что пошло не так?",
+    "de": "Was ist schiefgelaufen?"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-bug-area-label",
+    "en": "Where did it happen?",
+    "ru": "Где это произошло?",
+    "de": "Wo ist es passiert?"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-bug-steps-label",
+    "en": "Steps to reproduce",
+    "ru": "Шаги для воспроизведения",
+    "de": "Schritte zum Reproduzieren"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-bug-expected-label",
+    "en": "What did you expect to happen?",
+    "ru": "Что вы ожидали?",
+    "de": "Was hast du erwartet?"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-bug-actual-label",
+    "en": "What happened instead?",
+    "ru": "Что произошло на самом деле?",
+    "de": "Was ist stattdessen passiert?"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-bug-severity-label",
+    "en": "How bad is it?",
+    "ru": "Насколько это серьёзно?",
+    "de": "Wie schlimm ist es?"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-bug-frequency-label",
+    "en": "How often does it happen?",
+    "ru": "Как часто это происходит?",
+    "de": "Wie oft passiert es?"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-bug-screenshots-label",
+    "en": "Screenshots (optional, up to 3)",
+    "ru": "Снимки экрана (необязательно, до 3)",
+    "de": "Screenshots (optional, bis zu 3)"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-bug-add-screenshot",
+    "en": "Add image",
+    "ru": "Добавить изображение",
+    "de": "Bild hinzufügen"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-bug-include-errors-label",
+    "en": "Include recent console errors from this browser tab",
+    "ru": "Приложить последние ошибки консоли из этой вкладки браузера",
+    "de": "Aktuelle Konsolenfehler aus diesem Browser-Tab anhängen"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-bug-no-errors",
+    "en": "No errors have been recorded in this tab.",
+    "ru": "В этой вкладке ошибок не зафиксировано.",
+    "de": "In diesem Tab wurden keine Fehler aufgezeichnet."
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-bug-tech-toggle",
+    "en": "Technical details sent with this report",
+    "ru": "Технические сведения, отправляемые с отчётом",
+    "de": "Technische Details, die mit diesem Bericht gesendet werden"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-bug-submit",
+    "en": "Submit bug report",
+    "ru": "Отправить отчёт об ошибке",
+    "de": "Fehlerbericht senden"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-bug-thanks-title",
+    "en": "Thanks for reporting this bug!",
+    "ru": "Спасибо, что сообщили об ошибке!",
+    "de": "Danke, dass du diesen Fehler gemeldet hast!"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-bug-thanks-desc",
+    "en": "Our team will look into it. We'll let you know when its status changes.",
+    "ru": "Наша команда разберётся с ней. Мы сообщим вам, когда её статус изменится.",
+    "de": "Unser Team sieht sich das an. Wir sagen dir Bescheid, wenn sich der Status ändert."
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-bug-another",
+    "en": "Report another bug",
+    "ru": "Сообщить о другой ошибке",
+    "de": "Weiteren Fehler melden"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-captcha-label",
+    "en": "Enter the code shown below",
+    "ru": "Введите код, показанный ниже",
+    "de": "Gib den unten angezeigten Code ein"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-captcha-loading",
+    "en": "Loading CAPTCHA…",
+    "ru": "Загрузка CAPTCHA…",
+    "de": "CAPTCHA wird geladen…"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-captcha-unavailable",
+    "en": "CAPTCHA unavailable",
+    "ru": "CAPTCHA недоступна",
+    "de": "CAPTCHA nicht verfügbar"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-captcha-load-error",
+    "en": "Could not load the CAPTCHA. Please try refreshing.",
+    "ru": "Не удалось загрузить CAPTCHA. Попробуйте обновить.",
+    "de": "Das CAPTCHA konnte nicht geladen werden. Bitte versuche es neu zu laden."
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-tab-bugs",
+    "en": "Bug Reports",
+    "ru": "Отчёты об ошибках",
+    "de": "Fehlerberichte"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-bugs-title",
+    "en": "Bug Reports",
+    "ru": "Отчёты об ошибках",
+    "de": "Fehlerberichte"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-bugs-desc",
+    "en": "Triage bugs reported from the web and the desktop app.",
+    "ru": "Разбор ошибок, о которых сообщили через сайт и приложение для компьютера.",
+    "de": "Fehlerberichte aus dem Web und der Desktop-App sichten."
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-bugs-empty",
+    "en": "No bug reports",
+    "ru": "Отчётов об ошибках нет",
+    "de": "Keine Fehlerberichte"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-bugs-empty-detail",
+    "en": "Bug reports from users will appear here.",
+    "ru": "Здесь появятся отчёты об ошибках от пользователей.",
+    "de": "Fehlerberichte von Nutzern erscheinen hier."
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-filter-all-statuses",
+    "en": "All statuses",
+    "ru": "Все статусы",
+    "de": "Alle Status"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-filter-all-severities",
+    "en": "All severities",
+    "ru": "Любая серьёзность",
+    "de": "Alle Schweregrade"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-filter-all-areas",
+    "en": "All areas",
+    "ru": "Все области",
+    "de": "Alle Bereiche"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-dashboard-load-error",
+    "en": "Could not load the list. Please try again.",
+    "ru": "Не удалось загрузить список. Попробуйте ещё раз.",
+    "de": "Die Liste konnte nicht geladen werden. Bitte versuche es erneut."
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-dashboard-mark-duplicate",
+    "en": "Mark as duplicate",
+    "ru": "Отметить как дубликат",
+    "de": "Als Duplikat markieren"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-dashboard-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-card-duplicate-of",
+    "en": "Duplicate of",
+    "ru": "Дубликат",
+    "de": "Duplikat von"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-card-steps",
+    "en": "Steps to reproduce",
+    "ru": "Шаги для воспроизведения",
+    "de": "Schritte zum Reproduzieren"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-card-message",
+    "en": "Message",
+    "ru": "Сообщение",
+    "de": "Nachricht"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-card-expected",
+    "en": "Expected",
+    "ru": "Ожидалось",
+    "de": "Erwartet"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-card-actual",
+    "en": "Actual",
+    "ru": "На самом деле",
+    "de": "Tatsächlich"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-card-frequency",
+    "en": "Frequency:",
+    "ru": "Частота:",
+    "de": "Häufigkeit:"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-card-console",
+    "en": "Console errors",
+    "ru": "Ошибки консоли",
+    "de": "Konsolenfehler"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-status-new",
+    "en": "New",
+    "ru": "Новый",
+    "de": "Neu"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-status-triaged",
+    "en": "Triaged",
+    "ru": "Рассмотрен",
+    "de": "Gesichtet"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-status-confirmed",
+    "en": "Confirmed",
+    "ru": "Подтверждён",
+    "de": "Bestätigt"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-status-in_progress",
+    "en": "In progress",
+    "ru": "В работе",
+    "de": "In Bearbeitung"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-status-fixed",
+    "en": "Fixed",
+    "ru": "Исправлен",
+    "de": "Behoben"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-status-released",
+    "en": "Released",
+    "ru": "Выпущен",
+    "de": "Veröffentlicht"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-status-resolved",
+    "en": "Resolved",
+    "ru": "Решён",
+    "de": "Gelöst"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-status-wont_fix",
+    "en": "Won't fix",
+    "ru": "Не будет исправлен",
+    "de": "Wird nicht behoben"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-status-duplicate",
+    "en": "Duplicate",
+    "ru": "Дубликат",
+    "de": "Duplikat"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-status-closed",
+    "en": "Closed",
+    "ru": "Закрыт",
+    "de": "Geschlossen"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-category-account",
+    "en": "Account & sign-in",
+    "ru": "Аккаунт и вход",
+    "de": "Konto & Anmeldung"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-category-stories",
+    "en": "Stories & content",
+    "ru": "Истории и контент",
+    "de": "Geschichten & Inhalte"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-category-desktop_app",
+    "en": "Desktop app",
+    "ru": "Приложение для компьютера",
+    "de": "Desktop-App"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-category-spaces_sync",
+    "en": "Spaces & sync",
+    "ru": "Пространства и синхронизация",
+    "de": "Spaces & Synchronisierung"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-category-other",
+    "en": "Something else",
+    "ru": "Другое",
+    "de": "Etwas anderes"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-area-web_platform",
+    "en": "Web platform",
+    "ru": "Веб-платформа",
+    "de": "Webplattform"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-area-desktop_app",
+    "en": "Desktop app",
+    "ru": "Приложение для компьютера",
+    "de": "Desktop-App"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-area-web_editor",
+    "en": "Web editor",
+    "ru": "Веб-редактор",
+    "de": "Web-Editor"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-area-other",
+    "en": "Other",
+    "ru": "Другое",
+    "de": "Sonstiges"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-severity-blocker",
+    "en": "Blocks me",
+    "ru": "Блокирует работу",
+    "de": "Blockiert mich"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-severity-annoying",
+    "en": "Annoying",
+    "ru": "Мешает",
+    "de": "Störend"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-severity-cosmetic",
+    "en": "Cosmetic",
+    "ru": "Косметическая",
+    "de": "Kosmetisch"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-frequency-always",
+    "en": "Always",
+    "ru": "Всегда",
+    "de": "Immer"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-frequency-sometimes",
+    "en": "Sometimes",
+    "ru": "Иногда",
+    "de": "Manchmal"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-frequency-once",
+    "en": "Happened once",
+    "ru": "Случилось один раз",
+    "de": "Einmal passiert"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-faq-access-q",
+    "en": "How do I get access to Crowdly during the alpha?",
+    "ru": "Как получить доступ к Crowdly во время альфа-тестирования?",
+    "de": "Wie bekomme ich während der Alpha Zugang zu Crowdly?"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-faq-access-a",
+    "en": "Crowdly is currently in its alpha stage, so access is by invitation. If you have an invitation code, enter it together with your email address on the alpha page. If you don't have one yet, send us a request below and tell us a little about what you'd like to create or explore.",
+    "ru": "Crowdly сейчас находится на стадии альфа-тестирования, поэтому доступ возможен только по приглашению. Если у вас есть код приглашения, введите его вместе со своим адресом электронной почты на странице альфа-доступа. Если кода ещё нет, отправьте нам запрос ниже и немного расскажите, что вы хотели бы создавать или исследовать.",
+    "de": "Crowdly befindet sich derzeit in der Alpha-Phase, daher ist der Zugang nur mit Einladung möglich. Wenn du einen Einladungscode hast, gib ihn zusammen mit deiner E-Mail-Adresse auf der Alpha-Seite ein. Falls du noch keinen hast, sende uns unten eine Anfrage und erzähl uns ein wenig darüber, was du erschaffen oder entdecken möchtest."
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-faq-start-story-q",
+    "en": "How do I start a new story?",
+    "ru": "Как начать новую историю?",
+    "de": "Wie beginne ich eine neue Geschichte?"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-faq-start-story-a",
+    "en": "Sign in and choose to create a new story from the header or from My Content. Give it a title, add your first chapter and decide who can see it. You can keep a story private while you work on it and make it public whenever you're ready.",
+    "ru": "Войдите в аккаунт и создайте новую историю через шапку сайта или раздел «Мой контент». Дайте ей название, добавьте первую главу и решите, кто может её видеть. Историю можно оставить закрытой, пока вы над ней работаете, и открыть, когда будете готовы.",
+    "de": "Melde dich an und erstelle eine neue Geschichte über die Kopfzeile oder über „Meine Inhalte“. Gib ihr einen Titel, füge das erste Kapitel hinzu und entscheide, wer sie sehen darf. Du kannst eine Geschichte privat halten, während du daran arbeitest, und sie veröffentlichen, wann immer du bereit bist."
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-faq-branches-q",
+    "en": "What are branches and versions?",
+    "ru": "Что такое ветки и версии?",
+    "de": "Was sind Zweige und Versionen?"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-faq-branches-a",
+    "en": "Every story keeps its history, so you can look back at earlier versions of a chapter. A branch lets a story take a different direction without erasing the original: another ending, another point of view or a single changed decision. Readers can follow the version that interests them.",
+    "ru": "Каждая история хранит свою историю изменений, поэтому вы можете вернуться к более ранним версиям главы. Ветка позволяет истории пойти в другом направлении, не стирая оригинал: другая концовка, другая точка зрения или одно изменённое решение. Читатели могут следить за той версией, которая им интересна.",
+    "de": "Jede Geschichte bewahrt ihren Verlauf, sodass du frühere Versionen eines Kapitels ansehen kannst. Ein Zweig lässt eine Geschichte eine andere Richtung einschlagen, ohne das Original zu löschen: ein anderes Ende, eine andere Perspektive oder eine einzige geänderte Entscheidung. Leser können der Version folgen, die sie interessiert."
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-faq-desktop-q",
+    "en": "What is the desktop app, and what's the difference between Discovery and Creation?",
+    "ru": "Что такое приложение для компьютера и чем отличаются режимы «Открытие» и «Творчество»?",
+    "de": "Was ist die Desktop-App und was ist der Unterschied zwischen Entdecken und Erschaffen?"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-faq-desktop-a",
+    "en": "The Crowdly desktop app is a native editor for stories and screenplays. Discovery mode is for finding, reading and collecting stories; Creation mode is a focused writing environment. It's one app: you choose which mode it starts in and can switch at any time. Downloads are on the Apps and software page.",
+    "ru": "Приложение Crowdly для компьютера — это редактор историй и сценариев. Режим «Открытие» предназначен для поиска, чтения и сбора историй, а режим «Творчество» — для сосредоточенной работы над текстом. Это одно приложение: вы выбираете, в каком режиме оно запускается, и можете переключаться в любой момент. Загрузки доступны на странице «Приложения и программы».",
+    "de": "Die Crowdly-Desktop-App ist ein nativer Editor für Geschichten und Drehbücher. Der Modus Entdecken dient zum Finden, Lesen und Sammeln von Geschichten; der Modus Erschaffen ist eine konzentrierte Schreibumgebung. Es ist eine einzige App: Du wählst, in welchem Modus sie startet, und kannst jederzeit wechseln. Downloads findest du auf der Seite „Apps und Software“."
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-faq-spaces-q",
+    "en": "How do Creative Spaces sync with GitHub or Google Drive?",
+    "ru": "Как творческие пространства синхронизируются с GitHub или Google Диском?",
+    "de": "Wie synchronisieren sich Creative Spaces mit GitHub oder Google Drive?"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-faq-spaces-a",
+    "en": "A Creative Space is a collection of your files and projects. You can connect a Space to a GitHub repository or a Google Drive folder, and Crowdly keeps them in sync, so you can keep working in the tools you already use. Hidden and git-ignored files are left out of the sync.",
+    "ru": "Творческое пространство — это собрание ваших файлов и проектов. Вы можете подключить пространство к репозиторию GitHub или папке Google Диска, и Crowdly будет поддерживать их синхронизацию, чтобы вы могли продолжать работать в привычных инструментах. Скрытые файлы и файлы, игнорируемые git, в синхронизацию не попадают.",
+    "de": "Ein Creative Space ist eine Sammlung deiner Dateien und Projekte. Du kannst einen Space mit einem GitHub-Repository oder einem Google-Drive-Ordner verbinden, und Crowdly hält beide synchron, sodass du in den Werkzeugen weiterarbeiten kannst, die du bereits nutzt. Versteckte und von git ignorierte Dateien werden nicht synchronisiert."
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-faq-language-q",
+    "en": "Can I use Crowdly in my language?",
+    "ru": "Можно ли пользоваться Crowdly на моём языке?",
+    "de": "Kann ich Crowdly in meiner Sprache nutzen?"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-faq-language-a",
+    "en": "Yes. Choose your language from the selector in the header. Crowdly's interface is translated by our team and community translators; anything that isn't translated yet is shown in English. Stories themselves can also have versions in several languages.",
+    "ru": "Да. Выберите язык в переключателе в шапке сайта. Интерфейс Crowdly переводят наша команда и переводчики из сообщества; всё, что ещё не переведено, отображается на английском. У самих историй тоже могут быть версии на нескольких языках.",
+    "de": "Ja. Wähle deine Sprache über die Auswahl in der Kopfzeile. Die Oberfläche von Crowdly wird von unserem Team und von Übersetzern aus der Community übersetzt; alles, was noch nicht übersetzt ist, wird auf Englisch angezeigt. Auch Geschichten selbst können Versionen in mehreren Sprachen haben."
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-faq-privacy-q",
+    "en": "How do I change my account details or delete my account?",
+    "ru": "Как изменить данные аккаунта или удалить аккаунт?",
+    "de": "Wie ändere ich meine Kontodaten oder lösche mein Konto?"
+  },
+  {
+    "page_key": "/support",
+    "element_id": "support-faq-privacy-a",
+    "en": "Open Account settings from the menu under your avatar. There you can change your password and other details, or delete your account permanently. If something there doesn't work as expected, send us a support request.",
+    "ru": "Откройте «Настройки аккаунта» в меню под вашим аватаром. Там можно сменить пароль и другие данные или навсегда удалить аккаунт. Если что-то там работает не так, как ожидается, отправьте нам запрос в поддержку.",
+    "de": "Öffne die Kontoeinstellungen über das Menü unter deinem Avatar. Dort kannst du dein Passwort und andere Angaben ändern oder dein Konto dauerhaft löschen. Wenn dort etwas nicht wie erwartet funktioniert, sende uns eine Supportanfrage."
+  },
+  {
     "page_key": "/new-story-template",
     "element_id": "interactions-loading",
     "en": "Loading interactions...",
@@ -7106,6 +7841,20 @@
   },
   {
     "page_key": "/__layout__",
+    "element_id": "mobile-help",
+    "en": "Help",
+    "ru": "Справка",
+    "de": "Hilfe"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "mobile-report-bug",
+    "en": "Report a bug",
+    "ru": "Сообщить об ошибке",
+    "de": "Fehler melden"
+  },
+  {
+    "page_key": "/__layout__",
     "element_id": "footer-company-title",
     "en": "Company",
     "ru": "Компания",
@@ -7218,6 +7967,27 @@
   },
   {
     "page_key": "/__layout__",
+    "element_id": "footer-community-about-title",
+    "en": "Get to know us",
+    "ru": "Узнайте нас",
+    "de": "Lerne uns kennen"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-community-contact-title",
+    "en": "Get in touch",
+    "ru": "Свяжитесь с нами",
+    "de": "Kontakt"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "footer-legal-title",
+    "en": "Legal",
+    "ru": "Правовая информация",
+    "de": "Rechtliches"
+  },
+  {
+    "page_key": "/__layout__",
     "element_id": "footer-contact",
     "en": "Contact us",
     "ru": "Связаться с нами",
@@ -7233,9 +8003,9 @@
   {
     "page_key": "/__layout__",
     "element_id": "footer-bug",
-    "en": "Submit a bug report",
-    "ru": "Отправить отчёт об ошибке",
-    "de": "Fehlerbericht senden"
+    "en": "Report a bug",
+    "ru": "Сообщить об ошибке",
+    "de": "Fehler melden"
   },
   {
     "page_key": "/__layout__",
@@ -10190,6 +10960,27 @@
     "en": "the author declined your request",
     "ru": "автор отклонил ваш запрос",
     "de": "der Autor hat deine Anfrage abgelehnt"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "header-help",
+    "en": "Help",
+    "ru": "Справка",
+    "de": "Hilfe"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "header-report-bug",
+    "en": "Report a bug",
+    "ru": "Сообщить об ошибке",
+    "de": "Fehler melden"
+  },
+  {
+    "page_key": "/__layout__",
+    "element_id": "header-notif-support-status",
+    "en": "status changed to",
+    "ru": "статус изменён на",
+    "de": "Status geändert zu"
   },
   {
     "page_key": "/story/:story_id",
