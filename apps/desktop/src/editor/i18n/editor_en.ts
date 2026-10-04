@@ -797,6 +797,34 @@ Your own work, public-domain and Creative Commons books open as a story you can 
         <source>Import failed</source>
         <translation>Import failed</translation>
     </message>
+    <message>
+        <source>Help</source>
+        <translation>Help</translation>
+    </message>
+    <message>
+        <source>Report a bug…</source>
+        <translation>Report a bug…</translation>
+    </message>
+    <message>
+        <source>Sending your bug report…</source>
+        <translation>Sending your bug report…</translation>
+    </message>
+    <message>
+        <source>Report a bug</source>
+        <translation>Report a bug</translation>
+    </message>
+    <message>
+        <source>Thanks for reporting this bug! Our team will look into it, and you&apos;ll be notified on Crowdly when its status changes.</source>
+        <translation>Thanks for reporting this bug! Our team will look into it, and you&apos;ll be notified on Crowdly when its status changes.</translation>
+    </message>
+    <message>
+        <source>Your bug report could not be sent.
+
+Details: {error}</source>
+        <translation>Your bug report could not be sent.
+
+Details: {error}</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>
@@ -2333,6 +2361,129 @@ Your books stay private to you.</translation>
     <message>
         <source>Send request</source>
         <translation>Send request</translation>
+    </message>
+</context>
+<context>
+    <name>BugReportDialog</name>
+    <message>
+        <source>Report a bug</source>
+        <translation>Report a bug</translation>
+    </message>
+    <message>
+        <source>The more detail you give us, the faster we can find and fix it.</source>
+        <translation>The more detail you give us, the faster we can find and fix it.</translation>
+    </message>
+    <message>
+        <source>e.g. Chapter disappears after saving</source>
+        <translation>e.g. Chapter disappears after saving</translation>
+    </message>
+    <message>
+        <source>What went wrong?</source>
+        <translation>What went wrong?</translation>
+    </message>
+    <message>
+        <source>Desktop app</source>
+        <translation>Desktop app</translation>
+    </message>
+    <message>
+        <source>Web platform</source>
+        <translation>Web platform</translation>
+    </message>
+    <message>
+        <source>Web editor</source>
+        <translation>Web editor</translation>
+    </message>
+    <message>
+        <source>Other</source>
+        <translation>Other</translation>
+    </message>
+    <message>
+        <source>Where did it happen?</source>
+        <translation>Where did it happen?</translation>
+    </message>
+    <message>
+        <source>1. Open a story
+2. Click …
+3. …</source>
+        <translation>1. Open a story
+2. Click …
+3. …</translation>
+    </message>
+    <message>
+        <source>Steps to reproduce</source>
+        <translation>Steps to reproduce</translation>
+    </message>
+    <message>
+        <source>What did you expect to happen?</source>
+        <translation>What did you expect to happen?</translation>
+    </message>
+    <message>
+        <source>What happened instead?</source>
+        <translation>What happened instead?</translation>
+    </message>
+    <message>
+        <source>Annoying</source>
+        <translation>Annoying</translation>
+    </message>
+    <message>
+        <source>Blocks me</source>
+        <translation>Blocks me</translation>
+    </message>
+    <message>
+        <source>Cosmetic</source>
+        <translation>Cosmetic</translation>
+    </message>
+    <message>
+        <source>How bad is it?</source>
+        <translation>How bad is it?</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>Always</translation>
+    </message>
+    <message>
+        <source>Sometimes</source>
+        <translation>Sometimes</translation>
+    </message>
+    <message>
+        <source>Happened once</source>
+        <translation>Happened once</translation>
+    </message>
+    <message>
+        <source>How often does it happen?</source>
+        <translation>How often does it happen?</translation>
+    </message>
+    <message>
+        <source>Add image…</source>
+        <translation>Add image…</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>Remove</translation>
+    </message>
+    <message>
+        <source>Screenshots (optional, up to 3)</source>
+        <translation>Screenshots (optional, up to 3)</translation>
+    </message>
+    <message>
+        <source>Technical details sent with this report:</source>
+        <translation>Technical details sent with this report:</translation>
+    </message>
+    <message>
+        <source>Submit bug report</source>
+        <translation>Submit bug report</translation>
+    </message>
+    <message>
+        <source>Images (*.png *.jpg *.jpeg *.webp *.gif)</source>
+        <translation>Images (*.png *.jpg *.jpeg *.webp *.gif)</translation>
+    </message>
+    <message>
+        <source>You can attach up to 3 PNG, JPEG, WEBP or GIF images of up to 10 MB each.</source>
+        <translation>You can attach up to 3 PNG, JPEG, WEBP or GIF images of up to 10 MB each.</translation>
+    </message>
+    <message>
+        <source>Please add a title and the steps to reproduce the bug.</source>
+        <translation>Please add a title and the steps to reproduce the bug.</translation>
     </message>
 </context>
 </TS>

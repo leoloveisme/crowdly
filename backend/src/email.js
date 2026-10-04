@@ -41,6 +41,47 @@ export async function sendFeedbackEmail({ name, email, feedback }) {
   });
 }
 
+const SUPPORT_STATUS_LABELS = {
+  new: 'New',
+  triaged: 'Triaged',
+  confirmed: 'Confirmed',
+  in_progress: 'In progress',
+  fixed: 'Fixed',
+  released: 'Released',
+  resolved: 'Resolved',
+  wont_fix: "Won't fix",
+  duplicate: 'Duplicate',
+  closed: 'Closed',
+};
+
+export async function sendSupportRequestEmail({ id, kind, name, email, category, subject, message, details, source }) {
+  const displayName = (name || '').trim() || 'Anonymous';
+  const label = kind === 'bug' ? 'bug report' : 'support request';
+  const detailsJson = details && Object.keys(details).length > 0 ? JSON.stringify(details, null, 2) : '';
+
+  await transporter.sendMail({
+    from: FROM,
+    to: process.env.SUPPORT_TO_EMAIL || process.env.FEEDBACK_TO_EMAIL || 'feedback@crowdly.cloud',
+    replyTo: email,
+    subject: `New Crowdly ${label}: ${subject}`,
+    text: `From: ${displayName} <${email}>\nCategory: ${category} · Source: ${source} · ID: ${id}\n\n${message}${detailsJson ? `\n\nDetails:\n${detailsJson}` : ''}`,
+    html: `<p><strong>From:</strong> ${escapeHtml(displayName)} &lt;${escapeHtml(email)}&gt;<br><strong>Category:</strong> ${escapeHtml(category)} · <strong>Source:</strong> ${escapeHtml(source)} · <strong>ID:</strong> ${escapeHtml(id)}</p><p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>${detailsJson ? `<pre>${escapeHtml(detailsJson)}</pre>` : ''}`,
+  });
+}
+
+export async function sendSupportStatusEmail({ to, kind, subject, status }) {
+  const label = kind === 'bug' ? 'bug report' : 'support request';
+  const statusLabel = SUPPORT_STATUS_LABELS[status] || status;
+
+  await transporter.sendMail({
+    from: FROM,
+    to,
+    subject: `Your Crowdly ${label} is now: ${statusLabel}`,
+    text: `Your ${label} "${subject}" has a new status: ${statusLabel}.\n\nThank you for helping us improve Crowdly.\n— The Crowdly Team`,
+    html: `<p>Your ${label} "<strong>${escapeHtml(subject)}</strong>" has a new status: <strong>${escapeHtml(statusLabel)}</strong>.</p><p>Thank you for helping us improve Crowdly.</p><p>— The Crowdly Team</p>`,
+  });
+}
+
 export function sendInvitationEmail(to, firstName, invitationCode) {
   const html = `
     <h2>Welcome to Crowdly Alpha, ${firstName}!</h2>

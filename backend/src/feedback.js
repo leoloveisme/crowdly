@@ -24,7 +24,8 @@ async function generateCaptcha() {
   return { id: data.id, svg: data.svg };
 }
 
-async function verifyCaptcha(captchaId, captchaAnswer) {
+// Also used by the support router (backend/src/support.js).
+export async function verifyCaptcha(captchaId, captchaAnswer) {
   const { serviceUrl, apiKey } = captchaServiceConfig();
   const res = await fetch(`${serviceUrl}/api/v1/captcha/${captchaId}/verify`, {
     method: 'POST',

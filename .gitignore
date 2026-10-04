@@ -60,6 +60,8 @@ apps/desktop\ app/push_new_app_version_to_crowdly_in_opt_2
 
 # Locally-stored uploaded gallery/comic images (Phase 1 storage decision: local disk for now)
 backend/uploads/
+# Private support/bug-report attachments (never statically served)
+backend/private-uploads/
 # Private Discovery library files (never public, see backend/src/library.js)
 backend/private/
 

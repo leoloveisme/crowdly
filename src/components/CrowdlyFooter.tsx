@@ -8,30 +8,63 @@ const CrowdlyFooter = () => {
     <footer className="relative bg-gradient-to-tr from-indigo-200 via-pink-100 to-white dark:from-indigo-900 dark:via-slate-900 dark:to-pink-900 w-full py-10 px-0 mt-14 border-t border-indigo-100 dark:border-indigo-800/40">
       <div className="container mx-auto px-4">
         <div className="max-w-6xl mx-auto rounded-3xl bg-white/90 dark:bg-gradient-to-tr dark:from-indigo-900/80 dark:to-pink-900/50 p-8 shadow-xl border border-pink-200/40 dark:border-indigo-800/60">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-10 lg:gap-8">
+            <div className="sm:col-span-2 lg:col-span-2">
+              <h3 className="font-semibold text-lg text-indigo-800 dark:text-indigo-100 mb-4">
+                <EditableText id="footer-community-title" layoutScoped>Community</EditableText>
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="text-sm font-bold text-indigo-700 dark:text-indigo-200 mb-2">
+                    <EditableText id="footer-community-about-title" layoutScoped>Get to know us</EditableText>
+                  </h4>
+                  <ul className="space-y-2">
+                    <li><a href="/about-us" className="text-gray-600 hover:text-pink-600 transition">
+                      <EditableText id="footer-about" layoutScoped>About Us</EditableText>
+                    </a></li>
+                    <li><a href="#" className="text-gray-600 hover:text-pink-600 transition">
+                      <EditableText id="footer-careers" layoutScoped>Careers</EditableText>
+                    </a></li>
+                    <li><a href="#" className="text-gray-600 hover:text-pink-600 transition">
+                      <EditableText id="footer-press" layoutScoped>Press</EditableText>
+                    </a></li>
+                    <li><a href="#" className="text-gray-600 hover:text-pink-600 transition">
+                      <EditableText id="footer-news" layoutScoped>News</EditableText>
+                    </a></li>
+                    <li><a href="#" className="text-gray-600 hover:text-pink-600 transition">
+                      <EditableText id="footer-blog" layoutScoped>Blog</EditableText>
+                    </a></li>
+                  </ul>
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-indigo-700 dark:text-indigo-200 mb-2">
+                    <EditableText id="footer-community-contact-title" layoutScoped>Get in touch</EditableText>
+                  </h4>
+                  <ul className="space-y-2">
+                    <li><Link to="/contact" className="text-gray-600 hover:text-pink-600 transition">
+                      <EditableText id="footer-contact" layoutScoped>Contact us</EditableText>
+                    </Link></li>
+                    <li><Link to="/support" className="text-gray-600 hover:text-pink-600 transition">
+                      <EditableText id="footer-support" layoutScoped>Support</EditableText>
+                    </Link></li>
+                    <li><Link to="/support?type=bug" className="text-gray-600 hover:text-pink-600 transition">
+                      <EditableText id="footer-bug" layoutScoped>Report a bug</EditableText>
+                    </Link></li>
+                    <li><Link to="/feedback" className="text-gray-600 hover:text-pink-600 transition">
+                      <EditableText id="footer-feedback" layoutScoped>Send feedback</EditableText>
+                    </Link></li>
+                    <li><a href="/suggest-feature" className="text-gray-600 hover:text-pink-600 transition">
+                      <EditableText id="footer-feature" layoutScoped>Suggest a feature</EditableText>
+                    </a></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
             <div>
               <h3 className="font-semibold text-lg text-indigo-800 dark:text-indigo-100 mb-4">
-                <EditableText id="footer-company-title" layoutScoped>Company</EditableText>
+                <EditableText id="footer-legal-title" layoutScoped>Legal</EditableText>
               </h3>
               <ul className="space-y-2">
-                <li><a href="/about-us" className="text-gray-600 hover:text-pink-600 transition">
-                  <EditableText id="footer-about" layoutScoped>About Us</EditableText>
-                </a></li>
-                <li><a href="#" className="text-gray-600 hover:text-pink-600 transition">
-                  <EditableText id="footer-careers" layoutScoped>Careers</EditableText>
-                </a></li>
-                <li><a href="#" className="text-gray-600 hover:text-pink-600 transition">
-                  <EditableText id="footer-press" layoutScoped>Press</EditableText>
-                </a></li>
-                <li><a href="#" className="text-gray-600 hover:text-pink-600 transition">
-                  <EditableText id="footer-news" layoutScoped>News</EditableText>
-                </a></li>
-                <li><a href="#" className="text-gray-600 hover:text-pink-600 transition">
-                  <EditableText id="footer-blog" layoutScoped>Blog</EditableText>
-                </a></li>
-                <li><a href="#" className="text-gray-600 hover:text-pink-600 transition">
-                  <EditableText id="footer-support" layoutScoped>Support</EditableText>
-                </a></li>
                 <li><a href="#" className="text-gray-600 hover:text-pink-600 transition">
                   <EditableText id="footer-terms" layoutScoped>Terms & Conditions</EditableText>
                 </a></li>
@@ -48,8 +81,6 @@ const CrowdlyFooter = () => {
                 <li><Link to="/sitemap" className="text-gray-600 hover:text-pink-600 transition">
                   <EditableText id="footer-sitemap" layoutScoped>Sitemap</EditableText>
                 </Link></li>
-              </ul>
-              <ul className="space-y-2">
                 <li><Link to="/lounge" className="text-gray-600 hover:text-pink-600 transition">
                   <EditableText id="footer-lounge" layoutScoped>Lounge</EditableText>
                 </Link></li>
@@ -63,22 +94,6 @@ const CrowdlyFooter = () => {
                 <li><Link to="/software" className="text-gray-600 hover:text-pink-600 transition">
                   <EditableText id="footer-software" layoutScoped>Apps and software</EditableText>
                 </Link></li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="font-semibold text-lg text-indigo-800 dark:text-indigo-100 mb-4">
-                <EditableText id="footer-community-title" layoutScoped>Community</EditableText>
-              </h3>
-              <ul className="space-y-2">
-                <li><Link to="/contact" className="text-gray-600 hover:text-pink-600 transition">
-                  <EditableText id="footer-contact" layoutScoped>Contact us</EditableText>
-                </Link></li>
-                <li><Link to="/feedback" className="text-gray-600 hover:text-pink-600 transition">
-                  <EditableText id="footer-feedback" layoutScoped>Send feedback</EditableText>
-                </Link></li>
-                <li><a href="/suggest-feature" className="text-gray-600 hover:text-pink-600 transition">
-                  <EditableText id="footer-feature" layoutScoped>Suggest a feature</EditableText>
-                </a></li>
               </ul>
             </div>
             <div>

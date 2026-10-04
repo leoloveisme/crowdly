@@ -18,23 +18,10 @@ export async function ensureNotificationsTable() {
     await pool.query(
       'CREATE INDEX IF NOT EXISTS notifications_recipient_idx ON notifications(recipient_id, created_at DESC)',
     );
-    // Widen the type CHECK for databases where the table already existed
-    // before 'follow' was added to the allowed list above.
-    await pool.query(`
-      DO $$
-      BEGIN
-        IF EXISTS (
-          SELECT 1 FROM information_schema.table_constraints
-          WHERE constraint_name = 'notifications_type_check' AND table_name = 'notifications'
-        ) THEN
-          ALTER TABLE notifications DROP CONSTRAINT notifications_type_check;
-        END IF;
-        ALTER TABLE notifications
-          ADD CONSTRAINT notifications_type_check
-          CHECK (type IN ('friend_request', 'friend_accept', 'follow'));
-      END
-      $$;
-    `);
+    // The type CHECK is owned by migrations now (see
+    // backend/migrations/0023_notifications_type_check_widen.sql). This used
+    // to drop and re-add it with only the three original types on every boot,
+    // which silently rejected every newer notification type.
     console.log('[init] ensured notifications table exists');
   } catch (err) {
     console.error('[init] failed to ensure notifications table:', err);

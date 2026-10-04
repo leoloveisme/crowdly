@@ -563,6 +563,12 @@ class MainWindow(QMainWindow):
             self._open_compare_revisions,
         )
 
+        help_menu = menu.addMenu(self.tr("Help"))
+        self._help_menu = help_menu
+        self._action_report_bug = help_menu.addAction(
+            self.tr("Report a bug…"), self._report_bug
+        )
+
         menu.addSeparator()
         self._action_login_logout = menu.addAction(
             self.tr("Login"), self._toggle_login_logout
@@ -2843,6 +2849,10 @@ class MainWindow(QMainWindow):
         self._update_mode_labels()
         if getattr(self, "_discovery_view", None) is not None:
             self._discovery_view.retranslate()
+        if hasattr(self, "_help_menu"):
+            self._help_menu.setTitle(self.tr("Help"))
+        if hasattr(self, "_action_report_bug"):
+            self._action_report_bug.setText(self.tr("Report a bug…"))
         if hasattr(self, "_action_quit"):
             self._action_quit.setText(self.tr("Quit"))
 
@@ -7022,6 +7032,66 @@ class MainWindow(QMainWindow):
                 "Synchronisation with web platform on, it becomes a Crowdly story "
                 "when it is saved."
             ).format(title=item.title, file=target.name),
+        )
+
+    # Help -> Report a bug… ------------------------------------------------------
+
+    def _report_bug(self) -> None:  # pragma: no cover - UI wiring
+        """Report a bug to the Crowdly team (backend/src/support.js).
+
+        Signed in to Crowdly: a native form posts the report directly (no
+        CAPTCHA needed). Signed out: open the web form on /support with the
+        same diagnostics in the URL, so the report still gets them and the
+        web form's CAPTCHA guards it.
+        """
+
+        from urllib.parse import urlencode
+
+        from .bug_report_dialog import BugReportDialog, diagnostics
+        from .discovery.tasks import run_in_background
+
+        tech = diagnostics(self._mode, getattr(self._settings, "interface_language", "en") or "en")
+        creds = self._discovery_credentials(False)
+        if creds is None:
+            base = websync._build_api_base(self._settings)
+            # Local development: the backend runs on :4000, the web app on :8080.
+            web_base = base[: -len(":4000")] + ":8080" if base.endswith(":4000") else base
+            query = urlencode(
+                {"type": "bug", "from": "desktop", "app_version": tech["appVersion"], "os": tech["os"]}
+            )
+            QDesktopServices.openUrl(QUrl(f"{web_base}/support?{query}"))
+            return
+
+        dialog = BugReportDialog(tech, self)
+        if not dialog.exec():
+            return
+        fields, details = dialog.payload()
+        attachments = list(dialog.attachments)
+        self.statusBar().showMessage(self.tr("Sending your bug report…"))
+
+        def sent(_report_id: str) -> None:
+            self.statusBar().clearMessage()
+            QMessageBox.information(
+                self,
+                self.tr("Report a bug"),
+                self.tr(
+                    "Thanks for reporting this bug! Our team will look into it, and you'll be "
+                    "notified on Crowdly when its status changes."
+                ),
+            )
+
+        def failed(message: str) -> None:
+            self.statusBar().clearMessage()
+            QMessageBox.warning(
+                self,
+                self.tr("Report a bug"),
+                self.tr("Your bug report could not be sent.\n\nDetails: {error}").format(error=message),
+            )
+
+        run_in_background(
+            lambda: self._crowdly_client(creds).submit_bug_report(fields, details, attachments),
+            sent,
+            failed,
         )
 
     # "I want to change this story" (Discovery -> Creation) -----------------------

@@ -765,6 +765,34 @@ Your own work, public-domain and Creative Commons books open as a story you can 
         <source>Import failed</source>
         <translation>インポートに失敗しました</translation>
     </message>
+    <message>
+        <source>Help</source>
+        <translation>ヘルプ</translation>
+    </message>
+    <message>
+        <source>Report a bug…</source>
+        <translation>不具合を報告…</translation>
+    </message>
+    <message>
+        <source>Sending your bug report…</source>
+        <translation>不具合レポートを送信しています…</translation>
+    </message>
+    <message>
+        <source>Report a bug</source>
+        <translation>不具合を報告</translation>
+    </message>
+    <message>
+        <source>Thanks for reporting this bug! Our team will look into it, and you&apos;ll be notified on Crowdly when its status changes.</source>
+        <translation>不具合のご報告ありがとうございます！チームが調査し、ステータスが変わると Crowdly でお知らせします。</translation>
+    </message>
+    <message>
+        <source>Your bug report could not be sent.
+
+Details: {error}</source>
+        <translation>不具合レポートを送信できませんでした。
+
+詳細: {error}</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>
@@ -2153,6 +2181,129 @@ Your books stay private to you.</source>
     <message>
         <source>Send request</source>
         <translation>依頼を送信</translation>
+    </message>
+</context>
+<context>
+    <name>BugReportDialog</name>
+    <message>
+        <source>Report a bug</source>
+        <translation>不具合を報告</translation>
+    </message>
+    <message>
+        <source>The more detail you give us, the faster we can find and fix it.</source>
+        <translation>詳しく書いていただくほど、問題を早く見つけて修正できます。</translation>
+    </message>
+    <message>
+        <source>e.g. Chapter disappears after saving</source>
+        <translation>例: 保存すると章が消える</translation>
+    </message>
+    <message>
+        <source>What went wrong?</source>
+        <translation>何が起きましたか？</translation>
+    </message>
+    <message>
+        <source>Desktop app</source>
+        <translation>デスクトップアプリ</translation>
+    </message>
+    <message>
+        <source>Web platform</source>
+        <translation>Web プラットフォーム</translation>
+    </message>
+    <message>
+        <source>Web editor</source>
+        <translation>Web エディター</translation>
+    </message>
+    <message>
+        <source>Other</source>
+        <translation>その他</translation>
+    </message>
+    <message>
+        <source>Where did it happen?</source>
+        <translation>どこで起きましたか？</translation>
+    </message>
+    <message>
+        <source>1. Open a story
+2. Click …
+3. …</source>
+        <translation>1. ストーリーを開く
+2. … をクリック
+3. …</translation>
+    </message>
+    <message>
+        <source>Steps to reproduce</source>
+        <translation>再現手順</translation>
+    </message>
+    <message>
+        <source>What did you expect to happen?</source>
+        <translation>本来どうなるはずでしたか？</translation>
+    </message>
+    <message>
+        <source>What happened instead?</source>
+        <translation>実際には何が起きましたか？</translation>
+    </message>
+    <message>
+        <source>Annoying</source>
+        <translation>支障がある</translation>
+    </message>
+    <message>
+        <source>Blocks me</source>
+        <translation>作業できない</translation>
+    </message>
+    <message>
+        <source>Cosmetic</source>
+        <translation>見た目の問題</translation>
+    </message>
+    <message>
+        <source>How bad is it?</source>
+        <translation>深刻度は？</translation>
+    </message>
+    <message>
+        <source>Always</source>
+        <translation>毎回</translation>
+    </message>
+    <message>
+        <source>Sometimes</source>
+        <translation>ときどき</translation>
+    </message>
+    <message>
+        <source>Happened once</source>
+        <translation>一度だけ</translation>
+    </message>
+    <message>
+        <source>How often does it happen?</source>
+        <translation>発生頻度は？</translation>
+    </message>
+    <message>
+        <source>Add image…</source>
+        <translation>画像を追加…</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>削除</translation>
+    </message>
+    <message>
+        <source>Screenshots (optional, up to 3)</source>
+        <translation>スクリーンショット（任意、3 枚まで）</translation>
+    </message>
+    <message>
+        <source>Technical details sent with this report:</source>
+        <translation>このレポートと一緒に送信される技術情報:</translation>
+    </message>
+    <message>
+        <source>Submit bug report</source>
+        <translation>不具合レポートを送信</translation>
+    </message>
+    <message>
+        <source>Images (*.png *.jpg *.jpeg *.webp *.gif)</source>
+        <translation>画像 (*.png *.jpg *.jpeg *.webp *.gif)</translation>
+    </message>
+    <message>
+        <source>You can attach up to 3 PNG, JPEG, WEBP or GIF images of up to 10 MB each.</source>
+        <translation>PNG、JPEG、WEBP、GIF 形式の画像を 1 枚 10 MB まで、最大 3 枚添付できます。</translation>
+    </message>
+    <message>
+        <source>Please add a title and the steps to reproduce the bug.</source>
+        <translation>タイトルと再現手順を入力してください。</translation>
     </message>
 </context>
 </TS>

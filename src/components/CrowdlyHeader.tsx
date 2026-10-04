@@ -1,10 +1,10 @@
 
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import crowdlyLogo from "@/components/images/crowdly.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Eye, Menu, X, LogOut, Bell, MessageSquare, User, Users, Heart, Gift, Settings, HelpCircle, UserPlus, Shield, FolderOpen, LifeBuoy, Check, Loader2 } from "lucide-react";
+import { Eye, Menu, X, LogOut, Bell, MessageSquare, User, Users, Heart, Gift, Settings, HelpCircle, UserPlus, Shield, FolderOpen, LifeBuoy, Check, Loader2, Bug } from "lucide-react";
 import { SearchBox } from "@/modules/search";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -41,6 +41,8 @@ const CrowdlyHeader = () => {
   const [busyRequestIds, setBusyRequestIds] = useState<Set<string>>(new Set());
 
   const { user, signIn, signOut, hasRole } = useAuth();
+  const location = useLocation();
+  const reportBugHref = `/support?type=bug&from=${encodeURIComponent(location.pathname + location.search)}`;
   const { currentLanguage, setCurrentLanguage } = useEditableContent();
   const {
     notifications,
@@ -75,6 +77,18 @@ const CrowdlyHeader = () => {
           ) : (
             <EditableText id="header-notif-collab-declined" layoutScoped>the author declined your request</EditableText>
           )}
+        </>
+      );
+    }
+    if (n.type === "support_request_status") {
+      return (
+        <>
+          <Link to="/support" className="text-indigo-700 underline">
+            {n.payload.subject}
+          </Link>
+          {": "}
+          <EditableText id="header-notif-support-status" layoutScoped>status changed to</EditableText>{" "}
+          <strong>{String(n.payload.status ?? "").replace(/_/g, " ")}</strong>
         </>
       );
     }
@@ -401,8 +415,15 @@ const CrowdlyHeader = () => {
                             <Settings className="mr-2 h-4 w-4" /> Account settings
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <HelpCircle className="mr-2 h-4 w-4" /> Help
+                        <DropdownMenuItem asChild>
+                          <Link to="/support" className="cursor-pointer flex items-center">
+                            <HelpCircle className="mr-2 h-4 w-4" /> <EditableText id="header-help" layoutScoped>Help</EditableText>
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link to={reportBugHref} className="cursor-pointer flex items-center">
+                            <Bug className="mr-2 h-4 w-4" /> <EditableText id="header-report-bug" layoutScoped>Report a bug</EditableText>
+                          </Link>
                         </DropdownMenuItem>
                       </DropdownMenuGroup>
                       <DropdownMenuSeparator />
@@ -528,9 +549,12 @@ const CrowdlyHeader = () => {
                   <Link to="/account-administration" className="flex items-center py-2 text-indigo-900 hover:underline">
                     <Settings className="h-4 w-4 mr-2" /> Account settings
                   </Link>
-                  <div className="flex items-center py-2">
-                    <HelpCircle className="h-4 w-4 mr-2" /> Help
-                  </div>
+                  <Link to="/support" className="flex items-center py-2 text-indigo-900 hover:underline">
+                    <HelpCircle className="h-4 w-4 mr-2" /> <EditableText id="mobile-help" layoutScoped>Help</EditableText>
+                  </Link>
+                  <Link to={reportBugHref} className="flex items-center py-2 text-indigo-900 hover:underline">
+                    <Bug className="h-4 w-4 mr-2" /> <EditableText id="mobile-report-bug" layoutScoped>Report a bug</EditableText>
+                  </Link>
                   <Button variant="outline" onClick={handleLogout} className="flex items-center justify-center mt-2 rounded-xl">
                     <LogOut className="h-4 w-4 mr-1" /> 
                     <EditableText id="mobile-logout" layoutScoped>Sign out</EditableText>
