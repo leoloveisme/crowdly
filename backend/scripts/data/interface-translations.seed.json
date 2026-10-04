@@ -1409,9 +1409,9 @@
   {
     "page_key": "/software",
     "element_id": "software-title",
-    "en": "Crowdly Software",
-    "ru": "ПО Crowdly",
-    "de": "Crowdly-Software"
+    "en": "Crowdly apps",
+    "ru": "Приложения Crowdly",
+    "de": "Crowdly-Apps"
   },
   {
     "page_key": "/favorites",
@@ -9507,17 +9507,10 @@
   },
   {
     "page_key": "/software",
-    "element_id": "software-desktop-title",
-    "en": "Crowdly desktop app",
-    "ru": "Приложение Crowdly для компьютера",
-    "de": "Crowdly-Desktop-App"
-  },
-  {
-    "page_key": "/software",
     "element_id": "software-desktop-intro",
-    "en": "One app with two modes: Discovery for reading and listening, Creation for writing. Choose the mode you want to start in - you can switch at any time.",
-    "ru": "Одно приложение с двумя режимами: Discovery — чтобы читать и слушать, Creation — чтобы писать. Выберите режим, с которого хотите начать, — переключаться можно в любой момент.",
-    "de": "Eine App mit zwei Modi: Discovery zum Lesen und Hören, Creation zum Schreiben. Wähle den Modus, mit dem du starten möchtest – du kannst jederzeit wechseln."
+    "en": "Discover your next story or work on your own. Start in Discovery or Creation mode and switch whenever you like.",
+    "ru": "Откройте для себя новую историю или работайте над своей. Начните в режиме Discovery или Creation и переключайтесь, когда захотите.",
+    "de": "Entdecke deine nächste Geschichte oder arbeite an deiner eigenen. Starte im Discovery- oder Creation-Modus und wechsle, wann immer du willst."
   },
   {
     "page_key": "/software",
@@ -9529,9 +9522,9 @@
   {
     "page_key": "/software",
     "element_id": "software-discovery-desc",
-    "en": "Read and listen: your private library of books and audiobooks, Crowdly stories, and reading positions, highlights and notes synced across your devices.",
-    "ru": "Читайте и слушайте: личная библиотека книг и аудиокниг, истории Crowdly, а также место чтения, выделения и заметки, синхронизированные между вашими устройствами.",
-    "de": "Lesen und hören: deine private Bibliothek mit Büchern und Hörbüchern, Crowdly-Geschichten sowie Lesepositionen, Markierungen und Notizen, synchronisiert auf all deinen Geräten."
+    "en": "Enjoy your private library of books and audiobooks alongside Crowdly stories. Keep your reading progress, highlights and notes in sync across your devices.",
+    "ru": "Наслаждайтесь личной библиотекой книг и аудиокниг вместе с историями Crowdly. Прогресс чтения, выделения и заметки синхронизируются между вашими устройствами.",
+    "de": "Genieße deine private Bibliothek mit Büchern und Hörbüchern zusammen mit Crowdly-Geschichten. Lesefortschritt, Markierungen und Notizen bleiben auf all deinen Geräten synchron."
   },
   {
     "page_key": "/software",
@@ -9543,9 +9536,9 @@
   {
     "page_key": "/software",
     "element_id": "software-creation-desc",
-    "en": "Write: a distraction-free editor for stories and screenplays that syncs with Crowdly, your creative Spaces, GitHub and Google Drive.",
-    "ru": "Пишите: редактор без отвлекающих элементов для историй и сценариев, синхронизируемый с Crowdly, вашими творческими пространствами, GitHub и Google Drive.",
-    "de": "Schreiben: ein ablenkungsfreier Editor für Geschichten und Drehbücher, der mit Crowdly, deinen kreativen Spaces, GitHub und Google Drive synchronisiert."
+    "en": "Focus on your stories and screenplays in a distraction-free editor. Sync your work with Crowdly, your creative Spaces, GitHub and Google Drive.",
+    "ru": "Сосредоточьтесь на своих историях и сценариях в редакторе без отвлекающих элементов. Синхронизируйте работу с Crowdly, вашими творческими пространствами, GitHub и Google Drive.",
+    "de": "Konzentriere dich in einem ablenkungsfreien Editor auf deine Geschichten und Drehbücher. Synchronisiere deine Arbeit mit Crowdly, deinen kreativen Spaces, GitHub und Google Drive."
   },
   {
     "page_key": "/software",
@@ -9570,13 +9563,6 @@
   },
   {
     "page_key": "/software",
-    "element_id": "software-desktop-platforms",
-    "en": "macOS, Windows and Linux",
-    "ru": "macOS, Windows и Linux",
-    "de": "macOS, Windows und Linux"
-  },
-  {
-    "page_key": "/software",
     "element_id": "software-desktop-platforms-mac",
     "en": "macOS on Apple Silicon (M1 or newer). Windows and Linux will follow.",
     "ru": "macOS на Apple Silicon (M1 или новее). Версии для Windows и Linux появятся позже.",
@@ -9592,16 +9578,100 @@
   {
     "page_key": "/software",
     "element_id": "software-desktop-alpha-note",
-    "en": "Crowdly is invite-only during the alpha, so the app asks for your Crowdly account.",
-    "ru": "Во время альфа-версии Crowdly доступен только по приглашениям, поэтому приложение попросит вашу учётную запись Crowdly.",
-    "de": "Crowdly ist während der Alpha-Phase nur auf Einladung zugänglich, daher fragt die App nach deinem Crowdly-Konto."
+    "en": "Crowdly is currently invite-only. You'll need a Crowdly account to sign in.",
+    "ru": "Сейчас Crowdly доступен только по приглашениям. Для входа нужна учётная запись Crowdly.",
+    "de": "Crowdly ist derzeit nur auf Einladung zugänglich. Zum Anmelden brauchst du ein Crowdly-Konto."
   },
   {
     "page_key": "/software",
     "element_id": "software-mobile-soon",
-    "en": "Crowdly Discovery and Crowdly Creation for Android (Google Play) and iPhone/iPad (App Store) will follow.",
-    "ru": "Crowdly Discovery и Crowdly Creation для Android (Google Play) и iPhone/iPad (App Store) появятся позже.",
-    "de": "Crowdly Discovery und Crowdly Creation für Android (Google Play) und iPhone/iPad (App Store) folgen."
+    "en": "Crowdly Discovery and Crowdly Creation for Android, iPhone and iPad will follow.",
+    "ru": "Crowdly Discovery и Crowdly Creation для Android, iPhone и iPad появятся позже.",
+    "de": "Crowdly Discovery und Crowdly Creation für Android, iPhone und iPad folgen."
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-eyebrow",
+    "en": "Write · Read · Listen · Watch",
+    "ru": "Пишите · Читайте · Слушайте · Смотрите",
+    "de": "Schreiben · Lesen · Hören · Ansehen"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-intro",
+    "en": "Write, read, listen and watch with Crowdly. Download the desktop app now - the web app and mobile apps are on the way.",
+    "ru": "Пишите, читайте, слушайте и смотрите вместе с Crowdly. Скачайте приложение для компьютера уже сейчас — веб-приложение и мобильные приложения на подходе.",
+    "de": "Schreibe, lies, höre und sieh mit Crowdly. Lade jetzt die Desktop-App herunter – die Web-App und die mobilen Apps sind unterwegs."
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-web-app-btn",
+    "en": "Open Crowdly web app",
+    "ru": "Открыть веб-приложение Crowdly",
+    "de": "Crowdly-Web-App öffnen"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-web-app-soon",
+    "en": "Crowdly web app - coming soon",
+    "ru": "Веб-приложение Crowdly — скоро",
+    "de": "Crowdly-Web-App – demnächst"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-desktop-heading",
+    "en": "One desktop app. Two ways to use it.",
+    "ru": "Одно приложение для компьютера. Два способа работы.",
+    "de": "Eine Desktop-App. Zwei Arten, sie zu nutzen."
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-discovery-tagline",
+    "en": "Your space to read and listen.",
+    "ru": "Ваше пространство для чтения и прослушивания.",
+    "de": "Dein Raum zum Lesen und Hören."
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-creation-tagline",
+    "en": "Your space to write.",
+    "ru": "Ваше пространство для письма.",
+    "de": "Dein Raum zum Schreiben."
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-mobile-title",
+    "en": "Mobile apps are on the way",
+    "ru": "Мобильные приложения уже в пути",
+    "de": "Mobile Apps sind unterwegs"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-alpha-title",
+    "en": "Access during the alpha",
+    "ru": "Доступ во время альфа-версии",
+    "de": "Zugang während der Alpha-Phase"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-contribute-title",
+    "en": "Help build Crowdly",
+    "ru": "Помогите создавать Crowdly",
+    "de": "Hilf mit, Crowdly zu bauen"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-contribute-text",
+    "en": "Crowdly is open source. Explore the code and contribute on GitHub.",
+    "ru": "Crowdly — проект с открытым исходным кодом. Изучайте код и вносите свой вклад на GitHub.",
+    "de": "Crowdly ist Open Source. Sieh dir den Code an und mach auf GitHub mit."
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-github-link",
+    "en": "View Crowdly on GitHub",
+    "ru": "Crowdly на GitHub",
+    "de": "Crowdly auf GitHub ansehen"
   },
   {
     "page_key": "/shelves",
