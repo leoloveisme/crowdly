@@ -9,12 +9,13 @@ import EditableText from "@/components/EditableText";
 
 // The desktop app ships as two downloads of the same app - "Crowdly
 // Discovery" and "Crowdly Creation" - that differ only in the mode they open
-// in the first time (see apps/desktop/src/editor/app_modes.py). Fill in the
-// URLs once the builds are uploaded to the VPS; until then the buttons show
-// "coming soon".
+// in the first time (see apps/desktop/src/editor/app_modes.py). The builds
+// are uploaded to /var/www/crowdly-downloads on the VPS (nginx: /downloads/)
+// by apps/desktop/upload-downloads.sh; these stable names always point at the
+// latest version. null = the button shows "coming soon".
 const DESKTOP_DOWNLOADS: Record<"discovery" | "creation", string | null> = {
-  discovery: null,
-  creation: null,
+  discovery: "/downloads/desktop/crowdly-discovery-macos-arm64.zip",
+  creation: "/downloads/desktop/crowdly-creation-macos-arm64.zip",
 };
 
 const CrowdlySoftware = () => {
@@ -135,14 +136,17 @@ const CrowdlySoftware = () => {
                       <EditableText id="software-download-soon">Download - coming soon</EditableText>
                     </Button>
                   )}
-                  <EditableText id="software-desktop-platforms" as="p" className="text-xs text-gray-500 mt-2">
-                    macOS, Windows and Linux
+                  <EditableText id="software-desktop-platforms-mac" as="p" className="text-xs text-gray-500 mt-2">
+                    macOS on Apple Silicon (M1 or newer). Windows and Linux will follow.
                   </EditableText>
                 </div>
               ))}
             </div>
 
-            <EditableText id="software-desktop-alpha-note" as="p" className="text-sm text-gray-600 mt-6">
+            <EditableText id="software-desktop-mac-open-note" as="p" className="text-sm text-gray-600 mt-6">
+              On a Mac, unzip the download and move the app to Applications. The first time, right-click the app and choose Open - the app isn't notarized by Apple yet.
+            </EditableText>
+            <EditableText id="software-desktop-alpha-note" as="p" className="text-sm text-gray-600 mt-1">
               Crowdly is invite-only during the alpha, so the app asks for your Crowdly account.
             </EditableText>
             <EditableText id="software-mobile-soon" as="p" className="text-sm text-gray-600 mt-1">

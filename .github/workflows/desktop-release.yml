@@ -1,0 +1,72 @@
+# Build the macOS desktop downloads (Crowdly Discovery / Crowdly Creation)
+# and publish them on the VPS under /downloads/desktop/ - see
+# apps/desktop/build-downloads.sh and apps/desktop/upload-downloads.sh.
+#
+# Separate from deploy.yml on purpose: it needs a macOS runner and builds
+# ~600 MB per app, so it runs only when asked - push a tag like
+# `desktop-v0.1.0` (bump `version` in apps/desktop/pyproject.toml first),
+# or use "Run workflow" on the Actions tab.
+#
+# Optional secret GOOGLE_OAUTH_CLIENT_JSON: the contents of
+# apps/desktop/src/editor/google_oauth_client.json (gitignored), so the
+# builds can connect to Google Drive.
+
+name: Desktop downloads (macOS)
+
+on:
+  push:
+    tags: ["desktop-v*"]
+  workflow_dispatch:
+
+concurrency:
+  group: desktop-downloads
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    runs-on: macos-14 # Apple Silicon
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install the desktop app and PyInstaller
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e apps/desktop pyinstaller
+
+      - name: Add the Google Drive client (optional)
+        env:
+          GOOGLE_OAUTH_CLIENT_JSON: ${{ secrets.GOOGLE_OAUTH_CLIENT_JSON }}
+        run: |
+          if [ -n "$GOOGLE_OAUTH_CLIENT_JSON" ]; then
+            printf '%s' "$GOOGLE_OAUTH_CLIENT_JSON" > apps/desktop/src/editor/google_oauth_client.json
+          fi
+
+      - name: Build both downloads
+        run: PYTHON="$(which python)" apps/desktop/build-downloads.sh
+
+      - name: Set up deploy SSH key
+        run: |
+          set -eu
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "${{ secrets.VPS_SSH_PORT || 22 }}" "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Package, upload and check
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_PORT: ${{ secrets.VPS_SSH_PORT || 22 }}
+        run: SSH_KEY="$HOME/.ssh/deploy_key" apps/desktop/upload-downloads.sh
+
+      - name: Remove deploy key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
