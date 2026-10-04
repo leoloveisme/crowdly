@@ -9577,6 +9577,20 @@
   },
   {
     "page_key": "/software",
+    "element_id": "software-desktop-platforms-mac",
+    "en": "macOS on Apple Silicon (M1 or newer). Windows and Linux will follow.",
+    "ru": "macOS на Apple Silicon (M1 или новее). Версии для Windows и Linux появятся позже.",
+    "de": "macOS auf Apple Silicon (M1 oder neuer). Windows und Linux folgen."
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-desktop-mac-open-note",
+    "en": "On a Mac, unzip the download and move the app to Applications. The first time, right-click the app and choose Open - the app isn't notarized by Apple yet.",
+    "ru": "На Mac распакуйте загруженный архив и перенесите приложение в папку «Программы». При первом запуске щёлкните приложение правой кнопкой мыши и выберите «Открыть» — приложение пока не заверено Apple.",
+    "de": "Entpacke den Download auf dem Mac und verschiebe die App in den Ordner „Programme“. Beim ersten Start klicke mit der rechten Maustaste auf die App und wähle „Öffnen“ – die App ist noch nicht von Apple notarisiert."
+  },
+  {
+    "page_key": "/software",
     "element_id": "software-desktop-alpha-note",
     "en": "Crowdly is invite-only during the alpha, so the app asks for your Crowdly account.",
     "ru": "Во время альфа-версии Crowdly доступен только по приглашениям, поэтому приложение попросит вашу учётную запись Crowdly.",
