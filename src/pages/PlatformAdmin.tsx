@@ -110,6 +110,7 @@ const PlatformAdmin = () => {
   const [editUsername, setEditUsername] = useState("");
   const [editIsUiTranslator, setEditIsUiTranslator] = useState(false);
   const [editIsPlatformSupporter, setEditIsPlatformSupporter] = useState(false);
+  const [editIsPlatformAdmin, setEditIsPlatformAdmin] = useState(false);
   const [editTranslatorLanguages, setEditTranslatorLanguages] = useState<string[]>([]);
   const [locales, setLocales] = useState<Locale[]>([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -212,6 +213,7 @@ const PlatformAdmin = () => {
     setEditUsername(u.username || "");
     setEditIsUiTranslator(u.roles.includes("ui_translator"));
     setEditIsPlatformSupporter(u.roles.includes("platform_supporter"));
+    setEditIsPlatformAdmin(u.roles.includes("platform_admin"));
     setEditTranslatorLanguages(u.translator_languages || []);
   };
 
@@ -228,6 +230,7 @@ const PlatformAdmin = () => {
     const roles: string[] = [];
     if (editIsUiTranslator) roles.push("ui_translator");
     if (editIsPlatformSupporter) roles.push("platform_supporter");
+    if (editIsPlatformAdmin) roles.push("platform_admin");
 
     setIsSaving(true);
     try {
@@ -667,6 +670,14 @@ const PlatformAdmin = () => {
               <div className="flex flex-col gap-2">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <Checkbox
+                    checked={editIsPlatformAdmin}
+                    disabled={editUser?.id === user.id && editIsPlatformAdmin}
+                    onCheckedChange={(v) => setEditIsPlatformAdmin(v === true)}
+                  />
+                  <span className="text-sm"><EditableText id="padmin-edit-role-admin">Admin</EditableText></span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <Checkbox
                     checked={editIsUiTranslator}
                     onCheckedChange={(v) => {
                       setEditIsUiTranslator(v === true);
@@ -683,8 +694,8 @@ const PlatformAdmin = () => {
                   <span className="text-sm"><EditableText id="padmin-edit-role-support">Platform Support</EditableText></span>
                 </label>
               </div>
-              {editUser?.roles.includes("platform_admin") && (
-                <p className="text-xs text-amber-600"><EditableText id="padmin-edit-admin-note">This user is a Platform Admin (cannot be changed here).</EditableText></p>
+              {editUser?.id === user.id && editIsPlatformAdmin && (
+                <p className="text-xs text-amber-600"><EditableText id="padmin-edit-admin-self-note">You can't remove your own Admin role.</EditableText></p>
               )}
               <p className="text-xs text-muted-foreground">
                 <EditableText id="padmin-edit-roles-hint">Consumer role is always assigned. Check additional roles above.</EditableText>

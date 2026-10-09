@@ -10318,15 +10318,30 @@ app.patch('/admin/users/:id', async (req, res) => {
 
     // Update roles if provided (array of role strings)
     if (Array.isArray(roles)) {
-      const validRoles = ['ui_translator', 'platform_supporter'];
+      const validRoles = ['ui_translator', 'platform_supporter', 'platform_admin'];
       const desiredExtra = roles.filter(r => validRoles.includes(r));
 
-      // Get current roles (excluding consumer and platform_admin which we never touch)
+      // Get current roles (excluding consumer which we never touch)
       const { rows: currentRoleRows } = await client.query(
-        "SELECT role FROM user_roles WHERE user_id = $1 AND role IN ('ui_translator', 'platform_supporter')",
+        "SELECT role FROM user_roles WHERE user_id = $1 AND role IN ('ui_translator', 'platform_supporter', 'platform_admin')",
         [targetId],
       );
       const currentExtra = currentRoleRows.map(r => r.role);
+
+      // Guard admin removal: never demote yourself or the last remaining admin
+      if (currentExtra.includes('platform_admin') && !desiredExtra.includes('platform_admin')) {
+        if (targetId === userId) {
+          await client.query('ROLLBACK');
+          return res.status(400).json({ error: "You can't remove your own Admin role" });
+        }
+        const { rows: adminCountRows } = await client.query(
+          "SELECT COUNT(*)::int AS n FROM user_roles WHERE role = 'platform_admin'",
+        );
+        if (adminCountRows[0].n <= 1) {
+          await client.query('ROLLBACK');
+          return res.status(400).json({ error: "Can't remove the last Platform Admin" });
+        }
+      }
 
       // Add missing roles
       for (const role of desiredExtra) {

@@ -2423,10 +2423,17 @@
   },
   {
     "page_key": "/platform-admin",
-    "element_id": "padmin-edit-admin-note",
-    "en": "This user is a Platform Admin (cannot be changed here).",
-    "ru": "Этот пользователь является администратором платформы (нельзя изменить здесь).",
-    "de": "Dieser Benutzer ist Plattform-Administrator (kann hier nicht geändert werden)."
+    "element_id": "padmin-edit-role-admin",
+    "en": "Admin",
+    "ru": "Администратор",
+    "de": "Administrator"
+  },
+  {
+    "page_key": "/platform-admin",
+    "element_id": "padmin-edit-admin-self-note",
+    "en": "You can't remove your own Admin role.",
+    "ru": "Вы не можете снять с себя роль администратора.",
+    "de": "Du kannst dir die Admin-Rolle nicht selbst entziehen."
   },
   {
     "page_key": "/platform-admin",
