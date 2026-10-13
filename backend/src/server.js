@@ -33,6 +33,7 @@ import { createWorkRouter } from './workRoutes.js';
 import workContributionsRouter, { decideWorkProposal } from './workContributions.js';
 import workEditionsRouter from './workEditions.js';
 import workMediaRouter from './workMedia.js';
+import branchSyncRouter from './branchSync.js';
 import {
   canView as canViewWork,
   isOwner as isWorkOwner,
@@ -197,6 +198,7 @@ app.use(createWorkRouter('comic'));
 app.use(workContributionsRouter);
 app.use(workEditionsRouter);
 app.use(workMediaRouter);
+app.use(branchSyncRouter);
 app.use(comicsRouter);
 app.use(translationsRouter);
 app.use(editionsRouter);
@@ -3324,12 +3326,7 @@ app.post('/screenplays/:screenplayId/sync-desktop', requireAuth, async (req, res
       [newTitle, newFormatType, screenplayId],
     );
 
-    // Capture the scenes/blocks about to be destroyed so a revision trail
-    // can be written below — this sync destroys and recreates every scene
-    // with a fresh scene_id each time, so a scene-scoped revision row would
-    // itself get cascade-deleted on the very next sync (screenplay_revisions.scene_id
-    // is ON DELETE CASCADE). A title-scoped row (scene_id NULL) below survives
-    // that and is what closes this route's previously-zero revision trail.
+    // Previous state, for the title-scoped revision row written below.
     const prevStateRes = await client.query(
       `SELECT sc.scene_index, sc.slugline, sc.location, sc.time_of_day, sc.is_interior, sc.synopsis,
               COALESCE(json_agg(json_build_object('blockType', b.block_type, 'text', b.text) ORDER BY b.block_index)
@@ -3343,10 +3340,31 @@ app.post('/screenplays/:screenplayId/sync-desktop', requireAuth, async (req, res
     );
     const prevScenes = prevStateRes.rows;
 
-    // Replace scenes and blocks in a simple, deterministic way.
-    await client.query('DELETE FROM screenplay_block WHERE screenplay_id = $1', [screenplayId]);
-    await client.query('DELETE FROM screenplay_scene WHERE screenplay_id = $1', [screenplayId]);
-
+    // Update scenes and blocks IN PLACE, so everything attached to them —
+    // element branches, proposals, scene comments/reactions, scene media,
+    // revisions — survives a desktop sync. Rows are matched by the ids the
+    // desktop sends back (sceneId / blocks[].blockId, returned by this route);
+    // payloads without ids (older desktop versions) are matched by position.
+    // Rows the payload no longer contains are deleted.
+    const existingScenesRes = await client.query(
+      'SELECT scene_id FROM screenplay_scene WHERE screenplay_id = $1 ORDER BY scene_index, created_at',
+      [screenplayId],
+    );
+    const existingBlocksRes = await client.query(
+      'SELECT block_id, scene_id, block_type, text FROM screenplay_block WHERE screenplay_id = $1 ORDER BY block_index',
+      [screenplayId],
+    );
+    const existingSceneIds = existingScenesRes.rows.map((r) => r.scene_id);
+    const blocksByScene = new Map(existingSceneIds.map((id) => [id, []]));
+    const blockById = new Map();
+    for (const b of existingBlocksRes.rows) {
+      blockById.set(b.block_id, b);
+      if (blocksByScene.has(b.scene_id)) blocksByScene.get(b.scene_id).push(b);
+    }
+    const payloadHasIds = scenes.some((sc) => sc && typeof sc.sceneId === 'string');
+    const usedScenes = new Set();
+    const usedBlocks = new Set();
+    const syncedScenes = [];
     let nextBlockIndex = 1;
 
     for (let i = 0; i < scenes.length; i += 1) {
@@ -3358,32 +3376,85 @@ app.post('/screenplays/:screenplayId/sync-desktop', requireAuth, async (req, res
           ? scene.slugline.trim()
           : `Scene ${sceneIndex}`;
 
-      const sceneRes = await client.query(
-        'INSERT INTO screenplay_scene (screenplay_id, scene_index, slugline, location, time_of_day, is_interior, synopsis) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING scene_id',
-        [screenplayId, sceneIndex, slugline, null, null, null, null],
-      );
-      const sceneId = sceneRes.rows[0].scene_id;
+      let sceneId = null;
+      if (typeof scene.sceneId === 'string' && blocksByScene.has(scene.sceneId) && !usedScenes.has(scene.sceneId)) {
+        sceneId = scene.sceneId;
+      } else if (!payloadHasIds && existingSceneIds[i] && !usedScenes.has(existingSceneIds[i])) {
+        sceneId = existingSceneIds[i];
+      }
 
-      const paragraphs = Array.isArray(scene.paragraphs) ? scene.paragraphs : [];
-      for (const para of paragraphs) {
-        const text = typeof para === 'string' ? para : '';
-        if (!text.trim()) continue;
+      if (sceneId) {
+        await client.query(
+          'UPDATE screenplay_scene SET scene_index = $1, slugline = $2, updated_at = now() WHERE scene_id = $3',
+          [sceneIndex, slugline, sceneId],
+        );
+      } else {
+        const sceneRes = await client.query(
+          'INSERT INTO screenplay_scene (screenplay_id, scene_index, slugline) VALUES ($1, $2, $3) RETURNING scene_id',
+          [screenplayId, sceneIndex, slugline],
+        );
+        sceneId = sceneRes.rows[0].scene_id;
+      }
+      usedScenes.add(sceneId);
 
+      // blocks: [{ blockId?, text, blockType? }] (current desktop) or
+      // paragraphs: [text] (older desktop).
+      const incoming = Array.isArray(scene.blocks)
+        ? scene.blocks.map((b) => ({ blockId: b?.blockId, text: typeof b?.text === 'string' ? b.text : '', blockType: b?.blockType }))
+        : (Array.isArray(scene.paragraphs) ? scene.paragraphs : []).map((p) => ({ text: typeof p === 'string' ? p : '' }));
+      const sceneExisting = blocksByScene.get(sceneId) ?? [];
+      const syncedBlocks = [];
+      let position = 0;
+      for (const blk of incoming) {
+        if (!blk.text.trim()) continue;
+        let match = null;
+        if (typeof blk.blockId === 'string') {
+          const candidate = blockById.get(blk.blockId);
+          if (candidate && !usedBlocks.has(candidate.block_id)) match = candidate;
+        } else if (!payloadHasIds) {
+          const candidate = sceneExisting[position];
+          if (candidate && !usedBlocks.has(candidate.block_id)) match = candidate;
+        }
+        position += 1;
         const blockIndex = nextBlockIndex;
         nextBlockIndex += 1;
-
-        // Best-effort block type inference based on common screenplay
-        // conventions so that the web UI can render richer element types —
-        // shared with screenplayMarkdown.js's scene<->Space-file sync so
-        // both places agree on what a CHARACTER cue / (parenthetical) /
-        // TRANSITION: / action line looks like.
-        const blockType = inferBlockType(text);
-
-        await client.query(
-          'INSERT INTO screenplay_block (screenplay_id, scene_id, block_index, block_type, text, metadata) VALUES ($1, $2, $3, $4, $5, $6)',
-          [screenplayId, sceneId, blockIndex, blockType, text, null],
-        );
+        // Element type: as sent, else kept when the text is unchanged, else
+        // inferred from screenplay conventions (shared with screenplayMarkdown.js).
+        const blockType =
+          typeof blk.blockType === 'string' && blk.blockType
+            ? blk.blockType
+            : match && match.text === blk.text
+              ? match.block_type
+              : inferBlockType(blk.text);
+        let blockId;
+        if (match) {
+          blockId = match.block_id;
+          await client.query(
+            `UPDATE screenplay_block SET scene_id = $1, block_index = $2, block_type = $3, text = $4, updated_at = now()
+              WHERE block_id = $5`,
+            [sceneId, blockIndex, blockType, blk.text, blockId],
+          );
+        } else {
+          const ins = await client.query(
+            'INSERT INTO screenplay_block (screenplay_id, scene_id, block_index, block_type, text, metadata) VALUES ($1, $2, $3, $4, $5, $6) RETURNING block_id',
+            [screenplayId, sceneId, blockIndex, blockType, blk.text, null],
+          );
+          blockId = ins.rows[0].block_id;
+        }
+        usedBlocks.add(blockId);
+        syncedBlocks.push({ blockId, blockType, text: blk.text });
       }
+      syncedScenes.push({ sceneId, sceneIndex, slugline, blocks: syncedBlocks });
+    }
+
+    // Whatever the desktop no longer has is removed (its branches etc. with it).
+    const staleBlocks = existingBlocksRes.rows.map((b) => b.block_id).filter((id) => !usedBlocks.has(id));
+    if (staleBlocks.length > 0) {
+      await client.query('DELETE FROM screenplay_block WHERE block_id = ANY($1::uuid[])', [staleBlocks]);
+    }
+    const staleScenes = existingSceneIds.filter((id) => !usedScenes.has(id));
+    if (staleScenes.length > 0) {
+      await client.query('DELETE FROM screenplay_scene WHERE scene_id = ANY($1::uuid[])', [staleScenes]);
     }
 
     // Best-effort: record this desktop sync in the revision trail (title-scoped,
@@ -3422,6 +3493,8 @@ app.post('/screenplays/:screenplayId/sync-desktop', requireAuth, async (req, res
       ok: true,
       screenplayId,
       syncedScenes: scenes.length,
+      // Ids to send back on the next sync, so rows are updated in place.
+      scenes: syncedScenes,
     });
   } catch (err) {
     await client.query('ROLLBACK');

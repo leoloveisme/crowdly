@@ -7,6 +7,7 @@ import { pool } from './db.js';
 import { requireAuth } from './sessions.js';
 import { UPLOADS_ROOT } from './gallery.js';
 import { adoptLocalFile, removeStoredFile } from './storage.js';
+import { cleanOverlays, isKnownComicImage } from './branchSync.js';
 import {
   canView,
   isOwner,
@@ -132,7 +133,10 @@ function removeUnreferencedImages(urls) {
         [url],
       )
       .then(async ({ rows }) => {
-        if (Number(rows[0].refs) === 0) await removeStoredFile(url);
+        if (Number(rows[0].refs) === 0) {
+          await removeStoredFile(url);
+          await pool.query('DELETE FROM comic_uploaded_images WHERE url = $1', [url]);
+        }
       })
       .catch((err) => console.error('[comics] failed to remove page image:', err));
   }
@@ -769,6 +773,150 @@ router.get('/comics/:comicId/revisions', async (req, res) => {
   } catch (err) {
     console.error('[GET /comics/:comicId/revisions] failed:', err);
     res.status(500).json({ error: 'Failed to fetch revisions' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Desktop (and later mobile) sync
+// ---------------------------------------------------------------------------
+
+// One page image, uploaded before a sync references it. Team members only
+// (alternatives by other readers go through POST /comic-pages/:id/branches).
+router.post(
+  '/comics/:comicId/page-images',
+  requireAuth,
+  (req, res, next) => {
+    branchUpload.single('image')(req, res, (err) => {
+      if (err) return res.status(400).json({ error: err.message || 'Upload failed' });
+      next();
+    });
+  },
+  async (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'An image is required' });
+    try {
+      const comic = await loadWork(pool, 'comic', req.params.comicId);
+      if (!comic || !(await canView(pool, 'comic', comic, req.user.id))) {
+        fs.promises.unlink(req.file.path).catch(() => {});
+        return res.status(comic ? 403 : 404).json({ error: comic ? viewDeniedMessage('comic', comic) : 'Comic not found' });
+      }
+      const url = await adoptLocalFile(req.file.path, req.file.mimetype);
+      await pool.query('INSERT INTO comic_uploaded_images (comic_id, url, uploaded_by) VALUES ($1, $2, $3)', [
+        comic.comic_id,
+        url,
+        req.user.id,
+      ]);
+      res.status(201).json({ url });
+    } catch (err) {
+      console.error('[POST /comics/:comicId/page-images] failed:', err);
+      res.status(500).json({ error: 'Failed to upload image' });
+    }
+  },
+);
+
+// Replace a comic's title, reading direction, issues and pages with the
+// desktop's copy — IN PLACE: issues / pages are matched by issueId / pageId
+// (returned by this route), so comments, alternatives, proposals and media
+// attached to them survive. Rows the payload no longer has are deleted.
+// { title, direction: 'ltr' | 'rtl', issues: [{ issueId?, title, pages: [{ pageId?, imageUrl, alt?, overlays? }] }] }
+router.post('/comics/:comicId/sync-desktop', requireAuth, async (req, res) => {
+  const { title, direction, issues } = req.body ?? {};
+  if (typeof title !== 'string' || !title.trim()) return res.status(400).json({ error: 'title is required' });
+  if (!Array.isArray(issues)) return res.status(400).json({ error: 'issues[] is required' });
+  const comic = await loadWork(pool, 'comic', req.params.comicId).catch(() => null);
+  if (!comic) return res.status(404).json({ error: 'Comic not found' });
+  if (!(await isTeam(pool, 'comic', comic, req.user.id))) {
+    return res.status(403).json({
+      error: 'not_permitted',
+      message: "You can't change this comic directly. Suggest changes instead, or ask the author to invite you.",
+    });
+  }
+  // Every referenced image must belong to this comic.
+  for (const issue of issues) {
+    for (const page of Array.isArray(issue?.pages) ? issue.pages : []) {
+      if (!(await isKnownComicImage(comic.comic_id, page?.imageUrl))) {
+        return res.status(400).json({ error: `Upload the image first: ${String(page?.imageUrl ?? '').slice(0, 200)}` });
+      }
+    }
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('UPDATE comic_title SET title = $1, reading_direction = $2, updated_at = now() WHERE comic_id = $3', [
+      title.trim(),
+      direction === 'rtl' ? 'rtl' : 'ltr',
+      comic.comic_id,
+    ]);
+    const existingIssues = (await client.query('SELECT issue_id FROM comic_issue WHERE comic_id = $1', [comic.comic_id])).rows.map((r) => r.issue_id);
+    const existingPages = (await client.query('SELECT page_id, image_url FROM comic_page WHERE comic_id = $1', [comic.comic_id])).rows;
+    const pageIds = new Set(existingPages.map((p) => p.page_id));
+    const usedIssues = new Set();
+    const usedPages = new Set();
+    const synced = [];
+
+    for (let i = 0; i < issues.length; i += 1) {
+      const issue = issues[i] ?? {};
+      let issueId = typeof issue.issueId === 'string' && existingIssues.includes(issue.issueId) && !usedIssues.has(issue.issueId) ? issue.issueId : null;
+      const issueTitle = typeof issue.title === 'string' && issue.title.trim() ? issue.title.trim() : `Issue ${i + 1}`;
+      if (issueId) {
+        await client.query('UPDATE comic_issue SET issue_index = $1, title = $2, updated_at = now() WHERE issue_id = $3', [i, issueTitle, issueId]);
+      } else {
+        issueId = (
+          await client.query('INSERT INTO comic_issue (comic_id, issue_index, title) VALUES ($1, $2, $3) RETURNING issue_id', [
+            comic.comic_id,
+            i,
+            issueTitle,
+          ])
+        ).rows[0].issue_id;
+      }
+      usedIssues.add(issueId);
+
+      const syncedPages = [];
+      const pages = Array.isArray(issue.pages) ? issue.pages : [];
+      for (let n = 0; n < pages.length; n += 1) {
+        const page = pages[n] ?? {};
+        const overlays = cleanOverlays(page.overlays);
+        let pageId = typeof page.pageId === 'string' && pageIds.has(page.pageId) && !usedPages.has(page.pageId) ? page.pageId : null;
+        if (pageId) {
+          await client.query(
+            `UPDATE comic_page SET issue_id = $1, page_index = $2, image_url = $3, alt_text = $4,
+                    overlays = COALESCE($5::jsonb, overlays)
+              WHERE page_id = $6`,
+            [issueId, n, page.imageUrl, page.alt || null, overlays ? JSON.stringify(overlays) : null, pageId],
+          );
+        } else {
+          pageId = (
+            await client.query(
+              `INSERT INTO comic_page (comic_id, issue_id, page_index, image_url, alt_text, overlays)
+               VALUES ($1, $2, $3, $4, $5, $6) RETURNING page_id`,
+              [comic.comic_id, issueId, n, page.imageUrl, page.alt || null, JSON.stringify(overlays ?? [])],
+            )
+          ).rows[0].page_id;
+        }
+        usedPages.add(pageId);
+        syncedPages.push({ pageId, imageUrl: page.imageUrl });
+      }
+      synced.push({ issueId, title: issueTitle, pages: syncedPages });
+    }
+
+    const stalePages = existingPages.filter((p) => !usedPages.has(p.page_id));
+    if (stalePages.length > 0) {
+      await client.query('DELETE FROM comic_page WHERE page_id = ANY($1::uuid[])', [stalePages.map((p) => p.page_id)]);
+    }
+    const staleIssues = existingIssues.filter((id) => !usedIssues.has(id));
+    if (staleIssues.length > 0) {
+      await client.query('DELETE FROM comic_issue WHERE issue_id = ANY($1::uuid[])', [staleIssues]);
+    }
+    await client.query('COMMIT');
+    removeUnreferencedImages(stalePages.map((p) => p.image_url));
+    logComicRevision(comic.comic_id, req.user.id, 'desktop_sync', { detail: { issues: synced.length } });
+    res.json({ ok: true, comicId: comic.comic_id, issues: synced });
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    console.error('[POST /comics/:comicId/sync-desktop] failed:', err);
+    res.status(500).json({ error: 'Failed to sync comic from desktop' });
+  } finally {
+    client.release();
   }
 });
 

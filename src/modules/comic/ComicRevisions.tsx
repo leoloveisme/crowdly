@@ -12,6 +12,7 @@ const EVENT_LABELS: Record<string, { id: string; text: string }> = {
   issue_added: { id: "comic-rev-issue-added", text: "Issue added" },
   issue_renamed: { id: "comic-rev-issue-renamed", text: "Issue renamed" },
   issue_deleted: { id: "comic-rev-issue-deleted", text: "Issue deleted" },
+  desktop_sync: { id: "comic-rev-desktop-sync", text: "Synced from the desktop app" },
 };
 
 const overlayTexts = (value: unknown) =>
