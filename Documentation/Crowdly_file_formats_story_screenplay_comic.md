@@ -41,7 +41,7 @@ Both implementations are checked against the same fixtures in `apps/desktop/test
 | `story_title` | Story title. Centred by default. |
 | `chapter_title` | Starts a chapter. |
 | `paragraph` | A paragraph of the current chapter. Its text is Markdown and may contain inline HTML for colour and font. |
-| `branch` | **v2.** An alternative version of the paragraph just before it. `name="…"` is optional. Several branches can follow one paragraph. |
+| `branch` | **v2.** An alternative version of the paragraph just before it. `name="…"` is optional. Several branches can follow one paragraph. See [Branching](#branching). |
 | `image` | **v2.** `[image center width=40% alt="…"](images/x.png)[/image]`. Becomes a `![alt](src)` paragraph on Crowdly. |
 
 Paragraphs before the first `chapter_title` belong to an unnamed first chapter.
@@ -89,6 +89,29 @@ When the desktop app turns plain Markdown into a screenplay, or the web app impo
 ```
 
 When the web app turns a `.comic` file in a Space into a Crowdly comic, page paths are resolved against the file's folder in that Space. URLs are fetched directly.
+
+## Branching
+
+Branches are alternative versions of a piece of a work. They use the same block syntax in every format and the same flat rule: **a branch block belongs to the block just before it**. The backend routes and sync rules are in [branching-api.md](branching-api.md).
+
+| Format | Block | Belongs to | Structured form |
+|---|---|---|---|
+| `.story` | `[branch name="…"]text[/branch]` | the paragraph before it | `chapters[].branches["<paragraph index>"][]` |
+| `.screenplay` | `[branch name="…"]text[/branch]` | the element before it | `scenes[].blocks[].branches[]` |
+| `.comic` | `[layer x=20 y=15 style=bubble]text[/layer]` | the page or `[alt]` before it | `pages[].layers[]`, `pages[].alternatives[].layers[]` |
+| `.comic` | `[alt name="…"](pages/001b.png)[/alt]` | the page before it | `pages[].alternatives[]` |
+
+- **`[layer]`:** a speech bubble (`style=bubble`) or a caption box (`style=box`). `x` and `y` are percentages of the image (0–100). Layers are stored as positioned text, not drawn into the image, so they can be edited, suggested and translated.
+- **Ids:** files synced with Crowdly carry the server's ids as `id=` attributes:
+  - `chapter_title` and story `branch`
+  - `scene_slugline`, screenplay elements and screenplay `branch`
+  - `issue`, `page` and `alt`
+
+  Sync clients send these ids back, so rows are updated in place. A file without ids is still valid; it simply hasn't been synced yet.
+- **Rich-text pane:** the desktop pane keeps branch blocks (`branch` is in the screenplay's restored tags) and the ids on headings and elements (`dsl.restore_tags`) when it rebuilds the DSL.
+- **Fixtures:** `branching.story`, `branching.screenplay` and `branching.comic` (+ `.json`) in `apps/desktop/tests/fixtures/formats/`, checked by both apps.
+
+The structured forms above gain optional keys, present only when the file has them: `id`, plus `branches`, `layers` and `alternatives` as listed in the table.
 
 ## `.master`
 

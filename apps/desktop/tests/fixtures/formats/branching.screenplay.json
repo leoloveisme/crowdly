@@ -1,0 +1,22 @@
+{
+  "title": "Night Shift",
+  "scenes": [
+    {
+      "slugline": "INT. HOSPITAL CORRIDOR - NIGHT",
+      "id": "33333333-3333-3333-3333-333333333333",
+      "blocks": [
+        { "type": "character", "text": "MARA", "id": "44444444-4444-4444-4444-444444444444" },
+        {
+          "type": "dialogue",
+          "text": "Is anyone there?",
+          "id": "55555555-5555-5555-5555-555555555555",
+          "branches": [
+            { "name": "Bolder", "text": "Show yourself.", "id": "66666666-6666-6666-6666-666666666666" },
+            { "name": "", "text": "Hello?" }
+          ]
+        },
+        { "type": "transition", "text": "CUT TO:" }
+      ]
+    }
+  ]
+}

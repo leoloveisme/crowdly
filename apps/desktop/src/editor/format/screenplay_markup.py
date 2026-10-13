@@ -322,6 +322,11 @@ def dsl_to_html(text: str) -> str:
         elif b.tag in _ELEMENT_NAMES:
             body = escape(b.body.rstrip("\n")).replace("\n", "<br />\n")
             out.append(f"<p class=\"{b.tag}\"{_merge_style(style, _ELEMENT_STYLE[b.tag])}>{body}</p>")
+        elif b.tag == "branch":
+            body = escape(b.body.rstrip("\n")).replace("\n", "<br />\n")
+            name = escape(b.attrs.get("name", ""))
+            label = f"<strong>{name}</strong> " if name else ""
+            out.append(f"<aside class=\"branch\" data-name=\"{name}\">{label}{body}</aside>")
         else:
             out.append(f"<p>{escape(b.body.rstrip())}</p>")
     return "\n".join(out) + "\n"
@@ -329,7 +334,11 @@ def dsl_to_html(text: str) -> str:
 
 # ---------------------------------------------------------------------------
 # Structured form shared with the web app and the backend's scene/block model:
-#   {"title": str, "scenes": [{"slugline": str, "blocks": [{"type": str, "text": str}]}]}
+#   {"title": str, "scenes": [{"slugline": str, "id"?: str,
+#     "blocks": [{"type": str, "text": str, "id"?: str,
+#                 "branches"?: [{"name": str, "text": str, "id"?: str}]}]}]}
+# A ``[branch]`` block is an alternative for the element just before it; ids
+# are only present on files synced with Crowdly (Documentation/branching-api.md).
 # ---------------------------------------------------------------------------
 
 
@@ -342,23 +351,42 @@ def parse_dsl(text: str) -> dict:
             scenes.append({"slugline": "", "blocks": []})
         return scenes[-1]
 
+    def element(tag: str, b) -> dict:
+        entry = {"type": tag, "text": b.body}
+        if b.attrs.get("id"):
+            entry["id"] = b.attrs["id"]
+        return entry
+
     for b in dsl.parse_blocks(text or ""):
         if b.tag == "screenplay_title":
             title = b.body.strip()
         elif b.tag in ("scene_slugline", "scene_heading"):
-            scenes.append({"slugline": b.body.strip(), "blocks": []})
+            scene = {"slugline": b.body.strip(), "blocks": []}
+            if b.attrs.get("id"):
+                scene["id"] = b.attrs["id"]
+            scenes.append(scene)
+        elif b.tag == "branch":
+            blocks = current()["blocks"]
+            if not blocks:
+                blocks.append({"type": "action", "text": ""})
+            branch = {"name": b.attrs.get("name", ""), "text": b.body}
+            if b.attrs.get("id"):
+                branch["id"] = b.attrs["id"]
+            blocks[-1].setdefault("branches", []).append(branch)
         elif b.tag in _ELEMENT_NAMES:
-            current()["blocks"].append({"type": b.tag, "text": b.body})
+            current()["blocks"].append(element(b.tag, b))
         else:
-            current()["blocks"].append({"type": "action", "text": b.body})
+            current()["blocks"].append(element("action", b))
     return {"title": title, "scenes": scenes}
 
 
 def dict_to_dsl(doc: dict) -> str:
     lines: list[str] = [dsl.block("screenplay_title", doc.get("title") or "Untitled Screenplay", {"align": "center"}), ""]
     for sc in doc.get("scenes", []):
-        lines += [dsl.block("scene_slugline", sc.get("slugline") or "", {"align": "left"}), ""]
+        lines += [dsl.block("scene_slugline", sc.get("slugline") or "", {"align": "left", "id": sc.get("id", "")}), ""]
         for b in sc.get("blocks") or []:
             t = b.get("type") if b.get("type") in _ELEMENT_NAMES else "action"
-            lines += [dsl.block(t, b.get("text", "")), ""]
+            lines += [dsl.block(t, b.get("text", ""), {"id": b.get("id", "")}), ""]
+            for br in b.get("branches") or []:
+                lines += [dsl.block("branch", br.get("text", ""), {"name": br.get("name", ""), "id": br.get("id", "")}), ""]
     return "\n".join(lines).rstrip() + "\n"

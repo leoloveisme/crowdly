@@ -149,7 +149,7 @@ def serialize(blocks: list[Block]) -> str:
 
 # Attributes that describe a block's meaning rather than its look; carried
 # over by restore_tags when a generic block gets its real tag back.
-_MEANING_ATTRS = {"name", "alt", "direction"}
+_MEANING_ATTRS = {"name", "alt", "direction", "id"}
 
 
 def restore_tags(original: str, generated: str, generic: set[str], special: set[str]) -> str:
@@ -165,14 +165,21 @@ def restore_tags(original: str, generated: str, generic: set[str], special: set[
     """
 
     pool: dict[str, list[Block]] = {}
+    ids: dict[tuple[str, str], list[str]] = {}
     for b in parse_blocks(original):
         if b.tag in special:
             pool.setdefault(b.body.strip(), []).append(b)
-    if not pool:
+        elif b.attrs.get("id"):
+            # Sync ids on headings / elements the pane rebuilds without them.
+            ids.setdefault((b.tag, b.body.strip()), []).append(b.attrs["id"])
+    if not pool and not ids:
         return generated
     out = parse_blocks(generated)
     changed = False
     for b in out:
+        if "id" not in b.attrs and ids.get((b.tag, b.body.strip())):
+            b.attrs["id"] = ids[(b.tag, b.body.strip())].pop(0)
+            changed = True
         if b.tag not in generic:
             continue
         candidates = pool.get(b.body.strip())

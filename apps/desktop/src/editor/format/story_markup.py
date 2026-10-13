@@ -295,7 +295,8 @@ def dsl_to_html(text: str) -> str:
 # Structured form shared with the web app and the backend's chapter model:
 #   {"title": str,
 #    "chapters": [{"title": str, "paragraphs": [str],
-#                  "branches": {"<paragraph index>": [{"name": str, "text": str}]}}]}
+#                  "branches": {"<paragraph index>": [{"name": str, "text": str, "id"?: str}]},
+#                  "id"?: str}]}   (ids only on synced files; see Documentation/branching-api.md)
 # ---------------------------------------------------------------------------
 
 
@@ -314,13 +315,16 @@ def parse_dsl(text: str) -> dict:
         if b.tag == "story_title":
             title = b.body.strip()
         elif b.tag == "chapter_title":
-            chapters.append({"title": b.body.strip(), "paragraphs": [], "branches": {}})
+            chapter = {"title": b.body.strip(), "paragraphs": [], "branches": {}}
+            if b.attrs.get("id"):
+                chapter["id"] = b.attrs["id"]
+            chapters.append(chapter)
         elif b.tag == "branch":
             ch = current()
             if not ch["paragraphs"]:
                 ch["paragraphs"].append("")
             key = str(len(ch["paragraphs"]) - 1)
-            ch["branches"].setdefault(key, []).append({"name": b.attrs.get("name", ""), "text": b.body})
+            ch["branches"].setdefault(key, []).append(_branch_entry(b))
         elif b.tag == "image":
             current()["paragraphs"].append(f"![{b.attrs.get('alt', '')}]({dsl.image_source(b.body)})")
         else:
@@ -328,15 +332,28 @@ def parse_dsl(text: str) -> dict:
     return {"title": title, "chapters": chapters}
 
 
+def _branch_entry(b) -> dict:
+    """A ``[branch]`` block as ``{"name", "text"}`` plus its Crowdly ``id`` when synced."""
+
+    entry = {"name": b.attrs.get("name", ""), "text": b.body}
+    if b.attrs.get("id"):
+        entry["id"] = b.attrs["id"]
+    return entry
+
+
+def branch_block(br: dict) -> str:
+    return dsl.block("branch", br.get("text", ""), {"name": br.get("name", ""), "id": br.get("id", "")})
+
+
 def dict_to_dsl(doc: dict) -> str:
     """Serialise the structured form back to `.story` DSL."""
 
     lines: list[str] = [dsl.block("story_title", doc.get("title") or "Untitled", {"align": "center"}), ""]
     for ch in doc.get("chapters", []):
-        lines += [dsl.block("chapter_title", ch.get("title") or "", {"align": "left"}), ""]
+        lines += [dsl.block("chapter_title", ch.get("title") or "", {"align": "left", "id": ch.get("id", "")}), ""]
         branches = ch.get("branches") or {}
         for i, para in enumerate(ch.get("paragraphs") or []):
             lines += [dsl.block("paragraph", para, {"align": "left"}), ""]
             for br in branches.get(str(i), []):
-                lines += [dsl.block("branch", br.get("text", ""), {"name": br.get("name", "")}), ""]
+                lines += [branch_block(br), ""]
     return "\n".join(lines).rstrip() + "\n"

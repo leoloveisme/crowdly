@@ -1,0 +1,30 @@
+{
+  "title": "Moon Courier",
+  "direction": "ltr",
+  "issues": [
+    {
+      "title": "Issue 1",
+      "id": "77777777-7777-7777-7777-777777777777",
+      "pages": [
+        {
+          "src": "pages/001.png",
+          "alt": "Cover",
+          "id": "88888888-8888-8888-8888-888888888888",
+          "layers": [
+            { "text": "Who's there?", "x": 20, "y": 15, "style": "bubble" },
+            { "text": "Midnight.", "x": 50.5, "y": 90, "style": "box" }
+          ],
+          "alternatives": [
+            {
+              "src": "pages/001-night.png",
+              "name": "Night version",
+              "id": "99999999-9999-9999-9999-999999999999",
+              "layers": [{ "text": "Anyone?", "x": 20, "y": 15, "style": "bubble" }]
+            }
+          ]
+        },
+        { "src": "pages/002.png", "alt": "" }
+      ]
+    }
+  ]
+}

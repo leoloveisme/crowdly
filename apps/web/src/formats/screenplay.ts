@@ -5,9 +5,21 @@ import { block, escapeHtml, parseBlocks } from "./dsl.ts";
 
 export const SCREENPLAY_ELEMENTS = ["action", "character", "dialogue", "parenthetical", "transition", "shot", "general"] as const;
 export type ScreenplayElement = (typeof SCREENPLAY_ELEMENTS)[number];
+/** An alternative version of one element; ids are present on files synced with Crowdly. */
+export interface ScreenplayBranchDoc {
+  name: string;
+  text: string;
+  id?: string;
+}
+export interface ScreenplayBlockDoc {
+  type: ScreenplayElement;
+  text: string;
+  id?: string;
+  branches?: ScreenplayBranchDoc[];
+}
 export interface ScreenplayDoc {
   title: string;
-  scenes: { slugline: string; blocks: { type: ScreenplayElement; text: string }[] }[];
+  scenes: { slugline: string; id?: string; blocks: ScreenplayBlockDoc[] }[];
 }
 
 const isElement = (t: string): t is ScreenplayElement => (SCREENPLAY_ELEMENTS as readonly string[]).includes(t);
@@ -19,10 +31,17 @@ export function parseScreenplay(text: string): ScreenplayDoc {
     if (!scenes.length) scenes.push({ slugline: "", blocks: [] });
     return scenes[scenes.length - 1];
   };
+  const withId = <T extends object>(entry: T, id?: string) => (id ? { ...entry, id } : entry);
   for (const b of parseBlocks(text)) {
     if (b.tag === "screenplay_title") title = b.body.trim();
-    else if (b.tag === "scene_slugline" || b.tag === "scene_heading") scenes.push({ slugline: b.body.trim(), blocks: [] });
-    else current().blocks.push({ type: isElement(b.tag) ? b.tag : "action", text: b.body });
+    else if (b.tag === "scene_slugline" || b.tag === "scene_heading")
+      scenes.push(withId({ slugline: b.body.trim(), blocks: [] as ScreenplayBlockDoc[] }, b.attrs.id));
+    else if (b.tag === "branch") {
+      // An alternative for the element just before it.
+      const blocks = current().blocks;
+      if (!blocks.length) blocks.push({ type: "action", text: "" });
+      (blocks[blocks.length - 1].branches ??= []).push(withId({ name: b.attrs.name ?? "", text: b.body }, b.attrs.id));
+    } else current().blocks.push(withId({ type: isElement(b.tag) ? b.tag : ("action" as ScreenplayElement), text: b.body }, b.attrs.id));
   }
   return { title, scenes };
 }
@@ -30,8 +49,11 @@ export function parseScreenplay(text: string): ScreenplayDoc {
 export function screenplayToDsl(doc: ScreenplayDoc): string {
   const lines = [block("screenplay_title", doc.title || "Untitled Screenplay", { align: "center" }), ""];
   for (const sc of doc.scenes) {
-    lines.push(block("scene_slugline", sc.slugline || "", { align: "left" }), "");
-    for (const b of sc.blocks) lines.push(block(isElement(b.type) ? b.type : "action", b.text), "");
+    lines.push(block("scene_slugline", sc.slugline || "", { align: "left", id: sc.id ?? "" }), "");
+    for (const b of sc.blocks) {
+      lines.push(block(isElement(b.type) ? b.type : "action", b.text, { id: b.id ?? "" }), "");
+      for (const br of b.branches ?? []) lines.push(block("branch", br.text, { name: br.name, id: br.id ?? "" }), "");
+    }
   }
   return lines.join("\n").trimEnd() + "\n";
 }
@@ -49,7 +71,11 @@ export function screenplayToHtml(text: string): string {
   const out = [`<h1 style="text-align:center">${escapeHtml(doc.title)}</h1>`];
   for (const sc of doc.scenes) {
     out.push(`<h2 class="scene-slugline" style="text-transform:uppercase">${escapeHtml(sc.slugline)}</h2>`);
-    for (const b of sc.blocks) out.push(`<p class="${b.type}" style="font-family:ui-monospace,monospace;${STYLE[b.type] ?? ""}">${escapeHtml(b.text).replace(/\n/g, "<br />")}</p>`);
+    for (const b of sc.blocks) {
+      out.push(`<p class="${b.type}" style="font-family:ui-monospace,monospace;${STYLE[b.type] ?? ""}">${escapeHtml(b.text).replace(/\n/g, "<br />")}</p>`);
+      for (const br of b.branches ?? [])
+        out.push(`<aside class="branch">${br.name ? `<strong>${escapeHtml(br.name)}</strong> ` : ""}${escapeHtml(br.text).replace(/\n/g, "<br />")}</aside>`);
+    }
   }
   return out.join("\n");
 }

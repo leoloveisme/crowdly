@@ -6,12 +6,18 @@ import { block, escapeHtml, imageSource, parseBlocks } from "./dsl.ts";
 export interface StoryBranch {
   name: string;
   text: string;
+  /** Crowdly id, on synced files (Documentation/branching-api.md). */
+  id?: string;
 }
 export interface StoryChapterDoc {
   title: string;
   paragraphs: string[];
   branches: Record<string, StoryBranch[]>;
+  id?: string;
 }
+
+const branchEntry = (attrs: Record<string, string>, body: string): StoryBranch =>
+  attrs.id ? { name: attrs.name ?? "", text: body, id: attrs.id } : { name: attrs.name ?? "", text: body };
 export interface StoryDoc {
   title: string;
   chapters: StoryChapterDoc[];
@@ -26,12 +32,13 @@ export function parseStory(text: string): StoryDoc {
   };
   for (const b of parseBlocks(text)) {
     if (b.tag === "story_title") title = b.body.trim();
-    else if (b.tag === "chapter_title") chapters.push({ title: b.body.trim(), paragraphs: [], branches: {} });
+    else if (b.tag === "chapter_title")
+      chapters.push({ title: b.body.trim(), paragraphs: [], branches: {}, ...(b.attrs.id ? { id: b.attrs.id } : {}) });
     else if (b.tag === "branch") {
       const ch = current();
       if (!ch.paragraphs.length) ch.paragraphs.push("");
       const key = String(ch.paragraphs.length - 1);
-      (ch.branches[key] ??= []).push({ name: b.attrs.name ?? "", text: b.body });
+      (ch.branches[key] ??= []).push(branchEntry(b.attrs, b.body));
     } else if (b.tag === "image") current().paragraphs.push(`![${b.attrs.alt ?? ""}](${imageSource(b.body)})`);
     else current().paragraphs.push(b.body);
   }
@@ -41,10 +48,10 @@ export function parseStory(text: string): StoryDoc {
 export function storyToDsl(doc: StoryDoc): string {
   const lines = [block("story_title", doc.title || "Untitled", { align: "center" }), ""];
   for (const ch of doc.chapters) {
-    lines.push(block("chapter_title", ch.title || "", { align: "left" }), "");
+    lines.push(block("chapter_title", ch.title || "", { align: "left", id: ch.id ?? "" }), "");
     ch.paragraphs.forEach((p, i) => {
       lines.push(block("paragraph", p, { align: "left" }), "");
-      for (const br of ch.branches?.[String(i)] ?? []) lines.push(block("branch", br.text, { name: br.name }), "");
+      for (const br of ch.branches?.[String(i)] ?? []) lines.push(block("branch", br.text, { name: br.name, id: br.id ?? "" }), "");
     });
   }
   return lines.join("\n").trimEnd() + "\n";

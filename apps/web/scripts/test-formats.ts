@@ -30,11 +30,14 @@ const cases = [
   ["comic", parseComic, comicToDsl],
 ] as const;
 
-for (const [ext, parse, write] of cases) {
-  const expected = JSON.parse(read(`sample.${ext}.json`));
-  check(`${ext}: parse matches fixture`, () => deepStrictEqual(parse(read(`sample.${ext}`)), expected));
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  check(`${ext}: round trip`, () => deepStrictEqual(parse((write as (d: any) => string)(expected)), expected));
+// "sample": the base formats; "branching": branches, sync ids, comic layers and alternatives.
+for (const name of ["sample", "branching"]) {
+  for (const [ext, parse, write] of cases) {
+    const expected = JSON.parse(read(`${name}.${ext}.json`));
+    check(`${name}.${ext}: parse matches fixture`, () => deepStrictEqual(parse(read(`${name}.${ext}`)), expected));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    check(`${name}.${ext}: round trip`, () => deepStrictEqual(parse((write as (d: any) => string)(expected)), expected));
+  }
 }
 check("bracketed prose is not a tag", () => deepStrictEqual(parseBlocks("He said [sic] twice.\n\n[paragraph]Real.[/paragraph]").map((b) => b.tag), ["raw", "paragraph"]));
 check("quoted attributes", () => deepStrictEqual(parseAttrs('center name="Two words" bold'), { align: "center", name: "Two words", bold: "1" }));

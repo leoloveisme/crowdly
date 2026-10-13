@@ -83,7 +83,7 @@ def _keep_special_blocks(storage_format: str, original: str, rebuilt: str) -> st
         if storage_format == "story_v1":
             return dsl_format.restore_tags(original, rebuilt, {"paragraph"}, {"branch"})
         return dsl_format.restore_tags(
-            original, rebuilt, {"action"}, {"character", "dialogue", "parenthetical", "transition", "shot", "general"}
+            original, rebuilt, {"action"}, {"character", "dialogue", "parenthetical", "transition", "shot", "general", "branch"}
         )
     except Exception:
         return rebuilt
