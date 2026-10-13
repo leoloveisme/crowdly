@@ -11,9 +11,15 @@ import { WorkspaceProvider, useWorkspace } from "@web/shell/workspace";
 import { AppShell } from "@web/shell/AppShell";
 import CreationHome from "@web/creation/CreationHome";
 import NotFound from "@web/shell/NotFound";
+import { AskHost } from "@web/shell/ask";
 
 // Routes — keep in sync with EDITOR_ROUTE_PATTERNS in lib/pageKey.ts.
 const DiscoveryHome = lazy(() => import("@web/discovery/DiscoveryHome"));
+const StoryEditor = lazy(() => import("@web/creation/story/StoryEditor"));
+const ScreenplayEditor = lazy(() => import("@web/creation/screenplay/ScreenplayEditor"));
+const ComicEditor = lazy(() => import("@web/creation/comic/ComicEditor"));
+const SpacePage = lazy(() => import("@web/creation/spaces/SpacePage"));
+const FileEditor = lazy(() => import("@web/creation/spaces/FileEditor"));
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false } },
@@ -51,10 +57,16 @@ const App: React.FC = () => (
                   <Route element={<AppShell />}>
                     <Route path="/" element={<CreationHome />} />
                     <Route path="/discover" element={<DiscoveryHome />} />
+                    <Route path="/story/:id" element={<StoryEditor />} />
+                    <Route path="/screenplay/:id" element={<ScreenplayEditor />} />
+                    <Route path="/comic/:id" element={<ComicEditor />} />
+                    <Route path="/space/:spaceId/*" element={<SpacePage />} />
+                    <Route path="/file/:spaceId/:itemId" element={<FileEditor />} />
                     <Route path="*" element={<NotFound />} />
                   </Route>
                 </Routes>
               </Suspense>
+              <AskHost />
               <Toaster />
               <Sonner />
             </WorkspaceProvider>

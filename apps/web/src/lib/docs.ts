@@ -43,7 +43,7 @@ export const listMyScreenplays = (userId: string) => get<ScreenplaySummary[]>(`/
 export const listMyComics = (userId: string) => get<ComicSummary[]>(`/users/${userId}/comics`).catch(() => []);
 export const listSpaces = (userId: string) => get<Space[]>(`/creative-spaces${qs({ userId })}`);
 export const listSharedSpaces = () => get<Space[]>(`/creative-spaces/shared-with-me`).catch(() => [] as Space[]);
-export const getSpace = (id: string) => get<Space>(`/creative-spaces/${id}`);
+export const getSpace = (id: string, userId?: string) => get<Space>(`/creative-spaces/${id}${qs({ userId })}`);
 export const createSpace = (userId: string, name: string, description?: string) =>
   post<Space>(`/creative-spaces`, { userId, name, description });
 export const ensureDefaultSpace = (userId: string) => post<Space>(`/creative-spaces/ensure-default`, { userId });

@@ -29,7 +29,7 @@ export default defineConfig({
     // the /crdt-sync WebSocket used for live co-editing.
     proxy: {
       [`^/(?!${base.replace(/^\/|\/$/g, "") || "__none__"}(/|$)).*`]: {
-        target: "http://localhost:4000",
+        target: process.env.EDITOR_API_TARGET ?? "http://localhost:4000",
         changeOrigin: true,
         ws: true,
       },

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { askConfirm, askText } from "@web/shell/ask";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import EditableText from "@/components/EditableText";
@@ -149,7 +150,7 @@ export const AppShell: React.FC = () => {
             id: "webapp-menu-spaces-add",
             label: "Add",
             onSelect: needUser(async () => {
-              const name = window.prompt("Name of the new Space");
+              const name = await askText("Name of the new Space");
               if (!name?.trim()) return;
               try {
                 const s = await createSpace(user!.id, name.trim());
@@ -179,7 +180,7 @@ export const AppShell: React.FC = () => {
             disabled: !activeSpace || activeSpace.user_id !== user?.id,
             onSelect: async () => {
               if (!activeSpace || !user) return;
-              if (!window.confirm(`Delete the Space "${activeSpace.name}" and everything in it?`)) return;
+              if (!await askConfirm(`Delete the Space "${activeSpace.name}" and everything in it?`)) return;
               try {
                 await deleteSpace(activeSpace.id, user.id);
                 ws.setPrefs({ activeSpaceId: null });
