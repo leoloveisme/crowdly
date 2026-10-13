@@ -11,7 +11,7 @@ const API_BASE = import.meta.env.PROD
 
 export interface ExperienceItem {
   id: string;
-  content_type: "story" | "screenplay";
+  content_type: "story" | "screenplay" | "comic";
   content_id: string;
   title: string;
   created_at: string;
@@ -111,7 +111,9 @@ const FavoriteStories: React.FC<FavoriteStoriesProps> = ({ userId }) => {
         );
         const href = isScreenplay
           ? `/screenplay/${item.content_id}`
-          : `/story/${item.content_id}`;
+          : item.content_type === "comic"
+            ? `/comic/${item.content_id}`
+            : `/story/${item.content_id}`;
 
         return (
           <Link

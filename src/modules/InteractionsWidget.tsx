@@ -23,11 +23,13 @@ type InteractionsTarget =
   | { kind: "story"; storyTitleId: string }
   | { kind: "chapter"; chapterId: string }
   | { kind: "screenplay"; screenplayId: string }
-  | { kind: "scene"; screenplayId: string; sceneId: string };
+  | { kind: "scene"; screenplayId: string; sceneId: string }
+  | { kind: "comic"; comicId: string }
+  | { kind: "issue"; comicId: string; issueId: string };
 
-interface InteractionsWidgetProps extends InteractionsTarget {
+type InteractionsWidgetProps = InteractionsTarget & {
   label?: string;
-}
+};
 
 const InteractionsWidget: React.FC<InteractionsWidgetProps> = (props) => {
   const { user } = useAuth();
@@ -46,6 +48,8 @@ const InteractionsWidget: React.FC<InteractionsWidgetProps> = (props) => {
       ? "Chapter comments"
       : props.kind === "scene"
       ? "Scene comments"
+      : props.kind === "issue"
+      ? "Issue comments"
       : "Comments");
 
   // Helpers to derive query strings and payloads
@@ -59,6 +63,10 @@ const InteractionsWidget: React.FC<InteractionsWidgetProps> = (props) => {
         return `${API_BASE}/comments?screenplayId=${props.screenplayId}`;
       case "scene":
         return `${API_BASE}/comments?screenplaySceneId=${props.sceneId}`;
+      case "comic":
+        return `${API_BASE}/comments?comicId=${props.comicId}`;
+      case "issue":
+        return `${API_BASE}/comments?comicIssueId=${props.issueId}`;
     }
   };
 
@@ -72,6 +80,10 @@ const InteractionsWidget: React.FC<InteractionsWidgetProps> = (props) => {
         return `${API_BASE}/reactions?screenplayId=${props.screenplayId}`;
       case "scene":
         return `${API_BASE}/reactions?screenplaySceneId=${props.sceneId}`;
+      case "comic":
+        return `${API_BASE}/reactions?comicId=${props.comicId}`;
+      case "issue":
+        return `${API_BASE}/reactions?comicIssueId=${props.issueId}`;
     }
   };
 
@@ -103,6 +115,10 @@ const InteractionsWidget: React.FC<InteractionsWidgetProps> = (props) => {
           screenplaySceneId: props.sceneId,
           body,
         };
+      case "comic":
+        return { userId: user.id, comicId: props.comicId, body };
+      case "issue":
+        return { userId: user.id, comicId: props.comicId, comicIssueId: props.issueId, body };
     }
   };
 
@@ -134,6 +150,10 @@ const InteractionsWidget: React.FC<InteractionsWidgetProps> = (props) => {
           screenplaySceneId: props.sceneId,
           reactionType,
         };
+      case "comic":
+        return { userId: user.id, comicId: props.comicId, reactionType };
+      case "issue":
+        return { userId: user.id, comicId: props.comicId, comicIssueId: props.issueId, reactionType };
     }
   };
 
@@ -186,7 +206,9 @@ const InteractionsWidget: React.FC<InteractionsWidgetProps> = (props) => {
       (props.kind === "story" && !props.storyTitleId) ||
       (props.kind === "chapter" && !props.chapterId) ||
       (props.kind === "screenplay" && !props.screenplayId) ||
-      (props.kind === "scene" && (!props.screenplayId || !props.sceneId))
+      (props.kind === "scene" && (!props.screenplayId || !props.sceneId)) ||
+      (props.kind === "comic" && !props.comicId) ||
+      (props.kind === "issue" && (!props.comicId || !props.issueId))
     ) {
       setComments([]);
       setReactions([]);

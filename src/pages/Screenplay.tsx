@@ -2,11 +2,11 @@ import React from "react";
 import { useParams } from "react-router-dom";
 import CrowdlyHeader from "@/components/CrowdlyHeader";
 import CrowdlyFooter from "@/components/CrowdlyFooter";
-import ScreenplayTemplate from "@/modules/screenplay template";
+import ScreenplayPage from "@/modules/screenplay/ScreenplayPage";
 import EditableText from "@/components/EditableText";
 
 const Screenplay: React.FC = () => {
-  const { screenplay_id } = useParams<{ screenplay_id: string }>();
+  const { screenplay_id, scene_id } = useParams<{ screenplay_id: string; scene_id?: string }>();
 
   if (!screenplay_id) {
     return (
@@ -26,10 +26,8 @@ const Screenplay: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen">
       <CrowdlyHeader />
-      <main className="flex-1 p-4">
-        <div className="container mx-auto space-y-6">
-          <ScreenplayTemplate initialScreenplayId={screenplay_id} />
-        </div>
+      <main className="flex-grow container mx-auto px-4 py-8 max-w-6xl">
+        <ScreenplayPage screenplayId={screenplay_id} sceneId={scene_id} />
       </main>
       <CrowdlyFooter />
     </div>

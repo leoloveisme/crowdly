@@ -83,6 +83,7 @@ const VALUE_LABELS: Record<string, React.ReactNode> = {
   text: <EditableText id="shelves-value-text">Text</EditableText>,
   story: <EditableText id="shelves-value-story">Story</EditableText>,
   screenplay: <EditableText id="shelves-value-screenplay">Screenplay</EditableText>,
+  comic: <EditableText id="shelves-value-comic">Comic</EditableText>,
   favorite: <EditableText id="shelves-value-favorite">Favorite</EditableText>,
   living: <EditableText id="shelves-value-living">Living</EditableText>,
   lived: <EditableText id="shelves-value-lived">Lived</EditableText>,
@@ -354,7 +355,13 @@ const Shelves: React.FC = () => {
   };
 
   const itemLink = (item: ShelfItem) =>
-    item.type === "story" ? `/story/${item.id}` : item.type === "screenplay" ? `/screenplay/${item.id}` : null;
+    item.type === "story"
+      ? `/story/${item.id}`
+      : item.type === "screenplay"
+        ? `/screenplay/${item.id}`
+        : item.type === "comic"
+          ? `/comic/${item.id}`
+          : null;
 
   const manualOrder = currentShelf?.kind === "manual" && currentShelf.sort === "manual";
 

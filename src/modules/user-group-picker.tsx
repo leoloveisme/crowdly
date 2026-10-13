@@ -55,17 +55,22 @@ type Props = {
   ruleType: "view" | "clone" | "export" | "translate" | "narrate";
   open: boolean;
   onClose: () => void;
+  /** Base path of another work's rules (e.g. /screenplays/:id); defaults to the story's. */
+  rulesBasePath?: string;
+  /** What the dialog title calls the work ("story", "screenplay", "comic"). */
+  noun?: string;
 };
 
-const ruleTypeLabels: Record<string, string> = {
-  view: "Who can view this story",
-  clone: "Who can clone this story",
-  export: "Who can export this story",
-  translate: "Who can translate this story",
-  narrate: "Who can narrate this story",
+const ruleTypeVerbs: Record<string, string> = {
+  view: "view",
+  clone: "clone",
+  export: "export",
+  translate: "translate",
+  narrate: "narrate",
 };
 
-export default function UserGroupPicker({ storyTitleId, ruleType, open, onClose }: Props) {
+export default function UserGroupPicker({ storyTitleId, ruleType, open, onClose, rulesBasePath, noun = "story" }: Props) {
+  const rulesUrl = `${API_BASE}${rulesBasePath ?? `/stories/${storyTitleId}`}/access-rules`;
   const { user } = useAuth();
   const { toast } = useToast();
   const [grants, setGrants] = useState<Grant[]>([]);
@@ -84,7 +89,7 @@ export default function UserGroupPicker({ storyTitleId, ruleType, open, onClose 
     (async () => {
       setLoading(true);
       try {
-        const res = await fetch(`${API_BASE}/stories/${storyTitleId}/access-rules`);
+        const res = await fetch(rulesUrl, { credentials: "include" });
         if (res.ok) {
           const rules: AccessRule[] = await res.json();
           const filtered = rules.filter((r) => r.rule_type === ruleType);
@@ -111,7 +116,7 @@ export default function UserGroupPicker({ storyTitleId, ruleType, open, onClose 
       }
       setLoading(false);
     })();
-  }, [open, storyTitleId, ruleType]);
+  }, [open, rulesUrl, ruleType]);
 
   // Load groups
   useEffect(() => {
@@ -193,8 +198,9 @@ export default function UserGroupPicker({ storyTitleId, ruleType, open, onClose 
           g.type === "user" ? { userId: g.userId } : { groupId: g.groupId },
         ),
       };
-      const res = await fetch(`${API_BASE}/stories/${storyTitleId}/access-rules`, {
+      const res = await fetch(rulesUrl, {
         method: "PUT",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
@@ -222,7 +228,9 @@ export default function UserGroupPicker({ storyTitleId, ruleType, open, onClose 
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{ruleTypeLabels[ruleType] || "Access Rules"}</DialogTitle>
+          <DialogTitle>
+            {ruleTypeVerbs[ruleType] ? `Who can ${ruleTypeVerbs[ruleType]} this ${noun}` : "Access Rules"}
+          </DialogTitle>
         </DialogHeader>
 
         {loading ? (

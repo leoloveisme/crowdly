@@ -47,10 +47,12 @@ const LivedStoriesOutput: React.FC = () => {
         const data = (await res.json()) as ExperienceItem[] | unknown;
         if (Array.isArray(data)) {
           const mapped: StoriesOutputItem[] = data.map((item) => {
-            const isScreenplay = item.content_type === "screenplay";
-            const href = isScreenplay
-              ? `/screenplay/${item.content_id}`
-              : `/story/${item.content_id}`;
+            const href =
+              item.content_type === "screenplay"
+                ? `/screenplay/${item.content_id}`
+                : item.content_type === "comic"
+                  ? `/comic/${item.content_id}`
+                  : `/story/${item.content_id}`;
 
             return {
               id: item.id,

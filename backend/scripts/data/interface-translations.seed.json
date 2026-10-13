@@ -5302,7 +5302,7 @@
     "page_key": "/comic/:comic_id",
     "element_id": "comic-reader-empty",
     "en": "No pages yet.",
-    "ru": "Страниц пока нет.",
+    "ru": "Пока нет страниц.",
     "de": "Noch keine Seiten."
   },
   {
@@ -7319,7 +7319,7 @@
     "element_id": "screenplay-export-btn",
     "en": "Export",
     "ru": "Экспорт",
-    "de": "Export"
+    "de": "Exportieren"
   },
   {
     "page_key": "/new-story-template",
@@ -7415,9 +7415,9 @@
   {
     "page_key": "/screenplay/:screenplay_id",
     "element_id": "screenplay-no-scenes",
-    "en": "No scenes yet. Use the \"Add scene\" button above to create your first scene.",
-    "ru": "Сцен пока нет. Используйте кнопку «Добавить сцену» выше, чтобы создать первую сцену.",
-    "de": "Noch keine Szenen. Verwende die Schaltfläche „Szene hinzufügen“ oben, um deine erste Szene zu erstellen."
+    "en": "No scenes yet.",
+    "ru": "Пока нет сцен.",
+    "de": "Noch keine Szenen."
   },
   {
     "page_key": "/new-story-template",
@@ -7429,9 +7429,9 @@
   {
     "page_key": "/screenplay/:screenplay_id",
     "element_id": "screenplay-clone-scene",
-    "en": "Clone",
-    "ru": "Клонировать",
-    "de": "Klonen"
+    "en": "Clone scene",
+    "ru": "Клонировать сцену",
+    "de": "Szene klonen"
   },
   {
     "page_key": "/new-story-template",
@@ -10279,8 +10279,8 @@
     "page_key": "/comic/:comic_id",
     "element_id": "comic-reader-reorder-hint",
     "en": "Drag a page thumbnail, or use the arrows under it, to change the page order.",
-    "ru": "Перетащите миниатюру страницы или используйте стрелки под ней, чтобы изменить порядок страниц.",
-    "de": "Ziehe eine Seitenvorschau oder nutze die Pfeile darunter, um die Seitenreihenfolge zu ändern."
+    "ru": "Перетащите миниатюру страницы или используйте стрелки под ней, чтобы изменить порядок.",
+    "de": "Ziehen Sie eine Seitenminiatur oder nutzen Sie die Pfeile darunter, um die Reihenfolge zu ändern."
   },
   {
     "page_key": "/software",
@@ -11009,5 +11009,1300 @@
     "en": "Decline",
     "ru": "Отклонить",
     "de": "Ablehnen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-mode-viewing",
+    "en": "Viewing",
+    "ru": "Просмотр",
+    "de": "Ansehen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-mode-editing",
+    "en": "Editing",
+    "ru": "Редактирование",
+    "de": "Bearbeiten"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-badge-private",
+    "en": "Private",
+    "ru": "Приватный",
+    "de": "Privat"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-badge-unlisted",
+    "en": "Unlisted",
+    "ru": "По ссылке",
+    "de": "Nicht gelistet"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-badge-public",
+    "en": "Public",
+    "ru": "Публичный",
+    "de": "Öffentlich"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-badge-unpublished",
+    "en": "Unpublished",
+    "ru": "Не опубликован",
+    "de": "Unveröffentlicht"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-badge-completed",
+    "en": "Completed",
+    "ru": "Завершён",
+    "de": "Abgeschlossen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-badge-draft",
+    "en": "Draft",
+    "ru": "Черновик",
+    "de": "Entwurf"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-btn",
+    "en": "Settings",
+    "ru": "Настройки",
+    "de": "Einstellungen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-mark-finished-btn",
+    "en": "Mark as finished",
+    "ru": "Отметить как прочитанное",
+    "de": "Als beendet markieren"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-clone-btn",
+    "en": "Clone",
+    "ru": "Клонировать",
+    "de": "Klonen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-delete-btn",
+    "en": "Delete Screenplay",
+    "ru": "Удалить сценарий",
+    "de": "Drehbuch löschen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-title",
+    "en": "Screenplay settings",
+    "ru": "Настройки: сценарий",
+    "de": "Drehbuch-Einstellungen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-desc",
+    "en": "Only you, as the screenplay owner, can change these.",
+    "ru": "Изменять это можете только вы как владелец.",
+    "de": "Nur Sie als Eigentümer können dies ändern."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-publishing",
+    "en": "Publishing",
+    "ru": "Публикация",
+    "de": "Veröffentlichung"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-visibility",
+    "en": "Visibility",
+    "ru": "Видимость",
+    "de": "Sichtbarkeit"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-viewers",
+    "en": "Viewers",
+    "ru": "Читатели",
+    "de": "Leser"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-published",
+    "en": "Published in listings",
+    "ru": "Показывать в списках",
+    "de": "In Listen veröffentlicht"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-completed",
+    "en": "Screenplay is completed",
+    "ru": "Работа завершена",
+    "de": "Drehbuch ist abgeschlossen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-permissions",
+    "en": "Permissions",
+    "ru": "Разрешения",
+    "de": "Berechtigungen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-clone",
+    "en": "Who can clone",
+    "ru": "Кто может клонировать",
+    "de": "Wer darf klonen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-cloners",
+    "en": "Cloners",
+    "ru": "Кто клонирует",
+    "de": "Kloner"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-export",
+    "en": "Who can export",
+    "ru": "Кто может экспортировать",
+    "de": "Wer darf exportieren"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-exporters",
+    "en": "Exporters",
+    "ru": "Кто экспортирует",
+    "de": "Exporteure"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-translate",
+    "en": "Who can translate",
+    "ru": "Кто может переводить",
+    "de": "Wer darf übersetzen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-translators",
+    "en": "Translators",
+    "ru": "Переводчики",
+    "de": "Übersetzer"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-narrate",
+    "en": "Who can narrate",
+    "ru": "Кто может озвучивать",
+    "de": "Wer darf vorlesen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-narrators",
+    "en": "Narrators",
+    "ru": "Чтецы",
+    "de": "Sprecher"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-details",
+    "en": "Details",
+    "ru": "Подробности",
+    "de": "Details"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-description-label",
+    "en": "Description",
+    "ru": "Описание",
+    "de": "Beschreibung"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-tags-label",
+    "en": "Tags",
+    "ru": "Теги",
+    "de": "Tags"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-collaborators-label",
+    "en": "Collaborators",
+    "ru": "Соавторы",
+    "de": "Mitwirkende"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-danger",
+    "en": "Danger zone",
+    "ru": "Опасная зона",
+    "de": "Gefahrenbereich"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-delete-confirm-title",
+    "en": "Permanently delete this screenplay?",
+    "ru": "Удалить навсегда?",
+    "de": "Endgültig löschen?"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-delete-confirm-desc",
+    "en": "All of its content, revisions and comments will be removed. This cannot be undone.",
+    "ru": "Всё содержимое, ревизии и комментарии будут удалены. Это нельзя отменить.",
+    "de": "Alle Inhalte, Revisionen und Kommentare werden entfernt. Das kann nicht rückgängig gemacht werden."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-dialog-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-transfer-ownership-label",
+    "en": "Transfer ownership to",
+    "ru": "Передать права владельца",
+    "de": "Eigentum übertragen an"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-transfer-btn",
+    "en": "Transfer",
+    "ru": "Передать",
+    "de": "Übertragen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-transfer-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-authors-label",
+    "en": "Authors",
+    "ru": "Авторы",
+    "de": "Autoren"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-coauthors-label",
+    "en": "Co-authors",
+    "ru": "Соавторы",
+    "de": "Co-Autoren"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-team-label",
+    "en": "Team (can edit directly)",
+    "ru": "Команда (может редактировать напрямую)",
+    "de": "Team (kann direkt bearbeiten)"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-team-invite-btn",
+    "en": "Invite",
+    "ru": "Пригласить",
+    "de": "Einladen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-collab-requests-title",
+    "en": "Requests to collaborate on this screenplay",
+    "ru": "Запросы на участие в работе",
+    "de": "Anfragen zur Mitarbeit"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-contribute-btn",
+    "en": "I want to contribute to the screenplay",
+    "ru": "Я хочу внести свой вклад",
+    "de": "Ich möchte beitragen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-contribute-suggest-desc",
+    "en": "Suggest changes right on the page. The owner reviews each suggestion.",
+    "ru": "Предлагайте изменения прямо на странице. Владелец рассмотрит каждое предложение.",
+    "de": "Schlagen Sie Änderungen direkt auf der Seite vor. Der Eigentümer prüft jeden Vorschlag."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-contribute-suggest-btn",
+    "en": "Suggest changes",
+    "ru": "Предложить изменения",
+    "de": "Änderungen vorschlagen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-contribute-ask-title",
+    "en": "Ask to join the team",
+    "ru": "Попросить о вступлении в команду",
+    "de": "Um Aufnahme ins Team bitten"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-contribute-pending",
+    "en": "Your request is waiting for the owner's answer.",
+    "ru": "Ваш запрос ждёт ответа владельца.",
+    "de": "Ihre Anfrage wartet auf die Antwort des Eigentümers."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-contribute-declined",
+    "en": "The owner declined your last request. You can ask again.",
+    "ru": "Владелец отклонил ваш последний запрос. Можно попросить снова.",
+    "de": "Der Eigentümer hat Ihre letzte Anfrage abgelehnt. Sie können erneut fragen."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-contribute-ask-btn",
+    "en": "Send request",
+    "ru": "Отправить запрос",
+    "de": "Anfrage senden"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-contribute-close",
+    "en": "Close",
+    "ru": "Закрыть",
+    "de": "Schließen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-contributors-loading",
+    "en": "Loading contributors...",
+    "ru": "Загрузка участников...",
+    "de": "Mitwirkende werden geladen..."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-contributors-empty",
+    "en": "No contributors yet.",
+    "ru": "Пока нет участников.",
+    "de": "Noch keine Mitwirkenden."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-role-creator",
+    "en": "Creator",
+    "ru": "Создатель",
+    "de": "Ersteller"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-role-owner",
+    "en": "Owner",
+    "ru": "Владелец",
+    "de": "Eigentümer"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-role-contributor",
+    "en": "Contributor",
+    "ru": "Участник",
+    "de": "Mitwirkender"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-role-author",
+    "en": "Author",
+    "ru": "Автор",
+    "de": "Autor"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-role-coauthor",
+    "en": "Co-author",
+    "ru": "Соавтор",
+    "de": "Co-Autor"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-cover-add",
+    "en": "Add cover",
+    "ru": "Добавить обложку",
+    "de": "Cover hinzufügen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-sidebar-heading",
+    "en": "Scenes",
+    "ru": "Сцены",
+    "de": "Szenen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-sidebar-view",
+    "en": "View",
+    "ru": "Просмотр",
+    "de": "Ansicht"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-sidebar-edit",
+    "en": "Edit",
+    "ru": "Правка",
+    "de": "Bearbeiten"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-sidebar-empty",
+    "en": "No scenes yet.",
+    "ru": "Пока нет: сцены.",
+    "de": "Noch keine Szenen."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-sidebar-untitled",
+    "en": "Untitled scene",
+    "ru": "Без названия",
+    "de": "Unbenannte Szene"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-sidebar-rename",
+    "en": "Rename",
+    "ru": "Переименовать",
+    "de": "Umbenennen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-sidebar-insert-after",
+    "en": "Insert scene after",
+    "ru": "Вставить после",
+    "de": "Szene danach einfügen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-sidebar-publish",
+    "en": "Publish scene",
+    "ru": "Опубликовать",
+    "de": "Szene veröffentlichen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-sidebar-unpublish",
+    "en": "Unpublish scene",
+    "ru": "Снять с публикации",
+    "de": "Szene zurückziehen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-sidebar-delete",
+    "en": "Delete",
+    "ru": "Удалить",
+    "de": "Löschen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-sidebar-add",
+    "en": "+ Add scene",
+    "ru": "+ Добавить: сцена",
+    "de": "+ Szene hinzufügen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-sidebar-reorder-hint",
+    "en": "Drag the handle or use the ⋯ menu to reorder. Double-click a title to rename.",
+    "ru": "Перетаскивайте за ручку или используйте меню ⋯. Двойной щелчок по названию — переименовать.",
+    "de": "Ziehen Sie am Griff oder nutzen Sie das ⋯-Menü. Doppelklick auf einen Titel zum Umbenennen."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-sidebar-delete-title",
+    "en": "Delete this scene?",
+    "ru": "Удалить?",
+    "de": "Diese Szene löschen?"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-sidebar-delete-desc",
+    "en": "This cannot be undone.",
+    "ru": "Это нельзя отменить.",
+    "de": "Das kann nicht rückgängig gemacht werden."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-sidebar-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "story-sidebar-move-top",
+    "en": "Move to top",
+    "ru": "Переместить в начало",
+    "de": "Nach ganz oben"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "story-sidebar-move-up",
+    "en": "Move up",
+    "ru": "Переместить выше",
+    "de": "Nach oben"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "story-sidebar-move-down",
+    "en": "Move down",
+    "ru": "Переместить ниже",
+    "de": "Nach unten"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "story-sidebar-move-bottom",
+    "en": "Move to bottom",
+    "ru": "Переместить в конец",
+    "de": "Nach ganz unten"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "story-collab-approve",
+    "en": "Invite as collaborator",
+    "ru": "Пригласить в соавторы",
+    "de": "Als Mitwirkenden einladen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "story-collab-decline",
+    "en": "Decline",
+    "ru": "Отклонить",
+    "de": "Ablehnen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-mode-viewing",
+    "en": "Viewing",
+    "ru": "Просмотр",
+    "de": "Ansehen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-mode-editing",
+    "en": "Editing",
+    "ru": "Редактирование",
+    "de": "Bearbeiten"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-badge-private",
+    "en": "Private",
+    "ru": "Приватный",
+    "de": "Privat"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-badge-unlisted",
+    "en": "Unlisted",
+    "ru": "По ссылке",
+    "de": "Nicht gelistet"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-badge-public",
+    "en": "Public",
+    "ru": "Публичный",
+    "de": "Öffentlich"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-badge-unpublished",
+    "en": "Unpublished",
+    "ru": "Не опубликован",
+    "de": "Unveröffentlicht"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-badge-completed",
+    "en": "Completed",
+    "ru": "Завершён",
+    "de": "Abgeschlossen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-badge-draft",
+    "en": "Draft",
+    "ru": "Черновик",
+    "de": "Entwurf"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-btn",
+    "en": "Settings",
+    "ru": "Настройки",
+    "de": "Einstellungen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-mark-finished-btn",
+    "en": "Mark as finished",
+    "ru": "Отметить как прочитанное",
+    "de": "Als beendet markieren"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-clone-btn",
+    "en": "Clone",
+    "ru": "Клонировать",
+    "de": "Klonen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-export-btn",
+    "en": "Export",
+    "ru": "Экспорт",
+    "de": "Exportieren"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-delete-btn",
+    "en": "Delete Comic",
+    "ru": "Удалить комикс",
+    "de": "Comic löschen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-title",
+    "en": "Comic settings",
+    "ru": "Настройки: комикс",
+    "de": "Comic-Einstellungen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-desc",
+    "en": "Only you, as the comic owner, can change these.",
+    "ru": "Изменять это можете только вы как владелец.",
+    "de": "Nur Sie als Eigentümer können dies ändern."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-publishing",
+    "en": "Publishing",
+    "ru": "Публикация",
+    "de": "Veröffentlichung"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-visibility",
+    "en": "Visibility",
+    "ru": "Видимость",
+    "de": "Sichtbarkeit"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-viewers",
+    "en": "Viewers",
+    "ru": "Читатели",
+    "de": "Leser"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-published",
+    "en": "Published in listings",
+    "ru": "Показывать в списках",
+    "de": "In Listen veröffentlicht"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-completed",
+    "en": "Comic is completed",
+    "ru": "Работа завершена",
+    "de": "Comic ist abgeschlossen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-permissions",
+    "en": "Permissions",
+    "ru": "Разрешения",
+    "de": "Berechtigungen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-clone",
+    "en": "Who can clone",
+    "ru": "Кто может клонировать",
+    "de": "Wer darf klonen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-cloners",
+    "en": "Cloners",
+    "ru": "Кто клонирует",
+    "de": "Kloner"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-export",
+    "en": "Who can export",
+    "ru": "Кто может экспортировать",
+    "de": "Wer darf exportieren"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-exporters",
+    "en": "Exporters",
+    "ru": "Кто экспортирует",
+    "de": "Exporteure"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-translate",
+    "en": "Who can translate",
+    "ru": "Кто может переводить",
+    "de": "Wer darf übersetzen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-translators",
+    "en": "Translators",
+    "ru": "Переводчики",
+    "de": "Übersetzer"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-narrate",
+    "en": "Who can narrate",
+    "ru": "Кто может озвучивать",
+    "de": "Wer darf vorlesen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-narrators",
+    "en": "Narrators",
+    "ru": "Чтецы",
+    "de": "Sprecher"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-details",
+    "en": "Details",
+    "ru": "Подробности",
+    "de": "Details"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-description-label",
+    "en": "Description",
+    "ru": "Описание",
+    "de": "Beschreibung"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-tags-label",
+    "en": "Tags",
+    "ru": "Теги",
+    "de": "Tags"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-collaborators-label",
+    "en": "Collaborators",
+    "ru": "Соавторы",
+    "de": "Mitwirkende"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-danger",
+    "en": "Danger zone",
+    "ru": "Опасная зона",
+    "de": "Gefahrenbereich"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-delete-confirm-title",
+    "en": "Permanently delete this comic?",
+    "ru": "Удалить навсегда?",
+    "de": "Endgültig löschen?"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-delete-confirm-desc",
+    "en": "All of its content, revisions and comments will be removed. This cannot be undone.",
+    "ru": "Всё содержимое, ревизии и комментарии будут удалены. Это нельзя отменить.",
+    "de": "Alle Inhalte, Revisionen und Kommentare werden entfernt. Das kann nicht rückgängig gemacht werden."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-dialog-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-transfer-ownership-label",
+    "en": "Transfer ownership to",
+    "ru": "Передать права владельца",
+    "de": "Eigentum übertragen an"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-transfer-btn",
+    "en": "Transfer",
+    "ru": "Передать",
+    "de": "Übertragen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-transfer-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-authors-label",
+    "en": "Authors",
+    "ru": "Авторы",
+    "de": "Autoren"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-coauthors-label",
+    "en": "Co-authors",
+    "ru": "Соавторы",
+    "de": "Co-Autoren"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-team-label",
+    "en": "Team (can edit directly)",
+    "ru": "Команда (может редактировать напрямую)",
+    "de": "Team (kann direkt bearbeiten)"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-team-invite-btn",
+    "en": "Invite",
+    "ru": "Пригласить",
+    "de": "Einladen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-collab-requests-title",
+    "en": "Requests to collaborate on this comic",
+    "ru": "Запросы на участие в работе",
+    "de": "Anfragen zur Mitarbeit"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-contribute-btn",
+    "en": "I want to contribute to the comic",
+    "ru": "Я хочу внести свой вклад",
+    "de": "Ich möchte beitragen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-contribute-suggest-desc",
+    "en": "Suggest changes right on the page. The owner reviews each suggestion.",
+    "ru": "Предлагайте изменения прямо на странице. Владелец рассмотрит каждое предложение.",
+    "de": "Schlagen Sie Änderungen direkt auf der Seite vor. Der Eigentümer prüft jeden Vorschlag."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-contribute-suggest-btn",
+    "en": "Suggest changes",
+    "ru": "Предложить изменения",
+    "de": "Änderungen vorschlagen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-contribute-ask-title",
+    "en": "Ask to join the team",
+    "ru": "Попросить о вступлении в команду",
+    "de": "Um Aufnahme ins Team bitten"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-contribute-pending",
+    "en": "Your request is waiting for the owner's answer.",
+    "ru": "Ваш запрос ждёт ответа владельца.",
+    "de": "Ihre Anfrage wartet auf die Antwort des Eigentümers."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-contribute-declined",
+    "en": "The owner declined your last request. You can ask again.",
+    "ru": "Владелец отклонил ваш последний запрос. Можно попросить снова.",
+    "de": "Der Eigentümer hat Ihre letzte Anfrage abgelehnt. Sie können erneut fragen."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-contribute-ask-btn",
+    "en": "Send request",
+    "ru": "Отправить запрос",
+    "de": "Anfrage senden"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-contribute-close",
+    "en": "Close",
+    "ru": "Закрыть",
+    "de": "Schließen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-contributors-loading",
+    "en": "Loading contributors...",
+    "ru": "Загрузка участников...",
+    "de": "Mitwirkende werden geladen..."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-contributors-empty",
+    "en": "No contributors yet.",
+    "ru": "Пока нет участников.",
+    "de": "Noch keine Mitwirkenden."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-role-creator",
+    "en": "Creator",
+    "ru": "Создатель",
+    "de": "Ersteller"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-role-owner",
+    "en": "Owner",
+    "ru": "Владелец",
+    "de": "Eigentümer"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-role-contributor",
+    "en": "Contributor",
+    "ru": "Участник",
+    "de": "Mitwirkender"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-role-author",
+    "en": "Author",
+    "ru": "Автор",
+    "de": "Autor"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-role-coauthor",
+    "en": "Co-author",
+    "ru": "Соавтор",
+    "de": "Co-Autor"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-cover-add",
+    "en": "Add cover",
+    "ru": "Добавить обложку",
+    "de": "Cover hinzufügen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-sidebar-heading",
+    "en": "Issues",
+    "ru": "Выпуски",
+    "de": "Ausgaben"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-sidebar-view",
+    "en": "View",
+    "ru": "Просмотр",
+    "de": "Ansicht"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-sidebar-edit",
+    "en": "Edit",
+    "ru": "Правка",
+    "de": "Bearbeiten"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-sidebar-empty",
+    "en": "No issues yet.",
+    "ru": "Пока нет: выпуски.",
+    "de": "Noch keine Ausgaben."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-sidebar-untitled",
+    "en": "Untitled issue",
+    "ru": "Без названия",
+    "de": "Unbenannte Ausgabe"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-sidebar-rename",
+    "en": "Rename",
+    "ru": "Переименовать",
+    "de": "Umbenennen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-sidebar-insert-after",
+    "en": "Insert issue after",
+    "ru": "Вставить после",
+    "de": "Ausgabe danach einfügen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-sidebar-publish",
+    "en": "Publish issue",
+    "ru": "Опубликовать",
+    "de": "Ausgabe veröffentlichen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-sidebar-unpublish",
+    "en": "Unpublish issue",
+    "ru": "Снять с публикации",
+    "de": "Ausgabe zurückziehen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-sidebar-delete",
+    "en": "Delete",
+    "ru": "Удалить",
+    "de": "Löschen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-sidebar-add",
+    "en": "+ Add issue",
+    "ru": "+ Добавить: выпуск",
+    "de": "+ Ausgabe hinzufügen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-sidebar-reorder-hint",
+    "en": "Drag the handle or use the ⋯ menu to reorder. Double-click a title to rename.",
+    "ru": "Перетаскивайте за ручку или используйте меню ⋯. Двойной щелчок по названию — переименовать.",
+    "de": "Ziehen Sie am Griff oder nutzen Sie das ⋯-Menü. Doppelklick auf einen Titel zum Umbenennen."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-sidebar-delete-title",
+    "en": "Delete this issue?",
+    "ru": "Удалить?",
+    "de": "Diese Ausgabe löschen?"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-sidebar-delete-desc",
+    "en": "This cannot be undone.",
+    "ru": "Это нельзя отменить.",
+    "de": "Das kann nicht rückgängig gemacht werden."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-sidebar-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "story-sidebar-move-top",
+    "en": "Move to top",
+    "ru": "Переместить в начало",
+    "de": "Nach ganz oben"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "story-sidebar-move-up",
+    "en": "Move up",
+    "ru": "Переместить выше",
+    "de": "Nach oben"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "story-sidebar-move-down",
+    "en": "Move down",
+    "ru": "Переместить ниже",
+    "de": "Nach unten"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "story-sidebar-move-bottom",
+    "en": "Move to bottom",
+    "ru": "Переместить в конец",
+    "de": "Nach ganz unten"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "story-collab-approve",
+    "en": "Invite as collaborator",
+    "ru": "Пригласить в соавторы",
+    "de": "Als Mitwirkenden einladen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "story-collab-decline",
+    "en": "Decline",
+    "ru": "Отклонить",
+    "de": "Ablehnen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-tab-screenplay",
+    "en": "Screenplay",
+    "ru": "Сценарий",
+    "de": "Drehbuch"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-tab-contributors",
+    "en": "Contributors",
+    "ru": "Участники",
+    "de": "Mitwirkende"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-tab-revisions",
+    "en": "Revisions",
+    "ru": "Ревизии",
+    "de": "Revisionen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-untitled-scene",
+    "en": "Untitled scene",
+    "ru": "Сцена без названия",
+    "de": "Unbenannte Szene"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-scene-prev",
+    "en": "Previous",
+    "ru": "Назад",
+    "de": "Zurück"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-scene-next",
+    "en": "Next",
+    "ru": "Далее",
+    "de": "Weiter"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-scene-of-label",
+    "en": "Scene",
+    "ru": "Сцена",
+    "de": "Szene"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-scene-empty",
+    "en": "This scene is empty.",
+    "ru": "Эта сцена пуста.",
+    "de": "Diese Szene ist leer."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-scene-label",
+    "en": "Scene",
+    "ru": "Сцена",
+    "de": "Szene"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-format",
+    "en": "Format",
+    "ru": "Формат",
+    "de": "Format"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-tab-comic",
+    "en": "Comic",
+    "ru": "Комикс",
+    "de": "Comic"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-tab-contributors",
+    "en": "Contributors",
+    "ru": "Участники",
+    "de": "Mitwirkende"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-no-issues",
+    "en": "No issues yet.",
+    "ru": "Пока нет выпусков.",
+    "de": "Noch keine Ausgaben."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-issue-prev",
+    "en": "Previous issue",
+    "ru": "Предыдущий выпуск",
+    "de": "Vorherige Ausgabe"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-issue-next",
+    "en": "Next issue",
+    "ru": "Следующий выпуск",
+    "de": "Nächste Ausgabe"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-direction",
+    "en": "Reading direction",
+    "ru": "Направление чтения",
+    "de": "Leserichtung"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-export-title",
+    "en": "Export comic",
+    "ru": "Экспорт комикса",
+    "de": "Comic exportieren"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-export-desc",
+    "en": "All published pages, issue by issue, in reading order.",
+    "ru": "Все опубликованные страницы по выпускам в порядке чтения.",
+    "de": "Alle veröffentlichten Seiten, Ausgabe für Ausgabe, in Lesereihenfolge."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-export-pdf",
+    "en": "PDF",
+    "ru": "PDF",
+    "de": "PDF"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-export-cbz",
+    "en": "Comic book archive (CBZ)",
+    "ru": "Архив комикса (CBZ)",
+    "de": "Comic-Archiv (CBZ)"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "screenplay-format-label",
+    "en": "Format",
+    "ru": "Формат",
+    "de": "Format"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-value-comic",
+    "en": "Comic",
+    "ru": "Комикс",
+    "de": "Comic"
   }
 ]

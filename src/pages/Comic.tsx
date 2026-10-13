@@ -2,11 +2,11 @@ import React from "react";
 import { useParams } from "react-router-dom";
 import CrowdlyHeader from "@/components/CrowdlyHeader";
 import CrowdlyFooter from "@/components/CrowdlyFooter";
-import ComicReader from "@/modules/comic reader";
+import ComicPage from "@/modules/comic/ComicPage";
 import EditableText from "@/components/EditableText";
 
 const Comic: React.FC = () => {
-  const { comic_id } = useParams<{ comic_id: string }>();
+  const { comic_id, issue_id } = useParams<{ comic_id: string; issue_id?: string }>();
 
   if (!comic_id) {
     return (
@@ -26,10 +26,8 @@ const Comic: React.FC = () => {
   return (
     <div className="flex flex-col min-h-screen">
       <CrowdlyHeader />
-      <main className="flex-1 p-4">
-        <div className="container mx-auto space-y-6 max-w-4xl">
-          <ComicReader comicId={comic_id} />
-        </div>
+      <main className="flex-grow container mx-auto px-4 py-8 max-w-6xl">
+        <ComicPage comicId={comic_id} issueId={issue_id} />
       </main>
       <CrowdlyFooter />
     </div>

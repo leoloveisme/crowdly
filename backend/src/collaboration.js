@@ -4,6 +4,9 @@
 //
 // Approving adds the reader to story_access, which is what lets them sync the
 // story's text from the desktop app (see canDesktopSync in server.js).
+// Screenplay and comic requests are created by workRoutes.js and answered by
+// the same approve/decline routes below (adding to screenplay_access /
+// comic_access instead).
 
 import express from 'express';
 import { pool } from './db.js';
@@ -135,14 +138,24 @@ async function decide(req, res, approve) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    // A request targets a story, a screenplay or a comic (exactly one).
     const { rows } = await client.query(
-      `SELECT r.*, st.creator_id, st.title
+      `SELECT r.*,
+              COALESCE(st.creator_id, sp.creator_id, ct.creator_id) AS creator_id,
+              COALESCE(st.title, sp.title, ct.title) AS title
          FROM story_collaboration_requests r
-         JOIN story_title st ON st.story_title_id = r.story_title_id
+         LEFT JOIN story_title st ON st.story_title_id = r.story_title_id
+         LEFT JOIN screenplay_title sp ON sp.screenplay_id = r.screenplay_id
+         LEFT JOIN comic_title ct ON ct.comic_id = r.comic_id
         WHERE r.id = $1 FOR UPDATE OF r`,
       [req.params.requestId],
     );
     const request = rows[0];
+    const target = request?.screenplay_id
+      ? { table: 'screenplay_access', column: 'screenplay_id', id: request.screenplay_id, path: `/screenplay/${request.screenplay_id}`, kind: 'screenplay' }
+      : request?.comic_id
+        ? { table: 'comic_access', column: 'comic_id', id: request.comic_id, path: `/comic/${request.comic_id}`, kind: 'comic' }
+        : { table: 'story_access', column: 'story_title_id', id: request?.story_title_id, path: null, kind: 'story' };
     if (!request || request.creator_id !== ownerId) {
       await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Request not found' });
@@ -158,16 +171,18 @@ async function decide(req, res, approve) {
     );
     if (approve) {
       await client.query(
-        `INSERT INTO story_access (story_title_id, user_id, role)
+        `INSERT INTO ${target.table} (${target.column}, user_id, role)
          VALUES ($1, $2, 'contributor')
-         ON CONFLICT (story_title_id, user_id) DO NOTHING`,
-        [request.story_title_id, request.requester_id],
+         ON CONFLICT (${target.column}, user_id) DO NOTHING`,
+        [target.id, request.requester_id],
       );
     }
     await client.query('COMMIT');
     createNotification(request.requester_id, 'collaboration_request_decided', {
       requestId: request.id,
       storyTitleId: request.story_title_id,
+      contentType: target.kind,
+      ...(target.path ? { workPath: target.path } : {}),
       storyTitle: request.title,
       status,
     }).catch((err) => console.error('[collaboration-requests] notify failed:', err));

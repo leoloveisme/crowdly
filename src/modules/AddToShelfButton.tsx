@@ -23,7 +23,7 @@ import {
 } from "@/lib/shelvesApi";
 
 interface Props {
-  type: Extract<ShelfItemType, "story" | "screenplay">;
+  type: Extract<ShelfItemType, "story" | "screenplay" | "comic">;
   id: string;
 }
 
