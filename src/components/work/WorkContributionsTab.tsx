@@ -144,6 +144,11 @@ const WorkContributionsTab: React.FC<Props> = ({ kind, workId, workTitle, canRev
         currentFilter={filter}
         onFilterChange={setFilter}
         titleId={`${kind}-contributions-heading`}
+        columnLabels={
+          kind === "comic"
+            ? { idPrefix: kind, work: "Comic", part: "Issue", text: "Suggestion" }
+            : { idPrefix: kind, work: "Screenplay", part: "Scene", text: "Suggestion" }
+        }
       />
     </div>
   );

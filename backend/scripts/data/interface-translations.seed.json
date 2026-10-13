@@ -12587,21 +12587,21 @@
   },
   {
     "page_key": "/screenplay/:screenplay_id",
-    "element_id": "contrib-story-title-heading",
+    "element_id": "screenplay-contrib-story-title-heading",
     "en": "Screenplay",
     "ru": "Сценарий",
     "de": "Drehbuch"
   },
   {
     "page_key": "/screenplay/:screenplay_id",
-    "element_id": "contrib-chapter-title-heading",
+    "element_id": "screenplay-contrib-chapter-title-heading",
     "en": "Scene",
     "ru": "Сцена",
     "de": "Szene"
   },
   {
     "page_key": "/screenplay/:screenplay_id",
-    "element_id": "contrib-paragraph-heading",
+    "element_id": "screenplay-contrib-paragraph-heading",
     "en": "Suggestion",
     "ru": "Предложение",
     "de": "Vorschlag"
@@ -12671,21 +12671,21 @@
   },
   {
     "page_key": "/comic/:comic_id",
-    "element_id": "contrib-story-title-heading",
+    "element_id": "comic-contrib-story-title-heading",
     "en": "Comic",
     "ru": "Комикс",
     "de": "Comic"
   },
   {
     "page_key": "/comic/:comic_id",
-    "element_id": "contrib-chapter-title-heading",
+    "element_id": "comic-contrib-chapter-title-heading",
     "en": "Issue",
     "ru": "Выпуск",
     "de": "Ausgabe"
   },
   {
     "page_key": "/comic/:comic_id",
-    "element_id": "contrib-paragraph-heading",
+    "element_id": "comic-contrib-paragraph-heading",
     "en": "Suggestion",
     "ru": "Предложение",
     "de": "Vorschlag"
@@ -12885,5 +12885,621 @@
     "en": "Issue deleted",
     "ru": "Выпуск удалён",
     "de": "Ausgabe gelöscht"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-edition-new",
+    "en": "New edition",
+    "ru": "Новое издание",
+    "de": "Neue Edition"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-edition-builder-title",
+    "en": "Build an edition",
+    "ru": "Собрать издание",
+    "de": "Edition zusammenstellen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-edition-builder-desc",
+    "en": "Pick the original or one of its branches wherever alternatives exist. The edition is frozen when you save.",
+    "ru": "Выберите оригинал или одну из веток там, где есть варианты. Издание фиксируется при сохранении.",
+    "de": "Wählen Sie überall, wo es Alternativen gibt, das Original oder einen Zweig. Die Edition wird beim Speichern eingefroren."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-edition-visible",
+    "en": "Visible to readers",
+    "ru": "Видно читателям",
+    "de": "Für Leser sichtbar"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-edition-save",
+    "en": "Save edition",
+    "ru": "Сохранить издание",
+    "de": "Edition speichern"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-media-pending",
+    "en": "waiting for review",
+    "ru": "ждёт проверки",
+    "de": "wartet auf Prüfung"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-media-rejected",
+    "en": "rejected",
+    "ru": "отклонено",
+    "de": "abgelehnt"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-media-audio",
+    "en": "Audio",
+    "ru": "Аудио",
+    "de": "Audio"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-media-video",
+    "en": "Video",
+    "ru": "Видео",
+    "de": "Video"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-ai-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-media-upload-audio",
+    "en": "Upload a narration (audio file)",
+    "ru": "Загрузить озвучку (аудиофайл)",
+    "de": "Vertonung hochladen (Audiodatei)"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-media-no-narration",
+    "en": "The owner hasn't opened this work for narration.",
+    "ru": "Владелец не открыл эту работу для озвучивания.",
+    "de": "Der Eigentümer hat dieses Werk nicht zum Vorlesen freigegeben."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-media-add-video",
+    "en": "Add a video (YouTube / Vimeo link or a file)",
+    "ru": "Добавить видео (ссылка YouTube / Vimeo или файл)",
+    "de": "Video hinzufügen (YouTube-/Vimeo-Link oder Datei)"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-media-add-btn",
+    "en": "Add",
+    "ru": "Добавить",
+    "de": "Hinzufügen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-ai-narrate",
+    "en": "Generate narration with AI",
+    "ru": "Создать озвучку с ИИ",
+    "de": "Vertonung mit KI erzeugen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-ai-start",
+    "en": "Start",
+    "ru": "Начать",
+    "de": "Starten"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-ai-video",
+    "en": "Generate a video with AI (experimental)",
+    "ru": "Создать видео с ИИ (экспериментально)",
+    "de": "Video mit KI erzeugen (experimentell)"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-media-review-hint",
+    "en": "What you add is shown to readers once the team approves it.",
+    "ru": "Добавленное вами увидят читатели после одобрения командой.",
+    "de": "Was Sie hinzufügen, sehen Leser, sobald das Team es freigibt."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-media-close",
+    "en": "Close",
+    "ru": "Закрыть",
+    "de": "Schließen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-media-add-own",
+    "en": "Add your own: narration · video",
+    "ru": "Добавьте своё: озвучка · видео",
+    "de": "Eigenes hinzufügen: Vertonung · Video"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-ai-draft-label",
+    "en": "Draft this part from the original with AI",
+    "ru": "Черновик этой части по оригиналу с ИИ",
+    "de": "Diesen Teil mit KI aus dem Original entwerfen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-ai-draft-btn",
+    "en": "Draft",
+    "ru": "Черновик",
+    "de": "Entwerfen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-lang-heading",
+    "en": "Language versions",
+    "ru": "Языковые версии",
+    "de": "Sprachversionen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-lang-original",
+    "en": "Original",
+    "ru": "Оригинал",
+    "de": "Original"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-lang-official",
+    "en": "Official translation",
+    "ru": "Официальный перевод",
+    "de": "Offizielle Übersetzung"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-lang-community",
+    "en": "Community translation",
+    "ru": "Перевод сообщества",
+    "de": "Community-Übersetzung"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-lang-draft",
+    "en": "draft",
+    "ru": "черновик",
+    "de": "Entwurf"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-lang-stale",
+    "en": "out of date",
+    "ru": "устарело",
+    "de": "veraltet"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-lang-translate",
+    "en": "Translate this screenplay…",
+    "ru": "Перевести сценарий…",
+    "de": "Drehbuch übersetzen…"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-translate-title",
+    "en": "Translate this screenplay",
+    "ru": "Перевести сценарий",
+    "de": "Drehbuch übersetzen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-translate-desc",
+    "en": "The translation becomes its own screenplay that you own, linked to the original scene by scene. It stays a draft until you publish it.",
+    "ru": "Перевод станет отдельной работой, которой владеете вы, связанной с оригиналом по частям. Он остаётся черновиком, пока вы его не опубликуете.",
+    "de": "Die Übersetzung wird ein eigenes Werk in Ihrem Besitz, Teil für Teil mit dem Original verknüpft. Sie bleibt ein Entwurf, bis Sie sie veröffentlichen."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-translate-language",
+    "en": "Translate into",
+    "ru": "Перевести на",
+    "de": "Übersetzen in"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-translate-source-lang",
+    "en": "This screenplay is marked as written in",
+    "ru": "Указанный язык оригинала:",
+    "de": "Als Sprache des Originals angegeben:"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-translate-source-lang-hint",
+    "en": "If that's wrong, the owner can change it in Settings → Language.",
+    "ru": "Если это неверно, владелец может изменить это в Настройки → Язык.",
+    "de": "Falls das falsch ist, kann der Eigentümer es unter Einstellungen → Sprache ändern."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-translate-start",
+    "en": "Start from",
+    "ru": "Начать с",
+    "de": "Beginnen mit"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-translate-blank",
+    "en": "Blank scenes",
+    "ru": "Пустые сцены",
+    "de": "Leere Szenen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-translate-blank-desc",
+    "en": "The layout is copied; you write each scene next to the original.",
+    "ru": "Структура копируется; вы пишете каждую часть рядом с оригиналом.",
+    "de": "Der Aufbau wird kopiert; Sie schreiben jeden Teil neben dem Original."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-translate-copy",
+    "en": "Copy of the original text",
+    "ru": "Копия исходного текста",
+    "de": "Kopie des Originaltexts"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-translate-copy-desc",
+    "en": "Every scene starts with the original text for you to overwrite.",
+    "ru": "Каждая часть начинается с исходного текста, который вы перепишете.",
+    "de": "Jeder Teil beginnt mit dem Originaltext zum Überschreiben."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-translate-ai",
+    "en": "AI draft",
+    "ru": "Черновик ИИ",
+    "de": "KI-Entwurf"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-translate-ai-desc",
+    "en": "Pre-fill a draft using your own AI provider, connected in your settings.",
+    "ru": "Заполните черновик с помощью своего ИИ-провайдера, подключённого в настройках.",
+    "de": "Füllen Sie einen Entwurf mit Ihrem eigenen KI-Anbieter vor, verbunden in Ihren Einstellungen."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-translate-ai-ready",
+    "en": "Every scene is drafted in the background with your AI; you review and edit next to the original.",
+    "ru": "Каждая часть переводится в фоне вашим ИИ; вы проверяете и правите рядом с оригиналом.",
+    "de": "Jeder Teil wird im Hintergrund mit Ihrer KI entworfen; Sie prüfen und bearbeiten neben dem Original."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-translate-ai-connect",
+    "en": "Connect an AI provider in your profile",
+    "ru": "Подключите ИИ-провайдера в профиле",
+    "de": "Verbinden Sie einen KI-Anbieter in Ihrem Profil"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-translate-create",
+    "en": "Create translation",
+    "ru": "Создать перевод",
+    "de": "Übersetzung erstellen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-edition-new",
+    "en": "New edition",
+    "ru": "Новое издание",
+    "de": "Neue Edition"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-edition-builder-title",
+    "en": "Build an edition",
+    "ru": "Собрать издание",
+    "de": "Edition zusammenstellen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-edition-builder-desc",
+    "en": "Pick the original or one of its branches wherever alternatives exist. The edition is frozen when you save.",
+    "ru": "Выберите оригинал или одну из веток там, где есть варианты. Издание фиксируется при сохранении.",
+    "de": "Wählen Sie überall, wo es Alternativen gibt, das Original oder einen Zweig. Die Edition wird beim Speichern eingefroren."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-edition-visible",
+    "en": "Visible to readers",
+    "ru": "Видно читателям",
+    "de": "Für Leser sichtbar"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-edition-save",
+    "en": "Save edition",
+    "ru": "Сохранить издание",
+    "de": "Edition speichern"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-media-pending",
+    "en": "waiting for review",
+    "ru": "ждёт проверки",
+    "de": "wartet auf Prüfung"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-media-rejected",
+    "en": "rejected",
+    "ru": "отклонено",
+    "de": "abgelehnt"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-media-audio",
+    "en": "Audio",
+    "ru": "Аудио",
+    "de": "Audio"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-media-video",
+    "en": "Video",
+    "ru": "Видео",
+    "de": "Video"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-ai-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-media-upload-audio",
+    "en": "Upload a narration (audio file)",
+    "ru": "Загрузить озвучку (аудиофайл)",
+    "de": "Vertonung hochladen (Audiodatei)"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-media-no-narration",
+    "en": "The owner hasn't opened this work for narration.",
+    "ru": "Владелец не открыл эту работу для озвучивания.",
+    "de": "Der Eigentümer hat dieses Werk nicht zum Vorlesen freigegeben."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-media-add-video",
+    "en": "Add a video (YouTube / Vimeo link or a file)",
+    "ru": "Добавить видео (ссылка YouTube / Vimeo или файл)",
+    "de": "Video hinzufügen (YouTube-/Vimeo-Link oder Datei)"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-media-add-btn",
+    "en": "Add",
+    "ru": "Добавить",
+    "de": "Hinzufügen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-ai-narrate",
+    "en": "Generate narration with AI",
+    "ru": "Создать озвучку с ИИ",
+    "de": "Vertonung mit KI erzeugen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-ai-start",
+    "en": "Start",
+    "ru": "Начать",
+    "de": "Starten"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-ai-video",
+    "en": "Generate a video with AI (experimental)",
+    "ru": "Создать видео с ИИ (экспериментально)",
+    "de": "Video mit KI erzeugen (experimentell)"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-media-review-hint",
+    "en": "What you add is shown to readers once the team approves it.",
+    "ru": "Добавленное вами увидят читатели после одобрения командой.",
+    "de": "Was Sie hinzufügen, sehen Leser, sobald das Team es freigibt."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-media-close",
+    "en": "Close",
+    "ru": "Закрыть",
+    "de": "Schließen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-media-add-own",
+    "en": "Add your own: narration · video",
+    "ru": "Добавьте своё: озвучка · видео",
+    "de": "Eigenes hinzufügen: Vertonung · Video"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-ai-draft-label",
+    "en": "Draft this part from the original with AI",
+    "ru": "Черновик этой части по оригиналу с ИИ",
+    "de": "Diesen Teil mit KI aus dem Original entwerfen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-ai-draft-btn",
+    "en": "Draft",
+    "ru": "Черновик",
+    "de": "Entwerfen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-lang-heading",
+    "en": "Language versions",
+    "ru": "Языковые версии",
+    "de": "Sprachversionen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-lang-original",
+    "en": "Original",
+    "ru": "Оригинал",
+    "de": "Original"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-lang-official",
+    "en": "Official translation",
+    "ru": "Официальный перевод",
+    "de": "Offizielle Übersetzung"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-lang-community",
+    "en": "Community translation",
+    "ru": "Перевод сообщества",
+    "de": "Community-Übersetzung"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-lang-draft",
+    "en": "draft",
+    "ru": "черновик",
+    "de": "Entwurf"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-lang-stale",
+    "en": "out of date",
+    "ru": "устарело",
+    "de": "veraltet"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-lang-translate",
+    "en": "Translate this comic…",
+    "ru": "Перевести комикс…",
+    "de": "Comic übersetzen…"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-translate-title",
+    "en": "Translate this comic",
+    "ru": "Перевести комикс",
+    "de": "Comic übersetzen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-translate-desc",
+    "en": "The translation becomes its own comic that you own, linked to the original issue by issue. It stays a draft until you publish it.",
+    "ru": "Перевод станет отдельной работой, которой владеете вы, связанной с оригиналом по частям. Он остаётся черновиком, пока вы его не опубликуете.",
+    "de": "Die Übersetzung wird ein eigenes Werk in Ihrem Besitz, Teil für Teil mit dem Original verknüpft. Sie bleibt ein Entwurf, bis Sie sie veröffentlichen."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-translate-language",
+    "en": "Translate into",
+    "ru": "Перевести на",
+    "de": "Übersetzen in"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-translate-source-lang",
+    "en": "This comic is marked as written in",
+    "ru": "Указанный язык оригинала:",
+    "de": "Als Sprache des Originals angegeben:"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-translate-source-lang-hint",
+    "en": "If that's wrong, the owner can change it in Settings → Language.",
+    "ru": "Если это неверно, владелец может изменить это в Настройки → Язык.",
+    "de": "Falls das falsch ist, kann der Eigentümer es unter Einstellungen → Sprache ändern."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-translate-start",
+    "en": "Start from",
+    "ru": "Начать с",
+    "de": "Beginnen mit"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-translate-blank",
+    "en": "Blank issues",
+    "ru": "Пустые выпуски",
+    "de": "Leere Ausgaben"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-translate-blank-desc",
+    "en": "The layout is copied; you write each issue next to the original.",
+    "ru": "Структура копируется; вы пишете каждую часть рядом с оригиналом.",
+    "de": "Der Aufbau wird kopiert; Sie schreiben jeden Teil neben dem Original."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-translate-copy",
+    "en": "Copy of the original text",
+    "ru": "Копия исходного текста",
+    "de": "Kopie des Originaltexts"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-translate-copy-desc",
+    "en": "Every issue starts with the original text for you to overwrite.",
+    "ru": "Каждая часть начинается с исходного текста, который вы перепишете.",
+    "de": "Jeder Teil beginnt mit dem Originaltext zum Überschreiben."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-translate-ai",
+    "en": "AI draft",
+    "ru": "Черновик ИИ",
+    "de": "KI-Entwurf"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-translate-ai-desc",
+    "en": "Pre-fill a draft using your own AI provider, connected in your settings.",
+    "ru": "Заполните черновик с помощью своего ИИ-провайдера, подключённого в настройках.",
+    "de": "Füllen Sie einen Entwurf mit Ihrem eigenen KI-Anbieter vor, verbunden in Ihren Einstellungen."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-translate-ai-ready",
+    "en": "Every issue is drafted in the background with your AI; you review and edit next to the original.",
+    "ru": "Каждая часть переводится в фоне вашим ИИ; вы проверяете и правите рядом с оригиналом.",
+    "de": "Jeder Teil wird im Hintergrund mit Ihrer KI entworfen; Sie prüfen und bearbeiten neben dem Original."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-translate-ai-connect",
+    "en": "Connect an AI provider in your profile",
+    "ru": "Подключите ИИ-провайдера в профиле",
+    "de": "Verbinden Sie einen KI-Anbieter in Ihrem Profil"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-translate-create",
+    "en": "Create translation",
+    "ru": "Создать перевод",
+    "de": "Übersetzung erstellen"
   }
 ]

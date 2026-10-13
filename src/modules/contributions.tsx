@@ -39,6 +39,8 @@ export interface ContributionsModuleProps {
   onFilterChange: (filter: "total" | ContributionStatus) => void;
   className?: string;
   titleId?: string; // EditableText id for the main heading
+  /** Work / part / text column headings (screenplays, comics); default story wording. */
+  columnLabels?: { idPrefix: string; work: string; part: string; text: string };
 }
 
 const ContributionsModule: React.FC<ContributionsModuleProps> = ({
@@ -47,6 +49,7 @@ const ContributionsModule: React.FC<ContributionsModuleProps> = ({
   onFilterChange,
   className,
   titleId = "contributions-module-heading",
+  columnLabels,
 }) => {
   const filtered =
     currentFilter === "total"
@@ -92,13 +95,25 @@ const ContributionsModule: React.FC<ContributionsModuleProps> = ({
         <TableHeader>
           <TableRow>
             <TableHead>
-              <EditableText id="contrib-story-title-heading">Story title</EditableText>
+              {columnLabels ? (
+                <EditableText id={`${columnLabels.idPrefix}-contrib-story-title-heading`}>{columnLabels.work}</EditableText>
+              ) : (
+                <EditableText id="contrib-story-title-heading">Story title</EditableText>
+              )}
             </TableHead>
             <TableHead>
-              <EditableText id="contrib-chapter-title-heading">Chapter title</EditableText>
+              {columnLabels ? (
+                <EditableText id={`${columnLabels.idPrefix}-contrib-chapter-title-heading`}>{columnLabels.part}</EditableText>
+              ) : (
+                <EditableText id="contrib-chapter-title-heading">Chapter title</EditableText>
+              )}
             </TableHead>
             <TableHead>
-              <EditableText id="contrib-paragraph-heading">Paragraph</EditableText>
+              {columnLabels ? (
+                <EditableText id={`${columnLabels.idPrefix}-contrib-paragraph-heading`}>{columnLabels.text}</EditableText>
+              ) : (
+                <EditableText id="contrib-paragraph-heading">Paragraph</EditableText>
+              )}
             </TableHead>
             <TableHead>
               <EditableText id="contrib-user-heading">User</EditableText>

@@ -113,6 +113,18 @@ export default defineConfig(({ mode }) => ({
         target: "http://localhost:4000",
         changeOrigin: true,
       },
+      "/screenplay-editions": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/comic-editions": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/work-media": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
       "/users": {
         target: "http://localhost:4000",
         changeOrigin: true,

@@ -1,4 +1,5 @@
 import { API_BASE, ApiError } from "./apiBase";
+import type { StoryTranslations } from "./translationsApi";
 
 // Story-page controls for screenplays and comics (backend/src/workRoutes.js):
 // settings, people, access rules, clone, delete and collaboration requests.
@@ -218,3 +219,141 @@ export const listWorkProposals = (kind: WorkKind, id: string, status?: WorkPropo
 /** Same approve/decline routes as story proposals. */
 export const decideProposal = (proposalId: string, approve: boolean) =>
   workRequest<void>(`/proposals/${proposalId}/${approve ? "approve" : "decline"}`, json("POST", {}));
+
+// --- Editions -----------------------------------------------------------------
+
+export interface WorkEditionSummary {
+  id: string;
+  name: string;
+  description: string | null;
+  status: "draft" | "published";
+  created_by: string | null;
+  creator_name: string | null;
+  branch_count: number;
+  is_mine: boolean;
+  created_at: string;
+}
+
+/** One frozen part: a scene (blocks) or an issue (pages). */
+export interface WorkEditionPart<S> {
+  position: number;
+  part_id: string | null;
+  title: string;
+  selections: Record<string, string>;
+  snapshot: S[];
+}
+
+export interface WorkEdition<S> extends WorkEditionSummary {
+  can_manage: boolean;
+  parts: WorkEditionPart<S>[];
+}
+
+const editionPath = (kind: WorkKind, editionId: string) =>
+  `/${kind === "comic" ? "comic" : "screenplay"}-editions/${editionId}`;
+
+export const listWorkEditions = (kind: WorkKind, id: string) =>
+  workRequest<WorkEditionSummary[]>(`${workPath(kind, id)}/editions`);
+
+export const getWorkEdition = <S>(kind: WorkKind, editionId: string) =>
+  workRequest<WorkEdition<S>>(editionPath(kind, editionId));
+
+/** selections: { partId: { blockId|pageId: branchId } } */
+export const createWorkEdition = (
+  kind: WorkKind,
+  id: string,
+  data: { name: string; status: "draft" | "published"; selections: Record<string, Record<string, string>> },
+) => workRequest<WorkEditionSummary>(`${workPath(kind, id)}/editions`, json("POST", data));
+
+export const updateWorkEdition = (
+  kind: WorkKind,
+  editionId: string,
+  data: Partial<{ name: string; status: "draft" | "published"; selections: Record<string, Record<string, string>> }>,
+) => workRequest<WorkEditionSummary>(editionPath(kind, editionId), json("PATCH", data));
+
+export const deleteWorkEdition = (kind: WorkKind, editionId: string) =>
+  workRequest<void>(editionPath(kind, editionId), json("DELETE"));
+
+// --- Translations ---------------------------------------------------------------
+
+export const fetchWorkTranslations = (kind: WorkKind, id: string) =>
+  workRequest<StoryTranslations>(`${workPath(kind, id)}/translations`);
+
+export const createWorkTranslation = (
+  kind: WorkKind,
+  id: string,
+  data: { language: string; start: "blank" | "copy" | "ai"; connectionId?: string },
+) => workRequest<{ id: string; ai_error?: string }>(`${workPath(kind, id)}/translations`, json("POST", data));
+
+export const setWorkOfficialTranslation = (kind: WorkKind, id: string, official: boolean) =>
+  workRequest<unknown>(`${workPath(kind, id)}/official`, json("PATCH", { official }));
+
+// --- Media (audio / video of a scene or issue) ----------------------------------
+
+export type WorkPart = { kind: "scene" | "issue"; id: string };
+
+export interface WorkMediaItem {
+  id: string;
+  kind: "audio" | "video";
+  source: "upload" | "embed" | "ai";
+  label: string | null;
+  url: string;
+  mime: string | null;
+  status: "pending" | "approved" | "rejected";
+  is_primary: boolean;
+  creator_name: string | null;
+  is_mine: boolean;
+  created_at: string;
+}
+
+const partPath = (part: WorkPart) => `/${part.kind === "scene" ? "screenplay-scenes" : "comic-issues"}/${part.id}`;
+
+export const listPartMedia = (part: WorkPart) =>
+  workRequest<{ items: WorkMediaItem[]; can_moderate: boolean; can_narrate: boolean }>(`${partPath(part)}/media`);
+
+export const uploadPartMedia = (part: WorkPart, type: "audio" | "video", file: File, label?: string) => {
+  const form = new FormData();
+  if (label) form.append("label", label);
+  form.append("file", file);
+  return workRequest<WorkMediaItem>(`${partPath(part)}/media/${type === "audio" ? "audio" : "video-file"}`, {
+    method: "POST",
+    body: form,
+  });
+};
+
+export const embedPartVideo = (part: WorkPart, url: string, label?: string) =>
+  workRequest<WorkMediaItem>(`${partPath(part)}/media/embed`, json("POST", { url, label }));
+
+export const updateWorkMedia = (mediaId: string, patch: { status?: string; isPrimary?: boolean; label?: string | null }) =>
+  workRequest<WorkMediaItem>(`/work-media/${mediaId}`, json("PATCH", patch));
+
+export const deleteWorkMedia = (mediaId: string) => workRequest<void>(`/work-media/${mediaId}`, json("DELETE"));
+
+export const fetchWorkMediaSummary = (kind: WorkKind, id: string) =>
+  workRequest<Record<string, { audio?: number; video?: number }>>(`${workPath(kind, id)}/media-summary`);
+
+// --- AI -------------------------------------------------------------------------
+
+export const aiNarratePart = (part: WorkPart, data: { connectionId: string; voice?: string; label?: string }) =>
+  workRequest<unknown>(`${partPath(part)}/ai/narrate`, json("POST", data));
+
+export const aiVideoPart = (part: WorkPart, data: { connectionId: string; prompt: string; seconds: number; label?: string }) =>
+  workRequest<unknown>(`${partPath(part)}/ai/video`, json("POST", data));
+
+export const aiTranslatePart = (part: WorkPart, connectionId: string) =>
+  workRequest<unknown>(`${partPath(part)}/ai/translate`, json("POST", { connectionId }));
+
+export interface WorkAiJob {
+  id: string;
+  kind: string;
+  status: "queued" | "running" | "succeeded" | "failed" | "cancelled";
+  error: string | null;
+  part_id: string | null;
+  progress: number | null;
+  is_mine: boolean;
+  created_at: string;
+}
+
+export const listWorkAiJobs = (kind: WorkKind, id: string) => workRequest<WorkAiJob[]>(`${workPath(kind, id)}/ai-jobs`);
+
+/** Same cancel route as story jobs (it only checks the job is yours and queued). */
+export const cancelWorkAiJob = (jobId: string) => workRequest<unknown>(`/stories/ai-jobs/${jobId}/cancel`, json("POST", {}));

@@ -19,6 +19,11 @@ interface LanguageSwitcherProps {
   translations: StoryTranslations | null;
   onTranslate: () => void;
   onToggleOfficial: (storyTitleId: string, official: boolean) => void;
+  /** Where a version opens; screenplays and comics pass their own page path. */
+  versionPath?: (id: string) => string;
+  /** EditableText id prefix and the work's name, for screenplays and comics. */
+  idPrefix?: string;
+  noun?: string;
 }
 
 export function useLocales() {
@@ -47,6 +52,9 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
   translations,
   onTranslate,
   onToggleOfficial,
+  versionPath = (id) => `/story/${id}`,
+  idPrefix = "story",
+  noun = "story",
 }) => {
   const navigate = useNavigate();
   const locales = useLocales();
@@ -69,7 +77,7 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-80">
         <DropdownMenuLabel className="text-xs text-gray-500 font-medium">
-          <EditableText id="story-lang-heading">Language versions</EditableText>
+          <EditableText id={`${idPrefix}-lang-heading`}>Language versions</EditableText>
         </DropdownMenuLabel>
         {versions.map((v) => {
           const isCurrent = v.story_title_id === storyTitleId;
@@ -77,7 +85,7 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
           return (
             <DropdownMenuItem
               key={v.story_title_id}
-              onSelect={() => !isCurrent && navigate(`/story/${v.story_title_id}`)}
+              onSelect={() => !isCurrent && navigate(versionPath(v.story_title_id))}
               className={cn("flex items-start gap-2", isCurrent && "bg-purple-50")}
             >
               <span className="w-4 pt-0.5">{isCurrent && <Check className="h-3.5 w-3.5 text-purple-700" />}</span>
@@ -88,23 +96,23 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
                 </span>
                 <span className="block text-[11px] text-gray-500">
                   {v.is_original ? (
-                    <EditableText id="story-lang-original">Original</EditableText>
+                    <EditableText id={`${idPrefix}-lang-original`}>Original</EditableText>
                   ) : v.is_official ? (
-                    <EditableText id="story-lang-official">Official translation</EditableText>
+                    <EditableText id={`${idPrefix}-lang-official`}>Official translation</EditableText>
                   ) : (
-                    <EditableText id="story-lang-community">Community translation</EditableText>
+                    <EditableText id={`${idPrefix}-lang-community`}>Community translation</EditableText>
                   )}
                   {!v.is_original && ` · ${pct}%`}
                   {!v.published && (
                     <>
                       {" · "}
-                      <EditableText id="story-lang-draft">draft</EditableText>
+                      <EditableText id={`${idPrefix}-lang-draft`}>draft</EditableText>
                     </>
                   )}
                   {v.is_mine && v.stale_count > 0 && (
                     <span className="text-amber-700">
                       {` · ${v.stale_count} `}
-                      <EditableText id="story-lang-stale">out of date</EditableText>
+                      <EditableText id={`${idPrefix}-lang-stale`}>out of date</EditableText>
                     </span>
                   )}
                   {v.creator_name && !v.is_original && ` · ${v.creator_name}`}
@@ -132,7 +140,7 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
             <DropdownMenuSeparator />
             <DropdownMenuItem onSelect={onTranslate}>
               <Languages className="h-3.5 w-3.5 mr-2" />
-              <EditableText id="story-lang-translate">Translate this story…</EditableText>
+              <EditableText id={`${idPrefix}-lang-translate`}>{`Translate this ${noun}…`}</EditableText>
             </DropdownMenuItem>
           </>
         )}

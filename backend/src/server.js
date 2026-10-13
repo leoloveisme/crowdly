@@ -31,6 +31,8 @@ import galleryRouter, { ensureStoryGalleryImagesTable, UPLOADS_ROOT } from './ga
 import comicsRouter, { ensureComicTables } from './comics.js';
 import { createWorkRouter } from './workRoutes.js';
 import workContributionsRouter, { decideWorkProposal } from './workContributions.js';
+import workEditionsRouter from './workEditions.js';
+import workMediaRouter from './workMedia.js';
 import {
   canView as canViewWork,
   isOwner as isWorkOwner,
@@ -193,6 +195,8 @@ app.use(galleryRouter);
 app.use(createWorkRouter('screenplay'));
 app.use(createWorkRouter('comic'));
 app.use(workContributionsRouter);
+app.use(workEditionsRouter);
+app.use(workMediaRouter);
 app.use(comicsRouter);
 app.use(translationsRouter);
 app.use(editionsRouter);

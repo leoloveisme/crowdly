@@ -7,6 +7,7 @@ import { pool } from '../db.js';
 import { storeBuffer, newKey, removeStoredFile } from '../storage.js';
 import { decryptSecret } from '../secrets.js';
 import { loadStory, isStoryTeam } from '../storyAccess.js';
+import { loadWork, isTeam as isWorkTeam } from '../workAccess.js';
 import {
   ProviderError,
   translateChapter,
@@ -24,12 +25,27 @@ const POLL_MS = 3000;
 const MAX_ATTEMPTS = 3;
 export const MAX_OPEN_JOBS_PER_USER = 200;
 
-/** Queue a job. Returns the new row. */
-export async function enqueueJob(db, { userId, connectionId, kind, storyTitleId, chapterId, params = {} }) {
+/**
+ * Queue a job. Returns the new row. Story jobs pass storyTitleId/chapterId;
+ * screenplay and comic jobs pass work: { screenplayId, sceneId } or
+ * { comicId, issueId }.
+ */
+export async function enqueueJob(db, { userId, connectionId, kind, storyTitleId = null, chapterId = null, work = {}, params = {} }) {
   const { rows } = await db.query(
-    `INSERT INTO ai_jobs (user_id, connection_id, kind, story_title_id, chapter_id, params)
-     VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-    [userId, connectionId, kind, storyTitleId, chapterId, JSON.stringify(params)],
+    `INSERT INTO ai_jobs (user_id, connection_id, kind, story_title_id, chapter_id, screenplay_id, scene_id, comic_id, comic_issue_id, params)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+    [
+      userId,
+      connectionId,
+      kind,
+      storyTitleId,
+      chapterId,
+      work.screenplayId ?? null,
+      work.sceneId ?? null,
+      work.comicId ?? null,
+      work.issueId ?? null,
+      JSON.stringify(params),
+    ],
   );
   return rows[0];
 }
@@ -337,11 +353,218 @@ async function runVideoChapter(job) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Screenplay scenes and comic issues
+// ---------------------------------------------------------------------------
+
+async function workLanguages(kind, targetId, sourceId) {
+  const [target, source] = await Promise.all([loadWork(pool, kind, targetId), loadWork(pool, kind, sourceId)]);
+  return Promise.all([languageName(source?.language), languageName(target?.language)]);
+}
+
+// Translation draft of one scene: the source scene's heading and elements,
+// written into the translated scene's elements in the same order.
+async function runTranslateScene(job) {
+  const { connection, apiKey } = await loadConnection(job);
+  const { rows } = await pool.query(
+    `SELECT s.scene_id, s.screenplay_id, s.slugline, src.scene_id AS src_id, src.slugline AS src_slugline,
+            src.screenplay_id AS src_screenplay_id
+       FROM screenplay_scene s JOIN screenplay_scene src ON src.scene_id = s.source_scene_id
+      WHERE s.scene_id = $1`,
+    [job.scene_id],
+  );
+  if (rows.length === 0) throw new ProviderError('This scene is not a translation of another scene');
+  const scene = rows[0];
+  const [srcBlocks, blocks] = await Promise.all([
+    pool.query('SELECT text FROM screenplay_block WHERE scene_id = $1 ORDER BY block_index', [scene.src_id]),
+    pool.query('SELECT block_id, text FROM screenplay_block WHERE scene_id = $1 ORDER BY block_index', [scene.scene_id]),
+  ]);
+  // Only non-empty elements are sent; results map back by position.
+  const filled = srcBlocks.rows.map((b, i) => ({ i, text: b.text })).filter((b) => b.text.trim());
+  const [from, to] = await workLanguages('screenplay', scene.screenplay_id, scene.src_screenplay_id);
+  const result = await translateChapter(connection, apiKey, { title: scene.src_slugline ?? '', paragraphs: filled.map((b) => b.text) }, from, to);
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('UPDATE screenplay_scene SET slugline = $1, source_synced_at = now(), updated_at = now() WHERE scene_id = $2', [
+      result.title || scene.src_slugline || scene.slugline,
+      scene.scene_id,
+    ]);
+    for (let n = 0; n < filled.length; n += 1) {
+      const target = blocks.rows[filled[n].i];
+      if (target && typeof result.paragraphs[n] === 'string') {
+        await client.query('UPDATE screenplay_block SET text = $1, updated_at = now() WHERE block_id = $2', [
+          result.paragraphs[n],
+          target.block_id,
+        ]);
+      }
+    }
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw err;
+  } finally {
+    client.release();
+  }
+  return { provider: connection.provider, elements: filled.length };
+}
+
+// Translation draft of one issue: its title and every text layer of its
+// pages, written back into the translated pages' layers (same positions).
+async function runTranslateIssue(job) {
+  const { connection, apiKey } = await loadConnection(job);
+  const { rows } = await pool.query(
+    `SELECT i.issue_id, i.comic_id, i.title, src.issue_id AS src_id, src.title AS src_title, src.comic_id AS src_comic_id
+       FROM comic_issue i JOIN comic_issue src ON src.issue_id = i.source_issue_id
+      WHERE i.issue_id = $1`,
+    [job.comic_issue_id],
+  );
+  if (rows.length === 0) throw new ProviderError('This issue is not a translation of another issue');
+  const issue = rows[0];
+  const pages = await pool.query(
+    `SELECT p.page_id, src.overlays AS src_overlays
+       FROM comic_page p JOIN comic_page src ON src.page_id = p.source_page_id
+      WHERE p.issue_id = $1 ORDER BY p.page_index`,
+    [issue.issue_id],
+  );
+  const texts = [];
+  for (const page of pages.rows) {
+    (page.src_overlays ?? []).forEach((o, k) => {
+      if (String(o.text ?? '').trim()) texts.push({ pageId: page.page_id, k, text: o.text });
+    });
+  }
+  const [from, to] = await workLanguages('comic', issue.comic_id, issue.src_comic_id);
+  const result = await translateChapter(connection, apiKey, { title: issue.src_title ?? '', paragraphs: texts.map((t) => t.text) }, from, to);
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('UPDATE comic_issue SET title = $1, updated_at = now() WHERE issue_id = $2', [
+      result.title || issue.src_title || issue.title,
+      issue.issue_id,
+    ]);
+    for (const page of pages.rows) {
+      const overlays = (page.src_overlays ?? []).map((o, k) => {
+        const n = texts.findIndex((t) => t.pageId === page.page_id && t.k === k);
+        return { ...o, text: n === -1 ? o.text : result.paragraphs[n] ?? '' };
+      });
+      await client.query('UPDATE comic_page SET overlays = $1 WHERE page_id = $2', [JSON.stringify(overlays), page.page_id]);
+    }
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw err;
+  } finally {
+    client.release();
+  }
+  return { provider: connection.provider, texts: texts.length };
+}
+
+// What a scene or issue reads aloud: a scene's elements (character names
+// announce their dialogue), or an issue's text layers in page order.
+async function narrationText(job) {
+  if (job.scene_id) {
+    const { rows } = await pool.query(
+      'SELECT block_type, text FROM screenplay_block WHERE scene_id = $1 ORDER BY block_index',
+      [job.scene_id],
+    );
+    const paragraphs = [];
+    for (const b of rows) {
+      const text = b.text.trim();
+      if (!text || b.block_type === 'transition') continue;
+      if (b.block_type === 'character') paragraphs.push(`${text}:`);
+      else if (b.block_type === 'parenthetical') continue;
+      else paragraphs.push(text);
+    }
+    return paragraphs;
+  }
+  const { rows } = await pool.query('SELECT overlays FROM comic_page WHERE issue_id = $1 ORDER BY page_index', [job.comic_issue_id]);
+  return rows.flatMap((r) => (r.overlays ?? []).map((o) => String(o.text ?? '').trim()).filter(Boolean));
+}
+
+const workParent = (job) =>
+  job.scene_id
+    ? { kind: 'screenplay', workId: job.screenplay_id, columns: 'screenplay_id, scene_id', values: [job.screenplay_id, job.scene_id] }
+    : { kind: 'comic', workId: job.comic_id, columns: 'comic_id, comic_issue_id', values: [job.comic_id, job.comic_issue_id] };
+
+async function insertWorkMedia(job, { kind, label, saved, mime, bytes, seconds, provider, model }) {
+  const parent = workParent(job);
+  const work = await loadWork(pool, parent.kind, parent.workId);
+  const team = work ? await isWorkTeam(pool, parent.kind, work, job.user_id) : false;
+  try {
+    const { rows } = await pool.query(
+      `INSERT INTO chapter_media
+         (${parent.columns}, kind, source, label, url, mime, size_bytes, duration_seconds, status, created_by, ai_provider, ai_model)
+       VALUES ($1, $2, $3, 'ai', $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id`,
+      [...parent.values, kind, label, saved.url, mime, bytes, seconds ?? null, team ? 'approved' : 'pending', job.user_id, provider, model ?? null],
+    );
+    return rows[0].id;
+  } catch (err) {
+    saved.remove();
+    throw err;
+  }
+}
+
+async function runTtsWork(job) {
+  const { connection, apiKey } = await loadConnection(job);
+  const params = job.params ?? {};
+  const paragraphs = await narrationText(job);
+  if (paragraphs.length === 0) throw new ProviderError('There is no text to narrate yet');
+  const audio = await synthesizeSpeech(connection, apiKey, paragraphs, { voice: params.voice, model: params.model });
+  const saved = await saveMediaFile(workParent(job).workId, audio.buffer, audio.ext, audio.mime);
+  const mediaId = await insertWorkMedia(job, {
+    kind: 'audio',
+    label: params.label || `AI narration (${PROVIDERS[connection.provider].label} · ${audio.voice})`,
+    saved,
+    mime: audio.mime,
+    bytes: audio.buffer.length,
+    provider: connection.provider,
+    model: audio.model,
+  });
+  return { mediaId, bytes: audio.buffer.length };
+}
+
+async function runVideoWork(job) {
+  const params = job.params ?? {};
+  const { connection, apiKey } = await loadConnection(job);
+  if (!params.providerJobId) {
+    const started = await startVideo(connection, apiKey, { prompt: params.prompt, seconds: params.seconds || 8 });
+    await saveParams(job, { providerJobId: started.providerJobId, model: started.model, submittedAt: new Date().toISOString() });
+    return { defer: VIDEO_POLL_SECONDS, progress: 0 };
+  }
+  const status = await checkVideo(connection, apiKey, params.providerJobId);
+  if (status.state === 'failed') throw new ProviderError(status.error);
+  if (status.state === 'pending') {
+    if (Date.now() - new Date(params.submittedAt).getTime() > VIDEO_TIMEOUT_MINUTES * 60_000) {
+      throw new ProviderError('The video took too long to generate');
+    }
+    return { defer: VIDEO_POLL_SECONDS, progress: status.progress };
+  }
+  const video = await downloadVideo(connection, apiKey, params.providerJobId);
+  const saved = await saveMediaFile(workParent(job).workId, video.buffer, video.ext, video.mime);
+  const mediaId = await insertWorkMedia(job, {
+    kind: 'video',
+    label: params.label || 'AI video',
+    saved,
+    mime: video.mime,
+    bytes: video.buffer.length,
+    seconds: Number(params.seconds) || null,
+    provider: connection.provider,
+    model: params.model,
+  });
+  return { mediaId, bytes: video.buffer.length };
+}
+
 const HANDLERS = {
   translate_chapter: runTranslateChapter,
   tts_chapter: runTtsChapter,
   comic_frames: runComicFrames,
   video_chapter: runVideoChapter,
+  translate_scene: runTranslateScene,
+  translate_issue: runTranslateIssue,
+  tts_scene: runTtsWork,
+  tts_issue: runTtsWork,
+  video_scene: runVideoWork,
+  video_issue: runVideoWork,
 };
 
 // ---------------------------------------------------------------------------

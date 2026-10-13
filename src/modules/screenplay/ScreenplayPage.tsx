@@ -13,6 +13,10 @@ import WorkSummary from "@/components/work/WorkSummary";
 import WorkContributeSection from "@/components/work/WorkContributeSection";
 import { WorkContributorsList, WorkTabs, type WorkTab } from "@/components/work/WorkTabs";
 import WorkContributionsTab from "@/components/work/WorkContributionsTab";
+import WorkEditionsBar, { type EditionChoicePart } from "@/components/work/WorkEditionsBar";
+import WorkMediaPanel from "@/components/work/WorkMediaPanel";
+import { AiDraftButton, WorkLanguage } from "@/components/work/WorkLanguage";
+import { useAiConnections } from "@/lib/aiApi";
 import InteractionsWidget from "@/modules/InteractionsWidget";
 import CollaborationRequestsPanel from "@/modules/CollaborationRequestsPanel";
 import { ExportDialog } from "@/modules/import-export";
@@ -22,9 +26,11 @@ import { ApiError, errorMessage } from "@/lib/apiBase";
 import {
   createWorkProposal,
   getWorkAccess,
+  getWorkEdition,
   listWorkProposals,
   updateWorkSettings,
   type WorkAccess,
+  type WorkEdition,
   type WorkProposal,
 } from "@/lib/workApi";
 import {
@@ -94,6 +100,9 @@ const ScreenplayPage: React.FC<ScreenplayPageProps> = ({ screenplayId, sceneId }
   const [mobileScenesOpen, setMobileScenesOpen] = useState(false);
   const [pendingProposals, setPendingProposals] = useState<WorkProposal[]>([]);
   const [branches, setBranches] = useState<BlockBranch[]>([]);
+  const [editionId, setEditionId] = useState<string | null>(null);
+  const [edition, setEdition] = useState<WorkEdition<{ block_id: string; block_type: string; text: string }> | null>(null);
+  const aiConnections = useAiConnections(!!user);
 
   const isTeam = !!access?.explicit;
   const isOwner = !!access?.isOwner;
@@ -156,6 +165,17 @@ const ScreenplayPage: React.FC<ScreenplayPageProps> = ({ screenplayId, sceneId }
     if (editing) setSidebarMode("edit");
   }, [editing]);
 
+  // Reading an edition shows its frozen text instead of the current one.
+  useEffect(() => {
+    if (!editionId) {
+      setEdition(null);
+      return;
+    }
+    getWorkEdition<{ block_id: string; block_type: string; text: string }>("screenplay", editionId)
+      .then(setEdition)
+      .catch(() => setEdition(null));
+  }, [editionId]);
+
   const sortedScenes = useMemo(
     () => [...scenes].sort((a, b) => (a.scene_index ?? 0) - (b.scene_index ?? 0)),
     [scenes],
@@ -172,6 +192,22 @@ const ScreenplayPage: React.FC<ScreenplayPageProps> = ({ screenplayId, sceneId }
         : [],
     [blocks, currentScene],
   );
+
+  // In Viewing mode with an edition chosen, the scene's frozen elements.
+  const readerBlocks: ScreenplayBlock[] = useMemo(() => {
+    if (!edition || !currentScene) return currentBlocks;
+    const part = edition.parts.find((p) => p.part_id === currentScene.scene_id);
+    if (!part) return currentBlocks;
+    return part.snapshot.map((b, i) => ({
+      block_id: b.block_id,
+      screenplay_id: screenplayId,
+      scene_id: currentScene.scene_id,
+      block_index: i + 1,
+      block_type: b.block_type,
+      text: b.text,
+      metadata: null,
+    }));
+  }, [edition, currentScene, currentBlocks, screenplayId]);
 
   const fail = (err: unknown, fallback: string) =>
     toast({ title: "Error", description: errorMessage(err) || fallback, variant: "destructive" });
@@ -461,6 +497,18 @@ const ScreenplayPage: React.FC<ScreenplayPageProps> = ({ screenplayId, sceneId }
     />
   );
 
+  const editionParts: EditionChoicePart[] = sortedScenes.map((scene) => ({
+    id: scene.scene_id,
+    title: scene.slugline,
+    items: blocks
+      .filter((b) => b.scene_id === scene.scene_id)
+      .map((b) => ({
+        id: b.block_id,
+        label: b.text,
+        branches: branches.filter((br) => br.block_id === b.block_id).map((br) => ({ id: br.id, label: br.name ? `${br.name}: ${br.text}` : br.text })),
+      })),
+  }));
+
   const tabs: WorkTab<TabKey>[] = [
     { key: "screenplay", icon: <Film size={18} />, label: <EditableText id="screenplay-tab-screenplay">Screenplay</EditableText> },
     { key: "contributions", icon: <FileText size={18} />, label: <EditableText id="screenplay-tab-contributions">Contributions</EditableText> },
@@ -497,9 +545,17 @@ const ScreenplayPage: React.FC<ScreenplayPageProps> = ({ screenplayId, sceneId }
             onOpenSettings={() => setSettingsOpen(true)}
             onExport={() => setExportOpen(true)}
             extraBadges={
-              formatLabel && (
-                <span className="px-2 py-1 rounded-full text-xs bg-amber-100 text-amber-800">{formatLabel}</span>
-              )
+              <>
+                {formatLabel && (
+                  <span className="px-2 py-1 rounded-full text-xs bg-amber-100 text-amber-800">{formatLabel}</span>
+                )}
+                <WorkLanguage
+                  kind="screenplay"
+                  workId={screenplayId}
+                  language={screenplay.language || "en"}
+                  aiConnections={aiConnections.connections}
+                />
+              </>
             }
           >
             {isOwner && <CollaborationRequestsPanel work={{ kind: "screenplay", id: screenplayId }} onChanged={load} />}
@@ -559,27 +615,50 @@ const ScreenplayPage: React.FC<ScreenplayPageProps> = ({ screenplayId, sceneId }
                   onCloneScene={isTeam ? () => insertScene(currentScene.scene_id, currentScene) : undefined}
                   renderBlockExtras={renderBlockExtras}
                   banner={
-                    suggesting && (
-                      <div className="rounded border border-purple-200 bg-purple-50 px-3 py-2 text-xs text-purple-900">
-                        <EditableText id="screenplay-suggest-banner">
-                          You're suggesting changes: each edit is sent to the owner for review.
-                        </EditableText>
-                      </div>
-                    )
+                    <>
+                      {suggesting && (
+                        <div className="rounded border border-purple-200 bg-purple-50 px-3 py-2 text-xs text-purple-900">
+                          <EditableText id="screenplay-suggest-banner">
+                            You're suggesting changes: each edit is sent to the owner for review.
+                          </EditableText>
+                        </div>
+                      )}
+                      {isTeam && screenplay.source_screenplay_id && currentScene && (
+                        <AiDraftButton
+                          kind="screenplay"
+                          part={{ kind: "scene", id: currentScene.scene_id }}
+                          aiConnections={aiConnections.connections}
+                        />
+                      )}
+                    </>
                   }
                 />
               ) : (
+                <>
+                <WorkEditionsBar
+                  kind="screenplay"
+                  workId={screenplayId}
+                  parts={editionParts}
+                  selectedEditionId={editionId}
+                  onSelect={setEditionId}
+                />
                 <ScreenplayReader
                   scene={currentScene}
                   sceneNumber={currentIndex + 1}
                   sceneCount={sortedScenes.length}
-                  blocks={currentBlocks}
+                  blocks={readerBlocks}
                   onPrev={() => currentIndex > 0 && selectScene(sortedScenes[currentIndex - 1].scene_id)}
                   onNext={() =>
                     currentIndex < sortedScenes.length - 1 && selectScene(sortedScenes[currentIndex + 1].scene_id)
                   }
                   renderBlockExtras={renderBlockExtras}
                 >
+                  <WorkMediaPanel
+                    kind="screenplay"
+                    workId={screenplayId}
+                    part={{ kind: "scene", id: currentScene.scene_id }}
+                    aiConnections={aiConnections.connections}
+                  />
                   <InteractionsWidget
                     kind="scene"
                     screenplayId={screenplayId}
@@ -587,6 +666,7 @@ const ScreenplayPage: React.FC<ScreenplayPageProps> = ({ screenplayId, sceneId }
                     label="Scene comments"
                   />
                 </ScreenplayReader>
+                </>
               )}
 
               {!isTeam && !editing && (

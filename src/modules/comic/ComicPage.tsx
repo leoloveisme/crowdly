@@ -13,6 +13,10 @@ import WorkSummary from "@/components/work/WorkSummary";
 import WorkContributeSection from "@/components/work/WorkContributeSection";
 import { WorkContributorsList, WorkTabs, type WorkTab } from "@/components/work/WorkTabs";
 import WorkContributionsTab from "@/components/work/WorkContributionsTab";
+import WorkEditionsBar, { type EditionChoicePart } from "@/components/work/WorkEditionsBar";
+import WorkMediaPanel from "@/components/work/WorkMediaPanel";
+import { AiDraftButton, WorkLanguage } from "@/components/work/WorkLanguage";
+import { useAiConnections } from "@/lib/aiApi";
 import InteractionsWidget from "@/modules/InteractionsWidget";
 import CollaborationRequestsPanel from "@/modules/CollaborationRequestsPanel";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,9 +25,11 @@ import { ApiError, errorMessage } from "@/lib/apiBase";
 import {
   createWorkProposal,
   getWorkAccess,
+  getWorkEdition,
   listWorkProposals,
   updateWorkSettings,
   type WorkAccess,
+  type WorkEdition,
   type WorkProposal,
 } from "@/lib/workApi";
 import type { FrameOverlay } from "@/lib/mediaApi";
@@ -56,6 +62,9 @@ import TextLayerEditor from "./TextLayerEditor";
 
 type TabKey = "comic" | "contributions" | "contributors" | "revisions" | "branches";
 
+/** A page as frozen in an edition. */
+type EditionPage = { page_id: string; image_url: string; overlays: FrameOverlay[]; alt_text: string | null };
+
 const ISSUE_LABELS = sidebarLabelsFor("comic", "issue", "issues");
 
 interface ComicPageProps {
@@ -86,6 +95,9 @@ const ComicPage: React.FC<ComicPageProps> = ({ comicId, issueId }) => {
   const [uploading, setUploading] = useState(false);
   const [branches, setBranches] = useState<ComicPageBranch[]>([]);
   const [pendingProposals, setPendingProposals] = useState<WorkProposal[]>([]);
+  const [editionId, setEditionId] = useState<string | null>(null);
+  const [edition, setEdition] = useState<WorkEdition<EditionPage> | null>(null);
+  const aiConnections = useAiConnections(!!user);
   // The page (or page alternative) whose text layers are being edited.
   const [layersTarget, setLayersTarget] = useState<
     { type: "page"; page: ComicPageRow } | { type: "branch"; branch: ComicPageBranch } | null
@@ -147,6 +159,17 @@ const ComicPage: React.FC<ComicPageProps> = ({ comicId, issueId }) => {
     if (editing) setSidebarMode("edit");
   }, [editing]);
 
+  // Reading an edition shows its frozen pages instead of the current ones.
+  useEffect(() => {
+    if (!editionId) {
+      setEdition(null);
+      return;
+    }
+    getWorkEdition<EditionPage>("comic", editionId)
+      .then(setEdition)
+      .catch(() => setEdition(null));
+  }, [editionId]);
+
   const issues = useMemo(
     () => [...(comic?.issues ?? [])].sort((a, b) => a.issue_index - b.issue_index),
     [comic?.issues],
@@ -165,6 +188,24 @@ const ComicPage: React.FC<ComicPageProps> = ({ comicId, issueId }) => {
         : [],
     [comic?.pages, currentIssue],
   );
+
+  const readerPages: ComicPageRow[] = useMemo(() => {
+    if (!edition || !currentIssue) return currentPages;
+    const part = edition.parts.find((p) => p.part_id === currentIssue.issue_id);
+    if (!part) return currentPages;
+    return part.snapshot.map((pg, i) => ({
+      page_id: pg.page_id,
+      comic_id: comicId,
+      issue_id: currentIssue.issue_id,
+      page_index: i,
+      image_url: pg.image_url,
+      overlays: pg.overlays ?? [],
+      alt_text: pg.alt_text,
+      width: null,
+      height: null,
+      created_at: "",
+    }));
+  }, [edition, currentIssue, currentPages, comicId]);
 
   const fail = (err: unknown, fallback: string) =>
     toast({ title: "Error", description: errorMessage(err) || fallback, variant: "destructive" });
@@ -434,6 +475,21 @@ const ComicPage: React.FC<ComicPageProps> = ({ comicId, issueId }) => {
     />
   );
 
+  const editionParts: EditionChoicePart[] = issues.map((issue) => ({
+    id: issue.issue_id,
+    title: issue.title,
+    items: comic.pages
+      .filter((pg) => pg.issue_id === issue.issue_id)
+      .sort((a, b) => a.page_index - b.page_index)
+      .map((pg, i) => ({
+        id: pg.page_id,
+        label: `Page ${i + 1}`,
+        branches: branches
+          .filter((b) => b.page_id === pg.page_id)
+          .map((b, n) => ({ id: b.id, label: b.name || `Alternative ${n + 1} (${b.author_email ?? ""})` })),
+      })),
+  }));
+
   const tabs: WorkTab<TabKey>[] = [
     { key: "comic", icon: <BookImage size={18} />, label: <EditableText id="comic-tab-comic">Comic</EditableText> },
     { key: "contributions", icon: <FileText size={18} />, label: <EditableText id="comic-tab-contributions">Contributions</EditableText> },
@@ -470,13 +526,21 @@ const ComicPage: React.FC<ComicPageProps> = ({ comicId, issueId }) => {
             onOpenSettings={() => setSettingsOpen(true)}
             onExport={() => setExportOpen(true)}
             extraBadges={
-              <span className="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-800">
-                {isRtl ? (
-                  <EditableText id="comic-reader-rtl-badge">Right to left</EditableText>
-                ) : (
-                  <EditableText id="comic-reader-ltr-badge">Left to right</EditableText>
-                )}
-              </span>
+              <>
+                <span className="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-800">
+                  {isRtl ? (
+                    <EditableText id="comic-reader-rtl-badge">Right to left</EditableText>
+                  ) : (
+                    <EditableText id="comic-reader-ltr-badge">Left to right</EditableText>
+                  )}
+                </span>
+                <WorkLanguage
+                  kind="comic"
+                  workId={comicId}
+                  language={comic.language || "en"}
+                  aiConnections={aiConnections.connections}
+                />
+              </>
             }
           >
             {isOwner && <CollaborationRequestsPanel work={{ kind: "comic", id: comicId }} onChanged={load} />}
@@ -534,19 +598,35 @@ const ComicPage: React.FC<ComicPageProps> = ({ comicId, issueId }) => {
                   onEditLayers={(page) => setLayersTarget({ type: "page", page })}
                   renderPageExtras={(page) => renderPageExtras(page)}
                   banner={
-                    suggesting && (
-                      <div className="rounded border border-purple-200 bg-purple-50 px-3 py-2 text-xs text-purple-900">
-                        <EditableText id="comic-suggest-banner">
-                          You're suggesting changes: page text you edit is sent to the owner for review.
-                        </EditableText>
-                      </div>
-                    )
+                    <>
+                      {suggesting && (
+                        <div className="rounded border border-purple-200 bg-purple-50 px-3 py-2 text-xs text-purple-900">
+                          <EditableText id="comic-suggest-banner">
+                            You're suggesting changes: page text you edit is sent to the owner for review.
+                          </EditableText>
+                        </div>
+                      )}
+                      {isTeam && comic.source_comic_id && (
+                        <AiDraftButton
+                          kind="comic"
+                          part={{ kind: "issue", id: currentIssue.issue_id }}
+                          aiConnections={aiConnections.connections}
+                        />
+                      )}
+                    </>
                   }
                 />
               ) : (
                 <>
+                  <WorkEditionsBar
+                    kind="comic"
+                    workId={comicId}
+                    parts={editionParts}
+                    selectedEditionId={editionId}
+                    onSelect={setEditionId}
+                  />
                   <ComicReader
-                    pages={currentPages}
+                    pages={readerPages}
                     isRtl={isRtl}
                     resetKey={currentIssue.issue_id}
                     renderPageExtras={renderPageExtras}
@@ -571,6 +651,12 @@ const ComicPage: React.FC<ComicPageProps> = ({ comicId, issueId }) => {
                       </button>
                     </div>
                   )}
+                  <WorkMediaPanel
+                    kind="comic"
+                    workId={comicId}
+                    part={{ kind: "issue", id: currentIssue.issue_id }}
+                    aiConnections={aiConnections.connections}
+                  />
                   <InteractionsWidget
                     kind="issue"
                     comicId={comicId}

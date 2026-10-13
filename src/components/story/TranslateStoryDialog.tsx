@@ -24,6 +24,14 @@ interface TranslateStoryDialogProps {
   /** The user's AI connections that can translate (empty = AI draft unavailable). */
   aiConnections: AiConnection[];
   onCreate: (language: string, start: Start, connectionId?: string) => Promise<void>;
+  /**
+   * For screenplays and comics: EditableText ids become `${idPrefix}-translate-*`
+   * and the texts name the work (`noun`) and its parts (`part` / `parts`).
+   */
+  idPrefix?: string;
+  noun?: string;
+  part?: string;
+  parts?: string;
 }
 
 const StartOption: React.FC<{
@@ -55,6 +63,10 @@ const TranslateStoryDialog: React.FC<TranslateStoryDialogProps> = ({
   sourceLanguage,
   aiConnections,
   onCreate,
+  idPrefix = "story",
+  noun = "story",
+  part = "chapter",
+  parts = "chapters",
 }) => {
   const locales = useLocales();
   const sourceLocale = locales.find((l) => l.code === sourceLanguage);
@@ -80,12 +92,11 @@ const TranslateStoryDialog: React.FC<TranslateStoryDialogProps> = ({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
-            <EditableText id="story-translate-title">Translate this story</EditableText>
+            <EditableText id={`${idPrefix}-translate-title`}>{`Translate this ${noun}`}</EditableText>
           </DialogTitle>
           <DialogDescription>
-            <EditableText id="story-translate-desc">
-              The translation becomes its own story that you own, linked to the original chapter by chapter. It
-              stays a draft until you publish it.
+            <EditableText id={`${idPrefix}-translate-desc`}>
+              {`The translation becomes its own ${noun} that you own, linked to the original ${part} by ${part}. It stays a draft until you publish it.`}
             </EditableText>
           </DialogDescription>
         </DialogHeader>
@@ -93,7 +104,7 @@ const TranslateStoryDialog: React.FC<TranslateStoryDialogProps> = ({
         <div className="space-y-4">
           <div className="space-y-1">
             <span className="text-sm font-medium">
-              <EditableText id="story-translate-language">Translate into</EditableText>
+              <EditableText id={`${idPrefix}-translate-language`}>Translate into</EditableText>
             </span>
             <Select value={language} onValueChange={setLanguage}>
               <SelectTrigger>
@@ -106,15 +117,15 @@ const TranslateStoryDialog: React.FC<TranslateStoryDialogProps> = ({
                   <SelectItem key={l.code} value={l.code} disabled={l.code === sourceLanguage}>
                     {l.native_name || l.english_name}
                     {l.native_name && l.native_name !== l.english_name ? ` — ${l.english_name}` : ""}
-                    {l.code === sourceLanguage && " · this story's language"}
+                    {l.code === sourceLanguage && ` · this ${noun}'s language`}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <p className="text-xs text-gray-500">
-              <EditableText id="story-translate-source-lang">This story is marked as written in</EditableText>{" "}
+              <EditableText id={`${idPrefix}-translate-source-lang`}>{`This ${noun} is marked as written in`}</EditableText>{" "}
               <span className="font-medium">{sourceLocale ? sourceLocale.native_name || sourceLocale.english_name : sourceLanguage.toUpperCase()}</span>.{" "}
-              <EditableText id="story-translate-source-lang-hint">
+              <EditableText id={`${idPrefix}-translate-source-lang-hint`}>
                 If that's wrong, the owner can change it in Settings → Language.
               </EditableText>
             </p>
@@ -122,25 +133,25 @@ const TranslateStoryDialog: React.FC<TranslateStoryDialogProps> = ({
 
           <div className="space-y-2">
             <span className="text-sm font-medium">
-              <EditableText id="story-translate-start">Start from</EditableText>
+              <EditableText id={`${idPrefix}-translate-start`}>Start from</EditableText>
             </span>
             <StartOption
               selected={start === "blank"}
               onSelect={() => setStart("blank")}
-              title={<EditableText id="story-translate-blank">Blank chapters</EditableText>}
+              title={<EditableText id={`${idPrefix}-translate-blank`}>{`Blank ${parts}`}</EditableText>}
               description={
-                <EditableText id="story-translate-blank-desc">
-                  Chapter titles are copied; you write each chapter next to the original.
+                <EditableText id={`${idPrefix}-translate-blank-desc`}>
+                  {`${part.charAt(0).toUpperCase()}${part.slice(1)} titles are copied; you write each ${part} next to the original.`}
                 </EditableText>
               }
             />
             <StartOption
               selected={start === "copy"}
               onSelect={() => setStart("copy")}
-              title={<EditableText id="story-translate-copy">Copy of the original text</EditableText>}
+              title={<EditableText id={`${idPrefix}-translate-copy`}>Copy of the original text</EditableText>}
               description={
-                <EditableText id="story-translate-copy-desc">
-                  Every chapter starts with the original text for you to overwrite.
+                <EditableText id={`${idPrefix}-translate-copy-desc`}>
+                  {`Every ${part} starts with the original text for you to overwrite.`}
                 </EditableText>
               }
             />
@@ -148,22 +159,22 @@ const TranslateStoryDialog: React.FC<TranslateStoryDialogProps> = ({
               selected={start === "ai"}
               disabled={aiConnections.length === 0}
               onSelect={() => setStart("ai")}
-              title={<EditableText id="story-translate-ai">AI draft</EditableText>}
+              title={<EditableText id={`${idPrefix}-translate-ai`}>AI draft</EditableText>}
               description={
                 aiConnections.length === 0 ? (
-                  <EditableText id="story-translate-ai-desc">
+                  <EditableText id={`${idPrefix}-translate-ai-desc`}>
                     Pre-fill a draft using your own AI provider, connected in your settings.
                   </EditableText>
                 ) : (
-                  <EditableText id="story-translate-ai-ready">
-                    Every chapter is drafted in the background with your AI; you review and edit next to the original.
+                  <EditableText id={`${idPrefix}-translate-ai-ready`}>
+                    {`Every ${part} is drafted in the background with your AI; you review and edit next to the original.`}
                   </EditableText>
                 )
               }
             />
             {aiConnections.length === 0 && (
               <Link to="/profile" className="block text-xs text-blue-700 hover:underline pl-3">
-                <EditableText id="story-translate-ai-connect">Connect an AI provider in your profile</EditableText>
+                <EditableText id={`${idPrefix}-translate-ai-connect`}>Connect an AI provider in your profile</EditableText>
               </Link>
             )}
             {start === "ai" && aiConnections.length > 1 && (
@@ -188,7 +199,7 @@ const TranslateStoryDialog: React.FC<TranslateStoryDialogProps> = ({
             onClick={() => onOpenChange(false)}
             className="px-3 py-1.5 text-sm rounded border bg-white hover:bg-gray-50"
           >
-            <EditableText id="story-dialog-cancel">Cancel</EditableText>
+            <EditableText id={`${idPrefix}-dialog-cancel`}>Cancel</EditableText>
           </button>
           <button
             type="button"
@@ -197,7 +208,7 @@ const TranslateStoryDialog: React.FC<TranslateStoryDialogProps> = ({
             className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
           >
             {creating && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-            <EditableText id="story-translate-create">Create translation</EditableText>
+            <EditableText id={`${idPrefix}-translate-create`}>Create translation</EditableText>
           </button>
         </DialogFooter>
       </DialogContent>
