@@ -813,6 +813,82 @@ Details: {error}</source>
 
 التفاصيل: {error}</translation>
     </message>
+    <message>
+        <source>Branch</source>
+        <translation>فرع</translation>
+    </message>
+    <message>
+        <source>Text layer</source>
+        <translation>طبقة نص</translation>
+    </message>
+    <message>
+        <source>Page alternative...</source>
+        <translation>صفحة بديلة...</translation>
+    </message>
+    <message>
+        <source>Comic sync failed.</source>
+        <translation>تعذّرت مزامنة القصة المصوّرة.</translation>
+    </message>
+    <message>
+        <source>Comic synced to the web.</source>
+        <translation>تمت مزامنة القصة المصوّرة مع الويب.</translation>
+    </message>
+    <message>
+        <source>Only the team can change this work directly; you have no changes to suggest.</source>
+        <translation>يستطيع الفريق وحده تعديل هذا العمل مباشرة؛ ليست لديك تغييرات لاقتراحها.</translation>
+    </message>
+    <message>
+        <source>Suggest changes</source>
+        <translation>اقتراح تغييرات</translation>
+    </message>
+    <message>
+        <source>You&apos;re not on this work&apos;s team, so your edits can&apos;t be synced directly.
+
+Send your {count} change(s) to the owner as suggestions?</source>
+        <translation>لست ضمن فريق هذا العمل، لذا لا يمكن مزامنة تعديلاتك مباشرة.
+
+هل تريد إرسال تغييراتك ({count}) إلى المالك كاقتراحات؟</translation>
+    </message>
+    <message>
+        <source>Sent {count} suggestion(s) to the owner.</source>
+        <translation>تم إرسال {count} اقتراح(ات) إلى المالك.</translation>
+    </message>
+    <message>
+        <source>{count} branch edit(s) were sent to the owner as suggestions.</source>
+        <translation>أُرسلت {count} تعديلات على الفروع إلى المالك كاقتراحات.</translation>
+    </message>
+    <message>
+        <source>Branches can be added to .story and .screenplay files.</source>
+        <translation>يمكن إضافة الفروع إلى ملفات .story و.screenplay.</translation>
+    </message>
+    <message>
+        <source>Branch name (optional):</source>
+        <translation>اسم الفرع (اختياري):</translation>
+    </message>
+    <message>
+        <source>Alternative text</source>
+        <translation>نص بديل</translation>
+    </message>
+    <message>
+        <source>Text layers can be added to .comic files.</source>
+        <translation>يمكن إضافة طبقات النص إلى ملفات .comic.</translation>
+    </message>
+    <message>
+        <source>Speech bubble text</source>
+        <translation>نص فقاعة الكلام</translation>
+    </message>
+    <message>
+        <source>Page alternative</source>
+        <translation>صفحة بديلة</translation>
+    </message>
+    <message>
+        <source>Page alternatives can be added to .comic files.</source>
+        <translation>يمكن إضافة الصفحات البديلة إلى ملفات .comic.</translation>
+    </message>
+    <message>
+        <source>Name (optional):</source>
+        <translation>الاسم (اختياري):</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>

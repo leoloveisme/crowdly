@@ -813,6 +813,82 @@ Details: {error}</source>
 
 詳細: {error}</translation>
     </message>
+    <message>
+        <source>Branch</source>
+        <translation>ブランチ</translation>
+    </message>
+    <message>
+        <source>Text layer</source>
+        <translation>テキストレイヤー</translation>
+    </message>
+    <message>
+        <source>Page alternative...</source>
+        <translation>代替ページ...</translation>
+    </message>
+    <message>
+        <source>Comic sync failed.</source>
+        <translation>コミックの同期に失敗しました。</translation>
+    </message>
+    <message>
+        <source>Comic synced to the web.</source>
+        <translation>コミックをウェブと同期しました。</translation>
+    </message>
+    <message>
+        <source>Only the team can change this work directly; you have no changes to suggest.</source>
+        <translation>この作品を直接変更できるのはチームだけです。提案する変更はありません。</translation>
+    </message>
+    <message>
+        <source>Suggest changes</source>
+        <translation>変更を提案</translation>
+    </message>
+    <message>
+        <source>You&apos;re not on this work&apos;s team, so your edits can&apos;t be synced directly.
+
+Send your {count} change(s) to the owner as suggestions?</source>
+        <translation>あなたはこの作品のチームに入っていないため、編集を直接同期できません。
+
+{count} 件の変更を提案としてオーナーに送りますか？</translation>
+    </message>
+    <message>
+        <source>Sent {count} suggestion(s) to the owner.</source>
+        <translation>{count} 件の提案をオーナーに送りました。</translation>
+    </message>
+    <message>
+        <source>{count} branch edit(s) were sent to the owner as suggestions.</source>
+        <translation>ブランチの編集 {count} 件を提案としてオーナーに送りました。</translation>
+    </message>
+    <message>
+        <source>Branches can be added to .story and .screenplay files.</source>
+        <translation>ブランチは .story と .screenplay ファイルに追加できます。</translation>
+    </message>
+    <message>
+        <source>Branch name (optional):</source>
+        <translation>ブランチ名（任意）:</translation>
+    </message>
+    <message>
+        <source>Alternative text</source>
+        <translation>代替テキスト</translation>
+    </message>
+    <message>
+        <source>Text layers can be added to .comic files.</source>
+        <translation>テキストレイヤーは .comic ファイルに追加できます。</translation>
+    </message>
+    <message>
+        <source>Speech bubble text</source>
+        <translation>吹き出しのテキスト</translation>
+    </message>
+    <message>
+        <source>Page alternative</source>
+        <translation>代替ページ</translation>
+    </message>
+    <message>
+        <source>Page alternatives can be added to .comic files.</source>
+        <translation>代替ページは .comic ファイルに追加できます。</translation>
+    </message>
+    <message>
+        <source>Name (optional):</source>
+        <translation>名前（任意）:</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>

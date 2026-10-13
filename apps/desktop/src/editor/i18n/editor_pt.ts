@@ -813,6 +813,82 @@ Details: {error}</source>
 
 Detalhes: {error}</translation>
     </message>
+    <message>
+        <source>Branch</source>
+        <translation>Ramo</translation>
+    </message>
+    <message>
+        <source>Text layer</source>
+        <translation>Camada de texto</translation>
+    </message>
+    <message>
+        <source>Page alternative...</source>
+        <translation>Página alternativa...</translation>
+    </message>
+    <message>
+        <source>Comic sync failed.</source>
+        <translation>Falha ao sincronizar o quadrinho.</translation>
+    </message>
+    <message>
+        <source>Comic synced to the web.</source>
+        <translation>Quadrinho sincronizado com a web.</translation>
+    </message>
+    <message>
+        <source>Only the team can change this work directly; you have no changes to suggest.</source>
+        <translation>Só a equipe pode alterar esta obra diretamente; você não tem alterações para sugerir.</translation>
+    </message>
+    <message>
+        <source>Suggest changes</source>
+        <translation>Sugerir alterações</translation>
+    </message>
+    <message>
+        <source>You&apos;re not on this work&apos;s team, so your edits can&apos;t be synced directly.
+
+Send your {count} change(s) to the owner as suggestions?</source>
+        <translation>Você não faz parte da equipe desta obra, então suas edições não podem ser sincronizadas diretamente.
+
+Enviar suas {count} alteração(ões) ao proprietário como sugestões?</translation>
+    </message>
+    <message>
+        <source>Sent {count} suggestion(s) to the owner.</source>
+        <translation>{count} sugestão(ões) enviada(s) ao proprietário.</translation>
+    </message>
+    <message>
+        <source>{count} branch edit(s) were sent to the owner as suggestions.</source>
+        <translation>{count} edição(ões) de ramo enviada(s) ao proprietário como sugestões.</translation>
+    </message>
+    <message>
+        <source>Branches can be added to .story and .screenplay files.</source>
+        <translation>Ramos podem ser adicionados a arquivos .story e .screenplay.</translation>
+    </message>
+    <message>
+        <source>Branch name (optional):</source>
+        <translation>Nome do ramo (opcional):</translation>
+    </message>
+    <message>
+        <source>Alternative text</source>
+        <translation>Texto alternativo</translation>
+    </message>
+    <message>
+        <source>Text layers can be added to .comic files.</source>
+        <translation>Camadas de texto podem ser adicionadas a arquivos .comic.</translation>
+    </message>
+    <message>
+        <source>Speech bubble text</source>
+        <translation>Texto do balão</translation>
+    </message>
+    <message>
+        <source>Page alternative</source>
+        <translation>Página alternativa</translation>
+    </message>
+    <message>
+        <source>Page alternatives can be added to .comic files.</source>
+        <translation>Páginas alternativas podem ser adicionadas a arquivos .comic.</translation>
+    </message>
+    <message>
+        <source>Name (optional):</source>
+        <translation>Nome (opcional):</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>

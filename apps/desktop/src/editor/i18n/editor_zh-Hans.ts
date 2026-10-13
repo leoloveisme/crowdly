@@ -813,6 +813,82 @@ Details: {error}</source>
 
 详细信息：{error}</translation>
     </message>
+    <message>
+        <source>Branch</source>
+        <translation>分支</translation>
+    </message>
+    <message>
+        <source>Text layer</source>
+        <translation>文字图层</translation>
+    </message>
+    <message>
+        <source>Page alternative...</source>
+        <translation>替代页面...</translation>
+    </message>
+    <message>
+        <source>Comic sync failed.</source>
+        <translation>漫画同步失败。</translation>
+    </message>
+    <message>
+        <source>Comic synced to the web.</source>
+        <translation>漫画已同步到网页。</translation>
+    </message>
+    <message>
+        <source>Only the team can change this work directly; you have no changes to suggest.</source>
+        <translation>只有团队可以直接修改此作品；你没有可提议的修改。</translation>
+    </message>
+    <message>
+        <source>Suggest changes</source>
+        <translation>提议修改</translation>
+    </message>
+    <message>
+        <source>You&apos;re not on this work&apos;s team, so your edits can&apos;t be synced directly.
+
+Send your {count} change(s) to the owner as suggestions?</source>
+        <translation>你不在此作品的团队中，因此你的编辑无法直接同步。
+
+将你的 {count} 处修改作为建议发送给所有者？</translation>
+    </message>
+    <message>
+        <source>Sent {count} suggestion(s) to the owner.</source>
+        <translation>已向所有者发送 {count} 条建议。</translation>
+    </message>
+    <message>
+        <source>{count} branch edit(s) were sent to the owner as suggestions.</source>
+        <translation>已将 {count} 处分支编辑作为建议发送给所有者。</translation>
+    </message>
+    <message>
+        <source>Branches can be added to .story and .screenplay files.</source>
+        <translation>分支可以添加到 .story 和 .screenplay 文件中。</translation>
+    </message>
+    <message>
+        <source>Branch name (optional):</source>
+        <translation>分支名称（可选）：</translation>
+    </message>
+    <message>
+        <source>Alternative text</source>
+        <translation>替代文本</translation>
+    </message>
+    <message>
+        <source>Text layers can be added to .comic files.</source>
+        <translation>文字图层可以添加到 .comic 文件中。</translation>
+    </message>
+    <message>
+        <source>Speech bubble text</source>
+        <translation>对话气泡文字</translation>
+    </message>
+    <message>
+        <source>Page alternative</source>
+        <translation>替代页面</translation>
+    </message>
+    <message>
+        <source>Page alternatives can be added to .comic files.</source>
+        <translation>替代页面可以添加到 .comic 文件中。</translation>
+    </message>
+    <message>
+        <source>Name (optional):</source>
+        <translation>名称（可选）：</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>

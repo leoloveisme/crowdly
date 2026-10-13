@@ -53,6 +53,7 @@ from .. import app_modes
 from ..app_modes import MODE_CREATION, MODE_DISCOVERY
 from .. import session_store
 from .. import suggestions
+from . import web_branching
 from .. import file_metadata
 from .. import story_sync
 from .. import websync
@@ -568,6 +569,17 @@ class MainWindow(QMainWindow):
         self._insert_menu = insert_menu
         self._action_insert_image = insert_menu.addAction(
             self.tr("Image..."), self._insert_image
+        )
+        # Branching (see Documentation/branching-api.md): story / screenplay
+        # branches, comic text layers and page alternatives.
+        self._action_insert_branch = insert_menu.addAction(
+            self.tr("Branch"), lambda: web_branching.insert_branch(self)
+        )
+        self._action_insert_text_layer = insert_menu.addAction(
+            self.tr("Text layer"), lambda: web_branching.insert_text_layer(self)
+        )
+        self._action_insert_page_alternative = insert_menu.addAction(
+            self.tr("Page alternative..."), lambda: web_branching.insert_page_alternative(self)
         )
 
         story_settings_menu = menu.addMenu(self.tr("Story settings"))
@@ -2745,6 +2757,12 @@ class MainWindow(QMainWindow):
             self._insert_menu.setTitle(self.tr("Insert"))
         if hasattr(self, "_action_insert_image"):
             self._action_insert_image.setText(self.tr("Image..."))
+        if hasattr(self, "_action_insert_branch"):
+            self._action_insert_branch.setText(self.tr("Branch"))
+        if hasattr(self, "_action_insert_text_layer"):
+            self._action_insert_text_layer.setText(self.tr("Text layer"))
+        if hasattr(self, "_action_insert_page_alternative"):
+            self._action_insert_page_alternative.setText(self.tr("Page alternative..."))
 
         # Search bar labels and controls.
         if hasattr(self, "_search_label"):
@@ -8158,6 +8176,12 @@ class MainWindow(QMainWindow):
             if path is None:
                 return
 
+            # The save that wrote sync results (ids, pulled branches) back
+            # into the file doesn't need another round trip.
+            if getattr(self, "_skip_next_web_sync", False):
+                self._skip_next_web_sync = False
+                return
+
             # Suggestion copies are never synced directly: their edits go to
             # the author as suggestions ("Send my suggestions"). Private
             # copies of someone else's book are never synced at all.
@@ -8175,6 +8199,11 @@ class MainWindow(QMainWindow):
 
             if screenplay_id:
                 self._maybe_sync_screenplay_to_web(path, screenplay_id)
+                return
+
+            # `.comic` files sync with a Crowdly comic (created on first sync).
+            if getattr(self._document, "storage_format", "") == "comic_v1":
+                self._maybe_sync_comic_to_web(path)
                 return
 
             # New local stories: attempt to initialise metadata once.
@@ -8294,8 +8323,20 @@ class MainWindow(QMainWindow):
             except Exception:
                 pass
 
-            # Parse content into chapters.
-            story = story_sync.parse_story_from_content(self._document.content, body_format=body_format)
+            # Parse content into chapters. `.story` files go through the DSL
+            # parser so [branch] blocks stay branches (synced separately below)
+            # instead of becoming paragraphs.
+            if getattr(self._document, "storage_format", "") == "story_v1":
+                doc_dsl = story_markup.parse_dsl(self._document.content)
+                story = story_sync.StoryPayload(
+                    title=doc_dsl.get("title") or "Untitled",
+                    chapters=[
+                        story_sync.ChapterPayload(chapterTitle=ch.get("title") or "Chapter", paragraphs=ch.get("paragraphs") or [])
+                        for ch in doc_dsl.get("chapters") or []
+                    ],
+                )
+            else:
+                story = story_sync.parse_story_from_content(self._document.content, body_format=body_format)
 
             # Keep file metadata story_title in sync with parsed title.
             try:
@@ -8342,6 +8383,9 @@ class MainWindow(QMainWindow):
                 parent=self,
             )
 
+            # Paragraph branches sync once the chapters are in (see
+            # _on_story_sync_succeeded).
+            self._pending_story_branch_sync = (path, story_id, api_base, creds)
             thread.syncSucceeded.connect(self._on_story_sync_succeeded)
             thread.syncFailed.connect(self._on_story_sync_failed)
             thread.finished.connect(self._on_story_sync_finished)
@@ -8546,6 +8590,43 @@ class MainWindow(QMainWindow):
                 print("[web-sync][screenplay] could not derive API base URL; aborting sync", file=sys.stderr)
                 return
 
+            # `.screenplay` files (DSL) sync element by element with ids, so
+            # rows are updated in place and element branches sync too.
+            if getattr(self._document, "storage_format", "") == "screenplay_v1":
+                try:
+                    md_dsl = file_metadata.read_story_metadata(path)
+                    remote_updated_dsl = md_dsl.remote_updated_at
+                except Exception:
+                    remote_updated_dsl = None
+                dsl_client = CrowdlyClient(api_base, credentials=creds)
+                try:
+                    synced = web_branching.sync_screenplay(self, path, screenplay_id, dsl_client, remote_updated_dsl)
+                except CrowdlyClientError as exc:
+                    if getattr(exc, "status_code", None) == 409:
+                        bar = self.statusBar()
+                        if bar is not None:
+                            bar.showMessage(
+                                self.tr("Screenplay has changed on the web; please refresh from web before syncing."),
+                                7000,
+                            )
+                        return
+                    raise
+                if not synced:
+                    web_branching.offer_screenplay_suggestions(self, screenplay_id, dsl_client)
+                    return
+                try:
+                    dsl_client.sync_revision_history_for_screenplay(screenplay_id)
+                except Exception as exc:
+                    print(f"[web-sync][screenplay] sync_revision_history_for_screenplay failed: {exc}", file=sys.stderr)
+                try:
+                    file_metadata.touch_last_sync_date(path)
+                except Exception:
+                    pass
+                bar = self.statusBar()
+                if bar is not None:
+                    bar.showMessage(self.tr("Screenplay synced to the web."), 5000)
+                return
+
             # Parse the current markdown into logical scenes using a
             # screenplay-aware parser that keeps each non-empty line as its own
             # atomic block inside a scene.
@@ -8654,6 +8735,26 @@ class MainWindow(QMainWindow):
             except Exception:
                 pass
 
+    def _maybe_sync_comic_to_web(self, path: Path) -> None:  # pragma: no cover - network/UI
+        """Sync the current `.comic` file with Crowdly (see web_branching.sync_comic)."""
+
+        import traceback
+
+        try:
+            from ..crowdly_client import CrowdlyClient, api_base_url_from_story_url
+
+            creds = self._ensure_crowdly_web_credentials()
+            base_url_setting = getattr(self._settings, "crowdly_base_url", None)
+            if creds is None or not isinstance(base_url_setting, str) or not base_url_setting.strip():
+                return
+            client = CrowdlyClient(api_base_url_from_story_url(base_url_setting), credentials=creds)
+            web_branching.sync_comic(self, path, client)
+        except Exception:
+            traceback.print_exc()
+            bar = self.statusBar()
+            if bar is not None:
+                bar.showMessage(self.tr("Comic sync failed."), 5000)
+
     def _on_story_sync_succeeded(self, result: object) -> None:  # pragma: no cover
         import traceback
 
@@ -8690,6 +8791,19 @@ class MainWindow(QMainWindow):
             bar = self.statusBar()
             if bar is not None:
                 bar.showMessage(self.tr("Story synced to the web."), 5000)
+
+            pending = getattr(self, "_pending_story_branch_sync", None)
+            self._pending_story_branch_sync = None
+            if pending and pending[0] == self._get_current_document_path():
+                try:
+                    from ..crowdly_client import CrowdlyClient
+
+                    branch_path, branch_story_id, branch_api, branch_creds = pending
+                    web_branching.sync_story_branches(
+                        self, branch_path, branch_story_id, CrowdlyClient(branch_api, credentials=branch_creds)
+                    )
+                except Exception:
+                    traceback.print_exc()
         except Exception:
             traceback.print_exc()
 

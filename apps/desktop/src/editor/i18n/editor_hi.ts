@@ -219,6 +219,82 @@ Your own work, public-domain and Creative Commons books open as a story you can 
         <source>Import failed</source>
         <translation>आयात विफल रहा</translation>
     </message>
+    <message>
+        <source>Branch</source>
+        <translation>शाखा</translation>
+    </message>
+    <message>
+        <source>Text layer</source>
+        <translation>टेक्स्ट परत</translation>
+    </message>
+    <message>
+        <source>Page alternative...</source>
+        <translation>वैकल्पिक पृष्ठ...</translation>
+    </message>
+    <message>
+        <source>Comic sync failed.</source>
+        <translation>कॉमिक सिंक नहीं हो सका।</translation>
+    </message>
+    <message>
+        <source>Comic synced to the web.</source>
+        <translation>कॉमिक वेब से सिंक हो गया।</translation>
+    </message>
+    <message>
+        <source>Only the team can change this work directly; you have no changes to suggest.</source>
+        <translation>इस कृति को सीधे केवल टीम बदल सकती है; आपके पास सुझाने के लिए कोई बदलाव नहीं है।</translation>
+    </message>
+    <message>
+        <source>Suggest changes</source>
+        <translation>बदलाव सुझाएँ</translation>
+    </message>
+    <message>
+        <source>You&apos;re not on this work&apos;s team, so your edits can&apos;t be synced directly.
+
+Send your {count} change(s) to the owner as suggestions?</source>
+        <translation>आप इस कृति की टीम में नहीं हैं, इसलिए आपके संपादन सीधे सिंक नहीं हो सकते।
+
+अपने {count} बदलाव स्वामी को सुझाव के रूप में भेजें?</translation>
+    </message>
+    <message>
+        <source>Sent {count} suggestion(s) to the owner.</source>
+        <translation>स्वामी को {count} सुझाव भेजे गए।</translation>
+    </message>
+    <message>
+        <source>{count} branch edit(s) were sent to the owner as suggestions.</source>
+        <translation>{count} शाखा संपादन स्वामी को सुझाव के रूप में भेजे गए।</translation>
+    </message>
+    <message>
+        <source>Branches can be added to .story and .screenplay files.</source>
+        <translation>शाखाएँ .story और .screenplay फ़ाइलों में जोड़ी जा सकती हैं।</translation>
+    </message>
+    <message>
+        <source>Branch name (optional):</source>
+        <translation>शाखा का नाम (वैकल्पिक):</translation>
+    </message>
+    <message>
+        <source>Alternative text</source>
+        <translation>वैकल्पिक टेक्स्ट</translation>
+    </message>
+    <message>
+        <source>Text layers can be added to .comic files.</source>
+        <translation>टेक्स्ट परतें .comic फ़ाइलों में जोड़ी जा सकती हैं।</translation>
+    </message>
+    <message>
+        <source>Speech bubble text</source>
+        <translation>संवाद बुलबुले का टेक्स्ट</translation>
+    </message>
+    <message>
+        <source>Page alternative</source>
+        <translation>वैकल्पिक पृष्ठ</translation>
+    </message>
+    <message>
+        <source>Page alternatives can be added to .comic files.</source>
+        <translation>वैकल्पिक पृष्ठ .comic फ़ाइलों में जोड़े जा सकते हैं।</translation>
+    </message>
+    <message>
+        <source>Name (optional):</source>
+        <translation>नाम (वैकल्पिक):</translation>
+    </message>
 </context>
 <context>
     <name>CompareRevisionsWindow</name>

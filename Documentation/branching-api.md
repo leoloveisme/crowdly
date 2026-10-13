@@ -64,6 +64,20 @@ POST /comics/:id/sync-desktop         { title, direction: "ltr"|"rtl",
 
 Desktop sync is limited to the work's team: the creator, or someone with an access row. Everyone else suggests changes instead.
 
+### How the desktop app uses this (`apps/desktop`)
+
+Reference implementation for the mobile apps: `editor/branch_sync.py` holds the pure logic and has tests in `tests/test_branch_sync.py`; `editor/ui/web_branching.py` holds the window glue.
+
+- **`.screenplay`:** content sync with ids, then element branches.
+- **`.story`:** chapters from the `.story` parser, then paragraph branches against the story's chapter ids.
+- **`.comic`:** the comic is created on first sync, images are uploaded once, then structure and layers sync in place, then alternatives.
+- **Ids go back into the file:** returned ids are written into the file's blocks as `id=` attributes. Per-file xattrs remember:
+  - `branch_ids`: ids seen at the last sync, so a removed branch is sent as `deleted`;
+  - `comic_id`;
+  - `comic_image_urls`.
+- **Users outside the team:** when content sync is refused, the file is compared with the server by id, and the differences can be sent as suggestions (`screenplay`: `block`/`scene`; `comic`: `page_layer`).
+- **Insert menu:** Branch, Text layer, and Page alternative… add the matching blocks after the caret's block.
+
 ## Suggestions (proposals)
 
 | | Story | Screenplay | Comic |

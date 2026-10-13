@@ -219,6 +219,82 @@ Vos propres œuvres et les livres du domaine public ou sous Creative Commons s&a
         <source>Import failed</source>
         <translation>Échec de l&apos;importation</translation>
     </message>
+    <message>
+        <source>Branch</source>
+        <translation>Branche</translation>
+    </message>
+    <message>
+        <source>Text layer</source>
+        <translation>Calque de texte</translation>
+    </message>
+    <message>
+        <source>Page alternative...</source>
+        <translation>Page alternative...</translation>
+    </message>
+    <message>
+        <source>Comic sync failed.</source>
+        <translation>Échec de la synchronisation de la bande dessinée.</translation>
+    </message>
+    <message>
+        <source>Comic synced to the web.</source>
+        <translation>Bande dessinée synchronisée avec le web.</translation>
+    </message>
+    <message>
+        <source>Only the team can change this work directly; you have no changes to suggest.</source>
+        <translation>Seule l&apos;équipe peut modifier cette œuvre directement ; vous n&apos;avez aucune modification à suggérer.</translation>
+    </message>
+    <message>
+        <source>Suggest changes</source>
+        <translation>Suggérer des modifications</translation>
+    </message>
+    <message>
+        <source>You&apos;re not on this work&apos;s team, so your edits can&apos;t be synced directly.
+
+Send your {count} change(s) to the owner as suggestions?</source>
+        <translation>Vous ne faites pas partie de l&apos;équipe de cette œuvre : vos modifications ne peuvent pas être synchronisées directement.
+
+Envoyer vos {count} modification(s) au propriétaire comme suggestions ?</translation>
+    </message>
+    <message>
+        <source>Sent {count} suggestion(s) to the owner.</source>
+        <translation>{count} suggestion(s) envoyée(s) au propriétaire.</translation>
+    </message>
+    <message>
+        <source>{count} branch edit(s) were sent to the owner as suggestions.</source>
+        <translation>{count} modification(s) de branche envoyée(s) au propriétaire comme suggestions.</translation>
+    </message>
+    <message>
+        <source>Branches can be added to .story and .screenplay files.</source>
+        <translation>Les branches peuvent être ajoutées aux fichiers .story et .screenplay.</translation>
+    </message>
+    <message>
+        <source>Branch name (optional):</source>
+        <translation>Nom de la branche (facultatif) :</translation>
+    </message>
+    <message>
+        <source>Alternative text</source>
+        <translation>Texte alternatif</translation>
+    </message>
+    <message>
+        <source>Text layers can be added to .comic files.</source>
+        <translation>Les calques de texte peuvent être ajoutés aux fichiers .comic.</translation>
+    </message>
+    <message>
+        <source>Speech bubble text</source>
+        <translation>Texte de la bulle</translation>
+    </message>
+    <message>
+        <source>Page alternative</source>
+        <translation>Page alternative</translation>
+    </message>
+    <message>
+        <source>Page alternatives can be added to .comic files.</source>
+        <translation>Les pages alternatives peuvent être ajoutées aux fichiers .comic.</translation>
+    </message>
+    <message>
+        <source>Name (optional):</source>
+        <translation>Nom (facultatif) :</translation>
+    </message>
 </context>
 <context>
     <name>CompareRevisionsWindow</name>

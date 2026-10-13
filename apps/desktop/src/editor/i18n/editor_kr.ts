@@ -813,6 +813,82 @@ Details: {error}</source>
 
 자세한 정보: {error}</translation>
     </message>
+    <message>
+        <source>Branch</source>
+        <translation>브랜치</translation>
+    </message>
+    <message>
+        <source>Text layer</source>
+        <translation>텍스트 레이어</translation>
+    </message>
+    <message>
+        <source>Page alternative...</source>
+        <translation>대체 페이지...</translation>
+    </message>
+    <message>
+        <source>Comic sync failed.</source>
+        <translation>만화를 동기화하지 못했습니다.</translation>
+    </message>
+    <message>
+        <source>Comic synced to the web.</source>
+        <translation>만화를 웹과 동기화했습니다.</translation>
+    </message>
+    <message>
+        <source>Only the team can change this work directly; you have no changes to suggest.</source>
+        <translation>이 작품은 팀만 직접 변경할 수 있습니다. 제안할 변경 사항이 없습니다.</translation>
+    </message>
+    <message>
+        <source>Suggest changes</source>
+        <translation>변경 제안</translation>
+    </message>
+    <message>
+        <source>You&apos;re not on this work&apos;s team, so your edits can&apos;t be synced directly.
+
+Send your {count} change(s) to the owner as suggestions?</source>
+        <translation>이 작품의 팀원이 아니어서 편집 내용을 직접 동기화할 수 없습니다.
+
+변경 사항 {count}개를 소유자에게 제안으로 보낼까요?</translation>
+    </message>
+    <message>
+        <source>Sent {count} suggestion(s) to the owner.</source>
+        <translation>소유자에게 제안 {count}개를 보냈습니다.</translation>
+    </message>
+    <message>
+        <source>{count} branch edit(s) were sent to the owner as suggestions.</source>
+        <translation>브랜치 편집 {count}개를 소유자에게 제안으로 보냈습니다.</translation>
+    </message>
+    <message>
+        <source>Branches can be added to .story and .screenplay files.</source>
+        <translation>브랜치는 .story 및 .screenplay 파일에 추가할 수 있습니다.</translation>
+    </message>
+    <message>
+        <source>Branch name (optional):</source>
+        <translation>브랜치 이름(선택):</translation>
+    </message>
+    <message>
+        <source>Alternative text</source>
+        <translation>대체 텍스트</translation>
+    </message>
+    <message>
+        <source>Text layers can be added to .comic files.</source>
+        <translation>텍스트 레이어는 .comic 파일에 추가할 수 있습니다.</translation>
+    </message>
+    <message>
+        <source>Speech bubble text</source>
+        <translation>말풍선 텍스트</translation>
+    </message>
+    <message>
+        <source>Page alternative</source>
+        <translation>대체 페이지</translation>
+    </message>
+    <message>
+        <source>Page alternatives can be added to .comic files.</source>
+        <translation>대체 페이지는 .comic 파일에 추가할 수 있습니다.</translation>
+    </message>
+    <message>
+        <source>Name (optional):</source>
+        <translation>이름(선택):</translation>
+    </message>
 </context>
 <context>
     <name>IncludeContainerWidget</name>
