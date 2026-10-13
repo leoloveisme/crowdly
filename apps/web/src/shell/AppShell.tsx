@@ -122,6 +122,12 @@ export const AppShell: React.FC = () => {
 
     const g: MenuGroup[] = [
       {
+        id: "webapp-menu-discovery-add",
+        label: "Add books…",
+        hidden: inCreation,
+        items: [{ id: "webapp-menu-discovery-add-books", label: "Add books to my library…", onSelect: needUser(() => navigate("/library")) }],
+      },
+      {
         id: "webapp-menu-new",
         label: "New",
         hidden: !inCreation,
@@ -139,6 +145,8 @@ export const AppShell: React.FC = () => {
         items: [
           { id: "webapp-menu-open-web", label: "Story on the web", onSelect: () => setOpenOpen("here") },
           { id: "webapp-menu-open-web-window", label: "Story on the web in a new window", onSelect: () => setOpenOpen("window") },
+          { id: "webapp-menu-open-library", label: "My library", separatorBefore: true, onSelect: () => navigate("/library") },
+          { id: "webapp-menu-open-shelves", label: "Shelves", onSelect: () => navigate("/shelves") },
         ],
       },
       {

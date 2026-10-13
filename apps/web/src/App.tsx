@@ -20,6 +20,9 @@ const ScreenplayEditor = lazy(() => import("@web/creation/screenplay/ScreenplayE
 const ComicEditor = lazy(() => import("@web/creation/comic/ComicEditor"));
 const SpacePage = lazy(() => import("@web/creation/spaces/SpacePage"));
 const FileEditor = lazy(() => import("@web/creation/spaces/FileEditor"));
+const LibraryPage = lazy(() => import("@web/discovery/LibraryPage"));
+const ShelvesPage = lazy(() => import("@web/discovery/ShelvesPage"));
+const ReaderPage = lazy(() => import("@web/discovery/reader/ReaderPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false } },
@@ -62,6 +65,9 @@ const App: React.FC = () => (
                     <Route path="/comic/:id" element={<ComicEditor />} />
                     <Route path="/space/:spaceId/*" element={<SpacePage />} />
                     <Route path="/file/:spaceId/:itemId" element={<FileEditor />} />
+                    <Route path="/library" element={<LibraryPage />} />
+                    <Route path="/shelves" element={<ShelvesPage />} />
+                    <Route path="/read/:kind/:id" element={<ReaderPage />} />
                     <Route path="*" element={<NotFound />} />
                   </Route>
                 </Routes>
