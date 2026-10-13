@@ -93,3 +93,12 @@ Reference implementation for the mobile apps: `editor/branch_sync.py` holds the 
 | List / create | `GET`/`POST /stories/:id/editions` | `GET`/`POST /screenplays/:id/editions` | `GET`/`POST /comics/:id/editions` |
 | Read / edit / delete | `/stories/editions/:eid` | `/screenplay-editions/:eid` | `/comic-editions/:eid` |
 | `selections` | `{chapterId: {paragraphIndex: branchId}}` | `{sceneId: {blockId: branchId}}` | `{issueId: {pageId: branchId}}` |
+
+## Mobile apps (Android, iOS): next step
+
+The mobile apps should follow this document as is:
+- Read and write the same file syntax (formats doc, Branching section). Run the shared fixtures in `apps/desktop/tests/fixtures/formats/branching.*` against the mobile parsers.
+- Sync offline edits with the content and branch sync routes above, the same way `editor/branch_sync.py` does.
+- Use the online routes when connected.
+
+**Known blocker** (see also `mobile-crdt-spec.md`): every route here authenticates with the `crowdly_session` cookie. Native clients need a bearer-token login before mobile work starts. Until then, a WebView or the web app (`apps/web`, installable as an offline PWA) covers phones.
