@@ -9,6 +9,7 @@
     "build": "vite build",
     "build:subdomain": "EDITOR_BASE=/ vite build --outDir dist-subdomain",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test:formats": "node scripts/test-formats.ts"
   }
 }

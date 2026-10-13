@@ -21,6 +21,8 @@ const ComicEditor = lazy(() => import("@web/creation/comic/ComicEditor"));
 const SpacePage = lazy(() => import("@web/creation/spaces/SpacePage"));
 const FileEditor = lazy(() => import("@web/creation/spaces/FileEditor"));
 const LibraryPage = lazy(() => import("@web/discovery/LibraryPage"));
+const MasterEditor = lazy(() => import("@web/creation/master/MasterEditor"));
+const SettingsPage = lazy(() => import("@web/settings/SettingsPage"));
 const ShelvesPage = lazy(() => import("@web/discovery/ShelvesPage"));
 const ReaderPage = lazy(() => import("@web/discovery/reader/ReaderPage"));
 
@@ -65,6 +67,8 @@ const App: React.FC = () => (
                     <Route path="/comic/:id" element={<ComicEditor />} />
                     <Route path="/space/:spaceId/*" element={<SpacePage />} />
                     <Route path="/file/:spaceId/:itemId" element={<FileEditor />} />
+                    <Route path="/master/:spaceId/:itemId" element={<MasterEditor />} />
+                    <Route path="/settings" element={<SettingsPage />} />
                     <Route path="/library" element={<LibraryPage />} />
                     <Route path="/shelves" element={<ShelvesPage />} />
                     <Route path="/read/:kind/:id" element={<ReaderPage />} />

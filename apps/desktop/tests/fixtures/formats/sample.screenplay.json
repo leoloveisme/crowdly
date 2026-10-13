@@ -1,0 +1,22 @@
+{
+  "title": "Night Shift",
+  "scenes": [
+    {
+      "slugline": "INT. HOSPITAL CORRIDOR - NIGHT",
+      "blocks": [
+        { "type": "action", "text": "Fluorescent lights flicker. MARA (30s) pushes a cart." },
+        { "type": "character", "text": "Mara" },
+        { "type": "parenthetical", "text": "(whispering)" },
+        { "type": "dialogue", "text": "Is anyone there?" },
+        { "type": "transition", "text": "CUT TO:" }
+      ]
+    },
+    {
+      "slugline": "EXT. ROOFTOP - CONTINUOUS",
+      "blocks": [
+        { "type": "shot", "text": "WIDE ON the city." },
+        { "type": "action", "text": "Wind howls across the roof." }
+      ]
+    }
+  ]
+}

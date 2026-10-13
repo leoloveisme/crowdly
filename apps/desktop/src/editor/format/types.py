@@ -14,11 +14,13 @@ from .. import file_metadata
 KIND_GENERIC = "generic"
 KIND_STORY = "story"
 KIND_SCREENPLAY = "screenplay"
+KIND_COMIC = "comic"
 
 # Low-level storage formats for Document.content and file_metadata.body_format.
 FORMAT_MARKDOWN = "markdown"
 FORMAT_STORY_V1 = "story_v1"
 FORMAT_SCREENPLAY_V1 = "screenplay_v1"
+FORMAT_COMIC_V1 = "comic_v1"
 
 
 def detect_kind_and_format(path: Path) -> tuple[str, str]:
@@ -43,6 +45,7 @@ def detect_kind_and_format(path: Path) -> tuple[str, str]:
         suffix = path.suffix.lower()
         is_story_ext = suffix == ".story"
         is_screenplay_ext = suffix == ".screenplay"
+        is_comic_ext = suffix == ".comic"
 
         if is_story_ext:
             kind = KIND_STORY
@@ -50,6 +53,9 @@ def detect_kind_and_format(path: Path) -> tuple[str, str]:
         elif is_screenplay_ext:
             kind = KIND_SCREENPLAY
             storage_format = FORMAT_SCREENPLAY_V1
+        elif is_comic_ext:
+            # `.comic` files are plain DSL with no Crowdly-link metadata yet.
+            return KIND_COMIC, FORMAT_COMIC_V1
         else:
             # Anything else (including .md) defaults to markdown.
             kind = KIND_GENERIC
@@ -101,5 +107,7 @@ def default_extension_for(kind: str, active_pane: str) -> str:
         return ".story"
     if kind == KIND_SCREENPLAY:
         return ".screenplay"
+    if kind == KIND_COMIC:
+        return ".comic"
 
     return ".md"

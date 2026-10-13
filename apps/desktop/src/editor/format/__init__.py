@@ -11,9 +11,11 @@ from .types import (
     KIND_GENERIC,
     KIND_STORY,
     KIND_SCREENPLAY,
+    KIND_COMIC,
     FORMAT_MARKDOWN,
     FORMAT_STORY_V1,
     FORMAT_SCREENPLAY_V1,
+    FORMAT_COMIC_V1,
     detect_kind_and_format,
     default_extension_for,
 )

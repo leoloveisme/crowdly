@@ -4,6 +4,26 @@
 <context>
     <name>MainWindow</name>
     <message>
+        <source>as .comic file</source>
+        <translation>como archivo .comic</translation>
+    </message>
+    <message>
+        <source>Save as Comic</source>
+        <translation>Guardar como cómic</translation>
+    </message>
+    <message>
+        <source>Comic files (*.comic);;All files (*)</source>
+        <translation>Archivos de cómic (*.comic);;Todos los archivos (*)</translation>
+    </message>
+    <message>
+        <source>Saved comic to: {path}</source>
+        <translation>Cómic guardado en: {path}</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the comic.</source>
+        <translation>Se produjo un error inesperado al guardar el cómic.</translation>
+    </message>
+    <message>
         <source>Edit description</source>
         <translation>Editar descripción</translation>
     </message>

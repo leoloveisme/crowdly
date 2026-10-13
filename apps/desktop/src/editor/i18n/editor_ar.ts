@@ -168,6 +168,26 @@
       <translation>as .screenplay file</translation>
     </message>
     <message>
+        <source>as .comic file</source>
+        <translation>كملف .comic</translation>
+    </message>
+    <message>
+        <source>Save as Comic</source>
+        <translation>حفظ كقصة مصورة</translation>
+    </message>
+    <message>
+        <source>Comic files (*.comic);;All files (*)</source>
+        <translation>ملفات القصص المصورة (*.comic);;جميع الملفات (*)</translation>
+    </message>
+    <message>
+        <source>Saved comic to: {path}</source>
+        <translation>تم حفظ القصة المصورة في: {path}</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the comic.</source>
+        <translation>حدث خطأ غير متوقع أثناء حفظ القصة المصورة.</translation>
+    </message>
+    <message>
       <source>Import</source>
       <translation>Import</translation>
     </message>

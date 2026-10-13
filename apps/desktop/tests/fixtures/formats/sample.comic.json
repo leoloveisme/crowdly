@@ -1,0 +1,17 @@
+{
+  "title": "Moon Courier",
+  "direction": "rtl",
+  "issues": [
+    {
+      "title": "Issue 1: Departure",
+      "pages": [
+        { "src": "pages/001.png", "alt": "Cover: a courier on a bicycle under a full moon" },
+        { "src": "pages/002.png", "alt": "" }
+      ]
+    },
+    {
+      "title": "Issue 2",
+      "pages": [{ "src": "https://crowdly.cloud/uploads/comics/003.png", "alt": "The station at night" }]
+    }
+  ]
+}

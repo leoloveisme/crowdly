@@ -168,6 +168,26 @@
       <translation>as .screenplay file</translation>
     </message>
     <message>
+        <source>as .comic file</source>
+        <translation>como arquivo .comic</translation>
+    </message>
+    <message>
+        <source>Save as Comic</source>
+        <translation>Salvar como quadrinho</translation>
+    </message>
+    <message>
+        <source>Comic files (*.comic);;All files (*)</source>
+        <translation>Arquivos de quadrinhos (*.comic);;Todos os arquivos (*)</translation>
+    </message>
+    <message>
+        <source>Saved comic to: {path}</source>
+        <translation>Quadrinho salvo em: {path}</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the comic.</source>
+        <translation>Ocorreu um erro inesperado ao salvar o quadrinho.</translation>
+    </message>
+    <message>
       <source>Import</source>
       <translation>Import</translation>
     </message>

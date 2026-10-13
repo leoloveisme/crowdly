@@ -4,6 +4,26 @@
 <context>
     <name>MainWindow</name>
     <message>
+        <source>as .comic file</source>
+        <translation>.comic फ़ाइल के रूप में</translation>
+    </message>
+    <message>
+        <source>Save as Comic</source>
+        <translation>कॉमिक के रूप में सहेजें</translation>
+    </message>
+    <message>
+        <source>Comic files (*.comic);;All files (*)</source>
+        <translation>कॉमिक फ़ाइलें (*.comic);;सभी फ़ाइलें (*)</translation>
+    </message>
+    <message>
+        <source>Saved comic to: {path}</source>
+        <translation>कॉमिक यहाँ सहेजा गया: {path}</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the comic.</source>
+        <translation>कॉमिक सहेजते समय एक अनपेक्षित त्रुटि हुई।</translation>
+    </message>
+    <message>
         <source>Edit description</source>
         <translation>विवरण संपादित करें</translation>
     </message>

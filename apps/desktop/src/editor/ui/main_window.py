@@ -66,12 +66,35 @@ from ..exporting import controller as exporting_controller
 from ..exporting.base import ExportError, ExportFormat, ExportRequest
 from ..exporting.markdown_utils import render_html_from_markdown
 from .. import storage
-from ..format import story_markup, screenplay_markup
+from ..format import story_markup, screenplay_markup, comic_markup
+from ..format import dsl as dsl_format
 from .editor_widget import EditorWidget
 from .preview_widget import PreviewWidget
 from .compare_revisions import CompareRevisionsWindow
 from .master_document_window import MasterDocumentWindow, master_sync_bus
 
+
+
+def _keep_special_blocks(storage_format: str, original: str, rebuilt: str) -> str:
+    """Re-apply branch / screenplay-element tags lost when DSL is rebuilt
+    from the WYSIWYG pane (see format.dsl.restore_tags)."""
+
+    try:
+        if storage_format == "story_v1":
+            return dsl_format.restore_tags(original, rebuilt, {"paragraph"}, {"branch"})
+        return dsl_format.restore_tags(
+            original, rebuilt, {"action"}, {"character", "dialogue", "parenthetical", "transition", "shot", "general"}
+        )
+    except Exception:
+        return rebuilt
+
+
+def _screenplay_or_comic_html(storage_format: str, text: str) -> str:
+    """Preview HTML for the screenplay-like DSL formats (.screenplay, .comic)."""
+
+    if storage_format == "comic_v1":
+        return comic_markup.dsl_to_html(text)
+    return screenplay_markup.dsl_to_html(text)
 
 class MainWindow(QMainWindow):
     """Top-level window for the editor application."""
@@ -401,6 +424,9 @@ class MainWindow(QMainWindow):
         )
         self._action_save_as_screenplay = save_as_menu.addAction(
             self.tr("as .screenplay file"), self._save_as_screenplay
+        )
+        self._action_save_as_comic = save_as_menu.addAction(
+            self.tr("as .comic file"), self._save_as_comic
         )
 
         settings_menu = menu.addMenu(self.tr("Settings"))
@@ -1478,9 +1504,9 @@ class MainWindow(QMainWindow):
                 except Exception:
                     html = ""
                 self.preview.set_html(html)
-            elif storage_format == "screenplay_v1":
+            elif storage_format in ("screenplay_v1", "comic_v1"):
                 try:
-                    html = screenplay_markup.dsl_to_html(text)
+                    html = _screenplay_or_comic_html(storage_format, text)
                 except Exception:
                     html = ""
                 self.preview.set_html(html)
@@ -1531,7 +1557,7 @@ class MainWindow(QMainWindow):
             try:
                 build_story_dsl = getattr(self.preview, "build_story_dsl", None)
                 if callable(build_story_dsl):
-                    dsl = build_story_dsl()
+                    dsl = _keep_special_blocks("story_v1", self._document.content or "", build_story_dsl())
                 else:
                     # Fallback to the older Markdown → DSL path if needed.
                     dsl = story_markup.markdown_to_dsl(text)
@@ -1545,13 +1571,17 @@ class MainWindow(QMainWindow):
             try:
                 build_screenplay_dsl = getattr(self.preview, "build_screenplay_dsl", None)
                 if callable(build_screenplay_dsl):
-                    dsl = build_screenplay_dsl()
+                    dsl = _keep_special_blocks("screenplay_v1", self._document.content or "", build_screenplay_dsl())
                 else:
                     dsl = screenplay_markup.markdown_to_dsl(text)
             except Exception:
                 dsl = text
             self._document.set_content(dsl)
             canonical_text = dsl
+        elif storage_format == "comic_v1":
+            # The comic preview is a rendering of the page list, not an
+            # editable document; edits happen in the source pane only.
+            canonical_text = self._document.content or ""
         else:
             # Plain Markdown: keep existing behaviour.
             self._document.set_content(text)
@@ -1979,13 +2009,13 @@ class MainWindow(QMainWindow):
             except Exception:
                 html = ""
             self.preview.set_html(html)
-        elif storage_format == "screenplay_v1":
+        elif storage_format in ("screenplay_v1", "comic_v1"):
             try:
                 text = getattr(self._document, "content", "") or ""
             except Exception:
                 text = ""
             try:
-                html = screenplay_markup.dsl_to_html(text)
+                html = _screenplay_or_comic_html(storage_format, text)
             except Exception:
                 html = ""
             self.preview.set_html(html)
@@ -2141,6 +2171,10 @@ class MainWindow(QMainWindow):
                 new_format = "screenplay_v1"
                 if getattr(self._document, "kind", "generic") == "generic":
                     self._document.kind = "screenplay"
+            elif suffix == ".comic":
+                new_format = "comic_v1"
+                if getattr(self._document, "kind", "generic") == "generic":
+                    self._document.kind = "comic"
             else:
                 new_format = "markdown"
 
@@ -2160,7 +2194,7 @@ class MainWindow(QMainWindow):
                     try:
                         build_story_dsl = getattr(self.preview, "build_story_dsl", None)
                         if callable(build_story_dsl):
-                            self._document.content = build_story_dsl()
+                            self._document.content = _keep_special_blocks("story_v1", raw_content, build_story_dsl())
                             raw_content = self._document.content or ""
                     except Exception:
                         # If DSL building fails, fall through to the
@@ -2185,7 +2219,7 @@ class MainWindow(QMainWindow):
                     try:
                         build_screenplay_dsl = getattr(self.preview, "build_screenplay_dsl", None)
                         if callable(build_screenplay_dsl):
-                            self._document.content = build_screenplay_dsl()
+                            self._document.content = _keep_special_blocks("screenplay_v1", raw_content, build_screenplay_dsl())
                             raw_content = self._document.content or ""
                     except Exception:
                         raw_content = getattr(self._document, "content", "") or ""
@@ -2196,6 +2230,12 @@ class MainWindow(QMainWindow):
                 if needs_migration:
                     try:
                         self._document.content = screenplay_markup.markdown_to_dsl(raw_content)
+                    except Exception:
+                        pass
+            elif new_format == "comic_v1":
+                if old_format != "comic_v1" and "[comic_title" not in raw_content:
+                    try:
+                        self._document.content = comic_markup.markdown_to_dsl(raw_content)
                     except Exception:
                         pass
 
@@ -2301,9 +2341,9 @@ class MainWindow(QMainWindow):
         if storage_format == "story_v1":
             markdown = raw_content  # For now we expose the DSL text as-is.
             html = story_markup.dsl_to_html(raw_content)
-        elif storage_format == "screenplay_v1":
+        elif storage_format in ("screenplay_v1", "comic_v1"):
             markdown = raw_content
-            html = screenplay_markup.dsl_to_html(raw_content)
+            html = _screenplay_or_comic_html(storage_format, raw_content)
         else:
             markdown = raw_content
 
@@ -2817,6 +2857,8 @@ class MainWindow(QMainWindow):
             self._action_save_as_story.setText(self.tr("as .story file"))
         if hasattr(self, "_action_save_as_screenplay"):
             self._action_save_as_screenplay.setText(self.tr("as .screenplay file"))
+        if hasattr(self, "_action_save_as_comic"):
+            self._action_save_as_comic.setText(self.tr("as .comic file"))
         if hasattr(self, "_action_choose_project_space"):
             self._action_choose_project_space.setText(
                 self.tr("Create or choose your project space")
@@ -4158,6 +4200,71 @@ class MainWindow(QMainWindow):
                 self.tr("An unexpected error occurred while saving the screenplay."),
             )
 
+
+    def _save_as_comic(self) -> None:  # pragma: no cover - UI wiring
+        """Save the current document as a `.comic` file.
+
+        A `.comic` document is already DSL; anything else is converted
+        (first heading → title, images → pages, see comic_markup).
+        """
+
+        content = getattr(self._document, "content", "") or ""
+        storage_format = getattr(self._document, "storage_format", "markdown") or "markdown"
+        title = self._guess_document_title() or "untitled"
+        default_name = f"{self._suggest_export_basename(title)}.comic"
+        start_dir = str(self._project_space_path) if self._project_space_path else ""
+        initial = str(Path(start_dir) / default_name) if start_dir else default_name
+
+        path_str, _ = QFileDialog.getSaveFileName(
+            self,
+            self.tr("Save as Comic"),
+            initial,
+            self.tr("Comic files (*.comic);;All files (*)"),
+        )
+        if not path_str:
+            return
+        target_path = Path(path_str)
+        if target_path.suffix.lower() != ".comic":
+            target_path = target_path.with_suffix(".comic")
+
+        try:
+            if storage_format == "comic_v1" or "[comic_title" in content:
+                dsl_content = content
+            else:
+                dsl_content = comic_markup.markdown_to_dsl(content)
+            storage.write_text(target_path, dsl_content)
+            file_metadata.set_attr(target_path, file_metadata.FIELD_BODY_FORMAT, "comic_v1")
+            file_metadata.set_attr(target_path, file_metadata.FIELD_CREATION_DATE, file_metadata.now_human())
+            file_metadata.touch_change_date(target_path)
+
+            self._document.path = target_path
+            self._document.content = dsl_content
+            self._document.storage_format = "comic_v1"
+            self._document.kind = "comic"
+            self._document.is_dirty = False
+
+            old_state = self.editor.blockSignals(True)
+            try:
+                self.editor.setPlainText(dsl_content)
+            finally:
+                self.editor.blockSignals(old_state)
+            try:
+                self.preview.set_html(comic_markup.dsl_to_html(dsl_content))
+            except Exception:
+                self.preview.set_markdown(dsl_content)
+
+            self._update_window_title()
+            bar = self.statusBar()
+            if bar is not None:
+                bar.showMessage(self.tr("Saved comic to: {path}").format(path=target_path), 5000)
+        except Exception:
+            import traceback
+            traceback.print_exc()
+            QMessageBox.critical(
+                self,
+                self.tr("Save failed"),
+                self.tr("An unexpected error occurred while saving the comic."),
+            )
     def _insert_image(self) -> None:  # pragma: no cover - UI wiring
         """Insert a `[image](path)[/image]` tag for a picked file at the cursor.
 
@@ -6665,9 +6772,9 @@ class MainWindow(QMainWindow):
             except Exception:
                 html = ""
             self.preview.set_html(html)
-        elif storage_format == "screenplay_v1":
+        elif storage_format in ("screenplay_v1", "comic_v1"):
             try:
-                html = screenplay_markup.dsl_to_html(doc.content)
+                html = _screenplay_or_comic_html(storage_format, doc.content)
             except Exception:
                 html = ""
             self.preview.set_html(html)

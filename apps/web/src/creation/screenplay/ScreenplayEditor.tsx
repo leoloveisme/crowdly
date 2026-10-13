@@ -33,6 +33,7 @@ import {
 } from "@web/lib/screenplay";
 import { FindBar, buildFindRegex, type FindOptions } from "../FindBar";
 import { RevisionsDialog } from "../RevisionsDialog";
+import { useWorkFileActions } from "../useWorkFileActions";
 
 // Screenplay editor: scene outline + a script page where every element is
 // a typed block (desktop .screenplay; platform screenplay template). Enter
@@ -324,8 +325,10 @@ const ScreenplayEditor: React.FC = () => {
     setStatus({ words, paragraphs: blocks.length, chapters: scenes.length });
   }, [blocks, scenes, setStatus]);
 
+  const fileActions = useWorkFileActions("screenplay", id, flush);
   useDocActions(
     {
+      ...fileActions.actions,
       kind: "screenplay",
       find: () => setFind("find"),
       replace: canEdit ? () => setFind("replace") : undefined,
@@ -485,6 +488,7 @@ const ScreenplayEditor: React.FC = () => {
           </div>
         </div>
       </section>
+      {fileActions.dialog}
       {revScene && <RevisionsDialog open onOpenChange={(o) => !o && setRevScene(null)} screenplayId={id} sceneId={revScene.scene_id} title={revScene.slugline} onRestored={load} />}
     </div>
   );

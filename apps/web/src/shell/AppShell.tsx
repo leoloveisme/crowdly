@@ -12,7 +12,9 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { PenLine, BookOpen, LogIn, LogOut } from "lucide-react";
 import { UI_LANGUAGES } from "@web/lib/languages";
 import { createSpace, listSharedSpaces, listSpaces, deleteSpace } from "@web/lib/docs";
+import { saveFileToSpace } from "@web/lib/spaces";
 import { platformLink } from "@web/lib/api";
+import { IMPORT_ACCEPT, importFile } from "@web/creation/io";
 import { useWorkspace, type ExportFormat, type SaveAsFormat } from "./workspace";
 import { DesktopMenuBar, MobileMenu, type MenuEntry, type MenuGroup } from "./MenuBar";
 import { LoginDialog, NewDocumentDialog, OpenWorkDialog, ReportBugDialog, ShowTabsDialog, type NewKind } from "./dialogs";
@@ -73,12 +75,36 @@ export const AppShell: React.FC = () => {
   const [openOpen, setOpenOpen] = useState<null | "here" | "window">(null);
   const [bugOpen, setBugOpen] = useState(false);
   const [tabsOpen, setTabsOpen] = useState(false);
+  const importInput = React.useRef<HTMLInputElement>(null);
+
+  const onImport = async (files: FileList | null) => {
+    const f = files?.[0];
+    if (!f || !user) return;
+    toast({ title: `Importing ${f.name}…` });
+    try {
+      const r = await importFile(f, user.id, ws.prefs.activeSpaceId);
+      if (r.note) toast({ title: r.note });
+      qc.invalidateQueries();
+      navigate(r.path);
+    } catch (err) {
+      toast({ title: "Couldn't import the file", description: (err as Error).message, variant: "destructive" });
+    } finally {
+      if (importInput.current) importInput.current.value = "";
+    }
+  };
 
   // Every visited document becomes a tab; remember the location for
   // "Start where I left off".
   useEffect(() => {
     const t = tabFor(location.pathname);
     if (t) ws.openTab({ path: location.pathname, title: t.title, kind: t.kind });
+    // The page decides the mode, like the desktop's Creation/Discovery windows.
+    if (t) {
+      const discovery = ["read", "library", "shelves", "discover"].includes(t.kind);
+      const creation = ["story", "screenplay", "comic", "space", "file", "master", "local"].includes(t.kind);
+      if (discovery && ws.mode !== "discovery") ws.setMode("discovery");
+      if (creation && ws.mode !== "creation") ws.setMode("creation");
+    }
     ws.setLastPath(location.pathname + location.search);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname, location.search]);
@@ -135,6 +161,24 @@ export const AppShell: React.FC = () => {
           { id: "webapp-menu-new-story", label: "Story", onSelect: needUser(() => setNewOpen("story")) },
           { id: "webapp-menu-new-screenplay", label: "Screenplay", onSelect: needUser(() => setNewOpen("screenplay")) },
           { id: "webapp-menu-new-comic", label: "Comic / manga", onSelect: needUser(() => setNewOpen("comic")) },
+          {
+            id: "webapp-menu-new-master",
+            label: "Master document",
+            disabled: !ws.prefs.activeSpaceId,
+            onSelect: needUser(async () => {
+              const spaceId = ws.prefs.activeSpaceId;
+              if (!spaceId) return;
+              const name = await askText("Name of the master document", "book.master");
+              if (!name?.trim()) return;
+              const fname = /\.master$/i.test(name.trim()) ? name.trim() : `${name.trim()}.master`;
+              try {
+                const it = await saveFileToSpace(spaceId, "", fname, "", user!.id, "text/plain");
+                navigate(`/master/${spaceId}/${it.id}`);
+              } catch (err) {
+                toast({ title: "Couldn't create it", description: (err as Error).message, variant: "destructive" });
+              }
+            }),
+          },
           { id: "webapp-menu-new-tab", label: "Tab", separatorBefore: true, onSelect: () => navigate("/") },
           { id: "webapp-menu-new-window", label: "Window", onSelect: () => window.open(`${base}/`, "_blank") },
         ],
@@ -215,7 +259,7 @@ export const AppShell: React.FC = () => {
         id: "webapp-menu-import",
         label: "Import",
         hidden: !inCreation,
-        items: [{ id: "webapp-menu-import-file", label: "Import from file…", onSelect: a.importInto }],
+        items: [{ id: "webapp-menu-import-file", label: "Import from file…", onSelect: needUser(() => importInput.current?.click()) }],
       },
       {
         id: "webapp-menu-export",
@@ -239,6 +283,7 @@ export const AppShell: React.FC = () => {
         id: "webapp-menu-settings",
         label: "Settings",
         items: [
+          { id: "webapp-menu-settings-page", label: "All settings…", onSelect: () => navigate("/settings") },
           {
             id: "webapp-menu-settings-language",
             label: "Change interface language",
@@ -362,6 +407,7 @@ export const AppShell: React.FC = () => {
       </main>
       <StatusBar spaceName={activeSpace?.name} />
 
+      <input ref={importInput} type="file" accept={IMPORT_ACCEPT} className="hidden" onChange={(e) => onImport(e.target.files)} />
       <LoginDialog open={loginOpen} onOpenChange={setLoginOpen} />
       <NewDocumentDialog open={!!newOpen} initialKind={newOpen ?? "story"} onOpenChange={(o) => !o && setNewOpen(null)} spaceId={ws.prefs.activeSpaceId} />
       <OpenWorkDialog open={!!openOpen} newWindow={openOpen === "window"} onOpenChange={(o) => !o && setOpenOpen(null)} />

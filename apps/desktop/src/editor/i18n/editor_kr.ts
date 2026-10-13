@@ -168,6 +168,26 @@
       <translation>as .screenplay file</translation>
     </message>
     <message>
+        <source>as .comic file</source>
+        <translation>.comic 파일로</translation>
+    </message>
+    <message>
+        <source>Save as Comic</source>
+        <translation>만화로 저장</translation>
+    </message>
+    <message>
+        <source>Comic files (*.comic);;All files (*)</source>
+        <translation>만화 파일 (*.comic);;모든 파일 (*)</translation>
+    </message>
+    <message>
+        <source>Saved comic to: {path}</source>
+        <translation>만화를 저장했습니다: {path}</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the comic.</source>
+        <translation>만화를 저장하는 중 예기치 않은 오류가 발생했습니다.</translation>
+    </message>
+    <message>
       <source>Import</source>
       <translation>Import</translation>
     </message>

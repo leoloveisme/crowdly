@@ -3,10 +3,11 @@
 This module provides a minimal DSL for `.screenplay` documents plus
 helpers for automatic migration from Markdown and for HTML export.
 
-The DSL is intentionally conservative for now and focuses on stable
-structural elements: screenplay title, scene sluglines and generic
-"action" lines. More specialised elements (character names, dialogue,
-parentheticals, transitions) can be added incrementally.
+Elements: screenplay title, scene sluglines, action, and (v2, 2026-10)
+character, dialogue, parenthetical, transition, shot and general — the
+same element types as the backend's screenplay_block.block_type. Parsing is
+shared with `.story`/`.comic` via :mod:`.dsl` and mirrored in the web app;
+see ``Documentation/Crowdly_file_formats_story_screenplay_comic.md``.
 """
 
 from __future__ import annotations
@@ -17,13 +18,32 @@ from html import escape
 from typing import List, Tuple
 
 from .. import story_sync
+from . import dsl
 
 
 class ScreenplayBlockType(Enum):
     SCREENPLAY_TITLE = auto()
     SCENE_SLUGLINE = auto()
     ACTION = auto()
+    CHARACTER = auto()
+    DIALOGUE = auto()
+    PARENTHETICAL = auto()
+    TRANSITION = auto()
+    SHOT = auto()
     RAW = auto()
+
+
+# Element tag in the DSL ↔ block type (backend screenplay_block.block_type
+# uses the same names, with "scene_heading" for sluglines).
+ELEMENT_TAGS = {
+    ScreenplayBlockType.ACTION: "action",
+    ScreenplayBlockType.CHARACTER: "character",
+    ScreenplayBlockType.DIALOGUE: "dialogue",
+    ScreenplayBlockType.PARENTHETICAL: "parenthetical",
+    ScreenplayBlockType.TRANSITION: "transition",
+    ScreenplayBlockType.SHOT: "shot",
+}
+_ELEMENT_NAMES = {"action", "character", "dialogue", "parenthetical", "transition", "shot", "general"}
 
 
 @dataclass
@@ -54,14 +74,33 @@ def markdown_to_screenplay_document(markdown: str) -> ScreenplayDocument:
     for ch in payload.chapters:
         slug = ch.chapterTitle or "Scene"
         blocks.append(ScreenplayBlock(type=ScreenplayBlockType.SCENE_SLUGLINE, text=slug))
+        previous = None
         for line in ch.paragraphs:
             txt = (line or "").strip("\n")
             if not txt:
                 continue
-            # For now treat all body lines as generic ACTION.
-            blocks.append(ScreenplayBlock(type=ScreenplayBlockType.ACTION, text=txt))
+            kind = _guess_element(txt, previous)
+            blocks.append(ScreenplayBlock(type=kind, text=txt))
+            previous = kind
 
     return ScreenplayDocument(title=title, blocks=blocks)
+
+
+def _guess_element(text: str, previous: "ScreenplayBlockType | None") -> "ScreenplayBlockType":
+    """Fountain-style guesses for plain text: ALL-CAPS short line → character,
+    "(…)" → parenthetical, line after a character/parenthetical → dialogue,
+    "… TO:" → transition; anything else is action."""
+
+    t = text.strip()
+    if t.startswith("(") and t.endswith(")") and previous in (ScreenplayBlockType.CHARACTER, ScreenplayBlockType.DIALOGUE):
+        return ScreenplayBlockType.PARENTHETICAL
+    if previous in (ScreenplayBlockType.CHARACTER, ScreenplayBlockType.PARENTHETICAL):
+        return ScreenplayBlockType.DIALOGUE
+    if t.isupper() and t.endswith("TO:"):
+        return ScreenplayBlockType.TRANSITION
+    if t.isupper() and len(t) <= 40 and "\n" not in t and any(c.isalpha() for c in t):
+        return ScreenplayBlockType.CHARACTER
+    return ScreenplayBlockType.ACTION
 
 
 def screenplay_document_to_dsl(doc: ScreenplayDocument) -> str:
@@ -91,6 +130,9 @@ def screenplay_document_to_dsl(doc: ScreenplayDocument) -> str:
         elif block.type is ScreenplayBlockType.ACTION:
             body = block.text.rstrip("\n")
             lines.append(f"[action left]{body}[/action]")
+            lines.append("")
+        elif block.type in ELEMENT_TAGS:
+            lines.append(dsl.block(ELEMENT_TAGS[block.type], block.text.rstrip("\n")))
             lines.append("")
         else:
             lines.append(block.text)
@@ -238,121 +280,85 @@ def _style_from_attrs(attrs: dict[str, str]) -> str:
     return " style=\"" + "; ".join(styles) + "\""
 
 
+_ELEMENT_STYLE = {
+    "action": "",
+    "character": "text-align:center; text-transform:uppercase; margin:1em 0 0",
+    "dialogue": "margin:0 15%",
+    "parenthetical": "margin:0 25%; font-style:italic",
+    "transition": "text-align:right; text-transform:uppercase",
+    "shot": "text-transform:uppercase",
+    "general": "",
+}
+
+
+def _merge_style(style: str, extra: str) -> str:
+    if not extra:
+        return style
+    if not style:
+        return f" style=\"{extra}\""
+    return style[:-1].rstrip(";") + "; " + extra + "\""
+
+
 def dsl_to_html(text: str) -> str:
     """Render `.screenplay` DSL text to HTML suitable for export.
 
-    Supported constructs:
-
-    * ``[screenplay_title ...]...[/screenplay_title]`` → centred H1 with
-      optional inline styles.
-    * ``[scene_slugline ...]...[/scene_slugline]`` → H2 with slugline styling
-      and optional inline styles.
-    * ``[action ...]...[/action]`` → left-aligned action paragraphs with
-      optional inline styles.
-
-    Unknown blocks are wrapped in simple paragraphs.
+    ``screenplay_title`` → centred H1, ``scene_slugline`` → H2.scene-slugline,
+    and the elements action / character / dialogue / parenthetical /
+    transition / shot / general → paragraphs with screenplay layout. Title
+    and slugline stay normal weight unless the ``bold`` flag is set. Raw
+    text from older files and unknown tags become plain paragraphs.
     """
 
-    text = text or ""
-
-    blocks: List[str] = []
-
-    current_tag: str | None = None
-    buf: list[str] = []
-
-    def flush_current() -> None:
-        nonlocal current_tag, buf
-        if current_tag is None:
-            if buf:
-                raw = "\n".join(buf).strip("\n")
-                if raw:
-                    blocks.append(f"<p>{escape(raw)}</p>")
-            buf = []
-            return
-
-        body = "\n".join(buf).rstrip("\n")
-        safe = escape(body)
-        # For multi-line blocks without explicit attributes we fall back to
-        # default styling.
-        if current_tag == "screenplay_title":
-            blocks.append("<h1 style=\"text-align:center;\">" + safe + "</h1>")
-        elif current_tag == "scene_slugline":
-            blocks.append("<h2 class=\"scene-slugline\">" + safe + "</h2>")
-        elif current_tag == "action":
-            html_body = safe.replace("\n", "<br />\n")
-            blocks.append("<p class=\"action\">" + html_body + "</p>")
+    out: List[str] = []
+    for b in dsl.parse_blocks(text or ""):
+        style = _style_from_attrs(b.attrs)
+        safe = escape(b.body.strip())
+        normal = "" if "bold" in b.attrs or "font-weight" in style else "font-weight:normal"
+        if b.tag == "screenplay_title":
+            extra = "; ".join(x for x in ("" if "align" in b.attrs else "text-align:center", normal) if x)
+            out.append(f"<h1{_merge_style(style, extra)}>{safe}</h1>")
+        elif b.tag in ("scene_slugline", "scene_heading"):
+            out.append(f"<h2 class=\"scene-slugline\"{_merge_style(style, normal)}>{safe}</h2>")
+        elif b.tag in _ELEMENT_NAMES:
+            body = escape(b.body.rstrip("\n")).replace("\n", "<br />\n")
+            out.append(f"<p class=\"{b.tag}\"{_merge_style(style, _ELEMENT_STYLE[b.tag])}>{body}</p>")
         else:
-            blocks.append(f"<p>{safe}</p>")
+            out.append(f"<p>{escape(b.body.rstrip())}</p>")
+    return "\n".join(out) + "\n"
 
-        buf = []
-        current_tag = None
 
-    for line in text.splitlines():
-        stripped = line.strip()
-        if not stripped:
-            continue
+# ---------------------------------------------------------------------------
+# Structured form shared with the web app and the backend's scene/block model:
+#   {"title": str, "scenes": [{"slugline": str, "blocks": [{"type": str, "text": str}]}]}
+# ---------------------------------------------------------------------------
 
-        # One-line forms with optional attributes: [tag attrs]body[/tag]
-        for tag_name in ("screenplay_title", "scene_slugline", "action"):
-            open_prefix = f"[{tag_name}"
-            close_suffix = f"[/{tag_name}]"
-            if stripped.startswith(open_prefix) and stripped.endswith(close_suffix):
-                flush_current()
-                header, body = stripped.split("]", 1)
-                content = body[: -len(close_suffix)]
-                _tag, attrs = _parse_tag_and_attrs(header + "]")
-                style = _style_from_attrs(attrs)
-                safe = escape(content.strip())
 
-                def _ensure_normal_weight_if_not_bold(style_str: str) -> str:
-                    """Append ``font-weight:normal`` when no explicit bold flag is set.
+def parse_dsl(text: str) -> dict:
+    title = ""
+    scenes: list[dict] = []
 
-                    This prevents default HTML heading styles (h1/h2) from making
-                    all screenplay titles and scene sluglines appear bold when the
-                    DSL header does not include a ``bold`` token.
-                    """
+    def current() -> dict:
+        if not scenes:
+            scenes.append({"slugline": "", "blocks": []})
+        return scenes[-1]
 
-                    if "bold" in attrs:
-                        return style_str
-                    if "font-weight" in style_str:
-                        return style_str
-                    if not style_str:
-                        return " style=\"font-weight:normal;\""
-                    # style_str is of the form ' style="..."'; inject before the
-                    # closing quote.
-                    base = style_str[:-1]
-                    if not base.endswith(";"):
-                        base += ";"
-                    base += " font-weight:normal\""
-                    return base
-
-                if tag_name == "screenplay_title":
-                    # Default to centre-aligned title when no explicit align.
-                    if "align" not in attrs:
-                        if not style:
-                            style = " style=\"text-align:center;\""
-                        else:
-                            base = style[:-1]
-                            if not base.endswith(";"):
-                                base += ";"
-                            base += " text-align:center\""
-                            style = base
-                    style = _ensure_normal_weight_if_not_bold(style)
-                    blocks.append(f"<h1{style}>{safe}</h1>")
-                elif tag_name == "scene_slugline":
-                    style = _ensure_normal_weight_if_not_bold(style)
-                    blocks.append(f"<h2 class=\"scene-slugline\"{style}>{safe}</h2>")
-                else:  # action
-                    body_safe = escape(content.rstrip("\n"))
-                    body_html = body_safe.replace("\n", "<br />\n")
-                    blocks.append(f"<p class=\"action\"{style}>{body_html}</p>")
-                break
+    for b in dsl.parse_blocks(text or ""):
+        if b.tag == "screenplay_title":
+            title = b.body.strip()
+        elif b.tag in ("scene_slugline", "scene_heading"):
+            scenes.append({"slugline": b.body.strip(), "blocks": []})
+        elif b.tag in _ELEMENT_NAMES:
+            current()["blocks"].append({"type": b.tag, "text": b.body})
         else:
-            # Fallback: accumulate into current RAW block; flush wraps it in <p>.
-            if current_tag is None:
-                current_tag = "raw"
-            buf.append(line)
+            current()["blocks"].append({"type": "action", "text": b.body})
+    return {"title": title, "scenes": scenes}
 
-    flush_current()
 
-    return "\n".join(blocks) + "\n"
+def dict_to_dsl(doc: dict) -> str:
+    lines: list[str] = [dsl.block("screenplay_title", doc.get("title") or "Untitled Screenplay", {"align": "center"}), ""]
+    for sc in doc.get("scenes", []):
+        lines += [dsl.block("scene_slugline", sc.get("slugline") or "", {"align": "left"}), ""]
+        for b in sc.get("blocks") or []:
+            t = b.get("type") if b.get("type") in _ELEMENT_NAMES else "action"
+            lines += [dsl.block(t, b.get("text", "")), ""]
+    return "\n".join(lines).rstrip() + "\n"

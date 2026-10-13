@@ -168,6 +168,26 @@
       <translation>as .screenplay file</translation>
     </message>
     <message>
+        <source>as .comic file</source>
+        <translation>儲存為 .comic 檔案</translation>
+    </message>
+    <message>
+        <source>Save as Comic</source>
+        <translation>另存為漫畫</translation>
+    </message>
+    <message>
+        <source>Comic files (*.comic);;All files (*)</source>
+        <translation>漫畫檔案 (*.comic);;所有檔案 (*)</translation>
+    </message>
+    <message>
+        <source>Saved comic to: {path}</source>
+        <translation>漫畫已儲存至：{path}</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the comic.</source>
+        <translation>儲存漫畫時發生意外錯誤。</translation>
+    </message>
+    <message>
       <source>Import</source>
       <translation>Import</translation>
     </message>

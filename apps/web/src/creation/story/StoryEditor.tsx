@@ -8,7 +8,7 @@ import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { uploadGalleryImages } from "@/lib/galleryApi";
-import { ListTree, GitBranch, ExternalLink, Inbox, MessageSquare, PencilLine, Users } from "lucide-react";
+import { ListTree, GitBranch, ExternalLink, Inbox, MessageSquare, PencilLine, Users, Film } from "lucide-react";
 import { useDocActions, useTabTitle, useWorkspace } from "@web/shell/workspace";
 import { platformLink } from "@web/lib/api";
 import { countParagraphs, countWords } from "@web/lib/text";
@@ -40,7 +40,9 @@ import { StoryMetadataDialog, type MetadataValue } from "./StoryMetadataDialog";
 import { ChangeStoryDialog } from "./ChangeStoryDialog";
 import { ReviewPanel } from "./ReviewPanel";
 import { CommentsPanel } from "./CommentsPanel";
+import { FormatsPanel } from "./FormatsPanel";
 import { useLiveChapter } from "@web/lib/live";
+import { useWorkFileActions } from "../useWorkFileActions";
 import { createProposal, diffSuggestions } from "@web/lib/collab";
 
 const AUTOSAVE_MS = 2000; // desktop: autosave 2 s after typing stops
@@ -65,7 +67,7 @@ const StoryEditor: React.FC = () => {
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [dirty, setDirty] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
-  const [side, setSide] = useState<"chapters" | "branches" | "review" | "comments" | null>("chapters");
+  const [side, setSide] = useState<"chapters" | "branches" | "review" | "comments" | "formats" | null>("chapters");
   const [changeOpen, setChangeOpen] = useState(false);
   const [suggesting, setSuggesting] = useState(false);
   const [metaOpen, setMetaOpen] = useState(false);
@@ -341,8 +343,10 @@ const StoryEditor: React.FC = () => {
     setStatus({ peers: live.peers.length || undefined, ...(live.connected && dirty.size === 0 ? { sync: "live" as const } : {}) });
   }, [live.peers.length, live.connected, dirty.size, setStatus]);
 
+  const fileActions = useWorkFileActions("story", id, flush);
   useDocActions(
     {
+      ...fileActions.actions,
       kind: "story",
       find: () => editorRef.current?.openFind(false),
       replace: canEdit ? () => editorRef.current?.openFind(true) : undefined,
@@ -389,8 +393,12 @@ const StoryEditor: React.FC = () => {
   ) : null;
   const reviewPanel = <ReviewPanel storyId={story.story_title_id} chapters={chapters} onApplied={load} />;
   const commentsPanel = <CommentsPanel storyId={story.story_title_id} chapterId={activeId} userId={user?.id} />;
-  const sidePanel = side === "chapters" ? chapterList : side === "branches" ? branchPanel : side === "review" ? reviewPanel : side === "comments" ? commentsPanel : null;
-  const rightPanel = side === "branches" ? branchPanel : side === "review" ? reviewPanel : side === "comments" ? commentsPanel : null;
+  const formatsPanel = (
+    <FormatsPanel storyId={story.story_title_id} language={story.language ?? "en"} chapter={chapters.find((c) => c.chapter_id === activeId) ?? null} chapters={chapters} paragraphs={activeParagraphs} canEdit={isOwner} />
+  );
+  const panels = { chapters: chapterList, branches: branchPanel, review: reviewPanel, comments: commentsPanel, formats: formatsPanel };
+  const sidePanel = side ? panels[side] : null;
+  const rightPanel = side && side !== "chapters" ? panels[side] : null;
 
   const header = (
     <div className="flex flex-wrap items-center gap-2 border-b px-3 py-2">
@@ -437,6 +445,11 @@ const StoryEditor: React.FC = () => {
       <Button size="icon" variant={side === "branches" ? "secondary" : "ghost"} className="h-8 w-8" onClick={() => setSide(side === "branches" ? null : "branches")} aria-label="Branches">
         <GitBranch className="h-4 w-4" />
       </Button>
+      {user && (
+        <Button size="icon" variant={side === "formats" ? "secondary" : "ghost"} className="h-8 w-8" onClick={() => setSide(side === "formats" ? null : "formats")} aria-label="Formats and translations">
+          <Film className="h-4 w-4" />
+        </Button>
+      )}
       <Button size="icon" variant={side === "comments" ? "secondary" : "ghost"} className="h-8 w-8" onClick={() => setSide(side === "comments" ? null : "comments")} aria-label="Comments">
         <MessageSquare className="h-4 w-4" />
       </Button>
@@ -487,7 +500,7 @@ const StoryEditor: React.FC = () => {
           )}
         </div>
       </section>
-      {!isMobile && rightPanel && <aside className="w-80 shrink-0 border-l">{rightPanel}</aside>}
+      {!isMobile && rightPanel && <aside className={`${side === "formats" ? "w-[28rem]" : "w-80"} shrink-0 border-l`}>{rightPanel}</aside>}
       {isMobile && (
         <Sheet open={!!sidePanel} onOpenChange={(o) => !o && setSide(null)}>
           <SheetContent side={side === "chapters" ? "left" : "right"} className="w-[85vw] max-w-sm p-0">
@@ -504,6 +517,7 @@ const StoryEditor: React.FC = () => {
         value={{ title: story.title, description: story.description ?? "", genre: story.genre ?? "", tags: story.tags ?? [], visibility: story.visibility ?? "public", published: !!story.published }}
         onSave={saveMetadata}
       />
+      {fileActions.dialog}
       {user && <ChangeStoryDialog open={changeOpen} onOpenChange={setChangeOpen} storyId={story.story_title_id} userId={user.id} onSuggest={() => setSuggesting(true)} />}
       {activeId && <RevisionsDialog open={revOpen} onOpenChange={setRevOpen} chapterId={activeId} title={active?.title} onRestored={load} />}
     </div>

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, ArrowRight, ExternalLink, Eye, EyeOff, Plus, Trash2, Upload } from "lucide-react";
 import { useDocActions, useTabTitle, useWorkspace } from "@web/shell/workspace";
+import { useWorkFileActions } from "../useWorkFileActions";
 import { mediaUrl, platformLink } from "@web/lib/api";
 import {
   createIssue,
@@ -68,7 +69,8 @@ const ComicEditor: React.FC = () => {
     setStatus({ paragraphs: undefined, words: undefined, chapters: issues.length, message: `${pages.length} pages` });
   }, [issues.length, pages.length, setStatus]);
 
-  useDocActions({ kind: "comic" }, []);
+  const fileActions = useWorkFileActions("comic", id);
+  useDocActions({ ...fileActions.actions, kind: "comic" }, [id]);
 
   const upload = async (files: File[]) => {
     const imgs = files.filter((f) => f.type.startsWith("image/"));
@@ -280,6 +282,7 @@ const ComicEditor: React.FC = () => {
           </ol>
         )}
       </div>
+      {fileActions.dialog}
     </div>
   );
 };

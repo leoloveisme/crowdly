@@ -264,6 +264,26 @@
         <translation >.screenplay файл</translation>
     </message>
     <message>
+        <source>as .comic file</source>
+        <translation>как файл .comic</translation>
+    </message>
+    <message>
+        <source>Save as Comic</source>
+        <translation>Сохранить как комикс</translation>
+    </message>
+    <message>
+        <source>Comic files (*.comic);;All files (*)</source>
+        <translation>Файлы комиксов (*.comic);;Все файлы (*)</translation>
+    </message>
+    <message>
+        <source>Saved comic to: {path}</source>
+        <translation>Комикс сохранён в: {path}</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the comic.</source>
+        <translation>Произошла непредвиденная ошибка при сохранении комикса.</translation>
+    </message>
+    <message>
         <source>Import</source>
         <translation >Импорт</translation>
     </message>

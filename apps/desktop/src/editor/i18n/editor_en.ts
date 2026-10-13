@@ -172,6 +172,26 @@
         <translation >.screenplay file</translation>
     </message>
     <message>
+        <source>as .comic file</source>
+        <translation>as .comic file</translation>
+    </message>
+    <message>
+        <source>Save as Comic</source>
+        <translation>Save as Comic</translation>
+    </message>
+    <message>
+        <source>Comic files (*.comic);;All files (*)</source>
+        <translation>Comic files (*.comic);;All files (*)</translation>
+    </message>
+    <message>
+        <source>Saved comic to: {path}</source>
+        <translation>Saved comic to: {path}</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the comic.</source>
+        <translation>An unexpected error occurred while saving the comic.</translation>
+    </message>
+    <message>
         <source>Import</source>
         <translation >Import</translation>
     </message>

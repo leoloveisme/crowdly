@@ -30,6 +30,7 @@ import {
   type SpaceContentItems,
   type SpaceItem,
 } from "@web/lib/spaces";
+import { SpaceSyncPanel } from "./SpaceSyncPanel";
 
 // A Space's file tree (desktop: local Space folder; platform:
 // CreativeSpacePage). Folders, files, upload, rename, move, delete, and
@@ -334,6 +335,7 @@ const SpacePage: React.FC = () => {
         </section>
       )}
 
+      {isOwner && path === "" && <SpaceSyncPanel spaceId={spaceId} />}
     </div>
   );
 };
