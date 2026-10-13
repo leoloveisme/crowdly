@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import { sessionUserGuard } from './sessionUserGuard.js';
 import dotenv from 'dotenv';
 import { randomUUID } from 'crypto';
 import { pool } from './db.js';
@@ -167,6 +168,9 @@ app.use(
 // behavior is unaffected.
 app.use(express.json({ limit: '5mb', verify: (req, res, buf) => { req.rawBody = buf; } }));
 app.use(cookieParser());
+// Legacy routes that took the acting user from a client-sent userId now get
+// it from the session (see sessionUserGuard.js).
+app.use(sessionUserGuard);
 
 // Mounted under /api — the frontend has SPA pages at bare paths like
 // /friends and /communications, so the friends/messaging/notifications API

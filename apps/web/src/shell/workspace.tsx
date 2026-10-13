@@ -41,6 +41,8 @@ export interface DocActions {
   metadata?: () => void;
   revisions?: () => void;
   importInto?: () => void;
+  /** "I want to change this" — for readers and contributors. */
+  change?: () => void;
 }
 
 export type StartMode = "creation" | "discovery";

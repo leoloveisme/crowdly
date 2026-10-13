@@ -271,6 +271,7 @@ export const AppShell: React.FC = () => {
         items: [
           { id: "webapp-menu-story-metadata", label: "Story metadata, genre and description", onSelect: a.metadata },
           { id: "webapp-menu-story-revisions", label: "Compare revisions", onSelect: a.revisions },
+          { id: "webapp-menu-story-change", label: "I want to change this…", separatorBefore: true, onSelect: a.change },
         ],
       },
       {

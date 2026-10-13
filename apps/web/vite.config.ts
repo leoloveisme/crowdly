@@ -14,10 +14,17 @@ export default defineConfig({
   base,
   plugins: [react()],
   resolve: {
-    alias: {
-      "@web": path.resolve(__dirname, "./src"),
-      "@": path.resolve(repoRoot, "src"),
-    },
+    alias: [
+      { find: "@web", replacement: path.resolve(__dirname, "./src") },
+      { find: "@", replacement: path.resolve(repoRoot, "src") },
+      // Automerge's "browser" build imports a .wasm file directly, which
+      // needs a Vite wasm plugin; its base64 build inlines the same wasm
+      // and works everywhere (used for live co-editing).
+      {
+        find: /^@automerge\/automerge$/,
+        replacement: path.resolve(repoRoot, "node_modules/@automerge/automerge/dist/mjs/entrypoints/fullfat_base64.js"),
+      },
+    ],
     // One copy of React (and friends) for both trees.
     dedupe: ["react", "react-dom", "react-router-dom", "@tanstack/react-query"],
   },
