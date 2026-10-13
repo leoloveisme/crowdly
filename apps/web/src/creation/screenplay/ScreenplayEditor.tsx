@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { askConfirm, askText } from "@web/shell/ask";
-import { useLocation, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import EditableText from "@/components/EditableText";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,7 +8,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
-import { ArrowDown, ArrowUp, ExternalLink, History, ListTree, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ExternalLink, History, Inbox, ListTree, Plus, Trash2 } from "lucide-react";
 import { useDocActions, useTabTitle, useWorkspace } from "@web/shell/workspace";
 import { platformLink } from "@web/lib/api";
 import { countWords } from "@web/lib/text";
@@ -21,7 +21,6 @@ import {
   deleteScene,
   getScenes,
   getScreenplay,
-  getScreenplayAccess,
   reorderScenes,
   updateBlock,
   updateScene,
@@ -31,6 +30,12 @@ import {
   type Scene,
   type Screenplay,
 } from "@web/lib/screenplay";
+import BlockBranches from "@/modules/screenplay/BlockBranches";
+import WorkContributeSection from "@/components/work/WorkContributeSection";
+import { createBlockBranch, deleteBlockBranch, listBlockBranches, updateBlockBranch, type BlockBranch, type ScreenplayBlock } from "@/lib/screenplayApi";
+import { createWorkProposal, getWorkAccess, listWorkProposals, type WorkAccess, type WorkProposal } from "@/lib/workApi";
+import { WorkReviewPanel } from "../WorkReviewPanel";
+import WorkEditionsBar, { type EditionChoicePart } from "@/components/work/WorkEditionsBar";
 import { FindBar, buildFindRegex, type FindOptions } from "../FindBar";
 import { RevisionsDialog } from "../RevisionsDialog";
 import { useWorkFileActions } from "../useWorkFileActions";
@@ -55,11 +60,12 @@ const AutoText: React.FC<{
   value: string;
   onChange: (v: string) => void;
   onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
+  onBlur?: () => void;
   className?: string;
   readOnly?: boolean;
   id?: string;
   placeholder?: string;
-}> = ({ value, onChange, onKeyDown, className, readOnly, id, placeholder }) => {
+}> = ({ value, onChange, onKeyDown, onBlur, className, readOnly, id, placeholder }) => {
   const ref = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -78,6 +84,7 @@ const AutoText: React.FC<{
       placeholder={placeholder}
       onChange={(e) => onChange(e.target.value)}
       onKeyDown={onKeyDown}
+      onBlur={onBlur}
       className={cn("block w-full resize-none overflow-hidden bg-transparent outline-none focus:bg-primary/5", className)}
     />
   );
@@ -86,6 +93,7 @@ const AutoText: React.FC<{
 const ScreenplayEditor: React.FC = () => {
   const { id = "" } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { setStatus } = useWorkspace();
   const isMobile = useIsMobile();
@@ -93,7 +101,13 @@ const ScreenplayEditor: React.FC = () => {
   const [sp, setSp] = useState<Screenplay | null>(null);
   const [scenes, setScenes] = useState<Scene[]>([]);
   const [blocks, setBlocks] = useState<Block[]>([]);
-  const [canEdit, setCanEdit] = useState(false);
+  const [access, setAccess] = useState<WorkAccess | null>(null);
+  const [branches, setBranches] = useState<BlockBranch[]>([]);
+  const [pendingProposals, setPendingProposals] = useState<WorkProposal[]>([]);
+  // Readers outside the team "suggest changes": edits go to the owner as proposals.
+  const [suggesting, setSuggesting] = useState(false);
+  const [review, setReview] = useState(false);
+  const saved = useRef<Map<string, string>>(new Map());
   const [error, setError] = useState<string | null>(null);
   const [outline, setOutline] = useState(!isMobile);
   const [find, setFind] = useState<null | "find" | "replace">(null);
@@ -106,22 +120,85 @@ const ScreenplayEditor: React.FC = () => {
 
   useTabTitle(location.pathname, sp?.title);
 
+  const loadContributions = useCallback(() => {
+    listBlockBranches(id).then(setBranches).catch(() => setBranches([]));
+    listWorkProposals("screenplay", id, "undecided").then(setPendingProposals).catch(() => setPendingProposals([]));
+  }, [id]);
+
   const load = useCallback(async () => {
     try {
-      const [s, sc, access] = await Promise.all([getScreenplay(id), getScenes(id), user ? getScreenplayAccess(id) : Promise.resolve(null)]);
+      const [s, sc, myAccess] = await Promise.all([getScreenplay(id), getScenes(id), getWorkAccess("screenplay", id).catch(() => null)]);
       setSp(s);
       setTitleDraft(s.title);
       setScenes(sc.scenes);
       setBlocks(sc.blocks);
-      setCanEdit(access ? access.role === "owner" : !!user && s.creator_id === user.id);
+      setAccess(myAccess);
+      // What the server has, to tell a suggestion apart from an unchanged text.
+      saved.current = new Map([
+        ...sc.blocks.map((b) => [b.block_id, b.text] as [string, string]),
+        ...sc.scenes.map((x) => [`scene:${x.scene_id}`, x.slugline] as [string, string]),
+      ]);
+      loadContributions();
     } catch (err) {
       setError((err as Error).message);
     }
-  }, [id, user]);
+  }, [id, loadContributions]);
 
   useEffect(() => {
     load();
-  }, [load]);
+  }, [load, user?.id]);
+
+  // The team (owner or invited collaborators) edits directly.
+  const canEdit = !!access?.explicit;
+  const isOwner = !!access?.isOwner;
+  const canSuggest = !!user && !!access?.role && !canEdit;
+  const writable = canEdit || (canSuggest && suggesting);
+
+  // In suggestion mode an edited text is sent as a proposal when the field is left.
+  const suggest = async (proposal: Parameters<typeof createWorkProposal>[2], restore: () => void) => {
+    restore();
+    try {
+      await createWorkProposal("screenplay", id, proposal);
+      toast({ title: "Suggestion sent", description: "The owner will review your change." });
+      loadContributions();
+    } catch (err) {
+      toast({ title: "Couldn't send the suggestion", description: (err as Error).message, variant: "destructive" });
+    }
+  };
+  const suggestBlock = (b: Block) => {
+    const original = saved.current.get(b.block_id) ?? "";
+    const current = blocks.find((x) => x.block_id === b.block_id)?.text ?? "";
+    if (!suggesting || current.trim() === original.trim()) return;
+    suggest({ targetType: "block", targetBlockId: b.block_id, proposedText: current }, () =>
+      setBlocks((bs) => bs.map((x) => (x.block_id === b.block_id ? { ...x, text: original } : x))),
+    );
+  };
+  const suggestScene = (sc: Scene) => {
+    const original = saved.current.get(`scene:${sc.scene_id}`) ?? "";
+    const current = scenes.find((x) => x.scene_id === sc.scene_id)?.slugline ?? "";
+    if (!suggesting || current.trim() === original.trim() || !current.trim()) return;
+    suggest({ targetType: "scene", targetSceneId: sc.scene_id, proposedText: current.trim() }, () =>
+      setScenes((ss) => ss.map((x) => (x.scene_id === sc.scene_id ? { ...x, slugline: original } : x))),
+    );
+  };
+
+  const canEditBranch = (br: BlockBranch) => !!user && (br.user_id === user.id || isOwner || !!access?.isAdmin);
+  const branchActions = {
+    create: (b: Block, text: string) =>
+      createBlockBranch(b.block_id, { text })
+        .then((nb) => setBranches((xs) => [...xs, nb]))
+        .catch((err) => toast({ title: "Couldn't create the branch", description: (err as Error).message, variant: "destructive" })),
+    save: (br: BlockBranch, text: string) =>
+      canEditBranch(br)
+        ? updateBlockBranch(br.id, { text })
+            .then((nb) => setBranches((xs) => xs.map((x) => (x.id === br.id ? { ...x, ...nb } : x))))
+            .catch((err) => toast({ title: "Couldn't save the branch", description: (err as Error).message, variant: "destructive" }))
+        : suggest({ targetType: "block_branch", targetBranchId: br.id, proposedText: text }, () => {}),
+    remove: (br: BlockBranch) =>
+      deleteBlockBranch(br.id)
+        .then(() => setBranches((xs) => xs.filter((x) => x.id !== br.id)))
+        .catch((err) => toast({ title: "Couldn't delete the branch", description: (err as Error).message, variant: "destructive" })),
+  };
 
   const flush = useCallback(async () => {
     const items = [...pending.current.entries()];
@@ -156,7 +233,7 @@ const ScreenplayEditor: React.FC = () => {
 
   const setBlockText = (b: Block, text: string) => {
     setBlocks((bs) => bs.map((x) => (x.block_id === b.block_id ? { ...x, text } : x)));
-    queue("block", b.block_id, { text });
+    if (canEdit) queue("block", b.block_id, { text });
   };
 
   const setBlockType = async (b: Block, blockType: BlockType) => {
@@ -258,7 +335,11 @@ const ScreenplayEditor: React.FC = () => {
   };
 
   const saveTitle = async () => {
-    if (!sp || !canEdit || !titleDraft.trim() || titleDraft === sp.title) return;
+    if (!sp || !titleDraft.trim() || titleDraft === sp.title) return;
+    if (!isOwner) {
+      if (suggesting) suggest({ targetType: "screenplay_title", proposedText: titleDraft.trim() }, () => setTitleDraft(sp.title));
+      return;
+    }
     try {
       await updateScreenplay(sp.screenplay_id, { title: titleDraft.trim() });
       setSp({ ...sp, title: titleDraft.trim() });
@@ -394,20 +475,54 @@ const ScreenplayEditor: React.FC = () => {
           </Button>
           <input
             value={titleDraft}
-            readOnly={!canEdit}
+            readOnly={!isOwner && !suggesting}
             onChange={(e) => setTitleDraft(e.target.value)}
             onBlur={saveTitle}
             onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
             className="min-w-0 flex-1 bg-transparent text-lg font-semibold outline-none"
             aria-label="Screenplay title"
           />
+          <div className="hidden sm:block">
+            <WorkEditionsBar
+              kind="screenplay"
+              workId={id}
+              parts={scenes.map((sc) => ({
+              id: sc.scene_id,
+              title: sc.slugline,
+              items: (orderedBlocks.byScene.get(sc.scene_id) ?? []).map((b) => ({
+                id: b.block_id,
+                label: b.text,
+                branches: branches.filter((br) => br.block_id === b.block_id).map((br) => ({ id: br.id, label: br.name ? `${br.name}: ${br.text}` : br.text })),
+              })),
+            })) as EditionChoicePart[]}
+              selectedEditionId={null}
+              onSelect={(editionId) => editionId && navigate(`/read/screenplay/${id}?edition=${editionId}`)}
+            />
+          </div>
+          {(isOwner || access?.isAdmin) && (
+            <Button size="icon" variant={review ? "secondary" : "ghost"} className="h-8 w-8" onClick={() => setReview(!review)} aria-label="Suggestions and requests">
+              <Inbox className="h-4 w-4" />
+            </Button>
+          )}
           <a href={platformLink(`/screenplay/${sp.screenplay_id}`)} target="_blank" rel="noreferrer" className="rounded p-2 hover:bg-muted" title="Open on the platform">
             <ExternalLink className="h-4 w-4" />
           </a>
         </div>
         {!canEdit && (
           <div className="border-b bg-amber-50 px-3 py-1.5 text-sm text-amber-900">
-            <EditableText id="webapp-sp-readonly">You're reading this screenplay. Only its team can edit it.</EditableText>
+            {suggesting ? (
+              <span className="flex flex-wrap items-center gap-2">
+                <EditableText id="webapp-sp-suggesting">You're suggesting changes: each edited element is sent to the owner when you leave it.</EditableText>
+                <button className="underline" onClick={() => setSuggesting(false)}>
+                  <EditableText id="webapp-sp-stop-suggesting">Stop suggesting</EditableText>
+                </button>
+              </span>
+            ) : (
+              <EditableText id="webapp-sp-readonly">You're reading this screenplay. Only its team can edit it.</EditableText>
+            )}
+            {canSuggest && !suggesting && (
+              <WorkContributeSection kind="screenplay" workId={id} onSuggestChanges={() => setSuggesting(true)} />
+            )}
           </div>
         )}
         <div className="min-h-0 flex-1 overflow-auto bg-muted/30 py-4">
@@ -419,11 +534,12 @@ const ScreenplayEditor: React.FC = () => {
                   <div className="flex items-start gap-2">
                     <AutoText
                       value={s.slugline}
-                      readOnly={!canEdit}
+                      readOnly={!writable}
                       onChange={(v) => {
                         setScenes((ss) => ss.map((x) => (x.scene_id === s.scene_id ? { ...x, slugline: v } : x)));
-                        queue("scene", s.scene_id, { slugline: v });
+                        if (canEdit) queue("scene", s.scene_id, { slugline: v });
                       }}
+                      onBlur={() => suggestScene(s)}
                       className="font-bold uppercase"
                     />
                     <span className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover/scene:opacity-100 max-md:opacity-100">
@@ -458,12 +574,35 @@ const ScreenplayEditor: React.FC = () => {
                       <AutoText
                         id={`blk-${b.block_id}`}
                         value={b.text === " " ? "" : b.text}
-                        readOnly={!canEdit}
+                        readOnly={!writable}
                         placeholder={BLOCK_TYPES.find((t) => t.value === b.block_type)?.label}
                         onChange={(v) => setBlockText(b, v)}
                         onKeyDown={onBlockKey(s, b, i, list)}
+                        onBlur={() => suggestBlock(b)}
                         className={BLOCK_STYLE[b.block_type] ?? ""}
                       />
+                      {pendingProposals
+                        .filter((p) => p.target_block_id === b.block_id)
+                        .map((p) => (
+                          <p key={p.id} className="mt-1 whitespace-pre-wrap rounded bg-purple-50 px-2 py-1 text-purple-800" title={p.author_email ?? undefined}>
+                            <EditableText id="webapp-sp-suggested" className="mr-1 font-sans text-[10px] uppercase tracking-wide text-purple-500">
+                              Suggested
+                            </EditableText>
+                            {p.proposed_text}
+                          </p>
+                        ))}
+                      <div className="font-sans">
+                        <BlockBranches
+                          block={b as unknown as ScreenplayBlock}
+                          branches={branches.filter((br) => br.block_id === b.block_id)}
+                          editable={!!user}
+                          canCreate={!!user}
+                          canEditBranch={canEditBranch}
+                          onCreate={(text) => branchActions.create(b, text)}
+                          onSave={branchActions.save}
+                          onDelete={branchActions.remove}
+                        />
+                      </div>
                     </div>
                   ))}
                   {canEdit && list.length === 0 && (
@@ -488,6 +627,18 @@ const ScreenplayEditor: React.FC = () => {
           </div>
         </div>
       </section>
+      {review && !isMobile && (
+        <aside className="w-80 shrink-0 border-l">
+          <WorkReviewPanel kind="screenplay" workId={id} onApplied={load} />
+        </aside>
+      )}
+      {review && isMobile && (
+        <Sheet open={review} onOpenChange={setReview}>
+          <SheetContent side="right" className="w-[85vw] max-w-sm p-0">
+            <WorkReviewPanel kind="screenplay" workId={id} onApplied={load} />
+          </SheetContent>
+        </Sheet>
+      )}
       {fileActions.dialog}
       {revScene && <RevisionsDialog open onOpenChange={(o) => !o && setRevScene(null)} screenplayId={id} sceneId={revScene.scene_id} title={revScene.slugline} onRestored={load} />}
     </div>

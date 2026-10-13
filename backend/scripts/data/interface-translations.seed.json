@@ -13501,5 +13501,446 @@
     "en": "Create translation",
     "ru": "Создать перевод",
     "de": "Übersetzung erstellen"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-contribute-btn",
+    "en": "I want to contribute to the screenplay",
+    "ru": "Я хочу внести свой вклад",
+    "de": "Ich möchte beitragen"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-contribute-suggest-desc",
+    "en": "Suggest changes right on the page. The owner reviews each suggestion.",
+    "ru": "Предлагайте изменения прямо на странице. Владелец рассмотрит каждое предложение.",
+    "de": "Schlagen Sie Änderungen direkt auf der Seite vor. Der Eigentümer prüft jeden Vorschlag."
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-contribute-suggest-btn",
+    "en": "Suggest changes",
+    "ru": "Предложить изменения",
+    "de": "Änderungen vorschlagen"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-contribute-ask-title",
+    "en": "Ask to join the team",
+    "ru": "Попросить о вступлении в команду",
+    "de": "Um Aufnahme ins Team bitten"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-contribute-pending",
+    "en": "Your request is waiting for the owner's answer.",
+    "ru": "Ваш запрос ждёт ответа владельца.",
+    "de": "Ihre Anfrage wartet auf die Antwort des Eigentümers."
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-contribute-declined",
+    "en": "The owner declined your last request. You can ask again.",
+    "ru": "Владелец отклонил ваш последний запрос. Можно попросить снова.",
+    "de": "Der Eigentümer hat Ihre letzte Anfrage abgelehnt. Sie können erneut fragen."
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-contribute-ask-btn",
+    "en": "Send request",
+    "ru": "Отправить запрос",
+    "de": "Anfrage senden"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-contribute-close",
+    "en": "Close",
+    "ru": "Закрыть",
+    "de": "Schließen"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-branches-count",
+    "en": "alternatives",
+    "ru": "вариантов",
+    "de": "Alternativen"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-branch-add",
+    "en": "Add",
+    "ru": "Добавить",
+    "de": "Hinzufügen"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-branch-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-branch-create",
+    "en": "Create branch",
+    "ru": "Создать ветку",
+    "de": "Zweig erstellen"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-branches-empty",
+    "en": "No branches yet. In Editing mode, use \"Create branch\" under an element to write an alternative.",
+    "ru": "Веток пока нет. В режиме редактирования нажмите «Создать ветку» под элементом, чтобы написать вариант.",
+    "de": "Noch keine Zweige. Nutzen Sie im Bearbeitungsmodus „Zweig erstellen“ unter einem Element, um eine Alternative zu schreiben."
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-edition-new",
+    "en": "New edition",
+    "ru": "Новое издание",
+    "de": "Neue Edition"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-edition-builder-title",
+    "en": "Build an edition",
+    "ru": "Собрать издание",
+    "de": "Edition zusammenstellen"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-edition-builder-desc",
+    "en": "Pick the original or one of its branches wherever alternatives exist. The edition is frozen when you save.",
+    "ru": "Выберите оригинал или одну из веток там, где есть варианты. Издание фиксируется при сохранении.",
+    "de": "Wählen Sie überall, wo es Alternativen gibt, das Original oder einen Zweig. Die Edition wird beim Speichern eingefroren."
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-edition-visible",
+    "en": "Visible to readers",
+    "ru": "Видно читателям",
+    "de": "Für Leser sichtbar"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-edition-save",
+    "en": "Save edition",
+    "ru": "Сохранить издание",
+    "de": "Edition speichern"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-contribute-btn",
+    "en": "I want to contribute to the comic",
+    "ru": "Я хочу внести свой вклад",
+    "de": "Ich möchte beitragen"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-contribute-suggest-desc",
+    "en": "Suggest changes right on the page. The owner reviews each suggestion.",
+    "ru": "Предлагайте изменения прямо на странице. Владелец рассмотрит каждое предложение.",
+    "de": "Schlagen Sie Änderungen direkt auf der Seite vor. Der Eigentümer prüft jeden Vorschlag."
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-contribute-suggest-btn",
+    "en": "Suggest changes",
+    "ru": "Предложить изменения",
+    "de": "Änderungen vorschlagen"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-contribute-ask-title",
+    "en": "Ask to join the team",
+    "ru": "Попросить о вступлении в команду",
+    "de": "Um Aufnahme ins Team bitten"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-contribute-pending",
+    "en": "Your request is waiting for the owner's answer.",
+    "ru": "Ваш запрос ждёт ответа владельца.",
+    "de": "Ihre Anfrage wartet auf die Antwort des Eigentümers."
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-contribute-declined",
+    "en": "The owner declined your last request. You can ask again.",
+    "ru": "Владелец отклонил ваш последний запрос. Можно попросить снова.",
+    "de": "Der Eigentümer hat Ihre letzte Anfrage abgelehnt. Sie können erneut fragen."
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-contribute-ask-btn",
+    "en": "Send request",
+    "ru": "Отправить запрос",
+    "de": "Anfrage senden"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-contribute-close",
+    "en": "Close",
+    "ru": "Закрыть",
+    "de": "Schließen"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-layers-title",
+    "en": "Text on this page",
+    "ru": "Текст на этой странице",
+    "de": "Text auf dieser Seite"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-layers-hint",
+    "en": "Click on the page to add a speech bubble or text box.",
+    "ru": "Щёлкните по странице, чтобы добавить реплику или текстовый блок.",
+    "de": "Klicken Sie auf die Seite, um eine Sprechblase oder ein Textfeld hinzuzufügen."
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-layers-empty",
+    "en": "No text yet.",
+    "ru": "Текста пока нет.",
+    "de": "Noch kein Text."
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-layers-save",
+    "en": "Save text",
+    "ru": "Сохранить текст",
+    "de": "Text speichern"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-layers-suggest",
+    "en": "Send as a suggestion",
+    "ru": "Отправить как предложение",
+    "de": "Als Vorschlag senden"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-layers-edit-btn",
+    "en": "Edit text",
+    "ru": "Изменить текст",
+    "de": "Text bearbeiten"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-layers-suggest-btn",
+    "en": "Suggest text",
+    "ru": "Предложить текст",
+    "de": "Text vorschlagen"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-alternatives-label",
+    "en": "Alternatives",
+    "ru": "Варианты",
+    "de": "Alternativen"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-alternative-title",
+    "en": "Page alternative",
+    "ru": "Вариант страницы",
+    "de": "Seitenalternative"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-alternative-edit-text",
+    "en": "Edit text",
+    "ru": "Изменить текст",
+    "de": "Text bearbeiten"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-alternative-delete",
+    "en": "Delete",
+    "ru": "Удалить",
+    "de": "Löschen"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-edition-new",
+    "en": "New edition",
+    "ru": "Новое издание",
+    "de": "Neue Edition"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-edition-builder-title",
+    "en": "Build an edition",
+    "ru": "Собрать издание",
+    "de": "Edition zusammenstellen"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-edition-builder-desc",
+    "en": "Pick the original or one of its branches wherever alternatives exist. The edition is frozen when you save.",
+    "ru": "Выберите оригинал или одну из веток там, где есть варианты. Издание фиксируется при сохранении.",
+    "de": "Wählen Sie überall, wo es Alternativen gibt, das Original oder einen Zweig. Die Edition wird beim Speichern eingefroren."
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-edition-visible",
+    "en": "Visible to readers",
+    "ru": "Видно читателям",
+    "de": "Für Leser sichtbar"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-edition-save",
+    "en": "Save edition",
+    "ru": "Сохранить издание",
+    "de": "Edition speichern"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "webapp-review-title",
+    "en": "Suggestions and requests",
+    "ru": "Предложения и запросы",
+    "de": "Vorschläge und Anfragen"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "webapp-review-empty",
+    "en": "Nothing waiting for you.",
+    "ru": "Ничего не ждёт вашего решения.",
+    "de": "Nichts wartet auf Sie."
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "webapp-review-wants",
+    "en": "wants to collaborate",
+    "ru": "хочет участвовать",
+    "de": "möchte mitarbeiten"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "webapp-review-accept",
+    "en": "Accept",
+    "ru": "Принять",
+    "de": "Annehmen"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "webapp-review-decline",
+    "en": "Decline",
+    "ru": "Отклонить",
+    "de": "Ablehnen"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "webapp-review-approve",
+    "en": "Approve",
+    "ru": "Одобрить",
+    "de": "Annehmen"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "webapp-review-reject",
+    "en": "Decline",
+    "ru": "Отклонить",
+    "de": "Ablehnen"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "webapp-sp-suggesting",
+    "en": "You're suggesting changes: each edited element is sent to the owner when you leave it.",
+    "ru": "Вы предлагаете изменения: каждый изменённый элемент отправляется владельцу, когда вы выходите из него.",
+    "de": "Sie schlagen Änderungen vor: Jedes bearbeitete Element geht an den Eigentümer, sobald Sie es verlassen."
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "webapp-sp-stop-suggesting",
+    "en": "Stop suggesting",
+    "ru": "Прекратить предлагать",
+    "de": "Vorschlagen beenden"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "webapp-sp-suggested",
+    "en": "Suggested",
+    "ru": "Предложено",
+    "de": "Vorgeschlagen"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "webapp-review-title",
+    "en": "Suggestions and requests",
+    "ru": "Предложения и запросы",
+    "de": "Vorschläge und Anfragen"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "webapp-review-empty",
+    "en": "Nothing waiting for you.",
+    "ru": "Ничего не ждёт вашего решения.",
+    "de": "Nichts wartet auf Sie."
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "webapp-review-wants",
+    "en": "wants to collaborate",
+    "ru": "хочет участвовать",
+    "de": "möchte mitarbeiten"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "webapp-review-accept",
+    "en": "Accept",
+    "ru": "Принять",
+    "de": "Annehmen"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "webapp-review-decline",
+    "en": "Decline",
+    "ru": "Отклонить",
+    "de": "Ablehnen"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "webapp-review-approve",
+    "en": "Approve",
+    "ru": "Одобрить",
+    "de": "Annehmen"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "webapp-review-reject",
+    "en": "Decline",
+    "ru": "Отклонить",
+    "de": "Ablehnen"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "webapp-comic-readonly",
+    "en": "Only this comic's team manages its pages. You can suggest page text and add page alternatives.",
+    "ru": "Страницами этого комикса управляет только его команда. Вы можете предложить текст страниц и добавить варианты страниц.",
+    "de": "Nur das Team dieses Comics verwaltet die Seiten. Sie können Seitentext vorschlagen und Seitenalternativen hinzufügen."
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "webapp-comic-edit-text",
+    "en": "Edit text",
+    "ru": "Изменить текст",
+    "de": "Text bearbeiten"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "webapp-comic-suggest-text",
+    "en": "Suggest text",
+    "ru": "Предложить текст",
+    "de": "Text vorschlagen"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "webapp-comic-pending",
+    "en": "Suggested text waiting for review",
+    "ru": "Предложенный текст ждёт проверки",
+    "de": "Vorgeschlagener Text wartet auf Prüfung"
   }
 ]

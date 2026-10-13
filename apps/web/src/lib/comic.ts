@@ -14,6 +14,8 @@ export interface ComicPage {
   page_index: number;
   image_url: string;
   alt_text: string | null;
+  /** Speech bubbles / captions over the page ({ text, x, y, style }, percent positions). */
+  overlays?: { text: string; x: number; y: number; style: "bubble" | "box" }[];
 }
 export interface Comic {
   comic_id: string;

@@ -10,6 +10,9 @@ import { useTabTitle, useWorkspace } from "@web/shell/workspace";
 import { platformLink } from "@web/lib/api";
 import { addLibraryStory, getPosition, savePosition, sendReadingSessions, syncHighlights, type Highlight } from "@web/lib/discovery";
 import { loadReadable, type Block, type Loaded } from "./content";
+import { OverlayBubble } from "@/components/story/media/FrameView";
+import { listEditions } from "@/lib/mediaApi";
+import { listWorkEditions } from "@/lib/workApi";
 
 // The reader (desktop: ui/discovery/reader_widget.py): remembers where you
 // stopped, counts active reading time, and keeps highlights + notes that
@@ -51,7 +54,18 @@ function markQuote(root: HTMLElement, quote: string, color: string, id: string) 
 }
 
 const BlockView: React.FC<{ b: Block; i: number }> = React.memo(({ b, i }) => {
-  if (b.kind === "image") return <img data-idx={i} src={b.src} alt={b.alt} className="mx-auto my-4 max-h-[90vh] rounded" loading="lazy" />;
+  if (b.kind === "image") {
+    if (!b.overlays?.length) return <img data-idx={i} src={b.src} alt={b.alt} className="mx-auto my-4 max-h-[90vh] rounded" loading="lazy" />;
+    // Comic text layers sit over the page at x/y percent of the image.
+    return (
+      <div data-idx={i} className="relative mx-auto my-4 w-fit">
+        <img src={b.src} alt={b.alt} className="block max-h-[90vh] rounded" loading="lazy" />
+        {b.overlays.map((o, k) => (
+          <OverlayBubble key={k} overlay={o} />
+        ))}
+      </div>
+    );
+  }
   if (b.kind === "heading") {
     const Tag = (`h${b.level}` as unknown) as "h2";
     return <Tag data-idx={i} className={b.level === 1 ? "mb-4 mt-8 text-3xl font-bold" : b.level === 2 ? "mb-3 mt-8 text-2xl font-semibold" : "mb-2 mt-6 text-lg font-semibold"} dangerouslySetInnerHTML={{ __html: b.html }} />;
@@ -72,6 +86,8 @@ const ReaderPage: React.FC = () => {
   const [highlights, setHighlights] = useState<Highlight[]>([]);
   const [selection, setSelection] = useState<{ quote: string; block: number; x: number; y: number } | null>(null);
   const [notesOpen, setNotesOpen] = useState(false);
+  const [editions, setEditions] = useState<{ id: string; name: string; status: string }[]>([]);
+  const [editionId, setEditionId] = useState<string>("");
   const scroller = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
   const audio = useRef<HTMLAudioElement>(null);
@@ -89,7 +105,7 @@ const ReaderPage: React.FC = () => {
     setError(null);
     (async () => {
       try {
-        const d = await loadReadable(kind, id, user?.id);
+        const d = await loadReadable(kind, id, user?.id, editionId || undefined);
         if (off) return;
         setData(d);
         // Crowdly stories become "crowdly_story" library items so their
@@ -104,7 +120,16 @@ const ReaderPage: React.FC = () => {
     return () => {
       off = true;
     };
-  }, [kind, id, user]);
+  }, [kind, id, user, editionId]);
+
+  // Editions (a branch picked per paragraph / element / page) to read instead of the current text.
+  useEffect(() => {
+    setEditionId(new URLSearchParams(location.search).get("edition") ?? "");
+    const list =
+      kind === "story" ? listEditions(id) : kind === "screenplay" || kind === "comic" ? listWorkEditions(kind, id) : Promise.resolve([]);
+    list.then((rows) => setEditions(rows)).catch(() => setEditions([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [kind, id]);
 
   // ---- position --------------------------------------------------------------
   const blocks = data?.mode === "blocks" ? data.blocks : [];
@@ -277,6 +302,17 @@ const ReaderPage: React.FC = () => {
           {data.title}
           {data.mode === "blocks" && data.author ? <span className="font-normal opacity-60"> — {data.author}</span> : null}
         </span>
+        {data.mode === "blocks" && editions.length > 0 && (
+          <select value={editionId} onChange={(e) => setEditionId(e.target.value)} className="h-7 max-w-[10rem] rounded border bg-transparent px-1 text-xs" aria-label="Edition">
+            <option value="">Current version</option>
+            {editions.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.name}
+                {e.status === "draft" ? " (draft)" : ""}
+              </option>
+            ))}
+          </select>
+        )}
         {data.mode === "blocks" && (
           <>
             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setPrefs({ readerFontSize: Math.max(12, fontSize - 1) })} aria-label="Smaller text">

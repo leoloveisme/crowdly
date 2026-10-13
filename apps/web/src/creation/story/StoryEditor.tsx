@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { askConfirm, askText } from "@web/shell/ask";
-import { useLocation, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import EditableText from "@/components/EditableText";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -43,6 +43,8 @@ import { CommentsPanel } from "./CommentsPanel";
 import { FormatsPanel } from "./FormatsPanel";
 import { useLiveChapter } from "@web/lib/live";
 import { useWorkFileActions } from "../useWorkFileActions";
+import EditionPicker from "@/components/story/EditionPicker";
+import type { StoryChapter } from "@/components/story/types";
 import { createProposal, diffSuggestions } from "@web/lib/collab";
 
 const AUTOSAVE_MS = 2000; // desktop: autosave 2 s after typing stops
@@ -55,6 +57,7 @@ interface Draft {
 const StoryEditor: React.FC = () => {
   const { id = "" } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { setStatus, prefs, online } = useWorkspace();
   const isMobile = useIsMobile();
@@ -458,6 +461,16 @@ const StoryEditor: React.FC = () => {
           <Inbox className="h-4 w-4" />
         </Button>
       )}
+      {/* Editions: build one from branches, or open one in the reader. */}
+      <div className="hidden sm:block">
+        <EditionPicker
+          storyTitleId={story.story_title_id}
+          chapters={chapters as unknown as StoryChapter[]}
+          canCreate={!!user}
+          value={null}
+          onChange={(edition) => edition && navigate(`/read/story/${story.story_title_id}?edition=${edition.id}`)}
+        />
+      </div>
       <a href={platformLink(`/story/${story.story_title_id}`)} target="_blank" rel="noreferrer" className="rounded p-2 hover:bg-muted" title="Open on the platform">
         <ExternalLink className="h-4 w-4" />
       </a>

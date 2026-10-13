@@ -6,6 +6,9 @@ import { getComic } from "@web/lib/comic";
 import { libraryFileUrl, libraryItem } from "@web/lib/discovery";
 import { mdToHtml } from "@web/creation/markdown";
 import { mediaUrl } from "@web/lib/api";
+import { getEdition } from "@/lib/mediaApi";
+import { getWorkEdition } from "@/lib/workApi";
+import type { FrameOverlay } from "@/lib/mediaApi";
 
 // Turns anything readable into a flat list of blocks the reader can lay
 // out, locate positions in, and anchor highlights to.
@@ -13,7 +16,7 @@ import { mediaUrl } from "@web/lib/api";
 export type Block =
   | { kind: "heading"; html: string; level: 1 | 2 | 3 }
   | { kind: "html"; html: string }
-  | { kind: "image"; src: string; alt: string };
+  | { kind: "image"; src: string; alt: string; overlays?: FrameOverlay[] };
 
 export type Loaded =
   | { mode: "blocks"; title: string; author?: string; blocks: Block[]; rtl?: boolean; comic?: boolean }
@@ -23,8 +26,16 @@ export type Loaded =
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 const clean = (html: string) => DOMPurify.sanitize(html, { USE_PROFILES: { html: true } });
 
-async function loadStory(id: string, userId?: string): Promise<Loaded> {
-  const [s, chapters] = await Promise.all([getStory(id, userId), getChapters(id, userId)]);
+// An edition (editionId) is read from its frozen snapshot: the branch chosen
+// for each paragraph / element / page instead of the current text.
+
+async function loadStory(id: string, userId?: string, editionId?: string): Promise<Loaded> {
+  const [s, chapters] = await Promise.all([
+    getStory(id, userId),
+    editionId
+      ? getEdition(editionId).then((e) => e.chapters.map((c) => ({ chapter_title: c.chapter_title, paragraphs: c.snapshot_paragraphs })))
+      : getChapters(id, userId),
+  ]);
   const blocks: Block[] = [];
   for (const c of chapters) {
     blocks.push({ kind: "heading", level: 2, html: esc(c.chapter_title || "") });
@@ -42,12 +53,23 @@ const SP_STYLE: Record<string, string> = {
   shot: "text-transform:uppercase",
 };
 
-async function loadScreenplay(id: string): Promise<Loaded> {
-  const [sp, { scenes, blocks }] = await Promise.all([getScreenplay(id), getScenes(id)]);
+async function loadScreenplay(id: string, editionId?: string): Promise<Loaded> {
+  const sp = await getScreenplay(id);
+  let scenes: { slugline: string; blocks: { block_type: string; text: string }[] }[];
+  if (editionId) {
+    const e = await getWorkEdition<{ block_type: string; text: string }>("screenplay", editionId);
+    scenes = e.parts.map((part) => ({ slugline: part.title, blocks: part.snapshot }));
+  } else {
+    const data = await getScenes(id);
+    scenes = data.scenes.map((sc) => ({
+      slugline: sc.slugline,
+      blocks: data.blocks.filter((x) => x.scene_id === sc.scene_id).sort((a, b) => a.block_index - b.block_index),
+    }));
+  }
   const out: Block[] = [];
   for (const sc of scenes) {
     out.push({ kind: "heading", level: 3, html: esc(sc.slugline) });
-    for (const b of blocks.filter((x) => x.scene_id === sc.scene_id).sort((a, b) => a.block_index - b.block_index)) {
+    for (const b of sc.blocks) {
       if (!b.text.trim()) continue;
       out.push({ kind: "html", html: `<p style="font-family:ui-monospace,monospace;${SP_STYLE[b.block_type] ?? ""}">${esc(b.text)}</p>` });
     }
@@ -55,10 +77,25 @@ async function loadScreenplay(id: string): Promise<Loaded> {
   return { mode: "blocks", title: sp.title, blocks: out };
 }
 
-async function loadComic(id: string): Promise<Loaded> {
+async function loadComic(id: string, editionId?: string): Promise<Loaded> {
   const c = await getComic(id);
-  const pages = [...c.pages].sort((a, b) => a.page_index - b.page_index);
-  return { mode: "blocks", title: c.title, rtl: c.reading_direction === "rtl", comic: true, blocks: pages.map((p, i) => ({ kind: "image", src: mediaUrl(p.image_url), alt: p.alt_text ?? `Page ${i + 1}` })) };
+  type Page = { image_url: string; alt_text: string | null; overlays?: FrameOverlay[] };
+  let pages: Page[];
+  if (editionId) {
+    const e = await getWorkEdition<Page>("comic", editionId);
+    pages = e.parts.flatMap((part) => part.snapshot);
+  } else {
+    // Issue by issue, then page order.
+    const order = new Map((c.issues ?? []).map((i) => [i.issue_id, i.issue_index]));
+    pages = [...c.pages].sort((a, b) => (order.get(a.issue_id ?? "") ?? 0) - (order.get(b.issue_id ?? "") ?? 0) || a.page_index - b.page_index);
+  }
+  return {
+    mode: "blocks",
+    title: c.title,
+    rtl: c.reading_direction === "rtl",
+    comic: true,
+    blocks: pages.map((p, i) => ({ kind: "image", src: mediaUrl(p.image_url), alt: p.alt_text ?? `Page ${i + 1}`, overlays: p.overlays ?? [] })),
+  };
 }
 
 async function fetchFile(id: string) {
@@ -129,10 +166,10 @@ async function loadEpub(buf: ArrayBuffer): Promise<{ title: string; author?: str
   return { title, author, blocks };
 }
 
-export async function loadReadable(kind: string, id: string, userId?: string): Promise<Loaded & { libraryItemId?: string }> {
-  if (kind === "story") return loadStory(id, userId);
-  if (kind === "screenplay") return loadScreenplay(id);
-  if (kind === "comic") return loadComic(id);
+export async function loadReadable(kind: string, id: string, userId?: string, editionId?: string): Promise<Loaded & { libraryItemId?: string }> {
+  if (kind === "story") return loadStory(id, userId, editionId);
+  if (kind === "screenplay") return loadScreenplay(id, editionId);
+  if (kind === "comic") return loadComic(id, editionId);
   const item = await libraryItem(id);
   if (!item) throw new Error("This book isn't in your library.");
   if (item.kind === "crowdly_story" && item.story_title_id) return { ...(await loadStory(item.story_title_id, userId)), libraryItemId: item.id };
