@@ -67,7 +67,7 @@ const StoryEditor: React.FC = () => {
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [dirty, setDirty] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
-  const [side, setSide] = useState<"chapters" | "branches" | "review" | "comments" | "formats" | null>("chapters");
+  const [side, setSide] = useState<"chapters" | "branches" | "review" | "comments" | "formats" | null>(() => (window.innerWidth < 768 ? null : "chapters"));
   const [changeOpen, setChangeOpen] = useState(false);
   const [suggesting, setSuggesting] = useState(false);
   const [metaOpen, setMetaOpen] = useState(false);

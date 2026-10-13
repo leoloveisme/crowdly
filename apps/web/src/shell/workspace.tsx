@@ -1,4 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { API_BASE } from "@/lib/apiBase";
+import { flushOutbox, onOutboxChange } from "@web/lib/offline";
 
 // Desktop-style workspace state: Creation/Discovery mode, open tabs, pane
 // visibility, status-bar info and the "document actions" the active editor
@@ -120,6 +122,8 @@ interface WorkspaceValue {
   distractionFree: boolean;
   setDistractionFree: (on: boolean) => void;
   online: boolean;
+  /** Writes waiting in the offline outbox. */
+  outbox: number;
 }
 
 const Ctx = createContext<WorkspaceValue | null>(null);
@@ -134,6 +138,21 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [actions, setActions] = useState<DocActions>({});
   const [distractionFree, setDF] = useState(false);
   const [online, setOnline] = useState(typeof navigator === "undefined" ? true : navigator.onLine);
+  const [outbox, setOutbox] = useState(0);
+
+  // Replay offline writes on start and whenever the connection comes back.
+  useEffect(() => {
+    const off = onOutboxChange(setOutbox);
+    flushOutbox(API_BASE);
+    const again = () => flushOutbox(API_BASE);
+    window.addEventListener("online", again);
+    const timer = setInterval(again, 30_000);
+    return () => {
+      off();
+      window.removeEventListener("online", again);
+      clearInterval(timer);
+    };
+  }, []);
 
   useEffect(() => {
     const save: Persisted = { mode, tabs, lastPath, prefs };
@@ -223,8 +242,9 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       distractionFree,
       setDistractionFree,
       online,
+      outbox,
     }),
-    [mode, tabs, openTab, closeTab, renameTab, moveTab, setTabTitle, lastPath, prefs, setPrefs, status, setStatus, actions, distractionFree, setDistractionFree, online],
+    [mode, tabs, openTab, closeTab, renameTab, moveTab, setTabTitle, lastPath, prefs, setPrefs, status, setStatus, actions, distractionFree, setDistractionFree, online, outbox],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

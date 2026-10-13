@@ -445,7 +445,7 @@ const ScreenplayEditor: React.FC = () => {
                         <select
                           value={b.block_type}
                           onChange={(e) => setBlockType(b, e.target.value as BlockType)}
-                          className="absolute -left-2 top-0 hidden -translate-x-full rounded border bg-background px-1 font-sans text-[11px] group-focus-within/blk:block sm:block sm:opacity-0 sm:group-hover/blk:opacity-100 sm:group-focus-within/blk:opacity-100"
+                          className="mb-0.5 hidden rounded border bg-background px-1 font-sans text-[11px] group-focus-within/blk:block sm:absolute sm:-left-2 sm:top-0 sm:mb-0 sm:block sm:-translate-x-full sm:opacity-0 sm:group-hover/blk:opacity-100 sm:group-focus-within/blk:opacity-100"
                           aria-label="Element type"
                         >
                           {BLOCK_TYPES.map((t) => (

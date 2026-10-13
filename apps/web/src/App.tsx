@@ -23,6 +23,7 @@ const FileEditor = lazy(() => import("@web/creation/spaces/FileEditor"));
 const LibraryPage = lazy(() => import("@web/discovery/LibraryPage"));
 const MasterEditor = lazy(() => import("@web/creation/master/MasterEditor"));
 const SettingsPage = lazy(() => import("@web/settings/SettingsPage"));
+const LocalFolderPage = lazy(() => import("@web/local/LocalFolderPage"));
 const ShelvesPage = lazy(() => import("@web/discovery/ShelvesPage"));
 const ReaderPage = lazy(() => import("@web/discovery/reader/ReaderPage"));
 
@@ -69,6 +70,7 @@ const App: React.FC = () => (
                     <Route path="/file/:spaceId/:itemId" element={<FileEditor />} />
                     <Route path="/master/:spaceId/:itemId" element={<MasterEditor />} />
                     <Route path="/settings" element={<SettingsPage />} />
+                    <Route path="/local" element={<LocalFolderPage />} />
                     <Route path="/library" element={<LibraryPage />} />
                     <Route path="/shelves" element={<ShelvesPage />} />
                     <Route path="/read/:kind/:id" element={<ReaderPage />} />

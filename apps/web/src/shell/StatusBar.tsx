@@ -6,7 +6,7 @@ import { useWorkspace } from "./workspace";
 
 // Desktop status bar: current Space · Words / Paragraphs / Chapters · sync · user.
 export const StatusBar: React.FC<{ spaceName?: string }> = ({ spaceName }) => {
-  const { status, online } = useWorkspace();
+  const { status, online, outbox } = useWorkspace();
   const { user } = useAuth();
   const sync = !online ? "offline" : status.sync;
 
@@ -68,6 +68,11 @@ export const StatusBar: React.FC<{ spaceName?: string }> = ({ spaceName }) => {
               <AlertTriangle className="h-3 w-3 text-destructive" /> <EditableText id="webapp-status-error">Not saved</EditableText>
             </>
           )}
+        </span>
+      )}
+      {outbox > 0 && (
+        <span className="flex items-center gap-1 text-amber-700">
+          <Clock className="h-3 w-3" /> {outbox} <EditableText id="webapp-status-outbox">change(s) waiting to sync</EditableText>
         </span>
       )}
       {status.message && <span>{status.message}</span>}

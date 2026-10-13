@@ -1,4 +1,5 @@
 import { API_BASE, ApiError } from "@/lib/apiBase";
+import { enqueue, isNetworkError } from "./offline";
 
 // The one way the web app talks to the backend. Always sends the session
 // cookie (the old app sent it on only a handful of calls, so most writes
@@ -10,12 +11,16 @@ import { API_BASE, ApiError } from "@/lib/apiBase";
 // travels with these credentialed cross-origin requests.
 export { API_BASE, ApiError };
 
-type Init = Omit<RequestInit, "body"> & { body?: unknown };
+type Init = Omit<RequestInit, "body"> & {
+  body?: unknown;
+  /** Queue this write in the offline outbox if the network is down (latest per key wins). */
+  offlineKey?: string;
+};
 
 export async function api<T = unknown>(path: string, init: Init = {}): Promise<T> {
-  const { body, headers, ...rest } = init;
+  const { body, headers, offlineKey, ...rest } = init;
   const isRaw = body instanceof FormData || body instanceof Blob || typeof body === "string";
-  const res = await fetch(`${API_BASE}${path}`, {
+  const finalInit: RequestInit = {
     ...rest,
     credentials: "include",
     headers: {
@@ -23,7 +28,18 @@ export async function api<T = unknown>(path: string, init: Init = {}): Promise<T
       ...(headers as Record<string, string>),
     },
     body: body === undefined ? undefined : isRaw ? (body as BodyInit) : JSON.stringify(body),
-  });
+  };
+  let res: Response;
+  try {
+    if (offlineKey && !navigator.onLine) throw new TypeError("offline");
+    res = await fetch(`${API_BASE}${path}`, finalInit);
+  } catch (err) {
+    if (offlineKey && isNetworkError(err) && (finalInit.body === undefined || typeof finalInit.body === "string")) {
+      await enqueue(offlineKey, path, { method: finalInit.method, headers: finalInit.headers, body: finalInit.body as string | undefined });
+      return { queued: true } as T;
+    }
+    throw err;
+  }
   if (res.status === 204) return undefined as T;
   const text = await res.text();
   let data: unknown = text;

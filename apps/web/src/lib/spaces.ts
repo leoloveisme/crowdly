@@ -46,7 +46,7 @@ export async function readText(spaceId: string, itemId: string, userId?: string)
   return res.text();
 }
 export const writeText = (spaceId: string, itemId: string, content: string, userId: string) =>
-  put(`/creative-spaces/${spaceId}/items/${itemId}/content`, { content, userId });
+  api(`/creative-spaces/${spaceId}/items/${itemId}/content`, { method: "PUT", body: { content, userId }, offlineKey: `file:${itemId}` });
 export function uploadContent(spaceId: string, itemId: string, file: Blob, userId: string, name = "file") {
   const form = new FormData();
   form.append("file", file, name);

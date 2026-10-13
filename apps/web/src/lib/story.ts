@@ -52,7 +52,7 @@ export const getChapters = (id: string, userId?: string) => get<Chapter[]>(`/cha
 export const getMyAccess = (id: string) => get<MyAccess>(`/story-titles/${id}/my-access`).catch(() => ({ role: null }) as MyAccess);
 
 export const saveChapter = (chapterId: string, chapterTitle: string, paragraphs: string[]) =>
-  patch<Chapter>(`/chapters/${chapterId}`, { chapterTitle: chapterTitle || "Untitled chapter", paragraphs });
+  api<Chapter>(`/chapters/${chapterId}`, { method: "PATCH", body: { chapterTitle: chapterTitle || "Untitled chapter", paragraphs }, offlineKey: `chapter:${chapterId}` });
 export const createChapter = (storyTitleId: string, chapterTitle: string, paragraphs: string[], chapterIndex?: number) =>
   post<Chapter>(`/chapters`, { storyTitleId, chapterTitle, paragraphs, chapterIndex });
 export const deleteChapter = (chapterId: string) => api(`/chapters/${chapterId}`, { method: "DELETE" });

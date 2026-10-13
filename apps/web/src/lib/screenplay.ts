@@ -63,7 +63,8 @@ export const updateScreenplay = (id: string, p: Partial<Screenplay>) => patch<Sc
 
 export const createScene = (screenplayId: string, sceneIndex: number, slugline: string) =>
   post<Scene>(`/screenplays/${screenplayId}/scenes`, { sceneIndex, slugline });
-export const updateScene = (sceneId: string, p: { slugline?: string; synopsis?: string; sceneIndex?: number }) => patch<Scene>(`/screenplay-scenes/${sceneId}`, p);
+export const updateScene = (sceneId: string, p: { slugline?: string; synopsis?: string; sceneIndex?: number }) =>
+  api<Scene>(`/screenplay-scenes/${sceneId}`, { method: "PATCH", body: p, offlineKey: `scene:${sceneId}` });
 export const deleteScene = (sceneId: string) => api(`/screenplay-scenes/${sceneId}`, { method: "DELETE" });
 export const reorderScenes = (screenplayId: string, sceneIds: string[]) => patch(`/screenplays/${screenplayId}/scenes/reorder`, { sceneIds });
 
@@ -71,5 +72,5 @@ export const createBlock = (screenplayId: string, b: { sceneId: string; blockTyp
   // The backend rejects empty text; a single space is the established "empty block".
   post<Block>(`/screenplays/${screenplayId}/blocks`, { ...b, text: b.text || " " });
 export const updateBlock = (blockId: string, p: { text?: string; blockType?: BlockType; blockIndex?: number; sceneId?: string }) =>
-  patch<Block>(`/screenplay-blocks/${blockId}`, p.text !== undefined ? { ...p, text: p.text || " " } : p);
+  api<Block>(`/screenplay-blocks/${blockId}`, { method: "PATCH", body: p.text !== undefined ? { ...p, text: p.text || " " } : p, offlineKey: `block:${blockId}:${Object.keys(p).sort().join(",")}` });
 export const deleteBlock = (blockId: string) => api(`/screenplay-blocks/${blockId}`, { method: "DELETE" });

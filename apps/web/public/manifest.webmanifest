@@ -1,0 +1,14 @@
+{
+  "name": "Crowdly web app",
+  "short_name": "Crowdly",
+  "description": "Write and read stories, screenplays and comics — the Crowdly editor in your browser, online or offline.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#7c3aed",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

@@ -13,6 +13,7 @@ import { PenLine, BookOpen, LogIn, LogOut } from "lucide-react";
 import { UI_LANGUAGES } from "@web/lib/languages";
 import { createSpace, listSharedSpaces, listSpaces, deleteSpace } from "@web/lib/docs";
 import { saveFileToSpace } from "@web/lib/spaces";
+import { localFoldersSupported } from "@web/lib/localfs";
 import { platformLink } from "@web/lib/api";
 import { IMPORT_ACCEPT, importFile } from "@web/creation/io";
 import { useWorkspace, type ExportFormat, type SaveAsFormat } from "./workspace";
@@ -189,6 +190,7 @@ export const AppShell: React.FC = () => {
         items: [
           { id: "webapp-menu-open-web", label: "Story on the web", onSelect: () => setOpenOpen("here") },
           { id: "webapp-menu-open-web-window", label: "Story on the web in a new window", onSelect: () => setOpenOpen("window") },
+          { id: "webapp-menu-open-local", label: "Local folder…", hidden: !localFoldersSupported, onSelect: () => navigate("/local") },
           { id: "webapp-menu-open-library", label: "My library", separatorBefore: true, onSelect: () => navigate("/library") },
           { id: "webapp-menu-open-shelves", label: "Shelves", onSelect: () => navigate("/shelves") },
         ],
@@ -388,7 +390,17 @@ export const AppShell: React.FC = () => {
           </ToggleGroupItem>
         </ToggleGroup>
         {user ? (
-          <Button variant="ghost" size="sm" onClick={() => signOut()} className="shrink-0 gap-1" title={user.email}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              // Don't leave this account's cached stories on a shared device.
+              navigator.serviceWorker?.controller?.postMessage("clear-api-cache");
+              signOut();
+            }}
+            className="shrink-0 gap-1"
+            title={user.email}
+          >
             <LogOut className="h-4 w-4" />
             <span className="hidden lg:inline">
               <EditableText id="webapp-logout">Logout</EditableText>
