@@ -61,6 +61,36 @@ jobs:
       - name: Build frontend
         run: npm run build
 
+      # The web app (apps/web) shares the root's node_modules and code, so
+      # it builds after the platform, straight into dist/editor/ — one
+      # artifact, one rsync, and the root rsync's --delete can't wipe it.
+      # Served at crowdly.cloud/editor/ (nginx: see
+      # Documentation/Web_app_deploy.md for the SPA fallback location).
+      - name: Typecheck web app
+        run: npm run typecheck --prefix apps/web
+
+      - name: Build web app (/editor)
+        run: npm run build --prefix apps/web -- --outDir ../../dist/editor --emptyOutDir
+
+      # Same app for editor.crowdly.cloud, served from its own web root
+      # with base "/" and talking to the platform origin's API. Only built
+      # and shipped once the subdomain exists on the VPS (repo variable
+      # EDITOR_SUBDOMAIN_ENABLED=true).
+      - name: Build web app (editor subdomain)
+        if: vars.EDITOR_SUBDOMAIN_ENABLED == 'true'
+        env:
+          EDITOR_BASE: /
+          VITE_API_BASE_URL: https://crowdly.cloud
+          VITE_PLATFORM_URL: https://crowdly.cloud
+        run: cd apps/web && npx vite build --outDir dist-editor-subdomain --emptyOutDir
+
+      - uses: actions/upload-artifact@v4
+        if: vars.EDITOR_SUBDOMAIN_ENABLED == 'true'
+        with:
+          name: editor-subdomain-dist
+          path: apps/web/dist-editor-subdomain/
+          retention-days: 1
+
       # Hand the built dist/ off to the deploy job. Jobs run on fresh,
       # unconnected runners, so this artifact upload/download is how the
       # build output crosses from one job to the other.
@@ -78,6 +108,12 @@ jobs:
         with:
           name: frontend-dist
           path: dist
+
+      - uses: actions/download-artifact@v4
+        if: vars.EDITOR_SUBDOMAIN_ENABLED == 'true'
+        with:
+          name: editor-subdomain-dist
+          path: dist-editor-subdomain
 
       - name: Set up deploy SSH key
         run: |
@@ -102,6 +138,13 @@ jobs:
           rsync -az --delete --omit-dir-times \
             -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.VPS_SSH_PORT || 22 }}" \
             dist/ "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/crowdly/"
+
+      - name: Deploy web app to editor.crowdly.cloud
+        if: vars.EDITOR_SUBDOMAIN_ENABLED == 'true'
+        run: |
+          rsync -az --delete --omit-dir-times \
+            -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.VPS_SSH_PORT || 22 }}" \
+            dist-editor-subdomain/ "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/var/www/crowdly-editor/"
 
       # Backend deploy is a separate step, over the same connection:
       # fast-forward the checkout to exactly what's on origin/alpha,
