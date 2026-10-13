@@ -29,6 +29,7 @@ import messagingRouter, {
 import galleryRouter, { ensureStoryGalleryImagesTable, UPLOADS_ROOT } from './gallery.js';
 import comicsRouter, { ensureComicTables } from './comics.js';
 import { createWorkRouter } from './workRoutes.js';
+import workContributionsRouter, { decideWorkProposal } from './workContributions.js';
 import {
   canView as canViewWork,
   isOwner as isWorkOwner,
@@ -187,6 +188,7 @@ app.use(galleryRouter);
 // Settings / people / clone / delete for screenplays and comics (workRoutes.js).
 app.use(createWorkRouter('screenplay'));
 app.use(createWorkRouter('comic'));
+app.use(workContributionsRouter);
 app.use(comicsRouter);
 app.use(translationsRouter);
 app.use(editionsRouter);
@@ -8319,6 +8321,14 @@ app.post('/proposals/:proposalId/approve', requireAuth, async (req, res) => {
       }
       const proposal = propRows[0];
 
+      // Screenplay / comic proposals are applied by workContributions.js.
+      if (!proposal.story_title_id) {
+        await client.query('ROLLBACK');
+        return decideWorkProposal(req, res, proposalId, true, ({ sceneId, userId }) =>
+          syncSceneToLinkedSpaceItem(sceneId, { id: userId }),
+        );
+      }
+
       const role = await getStoryAccessRole(proposal.story_title_id, req.user.id);
       if (role !== 'owner' && !(await isPlatformAdminOrEditor(req.user.id))) {
         await client.query('ROLLBACK');
@@ -8450,6 +8460,9 @@ app.post('/proposals/:proposalId/decline', requireAuth, async (req, res) => {
     );
     if (propRows.length === 0) {
       return res.status(404).json({ error: 'Proposal not found' });
+    }
+    if (!propRows[0].story_title_id) {
+      return decideWorkProposal(req, res, proposalId, false);
     }
     const role = await getStoryAccessRole(propRows[0].story_title_id, req.user.id);
     if (role !== 'owner' && !(await isPlatformAdminOrEditor(req.user.id))) {

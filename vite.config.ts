@@ -105,6 +105,14 @@ export default defineConfig(({ mode }) => ({
         target: "http://localhost:4000",
         changeOrigin: true,
       },
+      "/screenplay-block-branches": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/comic-page-branches": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
       "/users": {
         target: "http://localhost:4000",
         changeOrigin: true,

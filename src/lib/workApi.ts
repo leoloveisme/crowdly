@@ -164,3 +164,57 @@ export async function setWorkStatus(
     json("PUT", { contentType: kind, [kind === "comic" ? "comicId" : "screenplayId"]: id, ...flags }),
   );
 }
+
+// --- Proposals ("suggest changes") -------------------------------------------
+
+export type WorkProposalTarget =
+  | "screenplay_title"
+  | "scene"
+  | "block"
+  | "block_branch"
+  | "comic_title"
+  | "issue"
+  | "page_layer";
+
+export interface WorkProposal {
+  id: string;
+  target_type: WorkProposalTarget;
+  target_scene_id: string | null;
+  target_block_id: string | null;
+  target_branch_id: string | null;
+  target_issue_id: string | null;
+  target_page_id: string | null;
+  proposed_text: string;
+  status: "undecided" | "approved" | "declined";
+  author_user_id: string;
+  author_email: string | null;
+  created_at: string;
+  decided_at: string | null;
+  /** Scene slugline / issue title the target lives in. */
+  part_title: string | null;
+  part_id: string | null;
+  /** The target's current text (overlays JSON for page layers). */
+  current_text: string | null;
+  words: number;
+}
+
+export const createWorkProposal = (
+  kind: WorkKind,
+  id: string,
+  proposal: {
+    targetType: WorkProposalTarget;
+    proposedText: string;
+    targetSceneId?: string;
+    targetBlockId?: string;
+    targetBranchId?: string;
+    targetIssueId?: string;
+    targetPageId?: string;
+  },
+) => workRequest<WorkProposal>(`${workPath(kind, id)}/proposals`, json("POST", proposal));
+
+export const listWorkProposals = (kind: WorkKind, id: string, status?: WorkProposal["status"]) =>
+  workRequest<WorkProposal[]>(`${workPath(kind, id)}/proposals${status ? `?status=${status}` : ""}`);
+
+/** Same approve/decline routes as story proposals. */
+export const decideProposal = (proposalId: string, approve: boolean) =>
+  workRequest<void>(`/proposals/${proposalId}/${approve ? "approve" : "decline"}`, json("POST", {}));

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { BookImage, Clock, ListOrdered, Users } from "lucide-react";
+import { BookImage, Clock, FileText, GitBranch, ListOrdered, Users } from "lucide-react";
 import EditableText from "@/components/EditableText";
 import ChapterSidebar, { type ChapterSidebarMode } from "@/components/story/ChapterSidebar";
 import { sidebarLabelsFor } from "@/components/story/sidebarLabels";
@@ -12,15 +12,29 @@ import WorkSettings from "@/components/work/WorkSettings";
 import WorkSummary from "@/components/work/WorkSummary";
 import WorkContributeSection from "@/components/work/WorkContributeSection";
 import { WorkContributorsList, WorkTabs, type WorkTab } from "@/components/work/WorkTabs";
+import WorkContributionsTab from "@/components/work/WorkContributionsTab";
 import InteractionsWidget from "@/modules/InteractionsWidget";
 import CollaborationRequestsPanel from "@/modules/CollaborationRequestsPanel";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { ApiError, errorMessage } from "@/lib/apiBase";
-import { getWorkAccess, updateWorkSettings, type WorkAccess } from "@/lib/workApi";
+import {
+  createWorkProposal,
+  getWorkAccess,
+  listWorkProposals,
+  updateWorkSettings,
+  type WorkAccess,
+  type WorkProposal,
+} from "@/lib/workApi";
+import type { FrameOverlay } from "@/lib/mediaApi";
 import {
   createComicIssue,
+  createComicPageBranch,
   deleteComicIssue,
+  deleteComicPageBranch,
+  listComicPageBranches,
+  updateComicPageBranch,
+  type ComicPageBranch,
   deleteComicPage,
   getComic,
   renameComicIssue,
@@ -36,8 +50,11 @@ import {
 import ComicReader from "./ComicReader";
 import ComicEditor from "./ComicEditor";
 import ComicExportDialog from "./ComicExportDialog";
+import ComicRevisions from "./ComicRevisions";
+import PageAlternatives from "./PageAlternatives";
+import TextLayerEditor from "./TextLayerEditor";
 
-type TabKey = "comic" | "contributors" | "revisions";
+type TabKey = "comic" | "contributions" | "contributors" | "revisions" | "branches";
 
 const ISSUE_LABELS = sidebarLabelsFor("comic", "issue", "issues");
 
@@ -67,10 +84,19 @@ const ComicPage: React.FC<ComicPageProps> = ({ comicId, issueId }) => {
   const [sidebarMode, setSidebarMode] = useState<ChapterSidebarMode>("view");
   const [mobileIssuesOpen, setMobileIssuesOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [branches, setBranches] = useState<ComicPageBranch[]>([]);
+  const [pendingProposals, setPendingProposals] = useState<WorkProposal[]>([]);
+  // The page (or page alternative) whose text layers are being edited.
+  const [layersTarget, setLayersTarget] = useState<
+    { type: "page"; page: ComicPageRow } | { type: "branch"; branch: ComicPageBranch } | null
+  >(null);
 
   const isTeam = !!access?.explicit;
   const isOwner = !!access?.isOwner;
-  const pageMode: PageMode = isTeam && searchParams.get("mode") === "edit" ? "edit" : "view";
+  // Signed-in readers of a public comic may suggest page text.
+  const canSuggest = !!access?.role;
+  const suggesting = canSuggest && !isTeam;
+  const pageMode: PageMode = canSuggest && searchParams.get("mode") === "edit" ? "edit" : "view";
   const editing = pageMode === "edit";
 
   const setPageMode = (mode: PageMode) => {
@@ -85,6 +111,15 @@ const ComicPage: React.FC<ComicPageProps> = ({ comicId, issueId }) => {
     setComic(await getComic(comicId));
   }, [comicId]);
 
+  const loadContributions = useCallback(async () => {
+    const [branchRows, pending] = await Promise.all([
+      listComicPageBranches(comicId).catch(() => []),
+      listWorkProposals("comic", comicId, "undecided").catch(() => []),
+    ]);
+    setBranches(branchRows);
+    setPendingProposals(pending);
+  }, [comicId]);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -92,6 +127,7 @@ const ComicPage: React.FC<ComicPageProps> = ({ comicId, issueId }) => {
       const [data, myAccess] = await Promise.all([getComic(comicId), getWorkAccess("comic", comicId)]);
       setComic(data);
       setAccess(myAccess);
+      await loadContributions();
     } catch (err) {
       setError(
         err instanceof ApiError && (err.status === 403 || err.status === 404)
@@ -101,7 +137,7 @@ const ComicPage: React.FC<ComicPageProps> = ({ comicId, issueId }) => {
     } finally {
       setLoading(false);
     }
-  }, [comicId]);
+  }, [comicId, loadContributions]);
 
   useEffect(() => {
     load();
@@ -132,6 +168,16 @@ const ComicPage: React.FC<ComicPageProps> = ({ comicId, issueId }) => {
 
   const fail = (err: unknown, fallback: string) =>
     toast({ title: "Error", description: errorMessage(err) || fallback, variant: "destructive" });
+
+  const suggest = async (proposal: Parameters<typeof createWorkProposal>[2]) => {
+    try {
+      await createWorkProposal("comic", comicId, proposal);
+      toast({ title: "Suggestion sent", description: "The owner will review your change." });
+      loadContributions();
+    } catch (err) {
+      fail(err, "Failed to send the suggestion");
+    }
+  };
 
   const selectIssue = (id: string) => {
     setMobileIssuesOpen(false);
@@ -266,12 +312,79 @@ const ComicPage: React.FC<ComicPageProps> = ({ comicId, issueId }) => {
   };
 
   const saveTitle = async (title: string) => {
+    if (!isOwner) {
+      await suggest({ targetType: "comic_title", proposedText: title });
+      return;
+    }
     try {
       const updated = await updateWorkSettings<ComicWithPages>("comic", comicId, { title });
       setComic((prev) => (prev ? { ...prev, ...updated, issues: prev.issues, pages: prev.pages } : prev));
     } catch (err) {
       fail(err, "Failed to update title");
     }
+  };
+
+  // --- text layers and alternatives ------------------------------------------
+
+  const canEditBranch = (branch: ComicPageBranch) =>
+    !!user && (branch.user_id === user.id || isOwner || !!access?.isAdmin);
+
+  const saveLayers = async (overlays: FrameOverlay[]) => {
+    if (!layersTarget) return;
+    try {
+      if (layersTarget.type === "branch") {
+        const updated = await updateComicPageBranch(layersTarget.branch.id, { overlays });
+        setBranches((prev) => prev.map((b) => (b.id === updated.id ? { ...b, ...updated } : b)));
+      } else if (suggesting) {
+        await suggest({ targetType: "page_layer", targetPageId: layersTarget.page.page_id, proposedText: JSON.stringify(overlays) });
+      } else {
+        const updated = await updateComicPage(layersTarget.page.page_id, { overlays });
+        setComic((prev) =>
+          prev ? { ...prev, pages: prev.pages.map((p) => (p.page_id === updated.page_id ? { ...p, ...updated } : p)) } : prev,
+        );
+      }
+    } catch (err) {
+      fail(err, "Failed to save the text");
+    }
+  };
+
+  const addAlternative = async (page: ComicPageRow, file: File) => {
+    try {
+      const created = await createComicPageBranch(page.page_id, file);
+      setBranches((prev) => [...prev, created]);
+    } catch (err) {
+      fail(err, "Failed to add the alternative");
+    }
+  };
+
+  const removeAlternative = async (branch: ComicPageBranch) => {
+    try {
+      await deleteComicPageBranch(branch.id);
+      setBranches((prev) => prev.filter((b) => b.id !== branch.id));
+    } catch (err) {
+      fail(err, "Failed to delete the alternative");
+    }
+  };
+
+  const renderPageExtras = (page: ComicPageRow) => {
+    const pending = pendingProposals.filter((p) => p.target_page_id === page.page_id).length;
+    return (
+      <div className="space-y-1">
+        {pending > 0 && (
+          <p className="text-xs text-purple-700">
+            {pending} <EditableText id="comic-pending-suggestions">suggested text change(s) waiting for review</EditableText>
+          </p>
+        )}
+        <PageAlternatives
+          branches={branches.filter((b) => b.page_id === page.page_id)}
+          canCreate={!!user}
+          canEdit={canEditBranch}
+          onCreate={(file) => addAlternative(page, file)}
+          onDelete={removeAlternative}
+          onEditLayers={(branch) => setLayersTarget({ type: "branch", branch })}
+        />
+      </div>
+    );
   };
 
   // --- render ---------------------------------------------------------------
@@ -323,7 +436,10 @@ const ComicPage: React.FC<ComicPageProps> = ({ comicId, issueId }) => {
 
   const tabs: WorkTab<TabKey>[] = [
     { key: "comic", icon: <BookImage size={18} />, label: <EditableText id="comic-tab-comic">Comic</EditableText> },
+    { key: "contributions", icon: <FileText size={18} />, label: <EditableText id="comic-tab-contributions">Contributions</EditableText> },
     { key: "contributors", icon: <Users size={18} />, label: <EditableText id="comic-tab-contributors">Contributors</EditableText> },
+    { key: "revisions", icon: <Clock size={18} />, label: <EditableText id="comic-tab-revisions">Revisions</EditableText> },
+    { key: "branches", icon: <GitBranch size={18} />, label: <EditableText id="comic-tab-branches">Branches</EditableText> },
   ];
 
   const showSidebar = issues.length > 1 || editing;
@@ -342,6 +458,8 @@ const ComicPage: React.FC<ComicPageProps> = ({ comicId, issueId }) => {
             published={comic.published}
             completionStatus={comic.completion_status}
             isTeam={isTeam}
+            showModeToggle={isTeam || (suggesting && editing)}
+            canEditTitle={canSuggest}
             isOwner={isOwner}
             isAdmin={!!access?.isAdmin}
             canClone={comic.can_clone !== false}
@@ -413,10 +531,26 @@ const ComicPage: React.FC<ComicPageProps> = ({ comicId, issueId }) => {
                   onMove={movePage}
                   onDelete={removePage}
                   onSaveAltText={saveAltText}
+                  onEditLayers={(page) => setLayersTarget({ type: "page", page })}
+                  renderPageExtras={(page) => renderPageExtras(page)}
+                  banner={
+                    suggesting && (
+                      <div className="rounded border border-purple-200 bg-purple-50 px-3 py-2 text-xs text-purple-900">
+                        <EditableText id="comic-suggest-banner">
+                          You're suggesting changes: page text you edit is sent to the owner for review.
+                        </EditableText>
+                      </div>
+                    )
+                  }
                 />
               ) : (
                 <>
-                  <ComicReader pages={currentPages} isRtl={isRtl} resetKey={currentIssue.issue_id} />
+                  <ComicReader
+                    pages={currentPages}
+                    isRtl={isRtl}
+                    resetKey={currentIssue.issue_id}
+                    renderPageExtras={renderPageExtras}
+                  />
                   {issues.length > 1 && (
                     <div className="flex justify-between text-sm">
                       <button
@@ -446,7 +580,13 @@ const ComicPage: React.FC<ComicPageProps> = ({ comicId, issueId }) => {
                 </>
               )}
 
-              {!isTeam && !editing && <WorkContributeSection kind="comic" workId={comicId} />}
+              {!isTeam && !editing && (
+                <WorkContributeSection
+                  kind="comic"
+                  workId={comicId}
+                  onSuggestChanges={canSuggest ? () => setPageMode("edit") : undefined}
+                />
+              )}
             </div>
           </div>
 
@@ -463,7 +603,44 @@ const ComicPage: React.FC<ComicPageProps> = ({ comicId, issueId }) => {
         </div>
       )}
 
+      {activeTab === "contributions" && (
+        <WorkContributionsTab
+          kind="comic"
+          workId={comicId}
+          workTitle={comic.title}
+          canReview={isOwner || !!access?.isAdmin}
+          onMerged={() => {
+            load();
+          }}
+        />
+      )}
+
       {activeTab === "contributors" && <WorkContributorsList kind="comic" workId={comicId} />}
+
+      {activeTab === "revisions" && <ComicRevisions comicId={comicId} />}
+
+      {activeTab === "branches" && (
+        <ComicBranchesTab
+          issues={issues}
+          pages={comic.pages}
+          branches={branches}
+          onOpenIssue={(id) => {
+            setActiveTab("comic");
+            selectIssue(id);
+          }}
+        />
+      )}
+
+      <TextLayerEditor
+        open={!!layersTarget}
+        onOpenChange={(open) => !open && setLayersTarget(null)}
+        imageUrl={layersTarget?.type === "branch" ? layersTarget.branch.image_url : layersTarget?.page.image_url ?? ""}
+        overlays={
+          (layersTarget?.type === "branch" ? layersTarget.branch.overlays : layersTarget?.page.overlays) ?? []
+        }
+        mode={layersTarget?.type === "page" && suggesting ? "suggest" : "save"}
+        onSave={saveLayers}
+      />
 
       {isOwner && (
         <WorkSettings<ComicWithPages>
@@ -505,6 +682,58 @@ const ComicPage: React.FC<ComicPageProps> = ({ comicId, issueId }) => {
         issues={issues}
         pages={comic.pages}
       />
+    </div>
+  );
+};
+
+/** Branches tab: every page alternative, grouped by issue. */
+const ComicBranchesTab: React.FC<{
+  issues: ComicIssue[];
+  pages: ComicPageRow[];
+  branches: ComicPageBranch[];
+  onOpenIssue: (issueId: string) => void;
+}> = ({ issues, pages, branches, onOpenIssue }) => {
+  if (branches.length === 0) {
+    return (
+      <EditableText id="comic-branches-empty" as="p" className="text-sm text-gray-500">
+        No page alternatives yet. Use the + under a page's Alternatives to add one.
+      </EditableText>
+    );
+  }
+  return (
+    <div className="space-y-6">
+      {issues.map((issue, index) => {
+        const issueBranches = branches.filter((b) => b.issue_id === issue.issue_id);
+        if (issueBranches.length === 0) return null;
+        return (
+          <section key={issue.issue_id} className="space-y-2">
+            <button type="button" onClick={() => onOpenIssue(issue.issue_id)} className="font-semibold hover:underline">
+              {index + 1}. {issue.title}
+            </button>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {issueBranches.map((b) => {
+                const page = pages.find((p) => p.page_id === b.page_id);
+                return (
+                  <figure key={b.id} className="rounded border bg-white p-2 space-y-1 text-xs">
+                    <div className="flex gap-1">
+                      {page && <img src={page.image_url} alt="" className="h-24 w-1/2 object-cover rounded opacity-60" />}
+                      <img src={b.image_url} alt="" className="h-24 w-1/2 object-cover rounded ring-1 ring-emerald-300" />
+                    </div>
+                    <figcaption className="text-gray-500">
+                      {page && (
+                        <>
+                          <EditableText id="comic-reader-page-of">Page</EditableText> {page.page_index + 1}
+                        </>
+                      )}
+                      {b.name ? ` · ${b.name}` : ""} · {b.author_email}
+                    </figcaption>
+                  </figure>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 };

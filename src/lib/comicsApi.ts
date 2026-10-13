@@ -1,4 +1,5 @@
 import { API_BASE, ApiError } from "./apiBase";
+import type { FrameOverlay } from "./mediaApi";
 
 // Comic routes are bare paths (/comics, /comic-pages/:id), same convention
 // as gallery.js and the rest of the story routes — not under /api.
@@ -9,6 +10,8 @@ export interface ComicPage {
   page_index: number;
   image_url: string;
   alt_text: string | null;
+  /** Speech bubbles / captions drawn over the page. */
+  overlays?: FrameOverlay[];
   width: number | null;
   height: number | null;
   created_at: string;
@@ -131,7 +134,10 @@ export function deleteComicPage(pageId: string): Promise<void> {
   }).then((res) => parseOrThrow<void>(res));
 }
 
-export function updateComicPage(pageId: string, patch: { alt_text?: string | null }): Promise<ComicPage> {
+export function updateComicPage(
+  pageId: string,
+  patch: { alt_text?: string | null; overlays?: FrameOverlay[] },
+): Promise<ComicPage> {
   return fetch(`${API_BASE}/comic-pages/${encodeURIComponent(pageId)}`, {
     method: "PATCH",
     credentials: "include",
@@ -172,5 +178,64 @@ export function deleteComicIssue(issueId: string): Promise<void> {
 export function reorderComicIssues(comicId: string, issueIds: string[]): Promise<void> {
   return fetch(`${API_BASE}/comics/${encodeURIComponent(comicId)}/issues/reorder`, jsonInit("PUT", { issueIds })).then(
     (res) => parseOrThrow<void>(res),
+  );
+}
+
+/** An alternative version of one page (another image, its own text layers). */
+export interface ComicPageBranch {
+  id: string;
+  page_id: string;
+  comic_id: string;
+  issue_id: string | null;
+  image_url: string;
+  overlays: FrameOverlay[];
+  name: string | null;
+  language: string;
+  user_id: string | null;
+  author_email: string | null;
+  created_at: string;
+}
+
+export function listComicPageBranches(comicId: string): Promise<ComicPageBranch[]> {
+  return fetch(`${API_BASE}/comics/${encodeURIComponent(comicId)}/branches`, { credentials: "include" }).then((res) =>
+    parseOrThrow<ComicPageBranch[]>(res),
+  );
+}
+
+export function createComicPageBranch(pageId: string, file: File, name?: string): Promise<ComicPageBranch> {
+  const form = new FormData();
+  if (name) form.append("name", name);
+  form.append("image", file);
+  return fetch(`${API_BASE}/comic-pages/${pageId}/branches`, { method: "POST", credentials: "include", body: form }).then(
+    (res) => parseOrThrow<ComicPageBranch>(res),
+  );
+}
+
+export function updateComicPageBranch(
+  branchId: string,
+  patch: { name?: string | null; overlays?: FrameOverlay[] },
+): Promise<ComicPageBranch> {
+  return fetch(`${API_BASE}/comic-page-branches/${branchId}`, jsonInit("PATCH", patch)).then((res) =>
+    parseOrThrow<ComicPageBranch>(res),
+  );
+}
+
+export function deleteComicPageBranch(branchId: string): Promise<void> {
+  return fetch(`${API_BASE}/comic-page-branches/${branchId}`, jsonInit("DELETE")).then((res) => parseOrThrow<void>(res));
+}
+
+export interface ComicRevision {
+  id: string;
+  event: string;
+  detail: Record<string, unknown>;
+  issue_title: string | null;
+  page_index: number | null;
+  author_email: string | null;
+  created_at: string;
+}
+
+export function listComicRevisions(comicId: string): Promise<ComicRevision[]> {
+  return fetch(`${API_BASE}/comics/${encodeURIComponent(comicId)}/revisions`, { credentials: "include" }).then((res) =>
+    parseOrThrow<ComicRevision[]>(res),
   );
 }

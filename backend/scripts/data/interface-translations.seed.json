@@ -12304,5 +12304,586 @@
     "en": "Comic",
     "ru": "Комикс",
     "de": "Comic"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-proposals-pending-title",
+    "en": "Suggestions waiting for your review",
+    "ru": "Предложения ждут вашего решения",
+    "de": "Vorschläge warten auf Ihre Prüfung"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-proposal-merge",
+    "en": "OK & merge",
+    "ru": "Принять и объединить",
+    "de": "OK & übernehmen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-proposal-deny",
+    "en": "Deny",
+    "ru": "Отклонить",
+    "de": "Ablehnen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-contributions-heading",
+    "en": "Contributions",
+    "ru": "Вклад",
+    "de": "Beiträge"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-target-title",
+    "en": "Title",
+    "ru": "Название",
+    "de": "Titel"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-target-scene",
+    "en": "Scene heading",
+    "ru": "Заголовок сцены",
+    "de": "Szenenüberschrift"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-target-block",
+    "en": "Element",
+    "ru": "Элемент",
+    "de": "Element"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-target-branch",
+    "en": "Branch",
+    "ru": "Ветка",
+    "de": "Zweig"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-target-issue",
+    "en": "Issue title",
+    "ru": "Название выпуска",
+    "de": "Ausgabentitel"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-target-page-layer",
+    "en": "Page text",
+    "ru": "Текст страницы",
+    "de": "Seitentext"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "filter-total",
+    "en": "total",
+    "ru": "всего",
+    "de": "gesamt"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "filter-approved",
+    "en": "approved",
+    "ru": "принято",
+    "de": "angenommen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "filter-denied",
+    "en": "denied",
+    "ru": "отклонено",
+    "de": "abgelehnt"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "filter-undecided",
+    "en": "undecided",
+    "ru": "не решено",
+    "de": "offen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "contrib-user-heading",
+    "en": "User",
+    "ru": "Пользователь",
+    "de": "Benutzer"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "contrib-date-heading",
+    "en": "Date",
+    "ru": "Дата",
+    "de": "Datum"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "contrib-words-heading",
+    "en": "Words",
+    "ru": "Слова",
+    "de": "Wörter"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "contrib-likes-heading",
+    "en": "Likes",
+    "ru": "Лайки",
+    "de": "Likes"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "contrib-dislikes-heading",
+    "en": "Dislikes",
+    "ru": "Дизлайки",
+    "de": "Dislikes"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "contrib-comments-heading",
+    "en": "Comments",
+    "ru": "Комментарии",
+    "de": "Kommentare"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-proposals-pending-title",
+    "en": "Suggestions waiting for your review",
+    "ru": "Предложения ждут вашего решения",
+    "de": "Vorschläge warten auf Ihre Prüfung"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-proposal-merge",
+    "en": "OK & merge",
+    "ru": "Принять и объединить",
+    "de": "OK & übernehmen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-proposal-deny",
+    "en": "Deny",
+    "ru": "Отклонить",
+    "de": "Ablehnen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-contributions-heading",
+    "en": "Contributions",
+    "ru": "Вклад",
+    "de": "Beiträge"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-target-title",
+    "en": "Title",
+    "ru": "Название",
+    "de": "Titel"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-target-scene",
+    "en": "Scene heading",
+    "ru": "Заголовок сцены",
+    "de": "Szenenüberschrift"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-target-block",
+    "en": "Element",
+    "ru": "Элемент",
+    "de": "Element"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-target-branch",
+    "en": "Branch",
+    "ru": "Ветка",
+    "de": "Zweig"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-target-issue",
+    "en": "Issue title",
+    "ru": "Название выпуска",
+    "de": "Ausgabentitel"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-target-page-layer",
+    "en": "Page text",
+    "ru": "Текст страницы",
+    "de": "Seitentext"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "filter-total",
+    "en": "total",
+    "ru": "всего",
+    "de": "gesamt"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "filter-approved",
+    "en": "approved",
+    "ru": "принято",
+    "de": "angenommen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "filter-denied",
+    "en": "denied",
+    "ru": "отклонено",
+    "de": "abgelehnt"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "filter-undecided",
+    "en": "undecided",
+    "ru": "не решено",
+    "de": "offen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "contrib-user-heading",
+    "en": "User",
+    "ru": "Пользователь",
+    "de": "Benutzer"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "contrib-date-heading",
+    "en": "Date",
+    "ru": "Дата",
+    "de": "Datum"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "contrib-words-heading",
+    "en": "Words",
+    "ru": "Слова",
+    "de": "Wörter"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "contrib-likes-heading",
+    "en": "Likes",
+    "ru": "Лайки",
+    "de": "Likes"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "contrib-dislikes-heading",
+    "en": "Dislikes",
+    "ru": "Дизлайки",
+    "de": "Dislikes"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "contrib-comments-heading",
+    "en": "Comments",
+    "ru": "Комментарии",
+    "de": "Kommentare"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "contrib-story-title-heading",
+    "en": "Screenplay",
+    "ru": "Сценарий",
+    "de": "Drehbuch"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "contrib-chapter-title-heading",
+    "en": "Scene",
+    "ru": "Сцена",
+    "de": "Szene"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "contrib-paragraph-heading",
+    "en": "Suggestion",
+    "ru": "Предложение",
+    "de": "Vorschlag"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-tab-contributions",
+    "en": "Contributions",
+    "ru": "Вклад",
+    "de": "Beiträge"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-tab-branches",
+    "en": "Branches",
+    "ru": "Ветки",
+    "de": "Zweige"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-suggested-label",
+    "en": "Suggested",
+    "ru": "Предложено",
+    "de": "Vorgeschlagen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-suggest-banner",
+    "en": "You're suggesting changes: each edit is sent to the owner for review.",
+    "ru": "Вы предлагаете изменения: каждая правка отправляется владельцу на рассмотрение.",
+    "de": "Sie schlagen Änderungen vor: Jede Bearbeitung geht zur Prüfung an den Eigentümer."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-branches-count",
+    "en": "alternatives",
+    "ru": "вариантов",
+    "de": "Alternativen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-branch-add",
+    "en": "Add",
+    "ru": "Добавить",
+    "de": "Hinzufügen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-branch-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-branch-create",
+    "en": "Create branch",
+    "ru": "Создать ветку",
+    "de": "Zweig erstellen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-branches-empty",
+    "en": "No branches yet. In Editing mode, use \"Create branch\" under an element to write an alternative.",
+    "ru": "Веток пока нет. В режиме редактирования нажмите «Создать ветку» под элементом, чтобы написать вариант.",
+    "de": "Noch keine Zweige. Nutzen Sie im Bearbeitungsmodus „Zweig erstellen“ unter einem Element, um eine Alternative zu schreiben."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "contrib-story-title-heading",
+    "en": "Comic",
+    "ru": "Комикс",
+    "de": "Comic"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "contrib-chapter-title-heading",
+    "en": "Issue",
+    "ru": "Выпуск",
+    "de": "Ausgabe"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "contrib-paragraph-heading",
+    "en": "Suggestion",
+    "ru": "Предложение",
+    "de": "Vorschlag"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-tab-contributions",
+    "en": "Contributions",
+    "ru": "Вклад",
+    "de": "Beiträge"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-tab-revisions",
+    "en": "Revisions",
+    "ru": "Ревизии",
+    "de": "Revisionen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-tab-branches",
+    "en": "Branches",
+    "ru": "Ветки",
+    "de": "Zweige"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-layers-title",
+    "en": "Text on this page",
+    "ru": "Текст на этой странице",
+    "de": "Text auf dieser Seite"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-layers-hint",
+    "en": "Click on the page to add a speech bubble or text box.",
+    "ru": "Щёлкните по странице, чтобы добавить реплику или текстовый блок.",
+    "de": "Klicken Sie auf die Seite, um eine Sprechblase oder ein Textfeld hinzuzufügen."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-layers-empty",
+    "en": "No text yet.",
+    "ru": "Текста пока нет.",
+    "de": "Noch kein Text."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-layers-save",
+    "en": "Save text",
+    "ru": "Сохранить текст",
+    "de": "Text speichern"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-layers-suggest",
+    "en": "Send as a suggestion",
+    "ru": "Отправить как предложение",
+    "de": "Als Vorschlag senden"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-layers-edit-btn",
+    "en": "Edit text",
+    "ru": "Изменить текст",
+    "de": "Text bearbeiten"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-layers-suggest-btn",
+    "en": "Suggest text",
+    "ru": "Предложить текст",
+    "de": "Text vorschlagen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-alternatives-label",
+    "en": "Alternatives",
+    "ru": "Варианты",
+    "de": "Alternativen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-alternative-title",
+    "en": "Page alternative",
+    "ru": "Вариант страницы",
+    "de": "Seitenalternative"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-alternative-edit-text",
+    "en": "Edit text",
+    "ru": "Изменить текст",
+    "de": "Text bearbeiten"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-alternative-delete",
+    "en": "Delete",
+    "ru": "Удалить",
+    "de": "Löschen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-pending-suggestions",
+    "en": "suggested text change(s) waiting for review",
+    "ru": "предложенных изменений текста ждут решения",
+    "de": "vorgeschlagene Textänderung(en) warten auf Prüfung"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-suggest-banner",
+    "en": "You're suggesting changes: page text you edit is sent to the owner for review.",
+    "ru": "Вы предлагаете изменения: изменённый текст страницы отправляется владельцу на рассмотрение.",
+    "de": "Sie schlagen Änderungen vor: Bearbeiteter Seitentext geht zur Prüfung an den Eigentümer."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-branches-empty",
+    "en": "No page alternatives yet. Use the + under a page's Alternatives to add one.",
+    "ru": "Вариантов страниц пока нет. Нажмите + под «Варианты» у страницы, чтобы добавить.",
+    "de": "Noch keine Seitenalternativen. Nutzen Sie das + unter „Alternativen“ einer Seite."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-rev-loading",
+    "en": "Loading revisions...",
+    "ru": "Загрузка ревизий...",
+    "de": "Revisionen werden geladen..."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-rev-empty",
+    "en": "No changes recorded yet.",
+    "ru": "Изменений пока нет.",
+    "de": "Noch keine Änderungen aufgezeichnet."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-rev-pages-added",
+    "en": "Pages added",
+    "ru": "Добавлены страницы",
+    "de": "Seiten hinzugefügt"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-rev-pages-reordered",
+    "en": "Pages reordered",
+    "ru": "Изменён порядок страниц",
+    "de": "Seiten neu angeordnet"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-rev-page-deleted",
+    "en": "Page deleted",
+    "ru": "Страница удалена",
+    "de": "Seite gelöscht"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-rev-layers-edited",
+    "en": "Page text edited",
+    "ru": "Изменён текст страницы",
+    "de": "Seitentext bearbeitet"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-rev-layers-approved",
+    "en": "Suggested page text merged",
+    "ru": "Принят предложенный текст страницы",
+    "de": "Vorgeschlagener Seitentext übernommen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-rev-alternative-added",
+    "en": "Page alternative added",
+    "ru": "Добавлен вариант страницы",
+    "de": "Seitenalternative hinzugefügt"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-rev-issue-added",
+    "en": "Issue added",
+    "ru": "Добавлен выпуск",
+    "de": "Ausgabe hinzugefügt"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-rev-issue-renamed",
+    "en": "Issue renamed",
+    "ru": "Выпуск переименован",
+    "de": "Ausgabe umbenannt"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-rev-issue-deleted",
+    "en": "Issue deleted",
+    "ru": "Выпуск удалён",
+    "de": "Ausgabe gelöscht"
   }
 ]

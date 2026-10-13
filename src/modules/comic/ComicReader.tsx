@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import EditableText from "@/components/EditableText";
+import { OverlayBubble } from "@/components/story/media/FrameView";
 import type { ComicPage } from "@/lib/comicsApi";
 
 interface ComicReaderProps {
@@ -63,11 +64,18 @@ const ComicReader: React.FC<ComicReaderProps> = ({ pages, isRtl, resetKey, rende
           {prevIcon}
         </button>
         {currentPage && (
-          <img
-            src={currentPage.image_url}
-            alt={currentPage.alt_text ?? `Page ${pageIndex + 1}`}
-            className="h-[70vh] w-full object-contain rounded-md"
-          />
+          // The text layers are positioned in percent of the image, so the
+          // wrapper shrinks to the image's rendered box.
+          <div className="relative inline-block max-w-full">
+            <img
+              src={currentPage.image_url}
+              alt={currentPage.alt_text ?? `Page ${pageIndex + 1}`}
+              className="h-[70vh] w-auto max-w-full object-contain rounded-md block"
+            />
+            {(currentPage.overlays ?? []).map((o, i) => (
+              <OverlayBubble key={i} overlay={o} />
+            ))}
+          </div>
         )}
         <button
           type="button"

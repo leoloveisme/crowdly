@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Clock, Film, ListOrdered, Users } from "lucide-react";
+import { Clock, FileText, Film, GitBranch, ListOrdered, Users } from "lucide-react";
 import EditableText from "@/components/EditableText";
 import ChapterSidebar, { type ChapterSidebarMode } from "@/components/story/ChapterSidebar";
 import { sidebarLabelsFor } from "@/components/story/sidebarLabels";
@@ -12,16 +12,29 @@ import WorkSettings from "@/components/work/WorkSettings";
 import WorkSummary from "@/components/work/WorkSummary";
 import WorkContributeSection from "@/components/work/WorkContributeSection";
 import { WorkContributorsList, WorkTabs, type WorkTab } from "@/components/work/WorkTabs";
+import WorkContributionsTab from "@/components/work/WorkContributionsTab";
 import InteractionsWidget from "@/modules/InteractionsWidget";
 import CollaborationRequestsPanel from "@/modules/CollaborationRequestsPanel";
 import { ExportDialog } from "@/modules/import-export";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { ApiError, errorMessage } from "@/lib/apiBase";
-import { getWorkAccess, updateWorkSettings, type WorkAccess } from "@/lib/workApi";
+import {
+  createWorkProposal,
+  getWorkAccess,
+  listWorkProposals,
+  updateWorkSettings,
+  type WorkAccess,
+  type WorkProposal,
+} from "@/lib/workApi";
 import {
   createBlock,
+  createBlockBranch,
   createScene,
+  deleteBlockBranch,
+  listBlockBranches,
+  updateBlockBranch,
+  type BlockBranch,
   deleteBlock,
   deleteScene,
   getScreenplay,
@@ -37,9 +50,10 @@ import {
 import ScreenplayReader from "./ScreenplayReader";
 import ScreenplayEditor from "./ScreenplayEditor";
 import ScreenplayRevisions from "./ScreenplayRevisions";
+import BlockBranches from "./BlockBranches";
 import { screenplayToHtml, screenplayToMarkdown } from "./exportContent";
 
-type TabKey = "screenplay" | "contributors" | "revisions";
+type TabKey = "screenplay" | "contributions" | "contributors" | "revisions" | "branches";
 
 const SCENE_LABELS = sidebarLabelsFor("screenplay", "scene", "scenes");
 
@@ -78,10 +92,16 @@ const ScreenplayPage: React.FC<ScreenplayPageProps> = ({ screenplayId, sceneId }
   const [exportOpen, setExportOpen] = useState(false);
   const [sidebarMode, setSidebarMode] = useState<ChapterSidebarMode>("view");
   const [mobileScenesOpen, setMobileScenesOpen] = useState(false);
+  const [pendingProposals, setPendingProposals] = useState<WorkProposal[]>([]);
+  const [branches, setBranches] = useState<BlockBranch[]>([]);
 
   const isTeam = !!access?.explicit;
   const isOwner = !!access?.isOwner;
-  const pageMode: PageMode = isTeam && searchParams.get("mode") === "edit" ? "edit" : "view";
+  // Signed-in readers of a public screenplay may suggest changes: their
+  // Editing mode sends edits to the owner as proposals.
+  const canSuggest = !!access?.role;
+  const suggesting = canSuggest && !isTeam;
+  const pageMode: PageMode = canSuggest && searchParams.get("mode") === "edit" ? "edit" : "view";
   const editing = pageMode === "edit";
 
   const setPageMode = (mode: PageMode) => {
@@ -98,6 +118,16 @@ const ScreenplayPage: React.FC<ScreenplayPageProps> = ({ screenplayId, sceneId }
     setBlocks(data.blocks ?? []);
   }, [screenplayId]);
 
+  // Pending suggestions (shown in purple under what they change) and branches.
+  const loadContributions = useCallback(async () => {
+    const [pending, branchRows] = await Promise.all([
+      listWorkProposals("screenplay", screenplayId, "undecided").catch(() => []),
+      listBlockBranches(screenplayId).catch(() => []),
+    ]);
+    setPendingProposals(pending);
+    setBranches(branchRows);
+  }, [screenplayId]);
+
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -105,7 +135,7 @@ const ScreenplayPage: React.FC<ScreenplayPageProps> = ({ screenplayId, sceneId }
       const [meta, myAccess] = await Promise.all([getScreenplay(screenplayId), getWorkAccess("screenplay", screenplayId)]);
       setScreenplay(meta);
       setAccess(myAccess);
-      await loadStructure();
+      await Promise.all([loadStructure(), loadContributions()]);
     } catch (err) {
       setError(
         err instanceof ApiError && (err.status === 403 || err.status === 404)
@@ -115,7 +145,7 @@ const ScreenplayPage: React.FC<ScreenplayPageProps> = ({ screenplayId, sceneId }
     } finally {
       setLoading(false);
     }
-  }, [screenplayId, loadStructure]);
+  }, [screenplayId, loadStructure, loadContributions]);
 
   useEffect(() => {
     load();
@@ -145,6 +175,16 @@ const ScreenplayPage: React.FC<ScreenplayPageProps> = ({ screenplayId, sceneId }
 
   const fail = (err: unknown, fallback: string) =>
     toast({ title: "Error", description: errorMessage(err) || fallback, variant: "destructive" });
+
+  const suggest = async (proposal: Parameters<typeof createWorkProposal>[2]) => {
+    try {
+      await createWorkProposal("screenplay", screenplayId, proposal);
+      toast({ title: "Suggestion sent", description: "The owner will review your change." });
+      loadContributions();
+    } catch (err) {
+      fail(err, "Failed to send the suggestion");
+    }
+  };
 
   const selectScene = (id: string) => {
     setMobileScenesOpen(false);
@@ -185,6 +225,10 @@ const ScreenplayPage: React.FC<ScreenplayPageProps> = ({ screenplayId, sceneId }
   };
 
   const saveScene = async (scene: ScreenplayScene, patch: { slugline?: string; synopsis?: string | null }) => {
+    if (suggesting) {
+      if (patch.slugline) await suggest({ targetType: "scene", targetSceneId: scene.scene_id, proposedText: patch.slugline });
+      return;
+    }
     try {
       const updated = await updateScene(scene.scene_id, patch);
       setScenes((prev) => prev.map((s) => (s.scene_id === scene.scene_id ? { ...s, ...updated } : s)));
@@ -249,6 +293,12 @@ const ScreenplayPage: React.FC<ScreenplayPageProps> = ({ screenplayId, sceneId }
   // --- elements (editor) ----------------------------------------------------
 
   const saveBlock = async (block: ScreenplayBlock, patch: { text?: string; blockType?: string }) => {
+    if (suggesting) {
+      if (patch.text !== undefined) {
+        await suggest({ targetType: "block", targetBlockId: block.block_id, proposedText: patch.text });
+      }
+      return;
+    }
     setBlocks((prev) =>
       prev.map((b) =>
         b.block_id === block.block_id
@@ -290,12 +340,83 @@ const ScreenplayPage: React.FC<ScreenplayPageProps> = ({ screenplayId, sceneId }
   };
 
   const saveTitle = async (title: string) => {
+    if (!isOwner) {
+      await suggest({ targetType: "screenplay_title", proposedText: title });
+      return;
+    }
     try {
       const updated = await updateWorkSettings<ScreenplayTitle>("screenplay", screenplayId, { title });
       setScreenplay((prev) => (prev ? { ...prev, ...updated } : prev));
     } catch (err) {
       fail(err, "Failed to update title");
     }
+  };
+
+  // --- branches -------------------------------------------------------------
+
+  const canEditBranch = (branch: BlockBranch) =>
+    !!user && (branch.user_id === user.id || isOwner || !!access?.isAdmin);
+
+  const addBranch = async (block: ScreenplayBlock, text: string) => {
+    try {
+      const created = await createBlockBranch(block.block_id, { text });
+      setBranches((prev) => [...prev, created]);
+    } catch (err) {
+      fail(err, "Failed to create branch");
+    }
+  };
+
+  const saveBranch = async (branch: BlockBranch, text: string) => {
+    if (!canEditBranch(branch)) {
+      await suggest({ targetType: "block_branch", targetBranchId: branch.id, proposedText: text });
+      return;
+    }
+    try {
+      const updated = await updateBlockBranch(branch.id, { text });
+      setBranches((prev) => prev.map((b) => (b.id === branch.id ? { ...b, ...updated } : b)));
+    } catch (err) {
+      fail(err, "Failed to save branch");
+    }
+  };
+
+  const removeBranch = async (branch: BlockBranch) => {
+    try {
+      await deleteBlockBranch(branch.id);
+      setBranches((prev) => prev.filter((b) => b.id !== branch.id));
+    } catch (err) {
+      fail(err, "Failed to delete branch");
+    }
+  };
+
+  // Under each element: pending suggestions (purple) and its branches.
+  const renderBlockExtras = (block: ScreenplayBlock) => {
+    const pending = pendingProposals.filter((p) => p.target_block_id === block.block_id);
+    return (
+      <>
+        {pending.map((p) => (
+          <p
+            key={p.id}
+            className="mt-1 rounded bg-purple-50 px-2 py-1 font-mono text-[13px] text-purple-800 whitespace-pre-wrap"
+            title={p.author_email ?? undefined}
+          >
+            <span className="mr-1 font-sans text-[10px] uppercase tracking-wide text-purple-500">
+              <EditableText id="screenplay-suggested-label">Suggested</EditableText>
+            </span>
+            {p.proposed_text}
+          </p>
+        ))}
+        <BlockBranches
+          block={block}
+          branches={branches.filter((b) => b.block_id === block.block_id)}
+          editable={editing}
+          canCreate={!!user}
+          canEditBranch={canEditBranch}
+          onCreate={(text) => addBranch(block, text)}
+          onSave={saveBranch}
+          onDelete={removeBranch}
+        />
+      </>
+    );
   };
 
   // --- render ---------------------------------------------------------------
@@ -342,8 +463,10 @@ const ScreenplayPage: React.FC<ScreenplayPageProps> = ({ screenplayId, sceneId }
 
   const tabs: WorkTab<TabKey>[] = [
     { key: "screenplay", icon: <Film size={18} />, label: <EditableText id="screenplay-tab-screenplay">Screenplay</EditableText> },
+    { key: "contributions", icon: <FileText size={18} />, label: <EditableText id="screenplay-tab-contributions">Contributions</EditableText> },
     { key: "contributors", icon: <Users size={18} />, label: <EditableText id="screenplay-tab-contributors">Contributors</EditableText> },
     { key: "revisions", icon: <Clock size={18} />, label: <EditableText id="screenplay-tab-revisions">Revisions</EditableText> },
+    { key: "branches", icon: <GitBranch size={18} />, label: <EditableText id="screenplay-tab-branches">Branches</EditableText> },
   ];
 
   const formatLabel = screenplay.format_type ? FORMAT_LABELS[screenplay.format_type] ?? screenplay.format_type : null;
@@ -362,6 +485,8 @@ const ScreenplayPage: React.FC<ScreenplayPageProps> = ({ screenplayId, sceneId }
             published={screenplay.published}
             completionStatus={screenplay.completion_status}
             isTeam={isTeam}
+            showModeToggle={isTeam || (suggesting && editing)}
+            canEditTitle={canSuggest}
             isOwner={isOwner}
             isAdmin={!!access?.isAdmin}
             canClone={screenplay.can_clone !== false}
@@ -426,12 +551,22 @@ const ScreenplayPage: React.FC<ScreenplayPageProps> = ({ screenplayId, sceneId }
                   scene={currentScene}
                   sceneNumber={currentIndex + 1}
                   blocks={currentBlocks}
-                  canDeleteBlocks={isTeam}
+                  canStructure={isTeam}
                   onSaveScene={(patch) => saveScene(currentScene, patch)}
                   onSaveBlock={saveBlock}
                   onAddBlock={addBlock}
                   onDeleteBlock={removeBlock}
-                  onCloneScene={() => insertScene(currentScene.scene_id, currentScene)}
+                  onCloneScene={isTeam ? () => insertScene(currentScene.scene_id, currentScene) : undefined}
+                  renderBlockExtras={renderBlockExtras}
+                  banner={
+                    suggesting && (
+                      <div className="rounded border border-purple-200 bg-purple-50 px-3 py-2 text-xs text-purple-900">
+                        <EditableText id="screenplay-suggest-banner">
+                          You're suggesting changes: each edit is sent to the owner for review.
+                        </EditableText>
+                      </div>
+                    )
+                  }
                 />
               ) : (
                 <ScreenplayReader
@@ -443,6 +578,7 @@ const ScreenplayPage: React.FC<ScreenplayPageProps> = ({ screenplayId, sceneId }
                   onNext={() =>
                     currentIndex < sortedScenes.length - 1 && selectScene(sortedScenes[currentIndex + 1].scene_id)
                   }
+                  renderBlockExtras={renderBlockExtras}
                 >
                   <InteractionsWidget
                     kind="scene"
@@ -453,7 +589,13 @@ const ScreenplayPage: React.FC<ScreenplayPageProps> = ({ screenplayId, sceneId }
                 </ScreenplayReader>
               )}
 
-              {!isTeam && !editing && <WorkContributeSection kind="screenplay" workId={screenplayId} />}
+              {!isTeam && !editing && (
+                <WorkContributeSection
+                  kind="screenplay"
+                  workId={screenplayId}
+                  onSuggestChanges={canSuggest ? () => setPageMode("edit") : undefined}
+                />
+              )}
             </div>
           </div>
 
@@ -470,7 +612,31 @@ const ScreenplayPage: React.FC<ScreenplayPageProps> = ({ screenplayId, sceneId }
         </div>
       )}
 
+      {activeTab === "contributions" && (
+        <WorkContributionsTab
+          kind="screenplay"
+          workId={screenplayId}
+          workTitle={screenplay.title}
+          canReview={isOwner || !!access?.isAdmin}
+          onMerged={() => {
+            load();
+          }}
+        />
+      )}
+
       {activeTab === "contributors" && <WorkContributorsList kind="screenplay" workId={screenplayId} />}
+
+      {activeTab === "branches" && (
+        <ScreenplayBranchesTab
+          scenes={sortedScenes}
+          blocks={blocks}
+          branches={branches}
+          onOpenScene={(id) => {
+            setActiveTab("screenplay");
+            selectScene(id);
+          }}
+        />
+      )}
 
       {activeTab === "revisions" && <ScreenplayRevisions screenplayId={screenplayId} scenes={sortedScenes} />}
 
@@ -516,6 +682,58 @@ const ScreenplayPage: React.FC<ScreenplayPageProps> = ({ screenplayId, sceneId }
         contentType="screenplay"
         contentId={screenplayId}
       />
+    </div>
+  );
+};
+
+/** Branches tab: every element alternative, grouped by scene. */
+const ScreenplayBranchesTab: React.FC<{
+  scenes: ScreenplayScene[];
+  blocks: ScreenplayBlock[];
+  branches: BlockBranch[];
+  onOpenScene: (sceneId: string) => void;
+}> = ({ scenes, blocks, branches, onOpenScene }) => {
+  if (branches.length === 0) {
+    return (
+      <EditableText id="screenplay-branches-empty" as="p" className="text-sm text-gray-500">
+        No branches yet. In Editing mode, use "Create branch" under an element to write an alternative.
+      </EditableText>
+    );
+  }
+  return (
+    <div className="space-y-6">
+      {scenes.map((scene, index) => {
+        const sceneBranches = branches.filter((b) => b.scene_id === scene.scene_id);
+        if (sceneBranches.length === 0) return null;
+        return (
+          <section key={scene.scene_id} className="space-y-2">
+            <button
+              type="button"
+              onClick={() => onOpenScene(scene.scene_id)}
+              className="font-mono font-bold uppercase text-sm hover:underline"
+            >
+              {index + 1}. {scene.slugline}
+            </button>
+            <ul className="space-y-2">
+              {sceneBranches.map((b) => {
+                const original = blocks.find((bl) => bl.block_id === b.block_id);
+                return (
+                  <li key={b.id} className="rounded border bg-white p-3 text-sm space-y-1">
+                    <div className="text-xs text-gray-500">
+                      {b.name ? `${b.name} · ` : ""}
+                      {b.author_email}
+                    </div>
+                    {original && <p className="font-mono text-[13px] text-gray-500 whitespace-pre-wrap">{original.text}</p>}
+                    <p className="font-mono text-[13px] text-emerald-800 whitespace-pre-wrap border-l-2 border-emerald-300 pl-2">
+                      {b.text}
+                    </p>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        );
+      })}
     </div>
   );
 };

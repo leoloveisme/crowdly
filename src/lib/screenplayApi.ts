@@ -116,3 +116,32 @@ export const createScreenplayFromTemplate = (title: string, formatType: string) 
     "/screenplays/template",
     body("POST", { title, formatType }),
   );
+
+/** An alternative version of one element (like a story paragraph branch). */
+export interface BlockBranch {
+  id: string;
+  block_id: string;
+  screenplay_id: string;
+  scene_id: string | null;
+  text: string;
+  block_type: string | null;
+  name: string | null;
+  language: string;
+  metadata: Record<string, unknown> | null;
+  user_id: string | null;
+  author_email: string | null;
+  created_at: string;
+}
+
+export const listBlockBranches = (screenplayId: string) => workRequest<BlockBranch[]>(`${sp(screenplayId)}/branches`);
+
+export const createBlockBranch = (blockId: string, data: { text: string; name?: string | null }) =>
+  workRequest<BlockBranch>(`/screenplay-blocks/${blockId}/branches`, body("POST", data));
+
+export const updateBlockBranch = (
+  branchId: string,
+  data: Partial<{ text: string; name: string | null; language: string; metadata: Record<string, unknown> | null }>,
+) => workRequest<BlockBranch>(`/screenplay-block-branches/${branchId}`, body("PATCH", data));
+
+export const deleteBlockBranch = (branchId: string) =>
+  workRequest<void>(`/screenplay-block-branches/${branchId}`, body("DELETE"));

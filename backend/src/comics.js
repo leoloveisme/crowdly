@@ -10,6 +10,7 @@ import { adoptLocalFile, removeStoredFile } from './storage.js';
 import {
   canView,
   isOwner,
+  isPlatformAdminOrEditor,
   isTeam,
   loadWork,
   optionalUserId,
@@ -121,16 +122,31 @@ const upload = multer({
 const router = express.Router();
 
 // Cloned comics share their source's image files, so a file is only removed
-// once no page still points at it.
+// once no page or page alternative still points at it.
 function removeUnreferencedImages(urls) {
   for (const url of new Set(urls.filter(Boolean))) {
     pool
-      .query('SELECT count(*) AS refs FROM comic_page WHERE image_url = $1', [url])
+      .query(
+        `SELECT (SELECT count(*) FROM comic_page WHERE image_url = $1)
+              + (SELECT count(*) FROM comic_page_branches WHERE image_url = $1) AS refs`,
+        [url],
+      )
       .then(async ({ rows }) => {
         if (Number(rows[0].refs) === 0) await removeStoredFile(url);
       })
       .catch((err) => console.error('[comics] failed to remove page image:', err));
   }
+}
+
+// Revision log for the comic's Revisions tab (best-effort).
+function logComicRevision(comicId, userId, event, { issueId = null, pageId = null, detail = {} } = {}) {
+  pool
+    .query(
+      `INSERT INTO comic_revisions (comic_id, issue_id, page_id, event, detail, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [comicId, issueId, pageId, event, JSON.stringify(detail), userId],
+    )
+    .catch((err) => console.error('[comics] failed to log revision:', err));
 }
 
 async function resolveUploadIssue(comicId, requestedIssueId) {
@@ -292,6 +308,7 @@ router.post(
         inserted.push(rows[0]);
         nextIndex += 1;
       }
+      logComicRevision(comicId, req.user.id, 'pages_added', { issueId, detail: { count: inserted.length } });
 
       res.status(201).json(inserted);
     } catch (err) {
@@ -326,6 +343,7 @@ router.put('/comics/:comicId/pages/reorder', requireAuth, async (req, res) => {
       );
     }
     await client.query('COMMIT');
+    logComicRevision(comicId, req.user.id, 'pages_reordered', { detail: { count: pageIds.length } });
 
     const { rows } = await pool.query(
       'SELECT * FROM comic_page WHERE comic_id = $1 ORDER BY page_index ASC',
@@ -354,7 +372,10 @@ async function loadPageWithComic(pageId) {
 
 router.patch('/comic-pages/:pageId', requireAuth, async (req, res) => {
   const { pageId } = req.params;
-  const { alt_text: altText } = req.body ?? {};
+  const { alt_text: altText, overlays } = req.body ?? {};
+  if (overlays !== undefined && !Array.isArray(overlays)) {
+    return res.status(400).json({ error: 'overlays must be an array' });
+  }
 
   try {
     const page = await loadPageWithComic(pageId);
@@ -363,13 +384,25 @@ router.patch('/comic-pages/:pageId', requireAuth, async (req, res) => {
     }
     const role = await getComicRole(page.comic_id, req.user.id);
     if (role !== 'owner' && role !== 'contributor') {
-      return res.status(403).json({ error: 'You do not have permission to edit this page' });
+      return res.status(403).json({
+        error: "You can't change this page directly. Suggest changes instead, or ask the author to invite you.",
+      });
     }
 
     const { rows } = await pool.query(
-      'UPDATE comic_page SET alt_text = $1 WHERE page_id = $2 RETURNING *',
-      [altText || null, pageId],
+      `UPDATE comic_page
+          SET alt_text = CASE WHEN $1::boolean THEN $2 ELSE alt_text END,
+              overlays = COALESCE($3::jsonb, overlays)
+        WHERE page_id = $4 RETURNING *`,
+      [altText !== undefined, altText || null, overlays === undefined ? null : JSON.stringify(overlays), pageId],
     );
+    if (overlays !== undefined) {
+      logComicRevision(page.comic_id, req.user.id, 'layers_edited', {
+        issueId: page.issue_id,
+        pageId,
+        detail: { before: page.overlays ?? [], after: overlays },
+      });
+    }
     res.json(rows[0]);
   } catch (err) {
     console.error('[PATCH /comic-pages/:pageId] failed:', err);
@@ -390,8 +423,10 @@ router.delete('/comic-pages/:pageId', requireAuth, async (req, res) => {
       return res.status(403).json({ error: 'You do not have permission to delete this page' });
     }
 
+    const branchImages = await pool.query('SELECT image_url FROM comic_page_branches WHERE page_id = $1', [pageId]);
     await pool.query('DELETE FROM comic_page WHERE page_id = $1', [pageId]);
-    removeUnreferencedImages([page.image_url]);
+    removeUnreferencedImages([page.image_url, ...branchImages.rows.map((b) => b.image_url)]);
+    logComicRevision(page.comic_id, req.user.id, 'page_deleted', { issueId: page.issue_id, detail: { pageIndex: page.page_index } });
 
     res.status(204).end();
   } catch (err) {
@@ -445,6 +480,7 @@ router.post('/comics/:comicId/issues', requireAuth, async (req, res) => {
         }
       }
       await client.query('COMMIT');
+      logComicRevision(comicId, req.user.id, 'issue_added', { issueId: rows[0].issue_id, detail: { title: rows[0].title } });
       res.status(201).json(rows[0]);
     } catch (err) {
       await client.query('ROLLBACK').catch(() => {});
@@ -471,6 +507,10 @@ router.patch('/comic-issues/:issueId', requireAuth, async (req, res) => {
       'UPDATE comic_issue SET title = $1, updated_at = now() WHERE issue_id = $2 RETURNING *',
       [title.trim(), found.issue.issue_id],
     );
+    logComicRevision(found.comic.comic_id, req.user.id, 'issue_renamed', {
+      issueId: found.issue.issue_id,
+      detail: { before: found.issue.title, after: title.trim() },
+    });
     res.json(rows[0]);
   } catch (err) {
     console.error('[PATCH /comic-issues/:issueId] failed:', err);
@@ -503,9 +543,15 @@ router.delete('/comic-issues/:issueId', requireAuth, async (req, res) => {
     if (!(await isOwner(pool, 'comic', found.comic, req.user.id))) {
       return res.status(403).json({ error: 'Only the comic owner can delete issues' });
     }
-    const pages = await pool.query('SELECT image_url FROM comic_page WHERE issue_id = $1', [found.issue.issue_id]);
+    const pages = await pool.query(
+      `SELECT image_url FROM comic_page WHERE issue_id = $1
+       UNION ALL
+       SELECT b.image_url FROM comic_page_branches b JOIN comic_page p ON p.page_id = b.page_id WHERE p.issue_id = $1`,
+      [found.issue.issue_id],
+    );
     await pool.query('DELETE FROM comic_issue WHERE issue_id = $1', [found.issue.issue_id]);
     removeUnreferencedImages(pages.rows.map((p) => p.image_url));
+    logComicRevision(found.comic.comic_id, req.user.id, 'issue_deleted', { detail: { title: found.issue.title } });
     res.status(204).end();
   } catch (err) {
     console.error('[DELETE /comic-issues/:issueId] failed:', err);
@@ -543,6 +589,186 @@ router.put('/comics/:comicId/issues/reorder', requireAuth, async (req, res) => {
     res.status(500).json({ error: 'Failed to reorder issues' });
   } finally {
     client.release();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Page alternatives (branches): another version of one page — a redrawn
+// panel, a different ending — with its own text layers. Any signed-in reader
+// may add one, like paragraph branches on stories; the owner, the author or
+// platform staff may edit or delete it.
+// ---------------------------------------------------------------------------
+
+const branchUpload = multer({
+  storage: multer.diskStorage({
+    destination(req, _file, cb) {
+      const dir = path.join(COMIC_UPLOADS_DIR, 'branches');
+      fs.mkdirSync(dir, { recursive: true });
+      cb(null, dir);
+    },
+    filename(_req, file, cb) {
+      cb(null, `${randomUUID()}${ALLOWED_MIME_EXTENSIONS[file.mimetype] || ''}`);
+    },
+  }),
+  limits: { fileSize: 15 * 1024 * 1024, files: 1 },
+  fileFilter(_req, file, cb) {
+    if (!ALLOWED_MIME_EXTENSIONS[file.mimetype]) {
+      cb(new Error('Unsupported image type — only PNG, JPEG, WEBP, and GIF are allowed'));
+      return;
+    }
+    cb(null, true);
+  },
+});
+
+const pageBranchRow = (r) => ({
+  id: r.id,
+  page_id: r.page_id,
+  comic_id: r.comic_id,
+  image_url: r.image_url,
+  overlays: r.overlays ?? [],
+  name: r.name,
+  language: r.language,
+  user_id: r.user_id,
+  author_email: r.author_email ?? null,
+  issue_id: r.issue_id ?? null,
+  created_at: r.created_at,
+});
+
+router.get('/comics/:comicId/branches', async (req, res) => {
+  try {
+    const comic = await loadWork(pool, 'comic', req.params.comicId);
+    if (!comic) return res.status(404).json({ error: 'Comic not found' });
+    if (!(await canView(pool, 'comic', comic, await optionalUserId(req)))) {
+      return res.status(403).json({ error: viewDeniedMessage('comic', comic) });
+    }
+    const { rows } = await pool.query(
+      `SELECT b.*, p.issue_id, u.email AS author_email
+         FROM comic_page_branches b
+         JOIN comic_page p ON p.page_id = b.page_id
+         LEFT JOIN local_users u ON u.id = b.user_id
+        WHERE b.comic_id = $1
+        ORDER BY b.created_at ASC`,
+      [comic.comic_id],
+    );
+    res.json(rows.map(pageBranchRow));
+  } catch (err) {
+    console.error('[GET /comics/:comicId/branches] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch page alternatives' });
+  }
+});
+
+router.post(
+  '/comic-pages/:pageId/branches',
+  requireAuth,
+  (req, res, next) => {
+    branchUpload.single('image')(req, res, (err) => {
+      if (err) return res.status(400).json({ error: err.message || 'Upload failed' });
+      next();
+    });
+  },
+  async (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'An image is required' });
+    try {
+      const page = await loadPageWithComic(req.params.pageId);
+      const comic = page && (await loadWork(pool, 'comic', page.comic_id));
+      if (!comic) {
+        fs.promises.unlink(req.file.path).catch(() => {});
+        return res.status(404).json({ error: 'Page not found' });
+      }
+      if (!(await canView(pool, 'comic', comic, req.user.id))) {
+        fs.promises.unlink(req.file.path).catch(() => {});
+        return res.status(403).json({ error: viewDeniedMessage('comic', comic) });
+      }
+      const imageUrl = await adoptLocalFile(req.file.path, req.file.mimetype);
+      const { rows } = await pool.query(
+        `INSERT INTO comic_page_branches (page_id, comic_id, image_url, name, language, user_id)
+         VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+        [page.page_id, page.comic_id, imageUrl, req.body?.name || null, comic.language || 'en', req.user.id],
+      );
+      logComicRevision(page.comic_id, req.user.id, 'alternative_added', { issueId: page.issue_id, pageId: page.page_id });
+      res.status(201).json(pageBranchRow({ ...rows[0], issue_id: page.issue_id }));
+    } catch (err) {
+      console.error('[POST /comic-pages/:pageId/branches] failed:', err);
+      res.status(500).json({ error: 'Failed to add page alternative' });
+    }
+  },
+);
+
+async function authorizePageBranch(req, res) {
+  const { rows } = await pool
+    .query('SELECT * FROM comic_page_branches WHERE id = $1', [req.params.branchId])
+    .catch(() => ({ rows: [] }));
+  const branch = rows[0];
+  if (!branch) {
+    res.status(404).json({ error: 'Page alternative not found' });
+    return null;
+  }
+  if (branch.user_id === req.user.id) return branch;
+  const comic = await loadWork(pool, 'comic', branch.comic_id);
+  if ((await isOwner(pool, 'comic', comic, req.user.id)) || (await isPlatformAdminOrEditor(req.user.id))) return branch;
+  res.status(403).json({ error: 'Only the comic owner or the author can change this page alternative' });
+  return null;
+}
+
+router.patch('/comic-page-branches/:branchId', requireAuth, async (req, res) => {
+  const { name, overlays } = req.body ?? {};
+  if (overlays !== undefined && !Array.isArray(overlays)) {
+    return res.status(400).json({ error: 'overlays must be an array' });
+  }
+  try {
+    const branch = await authorizePageBranch(req, res);
+    if (!branch) return;
+    const { rows } = await pool.query(
+      `UPDATE comic_page_branches
+          SET name = CASE WHEN $1::boolean THEN $2 ELSE name END,
+              overlays = COALESCE($3::jsonb, overlays),
+              updated_at = now()
+        WHERE id = $4 RETURNING *`,
+      [name !== undefined, name || null, overlays === undefined ? null : JSON.stringify(overlays), branch.id],
+    );
+    res.json(pageBranchRow(rows[0]));
+  } catch (err) {
+    console.error('[PATCH /comic-page-branches/:id] failed:', err);
+    res.status(500).json({ error: 'Failed to update page alternative' });
+  }
+});
+
+router.delete('/comic-page-branches/:branchId', requireAuth, async (req, res) => {
+  try {
+    const branch = await authorizePageBranch(req, res);
+    if (!branch) return;
+    await pool.query('DELETE FROM comic_page_branches WHERE id = $1', [branch.id]);
+    removeUnreferencedImages([branch.image_url]);
+    res.status(204).end();
+  } catch (err) {
+    console.error('[DELETE /comic-page-branches/:id] failed:', err);
+    res.status(500).json({ error: 'Failed to delete page alternative' });
+  }
+});
+
+// Revisions tab: the comic's change log, newest first.
+router.get('/comics/:comicId/revisions', async (req, res) => {
+  try {
+    const comic = await loadWork(pool, 'comic', req.params.comicId);
+    if (!comic) return res.status(404).json({ error: 'Comic not found' });
+    if (!(await canView(pool, 'comic', comic, await optionalUserId(req)))) {
+      return res.status(403).json({ error: viewDeniedMessage('comic', comic) });
+    }
+    const { rows } = await pool.query(
+      `SELECT r.*, u.email AS author_email, i.title AS issue_title, p.page_index
+         FROM comic_revisions r
+         LEFT JOIN local_users u ON u.id = r.created_by
+         LEFT JOIN comic_issue i ON i.issue_id = r.issue_id
+         LEFT JOIN comic_page p ON p.page_id = r.page_id
+        WHERE r.comic_id = $1
+        ORDER BY r.created_at DESC
+        LIMIT 500`,
+      [comic.comic_id],
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error('[GET /comics/:comicId/revisions] failed:', err);
+    res.status(500).json({ error: 'Failed to fetch revisions' });
   }
 });
 

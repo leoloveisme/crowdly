@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, Loader2, Trash2, Upload } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Trash2, Type, Upload } from "lucide-react";
 import EditableText from "@/components/EditableText";
 import type { ComicPage } from "@/lib/comicsApi";
 
@@ -13,6 +13,8 @@ interface ComicEditorProps {
   onMove: (from: number, to: number) => void;
   onDelete: (page: ComicPage, pageNumber: number) => void;
   onSaveAltText: (page: ComicPage, altText: string) => void;
+  /** Speech bubbles / captions (team: save; others: suggest). */
+  onEditLayers: (page: ComicPage) => void;
   /** Under each page: alternatives, text layers, suggestions (phase 2). */
   renderPageExtras?: (page: ComicPage, pageNumber: number) => React.ReactNode;
   banner?: React.ReactNode;
@@ -49,6 +51,7 @@ const ComicEditor: React.FC<ComicEditorProps> = ({
   onMove,
   onDelete,
   onSaveAltText,
+  onEditLayers,
   renderPageExtras,
   banner,
 }) => {
@@ -143,6 +146,19 @@ const ComicEditor: React.FC<ComicEditorProps> = ({
                 )}
               </div>
               <AltTextInput page={page} disabled={!canManagePages} onSave={(text) => onSaveAltText(page, text)} />
+              <button
+                type="button"
+                onClick={() => onEditLayers(page)}
+                className="inline-flex items-center gap-1 text-xs text-blue-700 hover:underline"
+              >
+                <Type className="h-3 w-3" />
+                {canManagePages ? (
+                  <EditableText id="comic-layers-edit-btn">Edit text</EditableText>
+                ) : (
+                  <EditableText id="comic-layers-suggest-btn">Suggest text</EditableText>
+                )}
+                {(page.overlays?.length ?? 0) > 0 && <span className="text-gray-400">({page.overlays?.length})</span>}
+              </button>
               {renderPageExtras?.(page, idx + 1)}
             </div>
           );

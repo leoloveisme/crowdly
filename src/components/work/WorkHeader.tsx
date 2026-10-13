@@ -21,6 +21,10 @@ interface WorkHeaderProps {
   completionStatus?: string | null;
   /** Team member (owner or explicit collaborator): gets Viewing/Editing. */
   isTeam: boolean;
+  /** Readers suggesting changes also get the switch (defaults to isTeam). */
+  showModeToggle?: boolean;
+  /** Who may edit the title in Editing mode (owner; suggesters propose). */
+  canEditTitle?: boolean;
   isOwner: boolean;
   isAdmin: boolean;
   canClone: boolean;
@@ -80,6 +84,8 @@ const WorkHeader: React.FC<WorkHeaderProps> = ({
   completionStatus,
   isTeam,
   isOwner,
+  showModeToggle = isTeam,
+  canEditTitle = isOwner,
   isAdmin,
   canClone,
   canExport,
@@ -166,14 +172,14 @@ const WorkHeader: React.FC<WorkHeaderProps> = ({
     else setTitleInput(title);
   };
 
-  const editingMode = isTeam && pageMode === "edit";
+  const editingMode = showModeToggle && pageMode === "edit";
   const completed = (completionStatus ?? "draft") === "completed";
 
   return (
     <section className="space-y-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center flex-wrap gap-2 min-w-0">
-          {editingMode && isOwner && onSaveTitle ? (
+          {editingMode && canEditTitle && onSaveTitle ? (
             editingTitle ? (
               <input
                 type="text"
@@ -255,7 +261,7 @@ const WorkHeader: React.FC<WorkHeaderProps> = ({
           {extraBadges}
         </div>
 
-        {isTeam && (
+        {showModeToggle && (
           <div className="flex items-center gap-2 shrink-0">
             <PageModeToggle kind={kind} mode={pageMode} onChange={onPageModeChange} />
             {isOwner && (

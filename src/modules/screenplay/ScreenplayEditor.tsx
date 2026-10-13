@@ -7,8 +7,11 @@ interface ScreenplayEditorProps {
   scene: ScreenplayScene;
   sceneNumber: number;
   blocks: ScreenplayBlock[];
-  /** Team members edit directly; others' changes become suggestions. */
-  canDeleteBlocks: boolean;
+  /**
+   * Team members change the structure (add, delete, retype elements);
+   * readers suggesting changes only edit text, which becomes a proposal.
+   */
+  canStructure: boolean;
   onSaveScene: (patch: { slugline?: string; synopsis?: string | null }) => void;
   onSaveBlock: (block: ScreenplayBlock, patch: { text?: string; blockType?: string }) => void;
   onAddBlock: (afterBlock: ScreenplayBlock | null, blockType: string) => void;
@@ -33,12 +36,12 @@ const NEXT_TYPE: Record<string, string> = {
 
 const BlockRow: React.FC<{
   block: ScreenplayBlock;
-  canDelete: boolean;
+  canStructure: boolean;
   onSave: (patch: { text?: string; blockType?: string }) => void;
   onAddAfter: () => void;
   onDelete: () => void;
   extras?: React.ReactNode;
-}> = ({ block, canDelete, onSave, onAddAfter, onDelete, extras }) => {
+}> = ({ block, canStructure, onSave, onAddAfter, onDelete, extras }) => {
   const [text, setText] = useState(block.text);
   useEffect(() => setText(block.text), [block.text]);
 
@@ -46,7 +49,8 @@ const BlockRow: React.FC<{
     <div className="group flex flex-col gap-1 border-b border-dashed border-gray-200 pb-2">
       <div className="flex items-center gap-2 text-[11px] text-gray-500">
         <select
-          className="border rounded px-1 py-0.5 text-[11px] bg-white"
+          className="border rounded px-1 py-0.5 text-[11px] bg-white disabled:opacity-70"
+          disabled={!canStructure}
           value={block.block_type}
           onChange={(e) => onSave({ blockType: e.target.value })}
           aria-label="Element type"
@@ -58,6 +62,7 @@ const BlockRow: React.FC<{
           ))}
         </select>
         <span className="flex-1" />
+        {canStructure && (
         <button
           type="button"
           onClick={onAddAfter}
@@ -66,7 +71,8 @@ const BlockRow: React.FC<{
         >
           <Plus className="h-3 w-3" />
         </button>
-        {canDelete && (
+        )}
+        {canStructure && (
           <button
             type="button"
             onClick={onDelete}
@@ -83,7 +89,11 @@ const BlockRow: React.FC<{
         value={text}
         onChange={(e) => setText(e.target.value)}
         onBlur={() => {
-          if (text !== block.text) onSave({ text });
+          if (text === block.text) return;
+          onSave({ text });
+          // A suggestion doesn't change the element: show the original again
+          // (the suggestion appears in purple underneath).
+          if (!canStructure) setText(block.text);
         }}
         onKeyDown={(e) => {
           if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
@@ -102,7 +112,7 @@ const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
   scene,
   sceneNumber,
   blocks,
-  canDeleteBlocks,
+  canStructure,
   onSaveScene,
   onSaveBlock,
   onAddBlock,
@@ -131,6 +141,7 @@ const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
             onChange={(e) => setSlugline(e.target.value)}
             onBlur={() => {
               if (slugline.trim() && slugline !== scene.slugline) onSaveScene({ slugline: slugline.trim() });
+              if (!canStructure) setSlugline(scene.slugline);
             }}
             placeholder="INT. LOCATION - TIME"
           />
@@ -148,6 +159,7 @@ const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
       </div>
       <textarea
         value={synopsis}
+        disabled={!canStructure}
         onChange={(e) => setSynopsis(e.target.value)}
         onBlur={() => {
           if (synopsis !== (scene.synopsis ?? "")) onSaveScene({ synopsis: synopsis || null });
@@ -161,20 +173,24 @@ const ScreenplayEditor: React.FC<ScreenplayEditorProps> = ({
           <BlockRow
             key={block.block_id}
             block={block}
-            canDelete={canDeleteBlocks}
+            canStructure={canStructure}
             onSave={(patch) => onSaveBlock(block, patch)}
             onAddAfter={() => onAddBlock(block, NEXT_TYPE[block.block_type] ?? "action")}
             onDelete={() => onDeleteBlock(block)}
             extras={renderBlockExtras?.(block)}
           />
         ))}
-        <button
-          type="button"
-          onClick={() => onAddBlock(blocks[blocks.length - 1] ?? null, NEXT_TYPE[blocks[blocks.length - 1]?.block_type] ?? "action")}
-          className="mt-2 inline-flex items-center px-3 py-1 text-[11px] rounded-full border border-dashed border-blue-300 text-blue-700 hover:bg-blue-50"
-        >
-          <EditableText id="screenplay-add-element">Add element</EditableText>
-        </button>
+        {canStructure && (
+          <button
+            type="button"
+            onClick={() =>
+              onAddBlock(blocks[blocks.length - 1] ?? null, NEXT_TYPE[blocks[blocks.length - 1]?.block_type] ?? "action")
+            }
+            className="mt-2 inline-flex items-center px-3 py-1 text-[11px] rounded-full border border-dashed border-blue-300 text-blue-700 hover:bg-blue-50"
+          >
+            <EditableText id="screenplay-add-element">Add element</EditableText>
+          </button>
+        )}
       </div>
     </article>
   );
