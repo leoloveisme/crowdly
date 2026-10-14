@@ -5,10 +5,10 @@ import { enqueue, isNetworkError } from "./offline";
 // cookie (the old app sent it on only a handful of calls, so most writes
 // silently failed or fell back to a client-supplied userId).
 //
-// API_BASE is "" in dev (Vite proxies to :4000) and on crowdly.cloud/editor
-// (same origin); the editor.crowdly.cloud build sets VITE_API_BASE_URL to
-// the platform origin. Same-site, so the SameSite=lax session cookie still
-// travels with these credentialed cross-origin requests.
+// API_BASE is "" in dev (Vite proxies to the backend) and
+// https://api.<app domain> in production (VITE_API_BASE_URL at build time).
+// The app and its API are the same *site*, so the backend's SameSite=lax
+// session cookie travels with these credentialed cross-origin requests.
 export { API_BASE, ApiError };
 
 type Init = Omit<RequestInit, "body"> & {
@@ -70,8 +70,7 @@ export const qs = (params: Record<string, string | number | boolean | null | und
 
 /** Absolute URL of the main Crowdly platform, for "open on the platform" links. */
 export const PLATFORM_URL: string =
-  import.meta.env.VITE_PLATFORM_URL ??
-  (import.meta.env.PROD ? API_BASE || "" : `${window.location.protocol}//${window.location.hostname}:8080`);
+  import.meta.env.VITE_PLATFORM_URL ?? (import.meta.env.PROD ? "https://crowdly.cloud" : `${window.location.protocol}//${window.location.hostname}:8080`);
 
 export const platformLink = (path: string) => `${PLATFORM_URL}${path}`;
 

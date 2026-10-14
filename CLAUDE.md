@@ -38,9 +38,10 @@ python -m editor   # Run the editor
 ```
 
 ### Web Editor (apps/web/)
+A stand-alone app at the root of its own domain (`<app domain>`, set by the GitHub repo variable `WEBAPP_DOMAIN`), with its API at `api.<app domain>`. It is never served under crowdly.cloud. See `Documentation/Web_app_deploy.md`.
 ```bash
-npm run dev      # Start Vite dev server
-npm run build    # Production build
+npm run dev      # Start Vite dev server on :5173 (proxies the backend on :4000)
+npm run build    # Production build (set VITE_API_BASE_URL=https://api.<app domain>)
 ```
 
 ## Architecture
