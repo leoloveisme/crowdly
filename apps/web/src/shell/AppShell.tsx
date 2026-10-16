@@ -356,7 +356,7 @@ export const AppShell: React.FC = () => {
       <header className="flex items-center gap-2 border-b px-2 py-1 pt-[max(0.25rem,env(safe-area-inset-top))]">
         {isMobile && <MobileMenu groups={groups} />}
         <Link to="/" className="flex shrink-0 items-center gap-1.5 px-1 font-semibold">
-          <img src={`${import.meta.env.BASE_URL}icon.svg`} alt="" className="h-6 w-6" />
+          <img src={`${import.meta.env.BASE_URL}icon-192.png`} alt="" className="h-6 w-6" />
           <span className="hidden sm:inline">Crowdly</span>
         </Link>
         {!isMobile && (

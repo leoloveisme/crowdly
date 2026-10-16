@@ -32,7 +32,7 @@ const READ_PATHS = [
 ];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(SHELL).then((c) => c.addAll([scope.href, `${scope.href}manifest.webmanifest`, `${scope.href}icon.svg`])).then(() => self.skipWaiting()));
+  event.waitUntil(caches.open(SHELL).then((c) => c.addAll([scope.href, `${scope.href}manifest.webmanifest`, `${scope.href}icon-192.png`, `${scope.href}favicon.png`])).then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (event) => {

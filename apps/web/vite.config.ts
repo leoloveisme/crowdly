@@ -15,7 +15,7 @@ const apiTarget = process.env.WEBAPP_API_TARGET ?? "http://localhost:4000";
 // backend, so API calls stay same-origin like the platform's dev setup.
 // Page loads (Accept: text/html) get the app instead, because some app
 // routes share a path with an API route (/shelves is both).
-const VITE_OWN = "@vite|@fs|@id|@react-refresh|src/|node_modules/|icon\\.svg|manifest\\.webmanifest|sw\\.js|favicon";
+const VITE_OWN = "@vite|@fs|@id|@react-refresh|src/|node_modules/|icon-[a-z0-9-]+\\.png|apple-touch-icon\\.png|manifest\\.webmanifest|sw\\.js|favicon";
 const servePageLoads = (req: { headers: Record<string, string | string[] | undefined> }) =>
   String(req.headers.accept ?? "").includes("text/html") ? "/index.html" : undefined;
 
