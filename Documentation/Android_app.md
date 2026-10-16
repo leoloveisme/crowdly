@@ -108,7 +108,7 @@ To rebuild the bridge after an Automerge upgrade, run `npm ci` at the repo root,
 
 1. Create the app in the Play Console with package `cloud.crowdly.app` and enrol in Play App Signing. Your keystore becomes the upload key.
 2. Upload the `.aab` from the release workflow to an internal-testing track first.
-3. Store listing: name "Crowdly", short and full description, phone screenshots (the Create, Story editor, Discover and Reader screens), and the icon (`res/drawable/ic_launcher_foreground.xml` on `#1E1B4B`).
+3. Store listing: name "Crowdly", short and full description, phone screenshots (the Create, Story editor, Discover and Reader screens), and the icon: the Crowdly logo, `src/components/images/crowdly.png`, the same as the platform and the desktop app (512 px).
 4. Privacy policy URL: the platform's privacy page.
 5. Data safety:
    - **Collected:** email and account id, plus the user's own content (stories, files, highlights, reading positions).
