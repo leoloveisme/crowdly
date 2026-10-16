@@ -26,6 +26,8 @@ class CrowdlyApp : Application(), SingletonImageLoader.Factory {
     val api by lazy { Api(prefs, outbox, db) }
     val repo by lazy { cloud.crowdly.app.data.Repo(api, session) }
     val io by lazy { cloud.crowdly.app.data.WorkIo(repo, api) }
+    val discovery by lazy { cloud.crowdly.app.data.Discovery(api, prefs) }
+    val reader by lazy { cloud.crowdly.app.reader.ReaderContent(api, repo, discovery, cacheDir) }
     val files by lazy { cloud.crowdly.app.sync.LocalFiles(this, db) }
     val syncer by lazy { cloud.crowdly.app.sync.Syncer(api, repo, io, session, db, files) }
     val session by lazy { Session(api, prefs, db, outbox) }
