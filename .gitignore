@@ -68,3 +68,12 @@ backend/private/
 
 # Google OAuth desktop client for direct Drive sync (see Documentation/Google_Drive_OAuth_setup.md)
 apps/desktop/src/editor/google_oauth_client.json
+
+# Android app (apps/android)
+apps/android/**/build/
+apps/android/.gradle/
+apps/android/.kotlin/
+apps/android/local.properties
+apps/android/.idea/
+*.jks
+*.keystore

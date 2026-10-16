@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Production talks to the Crowdly API over https. Plain http is allowed so a
+  development build can reach a backend on the Mac (10.0.2.2 from the
+  emulator, or the Mac's LAN address from a phone); the sign-in screen warns
+  when the server address isn't https.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
