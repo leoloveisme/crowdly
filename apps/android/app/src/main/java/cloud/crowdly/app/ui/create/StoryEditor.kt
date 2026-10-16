@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.collectAsState
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
@@ -125,6 +127,32 @@ fun StoryEditorScreen(id: String) {
     val isOwner = role == "owner"
     val canEdit = isOwner || suggesting
 
+    // Live co-editing of the open chapter with everyone else who has it open
+    // (owner and team; suggestion copies stay private) — lib/live.ts.
+    val live = app.live
+    val liveWanted by app.prefs.liveCollab.collectAsState()
+    val online by app.connectivity.online.collectAsState()
+    val liveConnected by live.connected.collectAsState()
+    val peers by live.peers.collectAsState()
+    var liveKey by remember { mutableStateOf<String?>(null) }
+    var pushStamp by remember { mutableStateOf(0L) }
+    val liveOn = liveWanted && isOwner && online
+    LaunchedEffect(activeId, liveOn) {
+        val cid = activeId
+        if (cid == null || !liveOn) { live.close(); liveKey = null; return@LaunchedEffect }
+        val key = runCatching { app.repo.ensureDoc("docType" to "chapter", "chapterId" to cid) }.getOrNull() ?: return@LaunchedEffect
+        liveKey = key
+        live.open(key, app.session.userId.orEmpty(), app.session.user.value?.displayName.orEmpty())
+    }
+    LaunchedEffect(liveKey) {
+        val key = liveKey ?: return@LaunchedEffect
+        live.remote.collect { (k, v) ->
+            val cid = activeId
+            if (k == key && cid != null) drafts[cid] = Draft(v.title, joinParagraphs(v.paragraphs))
+        }
+    }
+    DisposableEffect(Unit) { onDispose { live.close() } }
+
     suspend fun load() {
         try {
             val s = app.repo.story(id)
@@ -156,8 +184,9 @@ fun StoryEditorScreen(id: String) {
                 app.repo.saveChapter(cid, d.title, paragraphs)
                 if (dirty[cid] == stamp) dirty.remove(cid)
                 chapters = chapters.map { if (it.id == cid) it.copy(title = d.title, paragraphs = paragraphs) else it }
-                // Mirror into the chapter's CRDT doc so revision history sees app edits too (best effort).
-                scope.launch {
+                // Mirror into the chapter's CRDT doc so revision history sees app edits too (best effort);
+                // a live session already records them.
+                if (!live.connected.value) scope.launch {
                     runCatching {
                         val key = app.repo.ensureDoc("docType" to "chapter", "chapterId" to cid)
                         app.repo.applyContent(key, jsonOf("title" to d.title, "paragraphs" to paragraphs))
@@ -187,6 +216,7 @@ fun StoryEditorScreen(id: String) {
         drafts[cid] = d
         dirty[cid] = System.nanoTime()
         if (isOwner) saveState = tr0("editing")
+        if (live.connected.value) pushStamp = System.nanoTime()
     }
 
     val imagePicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -199,6 +229,13 @@ fun StoryEditorScreen(id: String) {
         }
     }
 
+    LaunchedEffect(pushStamp) {
+        if (pushStamp == 0L) return@LaunchedEffect
+        delay(250)
+        val d = activeId?.let { drafts[it] } ?: return@LaunchedEffect
+        live.push(cloud.crowdly.app.sync.LiveChapter(d.title, splitParagraphs(d.md)))
+    }
+
     val s = story
     val active = activeId?.let { drafts[it] }
     val words = drafts.values.sumOf { countWords(mdToPlain(it.md)) }
@@ -206,8 +243,16 @@ fun StoryEditorScreen(id: String) {
     Screen(
         s?.title ?: "…",
         back = { nav.popBackStack() },
-        subtitle = listOfNotNull(active?.title?.ifBlank { null }, "$words ${tr("android-words", "words")}", saveState.ifBlank { null }).joinToString(" · "),
+        subtitle = listOfNotNull(active?.title?.ifBlank { null }, "$words ${tr("android-words", "words")}", if (liveConnected && dirty.isEmpty()) tr("android-story-live", "Live") else saveState.ifBlank { null }).joinToString(" · "),
         actions = {
+            if (liveConnected) Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy((-6).dp), verticalAlignment = Alignment.CenterVertically) {
+                peers.take(4).forEach { p ->
+                    androidx.compose.foundation.layout.Box(
+                        Modifier.size(26.dp).background(Color(p.color), androidx.compose.foundation.shape.CircleShape),
+                        contentAlignment = Alignment.Center,
+                    ) { Text(p.name.take(2).uppercase(), color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold) }
+                }
+            }
             IconButton({ panel = StoryPanel.CHAPTERS }) { Icon(Icons.AutoMirrored.Filled.List, tr("android-story-chapters", "Chapters")) }
             IconButton({ panel = StoryPanel.BRANCHES }) { Icon(Icons.Filled.AccountTree, tr("android-story-branches", "Branches")) }
             IconButton({ preview = !preview }) { Icon(if (preview) Icons.Filled.Edit else Icons.Filled.Visibility, tr("android-story-preview", "Preview")) }
@@ -288,7 +333,11 @@ fun StoryEditorScreen(id: String) {
             } else {
                 BasicTextField(
                     androidx.compose.ui.text.input.TextFieldValue(active.md, androidx.compose.ui.text.TextRange(selection.start.coerceIn(0, active.md.length), selection.end.coerceIn(0, active.md.length))),
-                    { v -> selection = v.selection; if (v.text != active.md) update(active.copy(md = v.text)) },
+                    { v ->
+                        selection = v.selection
+                        if (v.text != active.md) update(active.copy(md = v.text))
+                        if (live.connected.value) live.presence(v.text.take(v.selection.start).split(Regex("\n[ \t]*\n+")).size - 1)
+                    },
                     Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp).focusRequester(bodyFocus),
                     readOnly = !canEdit,
                     textStyle = TextStyle(color = textColor, fontSize = 18.sp, lineHeight = 28.sp, fontFamily = FontFamily.Serif),

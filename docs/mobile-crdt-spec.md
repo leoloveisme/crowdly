@@ -70,3 +70,12 @@ Match the model in §2a exactly: restore is presented as "go back to this revisi
 
 - **Reuse the shared layout-preset data** described for the other two web apps (`src/lib/revision-layouts.ts` / `apps/web/src/lib/revision-layouts.ts` — 25 tiling presets total for viewing/comparing 2-4 revisions side by side, matching the desktop editor's `_LAYOUTS` table in `apps/desktop/src/editor/ui/compare_revisions.py`). Port the same preset geometries natively; there is no reason for mobile to invent a fourth, different set.
 - **Do not reimplement diffing from scratch** if a platform-native text-diff library is available; the main platform uses `diff-match-patch`, the web editor uses a small from-scratch word-level LCS diff (`apps/web/src/lib/word-diff.ts`) precisely because it had no other dependency — pick whichever fits the mobile platform's ecosystem, the algorithm choice is not load-bearing.
+
+## 8. How the Android app does it (`apps/android`)
+
+- **No native Automerge on Android.** `org.automerge:automerge` (automerge-java 0.0.9) ships JNI libraries for desktop Linux, macOS and Windows only; its arm64 Linux build links against glibc and won't load on Android's bionic.
+- **Live sync runs the web client in a hidden WebView.** `apps/android/live/bridge.ts` is the same automerge-repo client as `apps/web/src/lib/live.ts` (character-level `updateText` splices, presence over ephemeral messages). It is bundled with the repo's own `@automerge/*` packages into `app/src/main/assets/live/bridge.js` by `apps/android/live/build.sh`, with the WASM inlined. `sync/LiveSession.kt` loads it into a WebView whose page origin is the API server and sets the session cookie for that origin, so the `/crdt-sync` WebSocket authenticates exactly like a browser. Kotlin and the page talk through a JavaScript interface: `open`, `push`, `presence`, `close`, and the `onRemote`, `onPeers` and `onState` callbacks.
+- **When it's used:** the story editor goes live for owners when "Live co-editing" is on in Settings and the phone is online. Otherwise edits save over REST (`PATCH /chapters/:id`, queued offline) and are mirrored into the CRDT history with `apply-content` (§2a, §4).
+- **Revision history and restore** use the REST routes in §2a (`RevisionsScreen` in `ui/create/WorkPanels.kt`).
+- **Auth:** bearer token (§5) for REST; the same token as the `crowdly_session` cookie inside the live WebView.
+- **iOS** can use the same bridge in a `WKWebView`, or the official Swift binding if that's preferable at the time.

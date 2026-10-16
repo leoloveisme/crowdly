@@ -67,6 +67,7 @@ class Session(private val api: Api, private val prefs: Prefs, private val db: Db
     }
 
     fun forget() {
+        cloud.crowdly.app.crowdly.live.reset()
         prefs.token = null
         prefs.userJson = null
         outbox.clear()
