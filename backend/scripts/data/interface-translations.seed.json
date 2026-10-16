@@ -13942,5 +13942,2847 @@
     "en": "Suggested text waiting for review",
     "ru": "Предложенный текст ждёт проверки",
     "de": "Vorgeschlagener Text wartet auf Prüfung"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-status-rejected",
+    "en": "edits made offline couldn't be applied: what you edited changed or was deleted while you were away.",
+    "ru": "изменения, сделанные офлайн, не удалось применить: то, что вы правили, изменилось или было удалено, пока вас не было.",
+    "de": "offline gemachte Änderungen konnten nicht übernommen werden: Was du bearbeitet hast, wurde inzwischen geändert oder gelöscht."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-ok",
+    "en": "OK",
+    "ru": "ОК",
+    "de": "OK"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-status-online",
+    "en": "Online",
+    "ru": "В сети",
+    "de": "Online"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-status-offline",
+    "en": "Offline: your edits are kept on this phone",
+    "ru": "Нет сети: ваши правки сохраняются на этом телефоне",
+    "de": "Offline: Deine Änderungen bleiben auf diesem Telefon"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-status-pending",
+    "en": "unsent",
+    "ru": "не отправлено",
+    "de": "nicht gesendet"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-signin-tagline",
+    "en": "Every single story has more possibilities",
+    "ru": "У каждой истории есть больше возможностей",
+    "de": "Jede einzelne Geschichte hat mehr Möglichkeiten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-signin-email",
+    "en": "Email",
+    "ru": "Эл. почта",
+    "de": "E-Mail"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-signin-password",
+    "en": "Password",
+    "ru": "Пароль",
+    "de": "Passwort"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-signin-create",
+    "en": "Create account",
+    "ru": "Создать аккаунт",
+    "de": "Konto erstellen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-signin-submit",
+    "en": "Sign in",
+    "ru": "Войти",
+    "de": "Anmelden"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-signin-have-account",
+    "en": "I already have an account",
+    "ru": "У меня уже есть аккаунт",
+    "de": "Ich habe schon ein Konto"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-signin-new",
+    "en": "New to Crowdly? Create an account",
+    "ru": "Впервые на Crowdly? Создайте аккаунт",
+    "de": "Neu bei Crowdly? Konto erstellen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-signin-open-web",
+    "en": "Open Crowdly on the web",
+    "ru": "Открыть Crowdly в браузере",
+    "de": "Crowdly im Web öffnen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-signin-server",
+    "en": "Server",
+    "ru": "Сервер",
+    "de": "Server"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-signin-server-url",
+    "en": "Server address",
+    "ru": "Адрес сервера",
+    "de": "Serveradresse"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-signin-insecure",
+    "en": "Not encrypted: use only for a development server on your own network.",
+    "ru": "Без шифрования: только для сервера разработки в вашей сети.",
+    "de": "Nicht verschlüsselt: nur für einen Entwicklungsserver im eigenen Netz verwenden."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-save",
+    "en": "Save",
+    "ru": "Сохранить",
+    "de": "Speichern"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-back",
+    "en": "Back",
+    "ru": "Назад",
+    "de": "Zurück"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-retry",
+    "en": "Retry",
+    "ru": "Повторить",
+    "de": "Erneut versuchen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-find",
+    "en": "Find",
+    "ru": "Найти",
+    "de": "Suchen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-find-prev",
+    "en": "Previous",
+    "ru": "Предыдущее",
+    "de": "Vorheriges"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-find-next",
+    "en": "Next",
+    "ru": "Следующее",
+    "de": "Nächstes"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-close",
+    "en": "Close",
+    "ru": "Закрыть",
+    "de": "Schließen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-find-case",
+    "en": "Match case",
+    "ru": "С учётом регистра",
+    "de": "Groß/Klein beachten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-find-word",
+    "en": "Whole words",
+    "ru": "Слово целиком",
+    "de": "Ganze Wörter"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-replace-with",
+    "en": "Replace with",
+    "ru": "Заменить на",
+    "de": "Ersetzen durch"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-replace-all",
+    "en": "Replace all",
+    "ru": "Заменить всё",
+    "de": "Alle ersetzen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-pages",
+    "en": "pages",
+    "ru": "страниц",
+    "de": "Seiten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-rtl",
+    "en": "right to left",
+    "ru": "справа налево",
+    "de": "von rechts nach links"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-upload",
+    "en": "Add pages",
+    "ru": "Добавить страницы",
+    "de": "Seiten hinzufügen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-camera",
+    "en": "Take a photo",
+    "ru": "Сделать фото",
+    "de": "Foto aufnehmen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-more",
+    "en": "More",
+    "ru": "Ещё",
+    "de": "Mehr"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-reorder",
+    "en": "Reorder pages",
+    "ru": "Изменить порядок страниц",
+    "de": "Seiten neu anordnen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-add-issue",
+    "en": "New issue",
+    "ru": "Новый выпуск",
+    "de": "Neue Ausgabe"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-rename-issue",
+    "en": "Rename issue",
+    "ru": "Переименовать выпуск",
+    "de": "Ausgabe umbenennen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-unpublish",
+    "en": "Unpublish issue",
+    "ru": "Снять выпуск с публикации",
+    "de": "Ausgabe zurückziehen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-publish",
+    "en": "Publish issue",
+    "ru": "Опубликовать выпуск",
+    "de": "Ausgabe veröffentlichen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-delete-issue",
+    "en": "Delete issue",
+    "ru": "Удалить выпуск",
+    "de": "Ausgabe löschen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-review",
+    "en": "Suggestions and requests",
+    "ru": "Предложения и запросы",
+    "de": "Vorschläge und Anfragen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-editions",
+    "en": "Editions",
+    "ru": "Издания",
+    "de": "Editionen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-read",
+    "en": "Read",
+    "ru": "Читать",
+    "de": "Lesen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-export",
+    "en": "Export or share",
+    "ru": "Экспорт или отправка",
+    "de": "Exportieren oder teilen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-work-settings",
+    "en": "Settings",
+    "ru": "Настройки",
+    "de": "Einstellungen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-change",
+    "en": "I want to change this",
+    "ru": "Я хочу это изменить",
+    "de": "Ich möchte das ändern"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-open-platform",
+    "en": "Open on the platform",
+    "ru": "Открыть на платформе",
+    "de": "Auf der Plattform öffnen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-delete",
+    "en": "Delete comic",
+    "ru": "Удалить комикс",
+    "de": "Comic löschen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-readonly",
+    "en": "You're reading this comic. Open a page to suggest its text.",
+    "ru": "Вы читаете этот комикс. Откройте страницу, чтобы предложить текст.",
+    "de": "Du liest diesen Comic. Öffne eine Seite, um ihren Text vorzuschlagen."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-empty-edit",
+    "en": "No pages yet. Add pictures from the gallery or take photos.",
+    "ru": "Страниц пока нет. Добавьте картинки из галереи или сделайте фото.",
+    "de": "Noch keine Seiten. Füge Bilder aus der Galerie hinzu oder nimm Fotos auf."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-empty",
+    "en": "No pages yet.",
+    "ru": "Страниц пока нет.",
+    "de": "Noch keine Seiten."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-drag",
+    "en": "Drag to reorder",
+    "ru": "Перетащите, чтобы изменить порядок",
+    "de": "Zum Neuordnen ziehen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-page",
+    "en": "Page",
+    "ru": "Страница",
+    "de": "Seite"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-delete",
+    "en": "Delete",
+    "ru": "Удалить",
+    "de": "Löschen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-direction",
+    "en": "Read right to left (manga)",
+    "ru": "Читать справа налево (манга)",
+    "de": "Von rechts nach links lesen (Manga)"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-create",
+    "en": "Create",
+    "ru": "Создать",
+    "de": "Erstellen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-delete-issue-text",
+    "en": "and its pages.",
+    "ru": "и его страницы.",
+    "de": "und ihre Seiten."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-cant-undo",
+    "en": "this can't be undone.",
+    "ru": "это нельзя отменить.",
+    "de": "das lässt sich nicht rückgängig machen."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-alternative",
+    "en": "Alternative",
+    "ru": "Вариант",
+    "de": "Alternative"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-new-bubble",
+    "en": "Text",
+    "ru": "Текст",
+    "de": "Text"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-new-caption",
+    "en": "Caption",
+    "ru": "Подпись",
+    "de": "Bildtext"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-add-bubble",
+    "en": "Add a speech bubble",
+    "ru": "Добавить облачко реплики",
+    "de": "Sprechblase hinzufügen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-add-caption",
+    "en": "Add a caption",
+    "ru": "Добавить подпись",
+    "de": "Bildtext hinzufügen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-add-alt",
+    "en": "Add an alternative",
+    "ru": "Добавить вариант",
+    "de": "Alternative hinzufügen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-original",
+    "en": "Original",
+    "ru": "Оригинал",
+    "de": "Original"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-save-text",
+    "en": "Save text",
+    "ru": "Сохранить текст",
+    "de": "Text speichern"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-suggest-text",
+    "en": "Suggest text",
+    "ru": "Предложить текст",
+    "de": "Text vorschlagen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-discard",
+    "en": "Discard",
+    "ru": "Отменить",
+    "de": "Verwerfen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-alt-text",
+    "en": "Describe the page (for screen readers)",
+    "ru": "Опишите страницу (для экранных дикторов)",
+    "de": "Seite beschreiben (für Screenreader)"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-delete-alt",
+    "en": "Delete this alternative",
+    "ru": "Удалить этот вариант",
+    "de": "Diese Alternative löschen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-edit-layer",
+    "en": "Text layer",
+    "ru": "Текстовый слой",
+    "de": "Textebene"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-bubble",
+    "en": "Speech bubble",
+    "ru": "Облачко реплики",
+    "de": "Sprechblase"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-caption",
+    "en": "Caption box",
+    "ru": "Блок подписи",
+    "de": "Textkasten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-name",
+    "en": "Name",
+    "ru": "Название",
+    "de": "Name"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-home-not-found",
+    "en": "No story, screenplay or comic with that id.",
+    "ru": "Нет истории, сценария или комикса с таким id.",
+    "de": "Keine Geschichte, kein Drehbuch und kein Comic mit dieser ID."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-home-title",
+    "en": "Create",
+    "ru": "Творчество",
+    "de": "Erschaffen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-refresh",
+    "en": "Refresh",
+    "ru": "Обновить",
+    "de": "Aktualisieren"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-home-open",
+    "en": "Open",
+    "ru": "Открыть",
+    "de": "Öffnen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-home-open-link",
+    "en": "Open by link or id",
+    "ru": "Открыть по ссылке или id",
+    "de": "Per Link oder ID öffnen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-home-import",
+    "en": "Import a file",
+    "ru": "Импортировать файл",
+    "de": "Datei importieren"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-home-new-space",
+    "en": "New Space",
+    "ru": "Новое пространство",
+    "de": "Neuer Space"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-home-new",
+    "en": "New",
+    "ru": "Новое",
+    "de": "Neu"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-home-stories",
+    "en": "Stories",
+    "ru": "Истории",
+    "de": "Geschichten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-home-stories-empty",
+    "en": "No stories yet.",
+    "ru": "Историй пока нет.",
+    "de": "Noch keine Geschichten."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-home-screenplays",
+    "en": "Screenplays",
+    "ru": "Сценарии",
+    "de": "Drehbücher"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-home-screenplays-empty",
+    "en": "No screenplays yet.",
+    "ru": "Сценариев пока нет.",
+    "de": "Noch keine Drehbücher."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-home-comics",
+    "en": "Comics & manga",
+    "ru": "Комиксы и манга",
+    "de": "Comics & Manga"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-home-comics-empty",
+    "en": "No comics yet.",
+    "ru": "Комиксов пока нет.",
+    "de": "Noch keine Comics."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-home-spaces",
+    "en": "Spaces",
+    "ru": "Пространства",
+    "de": "Spaces"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-home-spaces-empty",
+    "en": "No Spaces yet.",
+    "ru": "Пространств пока нет.",
+    "de": "Noch keine Spaces."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-home-shared",
+    "en": "shared",
+    "ru": "общее",
+    "de": "geteilt"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-open",
+    "en": "Open",
+    "ru": "Открыть",
+    "de": "Öffnen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-new-title",
+    "en": "New",
+    "ru": "Новое",
+    "de": "Neu"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-new-story",
+    "en": "Story",
+    "ru": "История",
+    "de": "Geschichte"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-new-screenplay",
+    "en": "Screenplay",
+    "ru": "Сценарий",
+    "de": "Drehbuch"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-new-comic",
+    "en": "Comic or manga",
+    "ru": "Комикс или манга",
+    "de": "Comic oder Manga"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-title",
+    "en": "Title",
+    "ru": "Название",
+    "de": "Titel"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-new-space",
+    "en": "Keep it in a Space (optional)",
+    "ru": "Хранить в пространстве (необязательно)",
+    "de": "In einem Space ablegen (optional)"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-none",
+    "en": "None",
+    "ru": "Нет",
+    "de": "Keiner"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-languages",
+    "en": "Languages",
+    "ru": "Языки",
+    "de": "Sprachen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-translate",
+    "en": "Translate",
+    "ru": "Перевести",
+    "de": "Übersetzen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-original",
+    "en": "original",
+    "ru": "оригинал",
+    "de": "Original"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-official",
+    "en": "official",
+    "ru": "официальный",
+    "de": "offiziell"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-stale",
+    "en": "out of date",
+    "ru": "устарело",
+    "de": "veraltet"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-no-languages",
+    "en": "Only the original language so far.",
+    "ru": "Пока только язык оригинала.",
+    "de": "Bisher nur die Originalsprache."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-ai-jobs",
+    "en": "AI jobs",
+    "ru": "Задачи ИИ",
+    "de": "KI-Aufgaben"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-audio",
+    "en": "Audio",
+    "ru": "Аудио",
+    "de": "Audio"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-cartoon",
+    "en": "Cartoon",
+    "ru": "Мультфильм",
+    "de": "Cartoon"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-video",
+    "en": "Video",
+    "ru": "Видео",
+    "de": "Video"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-no-media",
+    "en": "Couldn't load this chapter's formats.",
+    "ru": "Не удалось загрузить форматы этой главы.",
+    "de": "Die Formate dieses Kapitels konnten nicht geladen werden."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-audio-empty",
+    "en": "No narration for this chapter yet.",
+    "ru": "Озвучки этой главы пока нет.",
+    "de": "Für dieses Kapitel gibt es noch keine Lesung."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-cartoon-empty",
+    "en": "No cartoon for this chapter yet.",
+    "ru": "Мультфильма к этой главе пока нет.",
+    "de": "Für dieses Kapitel gibt es noch keinen Cartoon."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-video-empty",
+    "en": "No video for this chapter yet.",
+    "ru": "Видео к этой главе пока нет.",
+    "de": "Für dieses Kapitel gibt es noch kein Video."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-add",
+    "en": "Add",
+    "ru": "Добавить",
+    "de": "Hinzufügen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-label",
+    "en": "Label (optional)",
+    "ru": "Подпись (необязательно)",
+    "de": "Bezeichnung (optional)"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-upload-audio",
+    "en": "Upload narration",
+    "ru": "Загрузить озвучку",
+    "de": "Lesung hochladen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-ai-narrate",
+    "en": "Narrate with AI",
+    "ru": "Озвучить с ИИ",
+    "de": "Mit KI vorlesen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-add-frames",
+    "en": "Make a cartoon from pictures",
+    "ru": "Сделать мультфильм из картинок",
+    "de": "Cartoon aus Bildern erstellen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-ai-cartoon",
+    "en": "Draw with AI",
+    "ru": "Нарисовать с ИИ",
+    "de": "Mit KI zeichnen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-add-video",
+    "en": "Add video link",
+    "ru": "Добавить ссылку на видео",
+    "de": "Videolink hinzufügen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-ai-video",
+    "en": "Make a video with AI",
+    "ru": "Сделать видео с ИИ",
+    "de": "Video mit KI erstellen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-ai-prompt",
+    "en": "What should the AI video show? (optional)",
+    "ru": "Что должно быть в видео? (необязательно)",
+    "de": "Was soll das KI-Video zeigen? (optional)"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-review-approve",
+    "en": "Approve",
+    "ru": "Принять",
+    "de": "Annehmen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-primary",
+    "en": "Make primary",
+    "ru": "Сделать основной",
+    "de": "Als Hauptversion festlegen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-start-copy",
+    "en": "Start from a copy",
+    "ru": "Начать с копии",
+    "de": "Mit einer Kopie beginnen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-start-blank",
+    "en": "Blank",
+    "ru": "С чистого листа",
+    "de": "Leer"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-start-ai",
+    "en": "AI draft",
+    "ru": "Черновик ИИ",
+    "de": "KI-Entwurf"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-translate-start",
+    "en": "Start translating",
+    "ru": "Начать перевод",
+    "de": "Übersetzung beginnen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sp-scenes",
+    "en": "scenes",
+    "ru": "сцен",
+    "de": "Szenen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sp-outline",
+    "en": "Outline",
+    "ru": "Структура",
+    "de": "Gliederung"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sp-add-scene",
+    "en": "Add scene",
+    "ru": "Добавить сцену",
+    "de": "Szene hinzufügen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-replace",
+    "en": "Replace",
+    "ru": "Заменить",
+    "de": "Ersetzen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sp-delete",
+    "en": "Delete screenplay",
+    "ru": "Удалить сценарий",
+    "de": "Drehbuch löschen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sp-suggesting",
+    "en": "Suggesting: each change you make is sent to the owner when you leave the element.",
+    "ru": "Режим предложений: каждое изменение отправляется владельцу, когда вы уходите с элемента.",
+    "de": "Vorschlagsmodus: Jede Änderung geht an die Eigentümer:in, sobald du das Element verlässt."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-done",
+    "en": "Done",
+    "ru": "Готово",
+    "de": "Fertig"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sp-readonly",
+    "en": "You're reading this screenplay.",
+    "ru": "Вы читаете этот сценарий.",
+    "de": "Du liest dieses Drehbuch."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-change-short",
+    "en": "Change",
+    "ru": "Изменить",
+    "de": "Ändern"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sp-add-element",
+    "en": "Add an element",
+    "ru": "Добавить элемент",
+    "de": "Element hinzufügen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-branches",
+    "en": "Branches",
+    "ru": "Ветки",
+    "de": "Zweige"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sp-delete-scene",
+    "en": "Delete scene",
+    "ru": "Удалить сцену",
+    "de": "Szene löschen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sp-delete-scene-text",
+    "en": "and everything in it.",
+    "ru": "и всё, что в ней.",
+    "de": "und alles darin."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-revisions",
+    "en": "Compare revisions",
+    "ru": "Сравнить версии",
+    "de": "Versionen vergleichen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sp-branches-none",
+    "en": "No branches on this element yet.",
+    "ru": "У этого элемента пока нет веток.",
+    "de": "Dieses Element hat noch keine Zweige."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-branch",
+    "en": "Branch",
+    "ru": "Ветка",
+    "de": "Zweig"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-branches-name",
+    "en": "Branch name (optional)",
+    "ru": "Название ветки (необязательно)",
+    "de": "Name des Zweigs (optional)"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sp-branch-text",
+    "en": "Another version of this element",
+    "ru": "Другая версия этого элемента",
+    "de": "Eine andere Fassung dieses Elements"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-branches-create",
+    "en": "Create branch",
+    "ru": "Создать ветку",
+    "de": "Zweig erstellen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-words",
+    "en": "words",
+    "ru": "слов",
+    "de": "Wörter"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-chapters",
+    "en": "Chapters",
+    "ru": "Главы",
+    "de": "Kapitel"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-preview",
+    "en": "Preview",
+    "ru": "Просмотр",
+    "de": "Vorschau"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-error",
+    "en": "This story couldn't be opened.",
+    "ru": "Не удалось открыть эту историю.",
+    "de": "Diese Geschichte konnte nicht geöffnet werden."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-suggesting",
+    "en": "You're editing a suggestion copy. The author sees your changes once you send them.",
+    "ru": "Вы правите копию с предложениями. Автор увидит изменения, когда вы их отправите.",
+    "de": "Du bearbeitest eine Vorschlagskopie. Die Autor:in sieht deine Änderungen, sobald du sie sendest."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-send-suggestions",
+    "en": "Send",
+    "ru": "Отправить",
+    "de": "Senden"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-readonly",
+    "en": "You're reading this story. To change it, use \"I want to change this\".",
+    "ru": "Вы читаете эту историю. Чтобы изменить её, выберите «Я хочу это изменить».",
+    "de": "Du liest diese Geschichte. Um sie zu ändern, wähle „Ich möchte das ändern“."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-no-chapters",
+    "en": "This story has no chapters yet.",
+    "ru": "В этой истории пока нет глав.",
+    "de": "Diese Geschichte hat noch keine Kapitel."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-chapter-title",
+    "en": "Chapter title",
+    "ru": "Название главы",
+    "de": "Kapiteltitel"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-placeholder",
+    "en": "Once upon a time…",
+    "ru": "Жили-были…",
+    "de": "Es war einmal…"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-rename",
+    "en": "Rename story",
+    "ru": "Переименовать историю",
+    "de": "Geschichte umbenennen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-delete",
+    "en": "Delete story",
+    "ru": "Удалить историю",
+    "de": "Geschichte löschen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-delete-text",
+    "en": "this story and all its chapters will be deleted. This can't be undone.",
+    "ru": "история и все её главы будут удалены. Это нельзя отменить.",
+    "de": "die Geschichte und alle ihre Kapitel werden gelöscht. Das lässt sich nicht rückgängig machen."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-add-chapter",
+    "en": "Add chapter",
+    "ru": "Добавить главу",
+    "de": "Kapitel hinzufügen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-unpublished",
+    "en": "Not published",
+    "ru": "Не опубликовано",
+    "de": "Nicht veröffentlicht"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-publish",
+    "en": "Published",
+    "ru": "Опубликовано",
+    "de": "Veröffentlicht"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-delete-chapter",
+    "en": "Delete chapter",
+    "ru": "Удалить главу",
+    "de": "Kapitel löschen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-branches-none",
+    "en": "No branches on this paragraph yet.",
+    "ru": "У этого абзаца пока нет веток.",
+    "de": "Dieser Absatz hat noch keine Zweige."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-branches-configure",
+    "en": "Configure",
+    "ru": "Настроить",
+    "de": "Einrichten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-branches-new",
+    "en": "New branch from this paragraph",
+    "ru": "Новая ветка от этого абзаца",
+    "de": "Neuer Zweig ab diesem Absatz"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-branches-text",
+    "en": "How else could this go?",
+    "ru": "Как ещё это могло бы быть?",
+    "de": "Wie könnte es sonst weitergehen?"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-branches-configure-title",
+    "en": "Configure branch",
+    "ru": "Настроить ветку",
+    "de": "Zweig einrichten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comments-empty",
+    "en": "No comments yet.",
+    "ru": "Комментариев пока нет.",
+    "de": "Noch keine Kommentare."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comments-write",
+    "en": "Write a comment",
+    "ru": "Напишите комментарий",
+    "de": "Kommentar schreiben"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comments-send",
+    "en": "Post",
+    "ru": "Опубликовать",
+    "de": "Posten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-review-empty",
+    "en": "Nothing waiting for you.",
+    "ru": "Ничего не ждёт вашего решения.",
+    "de": "Nichts wartet auf dich."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-review-wants",
+    "en": "wants to collaborate",
+    "ru": "хочет участвовать",
+    "de": "möchte mitarbeiten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-review-decline",
+    "en": "Decline",
+    "ru": "Отклонить",
+    "de": "Ablehnen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-meta-genre",
+    "en": "Genre",
+    "ru": "Жанр",
+    "de": "Genre"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-meta-description",
+    "en": "Description",
+    "ru": "Описание",
+    "de": "Beschreibung"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-meta-tags",
+    "en": "Tags",
+    "ru": "Теги",
+    "de": "Tags"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-meta-public",
+    "en": "Public (anyone can read it)",
+    "ru": "Публичная (читать может каждый)",
+    "de": "Öffentlich (alle können sie lesen)"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-meta-published",
+    "en": "Published",
+    "ru": "Опубликовано",
+    "de": "Veröffentlicht"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-meta-more",
+    "en": "More settings (people, policies, cover) on the platform",
+    "ru": "Другие настройки (люди, правила, обложка) на платформе",
+    "de": "Weitere Einstellungen (Personen, Regeln, Cover) auf der Plattform"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-suggest",
+    "en": "Suggest changes",
+    "ru": "Предложить изменения",
+    "de": "Änderungen vorschlagen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-suggest-desc",
+    "en": "Edit a copy here; your changes are sent to the author as suggestions they can accept.",
+    "ru": "Правьте копию здесь; изменения уйдут автору как предложения, которые он может принять.",
+    "de": "Bearbeite hier eine Kopie; deine Änderungen gehen als Vorschläge an die Autor:in, die sie annehmen kann."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-clone",
+    "en": "Make my own version",
+    "ru": "Сделать свою версию",
+    "de": "Eigene Version erstellen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-clone-desc",
+    "en": "Copy the story into a new one that you own.",
+    "ru": "Скопировать историю в новую, которая будет вашей.",
+    "de": "Die Geschichte in eine neue kopieren, die dir gehört."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-translate",
+    "en": "Translate",
+    "ru": "Перевести",
+    "de": "Übersetzen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-translate-desc",
+    "en": "Start a translation linked to this story.",
+    "ru": "Начать перевод, связанный с этой историей.",
+    "de": "Eine mit dieser Geschichte verknüpfte Übersetzung beginnen."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-collab",
+    "en": "Ask to collaborate",
+    "ru": "Попросить об участии",
+    "de": "Um Mitarbeit bitten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-collab-asked",
+    "en": "You already asked",
+    "ru": "Вы уже просили",
+    "de": "Du hast schon gefragt"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-collab-desc",
+    "en": "Ask the author to add you to the story's team.",
+    "ru": "Попросите автора добавить вас в команду истории.",
+    "de": "Bitte die Autor:in, dich ins Team der Geschichte aufzunehmen."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-collab-message",
+    "en": "Tell the author what you'd like to work on",
+    "ru": "Расскажите автору, над чем хотите работать",
+    "de": "Schreib der Autorin, woran du arbeiten möchtest"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-collab-send",
+    "en": "Send request",
+    "ru": "Отправить запрос",
+    "de": "Anfrage senden"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-pick-language",
+    "en": "Choose a language",
+    "ru": "Выберите язык",
+    "de": "Sprache wählen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-editions-new",
+    "en": "New edition",
+    "ru": "Новое издание",
+    "de": "Neue Edition"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-editions-empty",
+    "en": "No editions yet. An edition freezes one choice of branches so it can be read as one version.",
+    "ru": "Изданий пока нет. Издание фиксирует один выбор веток, чтобы его можно было читать как одну версию.",
+    "de": "Noch keine Editionen. Eine Edition hält eine Auswahl von Zweigen fest, damit sie sich als eine Fassung lesen lässt."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-editions-branches",
+    "en": "branches",
+    "ru": "веток",
+    "de": "Zweige"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-editions-delete",
+    "en": "Delete edition",
+    "ru": "Удалить издание",
+    "de": "Edition löschen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-editions-publish",
+    "en": "Published",
+    "ru": "Опубликовано",
+    "de": "Veröffentlicht"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-editions-no-branches",
+    "en": "There are no branches to choose from yet; the edition will freeze the text as it is.",
+    "ru": "Пока не из чего выбирать: издание зафиксирует текст как есть.",
+    "de": "Noch keine Zweige zur Auswahl; die Edition hält den Text so fest, wie er ist."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-editions-original",
+    "en": "Original",
+    "ru": "Оригинал",
+    "de": "Original"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-revisions-title",
+    "en": "Compare revisions",
+    "ru": "Сравнить версии",
+    "de": "Versionen vergleichen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-revisions-empty",
+    "en": "No revisions yet. They appear as you edit.",
+    "ru": "Версий пока нет. Они появляются по мере правки.",
+    "de": "Noch keine Versionen. Sie entstehen beim Bearbeiten."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-revisions-pick",
+    "en": "Pick up to four revisions to compare, or one to restore.",
+    "ru": "Выберите до четырёх версий для сравнения или одну для восстановления.",
+    "de": "Wähle bis zu vier Versionen zum Vergleichen oder eine zum Wiederherstellen."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-revisions-restore",
+    "en": "Restore this revision",
+    "ru": "Восстановить эту версию",
+    "de": "Diese Version wiederherstellen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-revisions-restore-text",
+    "en": "the current text is replaced by this revision, as a new change. Every revision stays in the history.",
+    "ru": "текущий текст заменяется этой версией как новое изменение. Все версии остаются в истории.",
+    "de": "der aktuelle Text wird durch diese Version ersetzt, als neue Änderung. Alle Versionen bleiben im Verlauf."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-revisions-restore-btn",
+    "en": "Restore",
+    "ru": "Восстановить",
+    "de": "Wiederherstellen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-revisions-restore-short",
+    "en": "Restore",
+    "ru": "Восстановить",
+    "de": "Wiederherstellen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-export-native",
+    "en": "Crowdly file, opens in the desktop and web apps",
+    "ru": "файл Crowdly, открывается в настольном и веб-приложении",
+    "de": "Crowdly-Datei, öffnet sich in der Desktop- und der Web-App"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-export-to-space",
+    "en": "Save to a Space…",
+    "ru": "Сохранить в пространство…",
+    "de": "In einem Space speichern…"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-export-pdf",
+    "en": "Print / save PDF",
+    "ru": "Печать / сохранить PDF",
+    "de": "Drucken / als PDF speichern"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-export-share",
+    "en": "Share",
+    "ru": "Поделиться",
+    "de": "Teilen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-export-save",
+    "en": "Save on this phone",
+    "ru": "Сохранить на телефоне",
+    "de": "Auf diesem Telefon speichern"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-suggest-work-desc",
+    "en": "Edit here; each change you make is sent to the owner as a suggestion.",
+    "ru": "Правьте здесь; каждое изменение уйдёт владельцу как предложение.",
+    "de": "Bearbeite hier; jede Änderung geht als Vorschlag an die Eigentümer:in."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-clone-work-desc",
+    "en": "Copy it into a new one that you own.",
+    "ru": "Скопировать в новую работу, которая будет вашей.",
+    "de": "In ein neues Werk kopieren, das dir gehört."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-collab-work-desc",
+    "en": "Ask the owner to add you to the team.",
+    "ru": "Попросите владельца добавить вас в команду.",
+    "de": "Bitte die Eigentümer:in, dich ins Team aufzunehmen."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-item-unfavorite",
+    "en": "Remove from favorites",
+    "ru": "Убрать из избранного",
+    "de": "Aus Favoriten entfernen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-item-favorite",
+    "en": "Add to favorites",
+    "ru": "В избранное",
+    "de": "Zu Favoriten hinzufügen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-item-add-to-shelf",
+    "en": "Add to shelf",
+    "ru": "Добавить на полку",
+    "de": "Zu Regal hinzufügen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-item-no-shelves",
+    "en": "No shelves yet",
+    "ru": "Полок пока нет",
+    "de": "Noch keine Regale"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-item-remove",
+    "en": "Remove",
+    "ru": "Убрать",
+    "de": "Entfernen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-tab-discover",
+    "en": "Discover",
+    "ru": "Обзор",
+    "de": "Entdecken"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-disc-search",
+    "en": "Search stories, screenplays and comics",
+    "ru": "Искать истории, сценарии и комиксы",
+    "de": "Geschichten, Drehbücher und Comics suchen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-disc-results",
+    "en": "Results",
+    "ru": "Результаты",
+    "de": "Ergebnisse"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-disc-no-results",
+    "en": "Nothing found.",
+    "ru": "Ничего не найдено.",
+    "de": "Nichts gefunden."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-lib-title",
+    "en": "My library",
+    "ru": "Моя библиотека",
+    "de": "Meine Bibliothek"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-lib-add",
+    "en": "Add books",
+    "ru": "Добавить книги",
+    "de": "Bücher hinzufügen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-lib-privacy",
+    "en": "Books you add stay private to your account. DRM-protected books can't be added.",
+    "ru": "Добавленные книги видны только вам. Книги с DRM добавить нельзя.",
+    "de": "Hinzugefügte Bücher bleiben privat in deinem Konto. DRM-geschützte Bücher lassen sich nicht hinzufügen."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-lib-empty",
+    "en": "Your library is empty. Add EPUB, PDF, text or audio books.",
+    "ru": "Библиотека пуста. Добавьте книги EPUB, PDF, текст или аудио.",
+    "de": "Deine Bibliothek ist leer. Füge EPUB-, PDF-, Text- oder Hörbücher hinzu."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-lib-remove-text",
+    "en": "remove it from your library?",
+    "ru": "убрать её из библиотеки?",
+    "de": "aus deiner Bibliothek entfernen?"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-disc-row-continue",
+    "en": "Continue reading",
+    "ru": "Продолжить чтение",
+    "de": "Weiterlesen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-disc-row-favorites",
+    "en": "Favorites",
+    "ru": "Избранное",
+    "de": "Favoriten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-disc-row-newest",
+    "en": "Newest stories",
+    "ru": "Новые истории",
+    "de": "Neueste Geschichten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-disc-row-newest-sp",
+    "en": "Newest screenplays",
+    "ru": "Новые сценарии",
+    "de": "Neueste Drehbücher"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-disc-row-popular",
+    "en": "Most popular",
+    "ru": "Самое популярное",
+    "de": "Am beliebtesten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-disc-row-popular-sp",
+    "en": "Most popular screenplays",
+    "ru": "Самые популярные сценарии",
+    "de": "Beliebteste Drehbücher"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-disc-row-active",
+    "en": "Most active",
+    "ru": "Самое активное",
+    "de": "Am aktivsten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-disc-row-active-sp",
+    "en": "Most active screenplays",
+    "ru": "Самые активные сценарии",
+    "de": "Aktivste Drehbücher"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-disc-row-living",
+    "en": "Living (experiencing now)",
+    "ru": "Проживаю (сейчас)",
+    "de": "Erlebe ich gerade"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-disc-row-lived",
+    "en": "Lived (experienced)",
+    "ru": "Прожито",
+    "de": "Erlebt"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-lib-rights-personal",
+    "en": "A copy I own, for my own reading",
+    "ru": "Моя копия, для личного чтения",
+    "de": "Eine eigene Kopie, zum privaten Lesen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-lib-rights-own",
+    "en": "My own work",
+    "ru": "Моё произведение",
+    "de": "Mein eigenes Werk"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-lib-rights-pd",
+    "en": "Public domain",
+    "ru": "Общественное достояние",
+    "de": "Gemeinfrei"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-lib-rights-cc",
+    "en": "Creative Commons",
+    "ru": "Creative Commons",
+    "de": "Creative Commons"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-tab-shelves",
+    "en": "Shelves",
+    "ru": "Полки",
+    "de": "Regale"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelves-new",
+    "en": "New shelf",
+    "ru": "Новая полка",
+    "de": "Neues Regal"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelves-new-smart",
+    "en": "New smart shelf",
+    "ru": "Новая умная полка",
+    "de": "Neues smartes Regal"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelves-mine",
+    "en": "My shelves",
+    "ru": "Мои полки",
+    "de": "Meine Regale"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelves-empty",
+    "en": "No shelves of your own yet. Make a shelf and add books to it, or a smart shelf that fills itself.",
+    "ru": "Своих полок пока нет. Создайте полку и добавьте книги или умную полку, которая наполняется сама.",
+    "de": "Noch keine eigenen Regale. Lege ein Regal an und füge Bücher hinzu, oder ein smartes Regal, das sich selbst füllt."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelves-smart",
+    "en": "Smart shelf",
+    "ru": "Умная полка",
+    "de": "Smartes Regal"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelves-arrange",
+    "en": "Arrange",
+    "ru": "Упорядочить",
+    "de": "Anordnen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelves-edit",
+    "en": "Edit",
+    "ru": "Изменить",
+    "de": "Bearbeiten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelves-items-empty",
+    "en": "Nothing on this shelf yet.",
+    "ru": "На этой полке пока ничего нет.",
+    "de": "Auf diesem Regal ist noch nichts."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelves-rename",
+    "en": "Rename shelf",
+    "ru": "Переименовать полку",
+    "de": "Regal umbenennen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelves-delete",
+    "en": "Delete shelf",
+    "ru": "Удалить полку",
+    "de": "Regal löschen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelves-delete-text",
+    "en": "the books stay in your library.",
+    "ru": "книги останутся в библиотеке.",
+    "de": "die Bücher bleiben in deiner Bibliothek."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-smart-title",
+    "en": "Smart shelf",
+    "ru": "Умная полка",
+    "de": "Smartes Regal"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-smart-match",
+    "en": "Match",
+    "ru": "Совпадение",
+    "de": "Treffer"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-smart-all",
+    "en": "all rules",
+    "ru": "все правила",
+    "de": "alle Regeln"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-smart-any",
+    "en": "any rule",
+    "ru": "любое правило",
+    "de": "eine Regel"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-smart-remove-rule",
+    "en": "Remove rule",
+    "ru": "Удалить правило",
+    "de": "Regel entfernen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-smart-add-rule",
+    "en": "Add rule",
+    "ru": "Добавить правило",
+    "de": "Regel hinzufügen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelf-favorites",
+    "en": "Favorites",
+    "ru": "Избранное",
+    "de": "Favoriten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelf-living",
+    "en": "Living",
+    "ru": "Проживаю",
+    "de": "Erlebe ich"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelf-lived",
+    "en": "Lived",
+    "ru": "Прожито",
+    "de": "Erlebt"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelf-newest",
+    "en": "Newest",
+    "ru": "Новое",
+    "de": "Neueste"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelf-active",
+    "en": "Most active",
+    "ru": "Самое активное",
+    "de": "Am aktivsten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelf-popular",
+    "en": "Most popular",
+    "ru": "Самое популярное",
+    "de": "Am beliebtesten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-local-title",
+    "en": "Files on this phone",
+    "ru": "Файлы на этом телефоне",
+    "de": "Dateien auf diesem Telefon"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-local-linked",
+    "en": "synced with a Space",
+    "ru": "синхронизируется с пространством",
+    "de": "mit einem Space synchronisiert"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-local-sync",
+    "en": "Sync now",
+    "ru": "Синхронизировать",
+    "de": "Jetzt synchronisieren"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-local-open",
+    "en": "Open a folder",
+    "ru": "Открыть папку",
+    "de": "Ordner öffnen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-local-desc",
+    "en": "Work on a folder on this phone like the desktop app does with a local Space, and sync it with a Crowdly Space. .story, .screenplay and .comic files also sync with their Crowdly work.",
+    "ru": "Работайте с папкой на телефоне, как настольное приложение с локальным пространством, и синхронизируйте её с пространством Crowdly. Файлы .story, .screenplay и .comic также синхронизируются со своей работой на Crowdly.",
+    "de": "Arbeite mit einem Ordner auf diesem Telefon wie die Desktop-App mit einem lokalen Space und synchronisiere ihn mit einem Crowdly-Space. .story-, .screenplay- und .comic-Dateien synchronisieren sich außerdem mit ihrem Crowdly-Werk."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-local-none",
+    "en": "No folders yet.",
+    "ru": "Папок пока нет.",
+    "de": "Noch keine Ordner."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sync-last",
+    "en": "last synced",
+    "ru": "последняя синхронизация",
+    "de": "zuletzt synchronisiert"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-local-forget",
+    "en": "Forget",
+    "ru": "Забыть",
+    "de": "Vergessen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-local-empty",
+    "en": "This folder is empty.",
+    "ru": "Эта папка пуста.",
+    "de": "Dieser Ordner ist leer."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-local-link",
+    "en": "Sync this folder with a Space",
+    "ru": "Синхронизировать папку с пространством",
+    "de": "Diesen Ordner mit einem Space synchronisieren"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-local-new-space",
+    "en": "Make a new Space for it",
+    "ru": "Создать для неё новое пространство",
+    "de": "Einen neuen Space dafür anlegen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-local-synced",
+    "en": "Synced",
+    "ru": "Синхронизировано",
+    "de": "Synchronisiert"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-local-kept-both",
+    "en": "Kept both versions of",
+    "ru": "Сохранены обе версии",
+    "de": "Beide Fassungen behalten von"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-local-forget-text",
+    "en": "The app stops showing this folder. Nothing on the phone or in the Space is deleted.",
+    "ru": "Приложение перестанет показывать эту папку. На телефоне и в пространстве ничего не удаляется.",
+    "de": "Die App zeigt diesen Ordner nicht mehr an. Auf dem Telefon und im Space wird nichts gelöscht."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-local-linked-work",
+    "en": "linked to Crowdly",
+    "ru": "связано с Crowdly",
+    "de": "mit Crowdly verknüpft"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-local-sync-work",
+    "en": "Sync with Crowdly",
+    "ru": "Синхронизировать с Crowdly",
+    "de": "Mit Crowdly synchronisieren"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-local-open-work",
+    "en": "Open on Crowdly",
+    "ru": "Открыть на Crowdly",
+    "de": "Auf Crowdly öffnen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-tab-more",
+    "en": "More",
+    "ru": "Ещё",
+    "de": "Mehr"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-more-local",
+    "en": "Files on this phone",
+    "ru": "Файлы на этом телефоне",
+    "de": "Dateien auf diesem Telefon"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-more-local-sub",
+    "en": ".story, .screenplay, .comic and .master files, synced with Crowdly",
+    "ru": "файлы .story, .screenplay, .comic и .master, синхронизация с Crowdly",
+    "de": ".story-, .screenplay-, .comic- und .master-Dateien, mit Crowdly synchronisiert"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-more-settings",
+    "en": "Settings",
+    "ru": "Настройки",
+    "de": "Einstellungen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-more-platform",
+    "en": "Open the Crowdly platform",
+    "ru": "Открыть платформу Crowdly",
+    "de": "Crowdly-Plattform öffnen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-more-help",
+    "en": "Help",
+    "ru": "Помощь",
+    "de": "Hilfe"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-more-bug",
+    "en": "Report a bug",
+    "ru": "Сообщить об ошибке",
+    "de": "Fehler melden"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-more-feedback",
+    "en": "Send feedback",
+    "ru": "Оставить отзыв",
+    "de": "Feedback senden"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-more-desktop",
+    "en": "Get the desktop app",
+    "ru": "Скачать настольное приложение",
+    "de": "Desktop-App holen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-more-signout",
+    "en": "Sign out",
+    "ru": "Выйти",
+    "de": "Abmelden"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-more-signout-pending",
+    "en": "Edits not yet sent to Crowdly will be lost on this phone.",
+    "ru": "Правки, ещё не отправленные в Crowdly, на этом телефоне пропадут.",
+    "de": "Noch nicht an Crowdly gesendete Änderungen gehen auf diesem Telefon verloren."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-more-signout-text",
+    "en": "You can sign in again any time.",
+    "ru": "Войти снова можно в любой момент.",
+    "de": "Du kannst dich jederzeit wieder anmelden."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-language",
+    "en": "Interface language",
+    "ru": "Язык интерфейса",
+    "de": "Sprache der Oberfläche"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-edit-ui",
+    "en": "Edit interface text",
+    "ru": "Редактировать тексты интерфейса",
+    "de": "Oberflächentexte bearbeiten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-edit-ui-sub",
+    "en": "Long-press any label to translate it into the current language.",
+    "ru": "Нажмите и удерживайте любую надпись, чтобы перевести её на текущий язык.",
+    "de": "Halte eine Beschriftung gedrückt, um sie in die aktuelle Sprache zu übersetzen."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-start",
+    "en": "When the app starts",
+    "ru": "При запуске",
+    "de": "Beim Start"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-start-create",
+    "en": "Start in Create",
+    "ru": "Открывать «Творчество»",
+    "de": "In „Erschaffen“ starten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-start-discover",
+    "en": "Start in Discover",
+    "ru": "Открывать «Обзор»",
+    "de": "In „Entdecken“ starten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-restore",
+    "en": "Reopen what I had open last time",
+    "ru": "Открывать то, что было открыто в прошлый раз",
+    "de": "Öffnen, was zuletzt offen war"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-editor",
+    "en": "Editor",
+    "ru": "Редактор",
+    "de": "Editor"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-live",
+    "en": "Live co-editing",
+    "ru": "Совместная правка в реальном времени",
+    "de": "Gemeinsam live bearbeiten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-live-sub",
+    "en": "See others' edits in a chapter you both have open, as they type.",
+    "ru": "Видеть правки других в главе, которую вы открыли вместе, по мере набора.",
+    "de": "Änderungen anderer in einem gemeinsam geöffneten Kapitel beim Tippen sehen."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-reader",
+    "en": "Reader",
+    "ru": "Читалка",
+    "de": "Lesen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-font",
+    "en": "Text size",
+    "ru": "Размер текста",
+    "de": "Textgröße"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-theme",
+    "en": "Theme",
+    "ru": "Тема",
+    "de": "Design"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-theme-system",
+    "en": "Follow the phone",
+    "ru": "Как на телефоне",
+    "de": "Wie das Telefon"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-theme-light",
+    "en": "Light",
+    "ru": "Светлая",
+    "de": "Hell"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-theme-dark",
+    "en": "Dark",
+    "ru": "Тёмная",
+    "de": "Dunkel"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-offline",
+    "en": "Offline",
+    "ru": "Офлайн",
+    "de": "Offline"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-outbox",
+    "en": "Unsent edits",
+    "ru": "Неотправленные правки",
+    "de": "Nicht gesendete Änderungen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-sent",
+    "en": "Sent",
+    "ru": "Отправлено",
+    "de": "Gesendet"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-send-now",
+    "en": "Send now",
+    "ru": "Отправить сейчас",
+    "de": "Jetzt senden"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-cache",
+    "en": "Saved for offline",
+    "ru": "Сохранено для офлайн",
+    "de": "Offline gespeichert"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-clear",
+    "en": "Clear",
+    "ru": "Очистить",
+    "de": "Leeren"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-server",
+    "en": "Server",
+    "ru": "Сервер",
+    "de": "Server"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-platform-url",
+    "en": "Platform address",
+    "ru": "Адрес платформы",
+    "de": "Adresse der Plattform"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-account",
+    "en": "Account",
+    "ru": "Аккаунт",
+    "de": "Konto"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-signed-in",
+    "en": "Signed in as",
+    "ru": "Вы вошли как",
+    "de": "Angemeldet als"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-account-link",
+    "en": "Account, password and privacy on the platform",
+    "ru": "Аккаунт, пароль и конфиденциальность на платформе",
+    "de": "Konto, Passwort und Datenschutz auf der Plattform"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-about",
+    "en": "About",
+    "ru": "О приложении",
+    "de": "Über"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-bug-sent",
+    "en": "Thank you, your report was sent.",
+    "ru": "Спасибо, ваше сообщение отправлено.",
+    "de": "Danke, deine Meldung wurde gesendet."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-bug-subject",
+    "en": "What went wrong, in a few words",
+    "ru": "Что пошло не так, в двух словах",
+    "de": "Was ist schiefgelaufen, in wenigen Worten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-bug-actual",
+    "en": "What happened",
+    "ru": "Что произошло",
+    "de": "Was passiert ist"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-bug-expected",
+    "en": "What you expected",
+    "ru": "Чего вы ожидали",
+    "de": "Was du erwartet hast"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-bug-send",
+    "en": "Send",
+    "ru": "Отправить",
+    "de": "Senden"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-reader-text",
+    "en": "Text",
+    "ru": "Текст",
+    "de": "Text"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-reader-notes",
+    "en": "Highlights and notes",
+    "ru": "Выделения и заметки",
+    "de": "Markierungen und Notizen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-reader-open-editor",
+    "en": "Open in the editor",
+    "ru": "Открыть в редакторе",
+    "de": "Im Editor öffnen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-reader-current",
+    "en": "Current text",
+    "ru": "Текущий текст",
+    "de": "Aktueller Text"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-reader-edition",
+    "en": "Edition",
+    "ru": "Издание",
+    "de": "Edition"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-reader-add-library",
+    "en": "Add to my library",
+    "ru": "Добавить в мою библиотеку",
+    "de": "Zu meiner Bibliothek hinzufügen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-reader-empty",
+    "en": "Nothing to read here yet.",
+    "ru": "Здесь пока нечего читать.",
+    "de": "Hier gibt es noch nichts zu lesen."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-reader-highlight",
+    "en": "Highlight",
+    "ru": "Выделение",
+    "de": "Markierung"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-reader-note",
+    "en": "Note",
+    "ru": "Заметка",
+    "de": "Notiz"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-reader-remove-highlight",
+    "en": "Remove highlight",
+    "ru": "Убрать выделение",
+    "de": "Markierung entfernen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-reader-no-notes",
+    "en": "Long-press a paragraph to highlight it or add a note.",
+    "ru": "Нажмите и удерживайте абзац, чтобы выделить его или добавить заметку.",
+    "de": "Halte einen Absatz gedrückt, um ihn zu markieren oder eine Notiz hinzuzufügen."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-reader-back30",
+    "en": "Back 30 seconds",
+    "ru": "Назад на 30 секунд",
+    "de": "30 Sekunden zurück"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-reader-fwd30",
+    "en": "Forward 30 seconds",
+    "ru": "Вперёд на 30 секунд",
+    "de": "30 Sekunden vor"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-file-readonly",
+    "en": "read only",
+    "ru": "только чтение",
+    "de": "schreibgeschützt"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-file-to-story",
+    "en": "Make it a Crowdly story",
+    "ru": "Сделать историей Crowdly",
+    "de": "Zu einer Crowdly-Geschichte machen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-file-to-screenplay",
+    "en": "Make it a Crowdly screenplay",
+    "ru": "Сделать сценарием Crowdly",
+    "de": "Zu einem Crowdly-Drehbuch machen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-file-to-comic",
+    "en": "Make it a Crowdly comic",
+    "ru": "Сделать комиксом Crowdly",
+    "de": "Zu einem Crowdly-Comic machen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-master-parts",
+    "en": "parts",
+    "ru": "частей",
+    "de": "Teile"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-master-add",
+    "en": "Add a file",
+    "ru": "Добавить файл",
+    "de": "Datei hinzufügen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-master-hint",
+    "en": "Each part shows a file from this Space. Unlocked parts write your edits back to their file.",
+    "ru": "Каждая часть показывает файл из этого пространства. Незаблокированные части записывают ваши правки обратно в свой файл.",
+    "de": "Jeder Teil zeigt eine Datei aus diesem Space. Nicht gesperrte Teile schreiben deine Änderungen in ihre Datei zurück."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-master-empty",
+    "en": "No parts yet — add files from the Space.",
+    "ru": "Частей пока нет — добавьте файлы из пространства.",
+    "de": "Noch keine Teile — füge Dateien aus dem Space hinzu."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-master-part-title",
+    "en": "Part title",
+    "ru": "Название части",
+    "de": "Titel des Teils"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-master-no-file",
+    "en": "(no file)",
+    "ru": "(без файла)",
+    "de": "(keine Datei)"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-master-live",
+    "en": "Edits go to the file",
+    "ru": "Правки идут в файл",
+    "de": "Änderungen gehen in die Datei"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-master-frozen",
+    "en": "Frozen copy",
+    "ru": "Замороженная копия",
+    "de": "Eingefrorene Kopie"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-master-pull",
+    "en": "Reload from the file",
+    "ru": "Перезагрузить из файла",
+    "de": "Aus der Datei neu laden"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-master-clone",
+    "en": "Duplicate",
+    "ru": "Дублировать",
+    "de": "Duplizieren"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-master-up",
+    "en": "Up",
+    "ru": "Вверх",
+    "de": "Nach oben"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-upload",
+    "en": "Upload",
+    "ru": "Загрузить",
+    "de": "Hochladen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-new",
+    "en": "New",
+    "ru": "Новое",
+    "de": "Neu"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-new-folder",
+    "en": "New folder",
+    "ru": "Новая папка",
+    "de": "Neuer Ordner"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-new-file",
+    "en": "New file",
+    "ru": "Новый файл",
+    "de": "Neue Datei"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-sync",
+    "en": "GitHub and Google Drive",
+    "ru": "GitHub и Google Drive",
+    "de": "GitHub und Google Drive"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-platform",
+    "en": "On the platform",
+    "ru": "На платформе",
+    "de": "Auf der Plattform"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-clone",
+    "en": "Copy this Space",
+    "ru": "Копировать это пространство",
+    "de": "Diesen Space kopieren"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-rename-space",
+    "en": "Rename Space",
+    "ru": "Переименовать пространство",
+    "de": "Space umbenennen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-delete",
+    "en": "Delete Space",
+    "ru": "Удалить пространство",
+    "de": "Space löschen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-only-me",
+    "en": "Only me",
+    "ru": "Только я",
+    "de": "Nur ich"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-selected",
+    "en": "Selected people",
+    "ru": "Выбранные люди",
+    "de": "Ausgewählte Personen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-everyone",
+    "en": "Everyone",
+    "ru": "Все",
+    "de": "Alle"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-empty",
+    "en": "This folder is empty. Upload files or make new ones.",
+    "ru": "Эта папка пуста. Загрузите файлы или создайте новые.",
+    "de": "Dieser Ordner ist leer. Lade Dateien hoch oder erstelle neue."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-works",
+    "en": "Stories in this Space",
+    "ru": "Истории в этом пространстве",
+    "de": "Geschichten in diesem Space"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-open",
+    "en": "Open",
+    "ru": "Открыть",
+    "de": "Öffnen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-download",
+    "en": "Share or save a copy",
+    "ru": "Поделиться или сохранить копию",
+    "de": "Teilen oder eine Kopie speichern"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-rename",
+    "en": "Rename",
+    "ru": "Переименовать",
+    "de": "Umbenennen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-move",
+    "en": "Move to…",
+    "ru": "Переместить в…",
+    "de": "Verschieben nach…"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-no-preview",
+    "en": "This file can't be shown here. Share it to open it in another app.",
+    "ru": "Этот файл нельзя показать здесь. Поделитесь им, чтобы открыть в другом приложении.",
+    "de": "Diese Datei lässt sich hier nicht anzeigen. Teile sie, um sie in einer anderen App zu öffnen."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-move-to",
+    "en": "Move to folder (path inside the Space, empty = top level)",
+    "ru": "Переместить в папку (путь внутри пространства, пусто = верхний уровень)",
+    "de": "In Ordner verschieben (Pfad im Space, leer = oberste Ebene)"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-move-btn",
+    "en": "Move",
+    "ru": "Переместить",
+    "de": "Verschieben"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-delete-text",
+    "en": "and every file in it?",
+    "ru": "и все файлы в нём?",
+    "de": "und alle Dateien darin?"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sync-title",
+    "en": "Sync this Space",
+    "ru": "Синхронизация пространства",
+    "de": "Diesen Space synchronisieren"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sync-github-off",
+    "en": "GitHub sync isn't available on this server.",
+    "ru": "Синхронизация с GitHub на этом сервере недоступна.",
+    "de": "GitHub-Synchronisierung ist auf diesem Server nicht verfügbar."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sync-on",
+    "en": "Sync on",
+    "ru": "Синхронизация включена",
+    "de": "Synchronisierung an"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sync-now",
+    "en": "Sync now",
+    "ru": "Синхронизировать",
+    "de": "Jetzt synchronisieren"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sync-disconnect",
+    "en": "Disconnect",
+    "ru": "Отключить",
+    "de": "Trennen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sync-github-pick",
+    "en": "Choose a repository from",
+    "ru": "Выберите репозиторий из",
+    "de": "Repository auswählen aus"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sync-github-list",
+    "en": "Show repositories",
+    "ru": "Показать репозитории",
+    "de": "Repositorys anzeigen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sync-github-connect",
+    "en": "Connect a GitHub repository",
+    "ru": "Подключить репозиторий GitHub",
+    "de": "GitHub-Repository verbinden"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sync-drive-off",
+    "en": "Google Drive sync isn't available on this server.",
+    "ru": "Синхронизация с Google Drive на этом сервере недоступна.",
+    "de": "Google-Drive-Synchronisierung ist auf diesem Server nicht verfügbar."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sync-drive-log",
+    "en": "Sync log",
+    "ru": "Журнал синхронизации",
+    "de": "Synchronisierungsprotokoll"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sync-drive-browse",
+    "en": "Choose a folder",
+    "ru": "Выбрать папку",
+    "de": "Ordner auswählen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sync-drive-use",
+    "en": "Sync this Space with this folder",
+    "ru": "Синхронизировать пространство с этой папкой",
+    "de": "Diesen Space mit diesem Ordner synchronisieren"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sync-drive-connect",
+    "en": "Connect Google Drive",
+    "ru": "Подключить Google Drive",
+    "de": "Google Drive verbinden"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-tab-create",
+    "en": "Create",
+    "ru": "Творчество",
+    "de": "Erschaffen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-tab-library",
+    "en": "Library",
+    "ru": "Библиотека",
+    "de": "Bibliothek"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-title",
+    "en": "Formats and translations",
+    "ru": "Форматы и переводы",
+    "de": "Formate und Übersetzungen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sp-branches",
+    "en": "Element branches",
+    "ru": "Ветки элемента",
+    "de": "Zweige des Elements"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-insert-image",
+    "en": "Insert image",
+    "ru": "Вставить изображение",
+    "de": "Bild einfügen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-comments",
+    "en": "Comments",
+    "ru": "Комментарии",
+    "de": "Kommentare"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-formats",
+    "en": "Formats and translations",
+    "ru": "Форматы и переводы",
+    "de": "Formate und Übersetzungen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-metadata",
+    "en": "Story metadata",
+    "ru": "Данные истории",
+    "de": "Angaben zur Geschichte"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-branches-title",
+    "en": "Paragraph branches",
+    "ru": "Ветки абзацев",
+    "de": "Absatz-Zweige"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comments-title",
+    "en": "Comments",
+    "ru": "Комментарии",
+    "de": "Kommentare"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-review-title",
+    "en": "Suggestions and requests",
+    "ru": "Предложения и запросы",
+    "de": "Vorschläge und Anfragen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-meta-title",
+    "en": "Story metadata",
+    "ru": "Данные истории",
+    "de": "Angaben zur Geschichte"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-title",
+    "en": "I want to change this story",
+    "ru": "Я хочу изменить эту историю",
+    "de": "Ich möchte diese Geschichte ändern"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-editions-title",
+    "en": "Editions",
+    "ru": "Издания",
+    "de": "Editionen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-work-title",
+    "en": "I want to change this",
+    "ru": "Я хочу это изменить",
+    "de": "Ich möchte das ändern"
   }
 ]

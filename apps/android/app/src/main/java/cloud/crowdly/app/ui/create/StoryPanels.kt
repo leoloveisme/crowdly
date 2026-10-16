@@ -193,7 +193,7 @@ fun BranchEditDialog(name0: String, text0: String, onDismiss: () -> Unit, onSave
     var text by remember { mutableStateOf(text0) }
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
-        title = { AppText("android-branches-configure", "Configure branch") },
+        title = { AppText("android-branches-configure-title", "Configure branch") },
         text = {
             Column {
                 OutlinedTextField(name, { name = it }, Modifier.fillMaxWidth(), label = { AppText("android-branches-name", "Branch name (optional)") }, singleLine = true)

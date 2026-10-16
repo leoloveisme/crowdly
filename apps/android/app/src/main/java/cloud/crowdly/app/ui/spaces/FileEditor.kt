@@ -30,6 +30,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
@@ -88,6 +90,9 @@ fun FileEditorScreen(spaceId: String, itemId: String) {
     var saveState by remember { mutableStateOf("") }
     var preview by remember { mutableStateOf(false) }
     var menu by remember { mutableStateOf(false) }
+    var find by remember { mutableStateOf<Boolean?>(null) }
+    var selection by remember { mutableStateOf(androidx.compose.ui.text.TextRange.Zero) }
+    val bodyFocus = remember { androidx.compose.ui.focus.FocusRequester() }
 
     LaunchedEffect(itemId) {
         try {
@@ -118,6 +123,7 @@ fun FileEditorScreen(spaceId: String, itemId: String) {
         back = { nav.popBackStack() },
         subtitle = listOfNotNull(folder.ifBlank { null }, saveState.ifBlank { null }, if (!canWrite) tr("android-file-readonly", "read only") else null).joinToString(" · "),
         actions = {
+            IconButton({ preview = false; find = if (find == null) canWrite else null }) { Icon(androidx.compose.material.icons.Icons.Filled.Search, tr("android-find", "Find")) }
             if (fmt != null || markdownLike) IconButton({ preview = !preview }) { Icon(if (preview) Icons.Filled.Edit else Icons.Filled.Visibility, tr("android-story-preview", "Preview")) }
             if (fmt != null) {
                 IconButton({ menu = true }) { Icon(Icons.Filled.MoreVert, tr("android-more", "More")) }
@@ -147,6 +153,11 @@ fun FileEditorScreen(spaceId: String, itemId: String) {
         val t = text
         Column(Modifier.padding(pad).fillMaxSize().imePadding()) {
             if (t == null) { Empty(error ?: "…"); return@Column }
+            find?.let { replacing ->
+                cloud.crowdly.app.ui.components.FindBar(listOf(t), replacing, onClose = { find = null }, onSelect = { r -> selection = r; runCatching { bodyFocus.requestFocus() } }) { q, r, mc, ww ->
+                    text = cloud.crowdly.app.ui.components.replaceAll(t, q, r, mc, ww); stamp = System.nanoTime(); saveState = "Editing"
+                }
+            }
             if (preview) {
                 Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
                     when (fmt) {
@@ -159,8 +170,9 @@ fun FileEditorScreen(spaceId: String, itemId: String) {
             } else {
                 val color = MaterialTheme.colorScheme.onSurface
                 BasicTextField(
-                    t, { v -> text = v; stamp = System.nanoTime(); saveState = "Editing" },
-                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp),
+                    androidx.compose.ui.text.input.TextFieldValue(t, androidx.compose.ui.text.TextRange(selection.start.coerceIn(0, t.length), selection.end.coerceIn(0, t.length))),
+                    { v -> selection = v.selection; if (v.text != t) { text = v.text; stamp = System.nanoTime(); saveState = "Editing" } },
+                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(12.dp).focusRequester(bodyFocus),
                     readOnly = !canWrite,
                     textStyle = TextStyle(color = color, fontFamily = if (markdownLike) FontFamily.Serif else FontFamily.Monospace, fontSize = if (markdownLike) 17.sp else 14.sp, lineHeight = if (markdownLike) 26.sp else 20.sp),
                     cursorBrush = SolidColor(color),

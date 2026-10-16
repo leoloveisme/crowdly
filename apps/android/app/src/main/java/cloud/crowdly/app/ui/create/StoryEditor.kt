@@ -45,6 +45,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
@@ -117,6 +118,9 @@ fun StoryEditorScreen(id: String) {
     var confirmDelete by remember { mutableStateOf(false) }
     var saveState by remember { mutableStateOf("") }
     var reloadTick by remember { mutableStateOf(0) }
+    var find by remember { mutableStateOf<Boolean?>(null) } // null: closed, false: find, true: find and replace
+    var selection by remember { mutableStateOf(androidx.compose.ui.text.TextRange.Zero) }
+    val bodyFocus = remember { androidx.compose.ui.focus.FocusRequester() }
 
     val isOwner = role == "owner"
     val canEdit = isOwner || suggesting
@@ -210,6 +214,8 @@ fun StoryEditorScreen(id: String) {
             IconButton({ menu = true }) { Icon(Icons.Filled.MoreVert, tr("android-more", "More")) }
             DropdownMenu(menu, { menu = false }) {
                 fun item(idKey: String, label: String, on: () -> Unit) = @Composable { DropdownMenuItem({ AppText(idKey, label) }, { menu = false; on() }) }
+                item("android-find", "Find") { preview = false; find = false }()
+                if (canEdit) item("android-replace", "Replace") { preview = false; find = true }()
                 if (isOwner) item("android-story-insert-image", "Insert image") { imagePicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }()
                 item("android-story-comments", "Comments") { panel = StoryPanel.COMMENTS }()
                 if (isOwner) item("android-story-review", "Suggestions and requests") { panel = StoryPanel.REVIEW }()
@@ -271,13 +277,19 @@ fun StoryEditorScreen(id: String) {
                 decorationBox = { inner -> if (active.title.isEmpty()) Text(tr("android-story-chapter-title", "Chapter title"), style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurfaceVariant); inner() },
             )
             HorizontalDivider()
+            find?.let { replacing ->
+                cloud.crowdly.app.ui.components.FindBar(
+                    listOf(active.md), replacing && canEdit, onClose = { find = null },
+                    onSelect = { r -> selection = r; runCatching { bodyFocus.requestFocus() } },
+                ) { q, r, mc, ww -> update(active.copy(md = cloud.crowdly.app.ui.components.replaceAll(active.md, q, r, mc, ww))) }
+            }
             if (preview) {
                 MarkdownView(active.md, Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp))
             } else {
                 BasicTextField(
-                    active.md,
-                    { update(active.copy(md = it)) },
-                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp),
+                    androidx.compose.ui.text.input.TextFieldValue(active.md, androidx.compose.ui.text.TextRange(selection.start.coerceIn(0, active.md.length), selection.end.coerceIn(0, active.md.length))),
+                    { v -> selection = v.selection; if (v.text != active.md) update(active.copy(md = v.text)) },
+                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp).focusRequester(bodyFocus),
                     readOnly = !canEdit,
                     textStyle = TextStyle(color = textColor, fontSize = 18.sp, lineHeight = 28.sp, fontFamily = FontFamily.Serif),
                     cursorBrush = SolidColor(textColor),
@@ -331,7 +343,7 @@ fun StoryEditorScreen(id: String) {
         renaming = false
         actions.run { app.repo.renameStory(id, t.trim()); story = s.copy(title = t.trim()) }
     }
-    if (confirmDelete && s != null) Confirm(tr("android-story-delete", "Delete story"), tr("android-story-delete-text", "Delete \"${s.title}\" and all its chapters? This can't be undone."), tr("android-delete", "Delete"), { confirmDelete = false }) {
+    if (confirmDelete && s != null) Confirm(tr("android-story-delete", "Delete story"), "\"${s.title}\" — " + tr("android-story-delete-text", "this story and all its chapters will be deleted. This can't be undone."), tr("android-delete", "Delete"), { confirmDelete = false }) {
         actions.run { app.repo.deleteStory(id); nav.popBackStack() }
     }
 }

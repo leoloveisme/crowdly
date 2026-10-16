@@ -43,6 +43,25 @@ class Prefs(context: Context) {
     val editInterface: StateFlow<Boolean> = _editInterface
     fun setEditInterface(v: Boolean) { sp.edit().putBoolean("edit_interface", v).apply(); _editInterface.value = v }
 
+    /** Which tab the app opens on: "create" or "discover" (web app: Start in Creation / Discovery). */
+    var startTab: String
+        get() = sp.getString("start_tab", null) ?: "create"
+        set(v) = sp.edit().putString("start_tab", v).apply()
+
+    /** On launch: reopen what was open last time (web app "Start where I left off"), or start fresh. */
+    var launchRestore: Boolean
+        get() = sp.getBoolean("launch_restore", true)
+        set(v) = sp.edit().putBoolean("launch_restore", v).apply()
+
+    var lastRoute: String?
+        get() = sp.getString("last_route", null)
+        set(v) = sp.edit().putString("last_route", v).apply()
+
+    /** Live co-editing of open chapters with everyone else who has them open (web app prefs.liveCollab). */
+    private val _liveCollab = MutableStateFlow(sp.getBoolean("live_collab", true))
+    val liveCollab: StateFlow<Boolean> = _liveCollab
+    fun setLiveCollab(v: Boolean) { sp.edit().putBoolean("live_collab", v).apply(); _liveCollab.value = v }
+
     /** Stable per-install id for reading sessions and highlight sync (lib/discovery.ts deviceId). */
     val deviceId: String
         get() = sp.getString("device_id", null) ?: UUID.randomUUID().toString().also { sp.edit().putString("device_id", it).apply() }

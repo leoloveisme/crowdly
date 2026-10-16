@@ -14,6 +14,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.filled.BugReport
+import androidx.compose.material.icons.filled.Computer
+import androidx.compose.material.icons.filled.Feedback
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
@@ -61,6 +64,7 @@ fun MoreScreen() {
     val user by app.session.user.collectAsState()
     val actions = rememberActions()
     var confirmSignOut by remember { mutableStateOf(false) }
+    var reporting by remember { mutableStateOf(false) }
     Screen(tr("android-tab-more", "More")) { pad ->
         Column(Modifier.padding(pad).fillMaxSize().verticalScroll(rememberScrollState())) {
             ListRow(user?.email.orEmpty(), subtitle = user?.roles?.joinToString(" · "), leading = { Icon(Icons.Filled.Person, null) })
@@ -69,9 +73,15 @@ fun MoreScreen() {
             ListRow(tr("android-more-settings", "Settings"), leading = { Icon(Icons.Filled.Settings, null) }, onClick = { nav.navigate("settings") })
             ListRow(tr("android-more-platform", "Open the Crowdly platform"), subtitle = app.prefs.platformUrl, leading = { Icon(Icons.AutoMirrored.Filled.OpenInNew, null) }, onClick = { openInBrowser(context, app.prefs.platformUrl) })
             HorizontalDivider()
+            SectionTitle(tr("android-more-help", "Help"))
+            ListRow(tr("android-more-bug", "Report a bug"), leading = { Icon(Icons.Filled.BugReport, null) }, onClick = { reporting = true })
+            ListRow(tr("android-more-feedback", "Send feedback"), leading = { Icon(Icons.Filled.Feedback, null) }, onClick = { openInBrowser(context, "${app.prefs.platformUrl}/feedback") })
+            ListRow(tr("android-more-desktop", "Get the desktop app"), leading = { Icon(Icons.Filled.Computer, null) }, onClick = { openInBrowser(context, "${app.prefs.platformUrl}/software") })
+            HorizontalDivider()
             ListRow(tr("android-more-signout", "Sign out"), leading = { Icon(Icons.AutoMirrored.Filled.Logout, null) }, onClick = { confirmSignOut = true })
         }
     }
+    if (reporting) ReportBugDialog { reporting = false }
     if (confirmSignOut) {
         val pending = app.outbox.count.value
         Confirm(
@@ -119,6 +129,46 @@ fun SettingsScreen() {
                 }
             }
 
+            SectionTitle(tr("android-settings-start", "When the app starts"))
+            var startTab by remember { mutableStateOf(app.prefs.startTab) }
+            listOf("create" to tr("android-settings-start-create", "Start in Create"), "discover" to tr("android-settings-start-discover", "Start in Discover")).forEach { (v, label) ->
+                Row(Modifier.fillMaxWidth().clickable { app.prefs.startTab = v; startTab = v }.padding(horizontal = 16.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    RadioButton(startTab == v, onClick = { app.prefs.startTab = v; startTab = v })
+                    Text(label)
+                }
+            }
+
+            var restore by remember { mutableStateOf(app.prefs.launchRestore) }
+            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                AppText("android-settings-restore", "Reopen what I had open last time", Modifier.weight(1f))
+                Switch(restore, { app.prefs.launchRestore = it; restore = it })
+            }
+
+            SectionTitle(tr("android-settings-editor", "Editor"))
+            val live by app.prefs.liveCollab.collectAsState()
+            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    AppText("android-settings-live", "Live co-editing")
+                    AppText("android-settings-live-sub", "See others' edits in a chapter you both have open, as they type.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Switch(live, { app.prefs.setLiveCollab(it) })
+            }
+
+            SectionTitle(tr("android-settings-reader", "Reader"))
+            var readerTheme by remember { mutableStateOf(app.db.cacheGet("reader:theme") ?: "light") }
+            var readerSize by remember { mutableStateOf(app.db.cacheGet("reader:size")?.toIntOrNull() ?: 18) }
+            Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                listOf("light", "sepia", "dark").forEach { k ->
+                    androidx.compose.material3.FilterChip(readerTheme == k, { readerTheme = k; app.db.cachePut("reader:theme", k) }, { Text(k) }, Modifier.padding(end = 6.dp))
+                }
+            }
+            Row(Modifier.padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                AppText("android-settings-font", "Text size", Modifier.weight(1f))
+                TextButton({ readerSize = (readerSize - 2).coerceAtLeast(12); app.db.cachePut("reader:size", "$readerSize") }) { Text("A−") }
+                Text("$readerSize")
+                TextButton({ readerSize = (readerSize + 2).coerceAtMost(32); app.db.cachePut("reader:size", "$readerSize") }) { Text("A+") }
+            }
+
             SectionTitle(tr("android-settings-theme", "Theme"))
             listOf("system" to tr("android-settings-theme-system", "Follow the phone"), "light" to tr("android-settings-theme-light", "Light"), "dark" to tr("android-settings-theme-dark", "Dark")).forEach { (v, label) ->
                 Row(Modifier.fillMaxWidth().clickable { app.prefs.setTheme(v) }.padding(horizontal = 16.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -158,8 +208,57 @@ fun SettingsScreen() {
                 modifier = Modifier.padding(horizontal = 16.dp),
             ) { AppText("android-save", "Save") }
 
+            SectionTitle(tr("android-settings-account", "Account"))
+            ListRow(tr("android-settings-signed-in", "Signed in as") + " " + user?.email.orEmpty())
+            val ctx = androidx.compose.ui.platform.LocalContext.current
+            ListRow(tr("android-settings-account-link", "Account, password and privacy on the platform"), onClick = { openInBrowser(ctx, "${app.prefs.platformUrl}/account-administration") })
+
             SectionTitle(tr("android-settings-about", "About"))
             ListRow("Crowdly for Android ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})", subtitle = app.prefs.server)
         }
     }
+}
+
+/**
+ * Help → Report a bug (the web app's ReportBugDialog): the same
+ * support-requests pipeline as the platform and the desktop, tagged as
+ * coming from the Android app.
+ */
+@Composable
+fun ReportBugDialog(onDismiss: () -> Unit) {
+    val app = crowdly
+    val actions = rememberActions()
+    val user by app.session.user.collectAsState()
+    var subject by remember { mutableStateOf("") }
+    var actual by remember { mutableStateOf("") }
+    var expected by remember { mutableStateOf("") }
+    val sent = tr("android-bug-sent", "Thank you, your report was sent.")
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { AppText("android-more-bug", "Report a bug") },
+        text = {
+            Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(subject, { subject = it }, Modifier.fillMaxWidth(), singleLine = true, label = { AppText("android-bug-subject", "What went wrong, in a few words") })
+                OutlinedTextField(actual, { actual = it }, Modifier.fillMaxWidth(), minLines = 3, label = { AppText("android-bug-actual", "What happened") })
+                OutlinedTextField(expected, { expected = it }, Modifier.fillMaxWidth(), minLines = 2, label = { AppText("android-bug-expected", "What you expected") })
+            }
+        },
+        confirmButton = {
+            androidx.compose.material3.Button({
+                actions.run(sent) {
+                    val details = cloud.crowdly.app.net.jsonOf(
+                        "area" to "android_app", "expected" to expected, "actual" to actual,
+                        "appVersion" to "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                        "device" to "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}, Android ${android.os.Build.VERSION.RELEASE}",
+                    )
+                    app.api.upload("POST", "/api/support-requests", mapOf(
+                        "kind" to "bug", "name" to user?.email.orEmpty(), "email" to user?.email.orEmpty(), "category" to "other",
+                        "subject" to subject.trim(), "message" to actual.trim().ifEmpty { subject.trim() }, "source" to "android", "details" to details.toString(),
+                    ), emptyList())
+                    onDismiss()
+                }
+            }, enabled = subject.isNotBlank()) { AppText("android-bug-send", "Send") }
+        },
+        dismissButton = { TextButton(onDismiss) { AppText("android-cancel", "Cancel") } },
+    )
 }

@@ -140,6 +140,7 @@ fun ScreenplayEditorScreen(id: String) {
     val pending = remember { mutableStateMapOf<String, Pair<String, String>>() } // id → (kind, text)
     var pendingStamp by remember { mutableStateOf(0L) }
     var saveState by remember { mutableStateOf("") }
+    var find by remember { mutableStateOf<Boolean?>(null) }
 
     val canEdit = access.explicit
     val isOwner = access.isOwner
@@ -237,6 +238,8 @@ fun ScreenplayEditorScreen(id: String) {
                         blocks = app.repo.scenes(id).second
                     }
                 })
+                DropdownMenuItem({ AppText("android-find", "Find") }, { menu = false; find = false })
+                if (canEdit) DropdownMenuItem({ AppText("android-replace", "Replace") }, { menu = false; find = true })
                 if (isOwner) DropdownMenuItem({ AppText("android-story-review", "Suggestions and requests") }, { menu = false; panel = SpPanel.REVIEW })
                 DropdownMenuItem({ AppText("android-story-editions", "Editions") }, { menu = false; panel = SpPanel.EDITIONS })
                 DropdownMenuItem({ AppText("android-story-read", "Read") }, { menu = false; nav.navigate(Routes.read("screenplay", id)) })
@@ -256,6 +259,19 @@ fun ScreenplayEditorScreen(id: String) {
             } else if (!canEdit) Banner(Color(0xFFFFFBEB), Color(0xFF78350F)) {
                 AppText("android-sp-readonly", "You're reading this screenplay.", Modifier.weight(1f), style = MaterialTheme.typography.bodySmall, color = Color(0xFF78350F))
                 if (canSuggest) TextButton({ panel = SpPanel.CHANGE }) { AppText("android-story-change-short", "Change") }
+            }
+            find?.let { replacing ->
+                cloud.crowdly.app.ui.components.FindBar(blocks.map { it.text } + scenes.map { it.slugline }, replacing && canEdit, onClose = { find = null }, onSelect = null) { q, r, mc, ww ->
+                    for (b in blocks) {
+                        val t = cloud.crowdly.app.ui.components.replaceAll(b.text, q, r, mc, ww)
+                        if (t != b.text) setText(b, t)
+                    }
+                    scenes = scenes.map { sc ->
+                        val t = cloud.crowdly.app.ui.components.replaceAll(sc.slugline, q, r, mc, ww)
+                        if (t != sc.slugline) queue("scene", sc.id, t)
+                        sc.copy(slugline = t)
+                    }
+                }
             }
             LazyColumn(Modifier.weight(1f).fillMaxWidth(), state = list) {
                 for (scene in scenes) {

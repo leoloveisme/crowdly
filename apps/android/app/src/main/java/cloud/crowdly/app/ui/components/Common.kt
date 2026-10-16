@@ -250,11 +250,3 @@ fun Confirm(title: String, text: String, confirm: String, onDismiss: () -> Unit,
     )
 }
 
-/** Placeholder for a screen that a later phase of the Android plan fills in. */
-@Composable
-fun ComingSoon() {
-    val nav = cloud.crowdly.app.ui.LocalNav.current
-    Screen(tr("android-coming-soon", "Coming soon"), back = { nav.popBackStack() }) { pad ->
-        Empty(tr("android-coming-soon-text", "This part of the app is on its way."), Modifier.padding(pad))
-    }
-}

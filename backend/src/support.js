@@ -30,7 +30,7 @@ const isUuid = (value) => typeof value === 'string' && UUID_RE.test(value);
 
 const KINDS = ['request', 'bug'];
 const CATEGORIES = ['account', 'stories', 'desktop_app', 'spaces_sync', 'other'];
-const SOURCES = ['web', 'desktop'];
+const SOURCES = ['web', 'desktop', 'android'];
 const STATUSES = [
   'new', 'triaged', 'confirmed', 'in_progress', 'fixed', 'released',
   'resolved', 'wont_fix', 'duplicate', 'closed',

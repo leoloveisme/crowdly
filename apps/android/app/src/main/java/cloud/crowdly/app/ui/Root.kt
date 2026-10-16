@@ -24,6 +24,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -116,10 +117,23 @@ private fun Shell(openedFile: String?, onOpened: () -> Unit) {
     val current = entry?.destination?.route
     LaunchedEffect(openedFile) {
         if (openedFile != null) { nav.navigate(Routes.localFile(openedFile)); onOpened() }
+        else if (crowdly.prefs.launchRestore) crowdly.prefs.lastRoute?.let { r -> runCatching { nav.navigate(r) } }
+    }
+    // Remember the open document for "Start where I left off" (tabs and settings don't count).
+    LaunchedEffect(entry) {
+        val e = entry ?: return@LaunchedEffect
+        val pattern = e.destination.route ?: return@LaunchedEffect
+        if (TABS.any { it.route == pattern } || pattern in setOf("settings", "local") || pattern.startsWith("localfile")) {
+            if (TABS.any { it.route == pattern }) crowdly.prefs.lastRoute = null
+            return@LaunchedEffect
+        }
+        crowdly.prefs.lastRoute = Regex("\\{(\\w+)\\}").replace(pattern) { m -> Uri.encode(e.arguments?.getString(m.groupValues[1]).orEmpty()) }
+            .replace(Regex("[?&]\\w+=(?=&|$)"), "")
     }
     CompositionLocalProvider(LocalNav provides nav) {
         Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-            NavHost(nav, startDestination = "create", modifier = Modifier.weight(1f)) {
+            val start = remember { crowdly.prefs.startTab.takeIf { it in setOf("create", "discover") } ?: "create" }
+            NavHost(nav, startDestination = start, modifier = Modifier.weight(1f)) {
                 composable("create") { CreateHomeScreen() }
                 composable("discover") { DiscoverScreen() }
                 composable("library") { LibraryScreen() }
@@ -151,7 +165,7 @@ private fun Shell(openedFile: String?, onOpened: () -> Unit) {
                             selected = current == tab.route,
                             onClick = {
                                 nav.navigate(tab.route) {
-                                    popUpTo("create") { saveState = true }
+                                    popUpTo(nav.graph.startDestinationId) { saveState = true }
                                     launchSingleTop = true
                                     restoreState = true
                                 }

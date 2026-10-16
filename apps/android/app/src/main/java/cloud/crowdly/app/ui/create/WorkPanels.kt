@@ -214,8 +214,8 @@ fun RevisionsScreen(doc: List<Pair<String, String>>, title: String, onClose: () 
     restoring?.let { r ->
         Confirm(
             tr("android-revisions-restore", "Restore this revision"),
-            tr("android-revisions-restore-text", "The current text is replaced by revision #${r.number}, as a new change. Every revision stays in the history."),
-            tr("android-revisions-restore", "Restore"), { restoring = null },
+            "#${r.number}: " + tr("android-revisions-restore-text", "the current text is replaced by this revision, as a new change. Every revision stays in the history."),
+            tr("android-revisions-restore-btn", "Restore"), { restoring = null },
         ) { actions.run(tr0("Restored")) { app.repo.restore(key!!, r.heads); tick++ } }
     }
 }

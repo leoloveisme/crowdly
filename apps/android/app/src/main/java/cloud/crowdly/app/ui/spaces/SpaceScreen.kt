@@ -167,7 +167,7 @@ fun SpaceScreen(spaceId: String, path: String) {
                 if (isOwner) DropdownMenuItem({ AppText("android-space-sync", "GitHub and Google Drive") }, { spaceMenu = false; sync = true }, leadingIcon = { Icon(Icons.Filled.Sync, null) })
                 DropdownMenuItem({ AppText("android-space-platform", "On the platform") }, { spaceMenu = false; openInBrowser(context, "${app.prefs.platformUrl}/creative_space/$spaceId") })
                 DropdownMenuItem({ AppText("android-space-clone", "Copy this Space") }, { spaceMenu = false; actions.run { nav.navigate(Routes.space(app.repo.cloneSpace(spaceId).id)) } })
-                if (isOwner) DropdownMenuItem({ AppText("android-space-rename", "Rename Space") }, { spaceMenu = false; renameSpace = true })
+                if (isOwner) DropdownMenuItem({ AppText("android-space-rename-space", "Rename Space") }, { spaceMenu = false; renameSpace = true })
                 if (isOwner) DropdownMenuItem({ AppText("android-space-delete", "Delete Space") }, { spaceMenu = false; deleteSpace = true })
             }
         },
@@ -254,10 +254,10 @@ fun SpaceScreen(spaceId: String, path: String) {
         }
     }
     renaming?.let { it -> TextPrompt(tr("android-space-rename", "Rename"), it.name, confirm = tr("android-save", "Save"), onDismiss = { renaming = null }) { n -> renaming = null; actions.run { app.repo.renameItem(it.id, n.trim()); loader.reload() } } }
-    moving?.let { it -> TextPrompt(tr("android-space-move-to", "Move to folder (path inside the Space, empty = top level)"), path, confirm = tr("android-space-move", "Move"), onDismiss = { moving = null }) { to -> moving = null; actions.run { app.repo.moveItem(it.id, to.trim().trim('/')); loader.reload() } } }
+    moving?.let { it -> TextPrompt(tr("android-space-move-to", "Move to folder (path inside the Space, empty = top level)"), path, confirm = tr("android-space-move-btn", "Move"), onDismiss = { moving = null }) { to -> moving = null; actions.run { app.repo.moveItem(it.id, to.trim().trim('/')); loader.reload() } } }
     deleting?.let { it -> Confirm(tr("android-delete", "Delete"), "\"${it.name}\"?", tr("android-delete", "Delete"), { deleting = null }) { actions.run { app.repo.deleteItem(it.id); loader.reload() } } }
     if (sync) ModalBottomSheet({ sync = false }) { SpaceSyncPanel(spaceId) }
-    if (renameSpace && listing != null) TextPrompt(tr("android-space-rename", "Rename Space"), listing.space.name, confirm = tr("android-save", "Save"), onDismiss = { renameSpace = false }) { n -> renameSpace = false; actions.run { app.repo.renameSpace(spaceId, n.trim()); loader.reload() } }
+    if (renameSpace && listing != null) TextPrompt(tr("android-space-rename-space", "Rename Space"), listing.space.name, confirm = tr("android-save", "Save"), onDismiss = { renameSpace = false }) { n -> renameSpace = false; actions.run { app.repo.renameSpace(spaceId, n.trim()); loader.reload() } }
     if (deleteSpace && listing != null) Confirm(tr("android-space-delete", "Delete Space"), "\"${listing.space.name}\" " + tr("android-space-delete-text", "and every file in it?"), tr("android-delete", "Delete"), { deleteSpace = false }) {
         actions.run { app.repo.deleteSpace(spaceId); nav.popBackStack() }
     }
