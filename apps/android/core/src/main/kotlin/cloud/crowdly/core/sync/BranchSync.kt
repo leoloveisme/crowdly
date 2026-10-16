@@ -42,6 +42,13 @@ private fun blocksOf(text: String) = parseBlocks(text).map { SyncBlock(it.tag, L
 fun serializeBlocks(blocks: List<SyncBlock>): String =
     blocks.flatMap { listOf(if (it.tag == "raw") it.body else block(it.tag, it.body, it.attrs), "") }.joinToString("\n").trimEnd() + "\n"
 
+/**
+ * Drops every `id=` attribute: for a file linked to a Crowdly work for the
+ * first time, ids in it came from somewhere else (another server, a copied
+ * file) and would match nothing.
+ */
+fun stripIds(text: String): String = serializeBlocks(blocksOf(text).onEach { it.attrs.remove("id") })
+
 private fun withId(b: SyncBlock, value: String?) {
     if (!value.isNullOrEmpty()) b.attrs["id"] = value
 }

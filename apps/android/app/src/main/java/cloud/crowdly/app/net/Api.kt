@@ -132,6 +132,7 @@ class Api(private val prefs: Prefs, private val outbox: Outbox, private val db: 
             try {
                 http.newCall(req).execute().use { res ->
                     if (res.isSuccessful || res.code in 400..499) {
+                        if (!res.isSuccessful && res.code != 401) outbox.reject(e.key)
                         outbox.remove(e.key)
                         sent++
                     }

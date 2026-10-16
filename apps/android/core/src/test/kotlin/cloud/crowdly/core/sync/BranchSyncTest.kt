@@ -122,6 +122,12 @@ Wind howls.
         assertEquals("alt-1", parseComic(out.text).issues[0].pages[0].alternatives!![0].id)
     }
 
+    @Test fun stripIdsForAFirstLink() {
+        val text = applyScreenplayIds(screenplay, ids)
+        assertFalse("id=" in stripIds(text))
+        assertEquals(parseScreenplay(screenplay).scenes[0].blocks.map { it.text }, parseScreenplay(stripIds(text)).scenes[0].blocks.map { it.text })
+    }
+
     @Test fun suggestionsDiffById() {
         val text = applyScreenplayIds(screenplay, ids)
         val proposals = screenplaySuggestions(text, mapOf("b1" to "MARA", "b2" to "Anyone there?", "b3" to "Wind howls."), mapOf("s1" to "INT. CORRIDOR - DAY"))

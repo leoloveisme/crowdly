@@ -73,6 +73,7 @@ object Routes {
     fun master(spaceId: String, itemId: String) = "master/$spaceId/$itemId"
     fun read(kind: String, id: String, edition: String? = null) = "read/$kind/$id" + (edition?.let { "?edition=$it" } ?: "")
     fun shelf(key: String) = "shelf/${Uri.encode(key)}"
+    // Navigation decodes arguments itself; a second decode would change content:// URIs.
     fun localFile(uri: String) = "localfile?uri=${Uri.encode(uri)}"
 }
 
@@ -127,20 +128,20 @@ private fun Shell(openedFile: String?, onOpened: () -> Unit) {
                 composable("settings") { SettingsScreen() }
                 composable("local") { LocalFolderScreen() }
                 composable("localfile?uri={uri}", listOf(navArgument("uri") { type = NavType.StringType })) {
-                    LocalFileScreen(Uri.decode(it.arguments?.getString("uri").orEmpty()))
+                    LocalFileScreen(it.arguments?.getString("uri").orEmpty())
                 }
                 composable("story/{id}") { StoryEditorScreen(it.arguments?.getString("id").orEmpty()) }
                 composable("screenplay/{id}") { ScreenplayEditorScreen(it.arguments?.getString("id").orEmpty()) }
                 composable("comic/{id}") { ComicEditorScreen(it.arguments?.getString("id").orEmpty()) }
                 composable("space/{spaceId}?path={path}", listOf(navArgument("path") { type = NavType.StringType; defaultValue = "" })) {
-                    SpaceScreen(it.arguments?.getString("spaceId").orEmpty(), Uri.decode(it.arguments?.getString("path").orEmpty()))
+                    SpaceScreen(it.arguments?.getString("spaceId").orEmpty(), it.arguments?.getString("path").orEmpty())
                 }
                 composable("file/{spaceId}/{itemId}") { FileEditorScreen(it.arguments?.getString("spaceId").orEmpty(), it.arguments?.getString("itemId").orEmpty()) }
                 composable("master/{spaceId}/{itemId}") { MasterEditorScreen(it.arguments?.getString("spaceId").orEmpty(), it.arguments?.getString("itemId").orEmpty()) }
                 composable("read/{kind}/{id}?edition={edition}", listOf(navArgument("edition") { type = NavType.StringType; nullable = true; defaultValue = null })) {
                     ReaderScreen(it.arguments?.getString("kind").orEmpty(), it.arguments?.getString("id").orEmpty(), it.arguments?.getString("edition"))
                 }
-                composable("shelf/{key}") { ShelfScreen(Uri.decode(it.arguments?.getString("key").orEmpty())) }
+                composable("shelf/{key}") { ShelfScreen(it.arguments?.getString("key").orEmpty()) }
             }
             StatusStrip()
             if (TABS.any { it.route == current }) {
@@ -171,6 +172,17 @@ private fun StatusStrip() {
     val app = crowdly
     val online by app.connectivity.online.collectAsState()
     val pending by app.outbox.count.collectAsState()
+    val rejected by app.outbox.rejected.collectAsState()
+    if (rejected.isNotEmpty()) Row(
+        Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.errorContainer).padding(horizontal = 16.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            "${rejected.size} " + tr("android-status-rejected", "edits made offline couldn't be applied: what you edited changed or was deleted while you were away."),
+            Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onErrorContainer,
+        )
+        androidx.compose.material3.TextButton({ app.outbox.dismissRejected() }) { AppText("android-ok", "OK") }
+    }
     if (online && pending == 0) return
     Row(
         Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant).padding(horizontal = 16.dp, vertical = 6.dp),

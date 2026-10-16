@@ -18,6 +18,16 @@ class Outbox(private val db: Db) {
     private val _count = MutableStateFlow(0)
     val count: StateFlow<Int> = _count
 
+    private val _rejected = MutableStateFlow<List<String>>(emptyList())
+    /**
+     * Offline edits the server refused on replay (the chapter, scene or file
+     * changed or was deleted meanwhile): shown as "this changed while you
+     * were away" (docs/mobile-crdt-spec.md §4) until dismissed.
+     */
+    val rejected: StateFlow<List<String>> = _rejected
+    fun reject(key: String) { _rejected.value = _rejected.value + key }
+    fun dismissRejected() { _rejected.value = emptyList() }
+
     init { refresh() }
 
     fun enqueue(key: String, method: String, path: String, body: String?, contentType: String?) {
