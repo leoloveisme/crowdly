@@ -3,10 +3,12 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
-// The backend the app talks to until the user picks another one in Settings.
-// Override per build: ./gradlew assembleDebug -Pcrowdly.server=http://192.168.1.20:4000
-val debugServer = (findProperty("crowdly.server") as String?) ?: "http://10.0.2.2:4000"
-val releaseServer = (findProperty("crowdly.releaseServer") as String?) ?: "https://crowdly.cloud"
+// The backend the app talks to until the user picks another one in Settings:
+// the production API host, which proxies everything to the backend
+// (Documentation/Android_app.md). For a local backend:
+//   ./gradlew installDebug -Pcrowdly.server=http://10.0.2.2:4000   (emulator → the Mac)
+val debugServer = (findProperty("crowdly.server") as String?) ?: "https://api.crowdly.cloud"
+val releaseServer = (findProperty("crowdly.releaseServer") as String?) ?: "https://api.crowdly.cloud"
 
 android {
     namespace = "cloud.crowdly.app"

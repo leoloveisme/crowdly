@@ -7,7 +7,7 @@
 #   ANDROID_KEYSTORE_BASE64   base64 of the upload keystore (.jks)
 #   ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
 # Repo variable ANDROID_API_URL: the API the release build talks to
-# (default https://crowdly.cloud).
+# (default https://api.crowdly.cloud, see Documentation/Android_app.md).
 
 name: Android release
 
@@ -64,7 +64,7 @@ jobs:
           ./gradlew :app:assembleRelease :app:bundleRelease \
             -Pcrowdly.versionCode=${{ github.run_number }} \
             -Pcrowdly.versionName="$VERSION" \
-            -Pcrowdly.releaseServer="${{ vars.ANDROID_API_URL || 'https://crowdly.cloud' }}"
+            -Pcrowdly.releaseServer="${{ vars.ANDROID_API_URL || 'https://api.crowdly.cloud' }}"
 
       - uses: actions/upload-artifact@v4
         with:

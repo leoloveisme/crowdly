@@ -78,4 +78,5 @@ Match the model in §2a exactly: restore is presented as "go back to this revisi
 - **When it's used:** the story editor goes live for owners when "Live co-editing" is on in Settings and the phone is online. Otherwise edits save over REST (`PATCH /chapters/:id`, queued offline) and are mirrored into the CRDT history with `apply-content` (§2a, §4).
 - **Revision history and restore** use the REST routes in §2a (`RevisionsScreen` in `ui/create/WorkPanels.kt`).
 - **Auth:** bearer token (§5) for REST; the same token as the `crowdly_session` cookie inside the live WebView.
+- **Host:** the app talks to `https://api.crowdly.cloud`, an nginx host proxying everything (REST and the `/crdt-sync` WebSocket) to the backend; see `Documentation/Android_app.md`.
 - **iOS** can use the same bridge in a `WKWebView`, or the official Swift binding if that's preferable at the time.

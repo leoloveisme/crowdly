@@ -16,10 +16,42 @@ python3 scripts/check-translations.py   # run from the repo root: every interfac
 ```
 
 **Which backend:**
-- A debug build talks to `http://10.0.2.2:4000` (the Mac, seen from the emulator).
-- On a phone, either pass the Mac's address, e.g. `./gradlew :app:installDebug -Pcrowdly.server=http://192.168.1.20:4000`, or use `adb reverse tcp:4000 tcp:4000` with `-Pcrowdly.server=http://localhost:4000`.
-- The address can also be changed on the sign-in screen and in Settings.
-- A release build uses `-Pcrowdly.releaseServer`, which defaults to `https://crowdly.cloud`. The app wants an API-only host (like the web app's `api.<app domain>`). On crowdly.cloud, nginx sends only some paths to the backend, so point release builds at a host that proxies everything to it.
+- Both debug and release builds talk to the production API, **`https://api.crowdly.cloud`** (see below).
+- For a local backend, pass its address: `./gradlew :app:installDebug -Pcrowdly.server=http://10.0.2.2:4000` (the Mac, seen from the emulator). On a phone, use the Mac's LAN address, or `adb reverse tcp:4000 tcp:4000` with `http://localhost:4000`.
+- The address can also be changed on the sign-in screen and in Settings. The "Open the platform" links follow it: `api.<domain>` → `<domain>`, and `:4000` → `:8080`.
+
+### The production API host: api.crowdly.cloud
+
+crowdly.cloud's nginx forwards only some paths to the backend. Several paths the app uses (`/library`, `/shelves`, `/discover`, `/crdt`, `/crdt-sync`, `/reading`, `/me`) aren't among them, and some are also web pages. So the app uses its own host that proxies everything to the same `crowdly-backend`. This is the same pattern as the web app's `api.<app domain>` (`Web_app_deploy.md` §4). One-time setup on the VPS:
+
+```
+# DNS: A record api.crowdly.cloud → the VPS (same IP as crowdly.cloud)
+sudo certbot --nginx -d api.crowdly.cloud
+
+# /etc/nginx/sites-available/api.crowdly.cloud
+server {
+    server_name api.crowdly.cloud;
+    client_max_body_size 300m;          # comic pages, audiobooks, library uploads
+    location / {
+        proxy_pass http://127.0.0.1:4000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;     # /crdt-sync WebSocket (live co-editing)
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 3600s;
+    }
+    # certbot adds the listen 443 ssl / certificate lines
+}
+
+sudo ln -s /etc/nginx/sites-available/api.crowdly.cloud /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+curl -s https://api.crowdly.cloud/health
+```
+
+**Until the deploy:** production must also run the bearer-token sign-in (commit `2e5fc8ef`, on `dev` until it's merged into `alpha`). Before that, sign-in in the app says "This server doesn't support the Android app yet". Before the DNS record exists, it says the server can't be reached.
 
 ## Sign-in
 
@@ -69,7 +101,7 @@ To rebuild the bridge after an Automerge upgrade, run `npm ci` at the repo root,
   - `ANDROID_KEY_ALIAS`
   - `ANDROID_KEY_PASSWORD`
 
-  Set the repo variable `ANDROID_API_URL` to the API host release builds should use. Keep the keystore out of the repo (`*.jks` is ignored).
+  The repo variable `ANDROID_API_URL` overrides the API host release builds use (default `https://api.crowdly.cloud`). Keep the keystore out of the repo (`*.jks` is ignored).
 - **Try a release build locally:** `./gradlew :app:assembleRelease -Pcrowdly.debugSignRelease` signs it with the debug key so it installs.
 
 ### Play Store checklist

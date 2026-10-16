@@ -24,8 +24,7 @@ class Prefs(context: Context) {
 
     /** The main Crowdly platform, for "open on the platform" links and first-time Drive/GitHub connects. */
     var platformUrl: String
-        get() = sp.getString("platform", null)
-            ?: if (BuildConfig.DEBUG) server.replace(Regex(":\\d+$"), ":8080") else "https://crowdly.cloud"
+        get() = sp.getString("platform", null) ?: platformFor(server)
         set(v) = sp.edit().putString("platform", v.trim().trimEnd('/')).apply()
 
     /** Interface language as the backend names it ("English", "Russian", … — see apps/web/src/lib/languages.ts). */
@@ -108,5 +107,13 @@ class Prefs(context: Context) {
 
     private companion object {
         const val ALIAS = "crowdly_session"
+
+        /** https://api.<domain> → https://<domain>; a local backend on :4000 → the platform's dev server on :8080. */
+        fun platformFor(server: String): String {
+            val s = server.trimEnd('/')
+            Regex("^(https?://)api\\.(.+)$").find(s)?.let { return it.groupValues[1] + it.groupValues[2] }
+            if (Regex(":4000$").containsMatchIn(s)) return s.replace(Regex(":4000$"), ":8080")
+            return "https://crowdly.cloud"
+        }
     }
 }
