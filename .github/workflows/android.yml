@@ -1,0 +1,72 @@
+# Builds and checks the Android app (apps/android) — see
+# Documentation/Android_app.md.
+#
+# - Every push to dev/alpha or pull request that touches the app (or the
+#   format fixtures it's tested against): JVM tests of :core, Android lint,
+#   the interface-translation check, and a debug APK as a build artifact.
+# Release builds: android-release.yml.
+
+name: Android app
+
+on:
+  push:
+    branches: [dev, alpha]
+    paths:
+      - "apps/android/**"
+      - "apps/desktop/tests/fixtures/formats/**"
+      - "backend/scripts/data/interface-translations.seed.json"
+      - ".github/workflows/android.yml"
+  pull_request:
+    paths:
+      - "apps/android/**"
+      - "apps/desktop/tests/fixtures/formats/**"
+      - ".github/workflows/android.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/android
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # The runner's SDK may not have the app's compileSdk yet; accept the
+      # licenses so the Android Gradle plugin can download what's missing.
+      - name: Accept Android SDK licenses
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+
+      - name: Interface translations are complete
+        working-directory: .
+        run: python3 apps/android/scripts/check-translations.py
+
+      - name: Tests, lint and debug build
+        run: ./gradlew :core:test :app:lintDebug :app:assembleDebug -Pcrowdly.versionCode=${{ github.run_number }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: crowdly-android-debug
+          path: apps/android/app/build/outputs/apk/debug/*.apk
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-reports
+          path: |
+            apps/android/core/build/reports/tests/
+            apps/android/app/build/reports/lint-results-debug.html

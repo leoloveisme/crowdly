@@ -6,11 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Crowdly is a multi-creator, crowd-created entertainment platform combining features of YouTube, Audible, Netflix, Goodreads, GitHub, and Wattpad. It supports text, pictures, audio, and video content with versioning and branching of crowd-created stories.
 
-The project consists of four applications:
+The project consists of five applications:
 - **Web platform** (React/TypeScript/Vite) - the main Crowdly platform (browsing, publishing, social features) at root
 - **Backend API** (Node.js/Express) - in `backend/`
 - **Desktop app** (Python/PySide6) - the native story/screenplay editor, in `apps/desktop/`
 - **Web editor** (React/TypeScript/Vite) - a standalone, lightweight browser-based companion to the desktop editor for editing stories and creative spaces from any browser without installing anything ("all you need is a browser"); it is not a replacement for the main web platform, in `apps/web/`
+- **Android app** (Kotlin/Jetpack Compose) - the native phone app with the web app's features (creation, Spaces, files on the phone, discovery, reader, live co-editing), in `apps/android/`. See `Documentation/Android_app.md`.
 
 ## Development Commands
 
@@ -43,6 +44,16 @@ A stand-alone app at the root of its own domain (`<app domain>`, set by the GitH
 npm run dev      # Start Vite dev server on :5173 (proxies the backend on :4000)
 npm run build    # Production build (set VITE_API_BASE_URL=https://api.<app domain>)
 ```
+
+### Android App (apps/android/)
+```bash
+export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+./gradlew :core:test            # formats, branch sync, folder sync rules (JVM tests)
+./gradlew :app:lintDebug        # Android lint
+./gradlew :app:installDebug     # install on a phone/emulator (-Pcrowdly.server=http://<mac>:4000)
+python3 apps/android/scripts/check-translations.py   # from the repo root
+```
+Native clients sign in with `POST /auth/login {client: "android"}` and send the returned token as `Authorization: Bearer` (see `docs/mobile-crdt-spec.md` §5). Interface text uses `AppText(id, english)` with ids `android-…` under the translation page key `/__android__`; add new strings with ru/de to the seed JSON (the check script enforces it).
 
 ## Architecture
 

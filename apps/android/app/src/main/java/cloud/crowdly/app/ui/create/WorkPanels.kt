@@ -45,7 +45,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -414,6 +413,3 @@ fun WorkSettingsPanel(kind: WorkKind, workId: String, title0: String, visibility
         }) { AppText("android-save", "Save") }
     }
 }
-
-@Composable
-fun isWide(): Boolean = LocalConfiguration.current.screenWidthDp >= 600

@@ -82,8 +82,8 @@ fun MoreScreen() {
         }
     }
     if (reporting) ReportBugDialog { reporting = false }
+    val pending by app.outbox.count.collectAsState()
     if (confirmSignOut) {
-        val pending = app.outbox.count.value
         Confirm(
             tr("android-more-signout", "Sign out"),
             if (pending > 0) tr("android-more-signout-pending", "Edits not yet sent to Crowdly will be lost on this phone.") else tr("android-more-signout-text", "You can sign in again any time."),

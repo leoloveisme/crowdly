@@ -39,9 +39,14 @@ android {
             buildConfigField("String", "DEFAULT_SERVER", "\"$debugServer\"")
         }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             buildConfigField("String", "DEFAULT_SERVER", "\"$releaseServer\"")
+            // Signed with the upload key from the environment (CI); for trying a release build
+            // on a phone locally, -Pcrowdly.debugSignRelease signs it with the debug key instead.
             signingConfigs.findByName("release")?.let { signingConfig = it }
+                ?: if (findProperty("crowdly.debugSignRelease") != null) signingConfig = signingConfigs.getByName("debug") else Unit
         }
     }
     compileOptions {
