@@ -16784,5 +16784,12 @@
     "en": "I want to change this",
     "ru": "Я хочу это изменить",
     "de": "Ich möchte das ändern"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-live",
+    "en": "Live",
+    "ru": "В реальном времени",
+    "de": "Live"
   }
 ]
