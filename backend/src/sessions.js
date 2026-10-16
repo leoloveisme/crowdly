@@ -92,8 +92,37 @@ export const SESSION_COOKIE_OPTIONS = {
   path: '/',
 };
 
+// Native clients (the Android app, later iOS) have no cookie jar shared with
+// a browser, so they send the same session token as
+// `Authorization: Bearer <token>` instead. Works on Express requests
+// (req.cookies) and on raw HTTP upgrade requests (the /crdt-sync WebSocket).
+export function sessionTokenFrom(req) {
+  const header = req.headers?.authorization;
+  if (typeof header === 'string') {
+    const m = /^Bearer\s+(\S+)$/i.exec(header.trim());
+    if (m) return m[1];
+  }
+  if (req.cookies) return req.cookies[SESSION_COOKIE_NAME];
+  const raw = req.headers?.cookie;
+  if (typeof raw !== 'string') return undefined;
+  for (const part of raw.split(';')) {
+    const i = part.indexOf('=');
+    if (i > 0 && part.slice(0, i).trim() === SESSION_COOKIE_NAME) {
+      try {
+        return decodeURIComponent(part.slice(i + 1).trim());
+      } catch {
+        return part.slice(i + 1).trim();
+      }
+    }
+  }
+  return undefined;
+}
+
+// Clients that ask for the session token in the login response body.
+export const NATIVE_CLIENTS = new Set(['android', 'ios']);
+
 export async function requireAuth(req, res, next) {
-  const token = req.cookies?.[SESSION_COOKIE_NAME];
+  const token = sessionTokenFrom(req);
   const user = await getSessionUser(token);
   if (!user) {
     return res.status(401).json({ error: 'Authentication required' });

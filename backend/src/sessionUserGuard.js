@@ -18,7 +18,7 @@
 // do legitimately changes.
 
 import { pool } from './db.js';
-import { getSessionUser, SESSION_COOKIE_NAME } from './sessions.js';
+import { getSessionUser, sessionTokenFrom } from './sessions.js';
 
 const GUARDED = [
   // Spaces and their items (but not PUT /:id/access, whose body lists other users).
@@ -59,7 +59,7 @@ async function ownsStory(storyTitleId, userId) {
 export async function sessionUserGuard(req, res, next) {
   if (!guarded(req)) return next();
   try {
-    const user = await getSessionUser(req.cookies?.[SESSION_COOKIE_NAME]);
+    const user = await getSessionUser(sessionTokenFrom(req));
     const id = user?.id ?? null;
 
     if (req.body && typeof req.body === 'object' && 'userId' in req.body) {

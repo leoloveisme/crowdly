@@ -3,11 +3,11 @@
 // server.js (GET /story-titles/:id visibility, clone/export policies).
 
 import { pool } from './db.js';
-import { getSessionUser, SESSION_COOKIE_NAME } from './sessions.js';
+import { getSessionUser, sessionTokenFrom } from './sessions.js';
 
 export async function optionalUserId(req) {
   try {
-    const user = await getSessionUser(req.cookies?.[SESSION_COOKIE_NAME]);
+    const user = await getSessionUser(sessionTokenFrom(req));
     return user?.id ?? null;
   } catch {
     return null;

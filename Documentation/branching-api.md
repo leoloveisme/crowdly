@@ -12,7 +12,7 @@ Who may do what (the same for every kind):
 - **Add a branch:** any signed-in reader who can see the work. On stories, this means anyone allowed to contribute (public story, or on the team).
 - **Edit or delete a branch:** its author, the work's owner, or platform staff (`platform_admin`, `editor`). When anyone else edits it, the change is sent to the owner as a **proposal** (stories, screenplays). For comic alternatives it's refused; others add their own alternative instead.
 
-All routes authenticate with the `crowdly_session` cookie. A bearer token for mobile is still to be added. All routes are bare paths, not under `/api`.
+All routes authenticate with the `crowdly_session` cookie (browsers) or `Authorization: Bearer <token>` (native apps; see `docs/mobile-crdt-spec.md` §5). All routes are bare paths, not under `/api`.
 
 ## Online clients (platform, web app)
 
@@ -101,4 +101,4 @@ The mobile apps should follow this document as is:
 - Sync offline edits with the content and branch sync routes above, the same way `editor/branch_sync.py` does.
 - Use the online routes when connected.
 
-**Known blocker** (see also `mobile-crdt-spec.md`): every route here authenticates with the `crowdly_session` cookie. Native clients need a bearer-token login before mobile work starts. Until then, a WebView or the web app (`apps/web`, installable as an offline PWA) covers phones.
+**Sign-in:** native clients log in with `client: "android"` / `"ios"` and send the returned token as `Authorization: Bearer <token>` (see `docs/mobile-crdt-spec.md` §5). The Android app lives in `apps/android`.

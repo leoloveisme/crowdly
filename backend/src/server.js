@@ -16,6 +16,8 @@ import {
   getSessionUser,
   SESSION_COOKIE_NAME,
   SESSION_COOKIE_OPTIONS,
+  sessionTokenFrom,
+  NATIVE_CLIENTS,
 } from './sessions.js';
 import feedbackRouter from './feedback.js';
 import supportRouter from './support.js';
@@ -1828,7 +1830,7 @@ app.get('/health', async (_req, res) => {
 });
 
 app.post('/auth/login', async (req, res) => {
-  const { email, password } = req.body ?? {};
+  const { email, password, client } = req.body ?? {};
 
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password are required' });
@@ -1838,6 +1840,12 @@ app.post('/auth/login', async (req, res) => {
     const authResult = await loginWithEmailPassword(email, password);
     const session = await createSession(authResult.id);
     res.cookie(SESSION_COOKIE_NAME, session.token, SESSION_COOKIE_OPTIONS);
+    // Native apps (no browser cookie jar) also get the token in the body and
+    // send it back as `Authorization: Bearer`. Browsers never ask for it, so
+    // the token stays out of reach of page JS there.
+    if (NATIVE_CLIENTS.has(client)) {
+      return res.json({ ...authResult, token: session.token, expiresAt: session.expires_at });
+    }
     res.json(authResult);
   } catch (err) {
     console.error('[auth/login] failed:', err);
@@ -1865,7 +1873,7 @@ app.get('/auth/me', requireAuth, async (req, res) => {
 // Invalidates the session server-side (not just clearing the cookie
 // client-side) so a stolen cookie stops working immediately.
 app.post('/auth/logout', async (req, res) => {
-  const token = req.cookies?.[SESSION_COOKIE_NAME];
+  const token = sessionTokenFrom(req);
   try {
     await destroySession(token);
   } catch (err) {
@@ -4683,7 +4691,7 @@ async function canViewSpace(space, req, userId) {
   const visibility = String(space.visibility ?? 'private').toLowerCase();
   if (visibility === 'public') return true;
   if (visibility !== 'selected') return false;
-  const viewer = await getSessionUser(req.cookies?.[SESSION_COOKIE_NAME]);
+  const viewer = await getSessionUser(sessionTokenFrom(req));
   if (!viewer) return false;
   const { rowCount } = await pool.query(
     'SELECT 1 FROM creative_space_access WHERE space_id = $1 AND user_id = $2',
@@ -10715,7 +10723,7 @@ const { repo, wss } = createCrdtRepo({
   authorizeDocAccess: (peerId, documentId, wsAdapter) => authorizeDocAccess(peerId, documentId, wsAdapter, pool),
 });
 crdtRepo = repo;
-attachCrdtWebSocketServer(httpServer, { wss, getSessionUser });
+attachCrdtWebSocketServer(httpServer, { wss, getSessionUser, sessionTokenFrom });
 
 // These three each bulk-load every existing doc of their kind and attach a
 // listener to it — run one after another, not concurrently, so a server

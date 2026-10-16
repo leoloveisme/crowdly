@@ -5,7 +5,7 @@ import fs from 'fs';
 import { randomUUID } from 'crypto';
 import { fileURLToPath } from 'url';
 import { pool } from './db.js';
-import { requireAuth, getSessionUser, SESSION_COOKIE_NAME } from './sessions.js';
+import { requireAuth, getSessionUser, sessionTokenFrom } from './sessions.js';
 import { adoptLocalFile, removeStoredFile } from './storage.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -84,7 +84,7 @@ async function isPlatformAdmin(userId) {
 // browsing), so this never rejects — it just resolves to null when there's
 // no session, same shape as requireAuth's req.user on success.
 async function optionalUser(req) {
-  const token = req.cookies?.[SESSION_COOKIE_NAME];
+  const token = sessionTokenFrom(req);
   if (!token) return null;
   try {
     return await getSessionUser(token);

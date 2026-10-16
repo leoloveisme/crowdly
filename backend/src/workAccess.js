@@ -5,7 +5,7 @@
 // contribute (their edits to existing content become proposals).
 
 import { pool } from './db.js';
-import { getSessionUser, SESSION_COOKIE_NAME } from './sessions.js';
+import { getSessionUser, sessionTokenFrom } from './sessions.js';
 
 export const KINDS = {
   story: {
@@ -41,7 +41,7 @@ export const POLICIES = new Set(['anyone', 'restricted', 'none']);
 
 export async function optionalUserId(req) {
   try {
-    const user = await getSessionUser(req.cookies?.[SESSION_COOKIE_NAME]);
+    const user = await getSessionUser(sessionTokenFrom(req));
     return user?.id ?? null;
   } catch {
     return null;

@@ -16,7 +16,7 @@ import fs from 'fs';
 import { randomUUID } from 'crypto';
 import { fileURLToPath } from 'url';
 import { pool } from './db.js';
-import { requireAuth, getSessionUser, SESSION_COOKIE_NAME } from './sessions.js';
+import { requireAuth, getSessionUser, sessionTokenFrom } from './sessions.js';
 import { createNotification } from './notifications.js';
 import { verifyCaptcha } from './feedback.js';
 import { isMailerConfigured, sendSupportRequestEmail, sendSupportStatusEmail } from './email.js';
@@ -90,7 +90,7 @@ function isRateLimited(key) {
 
 async function optionalUser(req) {
   try {
-    return await getSessionUser(req.cookies?.[SESSION_COOKIE_NAME]);
+    return await getSessionUser(sessionTokenFrom(req));
   } catch {
     return null;
   }

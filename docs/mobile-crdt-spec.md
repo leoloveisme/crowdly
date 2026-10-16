@@ -1,6 +1,6 @@
 # Mobile (Android/iOS) revisioning & real-time sync spec
 
-This describes what a future Android or iOS Crowdly client needs to implement to participate in the same real-time collaborative revisioning system as the main web platform, the web editor (`apps/web`), and the desktop app. It targets the backend built in `backend/src/crdt/` and the `/crdt/docs/*` routes in `backend/src/server.js`. No mobile code exists in this repo — this is a specification for a from-scratch implementation, not a description of existing code.
+This describes what a future Android or iOS Crowdly client needs to implement to participate in the same real-time collaborative revisioning system as the main web platform, the web editor (`apps/web`), and the desktop app. It targets the backend built in `backend/src/crdt/` and the `/crdt/docs/*` routes in `backend/src/server.js`. The Android app (`apps/android`) implements it; iOS will follow the same spec.
 
 ## 1. Data model
 
@@ -30,7 +30,7 @@ Two transports, both against the same backend:
 - `POST /crdt/docs/:docKey/restore` — body `{ toHeads: string[] }`. Restores live content to a historical value **as a new forward change** — this is non-destructive; the restored-from state and every change after it stay in history. A restore can itself be undone by restoring again.
 - `POST /crdt/docs/:docKey/apply-content` — body `{ value: object, source?: string }`. Applies a whole new document value as one attributed change. This is the fallback path for a client with no native Automerge implementation (see §4) — prefer real operational sync (§2b) when available.
 
-All four require the session cookie described in §5.
+All four require the session (cookie or bearer token) described in §5.
 
 ### 2b. Real-time WebSocket sync (requires an Automerge client library)
 
@@ -55,9 +55,12 @@ A client never mints a `DocumentId` itself. To start editing a chapter/scene/tit
 
 ## 5. Authentication
 
-The existing backend uses an httpOnly session cookie (`crowdly_session`, see `backend/src/sessions.js`), set by `POST /auth/login`, checked by `requireAuth` on every `/crdt/docs/*` route and by the WebSocket upgrade handler for `/crdt-sync`. This maps cleanly onto a browser client (`credentials: "include"` on every fetch — see `apps/web/src/Index.tsx`'s login call for the pattern) but **does not map cleanly onto a native mobile HTTP/WebSocket client**, which typically has no shared cookie jar with a browser and no reason to emulate one.
+The backend accepts two forms of the same server-side session (`backend/src/sessions.js`, `sessionTokenFrom()`):
 
-**This is a required backend addition, not a mobile-side workaround**: add a bearer-token auth path (e.g. `POST /auth/login` optionally returning a long-lived API token, checked via an `Authorization: Bearer <token>` header as an alternative to the session cookie in `requireAuth` and in the `/crdt-sync` upgrade handler) before a real mobile client can authenticate. Do not attempt to have a mobile client fake or manually manage the cookie-based flow.
+- **Browsers:** the httpOnly `crowdly_session` cookie set by `POST /auth/login` (`credentials: "include"` on every fetch).
+- **Native apps (Android now, iOS next):** `POST /auth/login` with `{ email, password, client: "android" }` (or `"ios"`) also returns `{ token, expiresAt }` in the body. Send it as `Authorization: Bearer <token>` on every REST call **and** on the `/crdt-sync` WebSocket upgrade request. Browsers never ask for the token, so it stays out of reach of page JS.
+
+The token is the session itself: the same 30-day absolute / 7-day idle expiry, and `POST /auth/logout` with the bearer header ends it. A `401` means sign in again. Store the token in platform secure storage (Android Keystore, iOS Keychain), never in plain preferences. `POST /auth/register` creates the account only; follow it with a login.
 
 ## 6. Restore UX expectations
 

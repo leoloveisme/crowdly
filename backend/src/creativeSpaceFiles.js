@@ -17,7 +17,7 @@ import fs from 'fs';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { pool } from './db.js';
-import { getSessionUser, SESSION_COOKIE_NAME } from './sessions.js';
+import { getSessionUser, sessionTokenFrom } from './sessions.js';
 import { scheduleGithubPush } from './githubSync.js';
 import { scheduleGoogleDrivePush } from './googleDriveSync.js';
 
@@ -70,7 +70,7 @@ async function canRead(item, userId, req) {
   const itemVisibility = String(item.visibility || 'private').toLowerCase();
   if (spaceVisibility === 'public') return itemVisibility === 'public';
   if (spaceVisibility !== 'selected') return false;
-  const viewer = await getSessionUser(req.cookies?.[SESSION_COOKIE_NAME]);
+  const viewer = await getSessionUser(sessionTokenFrom(req));
   if (!viewer) return false;
   const { rowCount } = await pool.query(
     'SELECT 1 FROM creative_space_access WHERE space_id = $1 AND user_id = $2',
