@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import { sessionUserGuard } from './sessionUserGuard.js';
 import dotenv from 'dotenv';
 import { randomUUID } from 'crypto';
 import { pool } from './db.js';
@@ -15,6 +16,8 @@ import {
   getSessionUser,
   SESSION_COOKIE_NAME,
   SESSION_COOKIE_OPTIONS,
+  sessionTokenFrom,
+  NATIVE_CLIENTS,
 } from './sessions.js';
 import feedbackRouter from './feedback.js';
 import supportRouter from './support.js';
@@ -28,6 +31,20 @@ import messagingRouter, {
 } from './messaging.js';
 import galleryRouter, { ensureStoryGalleryImagesTable, UPLOADS_ROOT } from './gallery.js';
 import comicsRouter, { ensureComicTables } from './comics.js';
+import { createWorkRouter } from './workRoutes.js';
+import workContributionsRouter, { decideWorkProposal } from './workContributions.js';
+import workEditionsRouter from './workEditions.js';
+import workMediaRouter from './workMedia.js';
+import branchSyncRouter from './branchSync.js';
+import {
+  canView as canViewWork,
+  isOwner as isWorkOwner,
+  isTeam as isWorkTeam,
+  loadWork,
+  optionalUserId,
+  policyFlags,
+  viewDeniedMessage,
+} from './workAccess.js';
 import translationsRouter from './translations.js';
 import editionsRouter from './editions.js';
 import libraryRouter, { deleteUserLibraryFiles } from './library.js';
@@ -156,6 +173,9 @@ app.use(
 // behavior is unaffected.
 app.use(express.json({ limit: '5mb', verify: (req, res, buf) => { req.rawBody = buf; } }));
 app.use(cookieParser());
+// Legacy routes that took the acting user from a client-sent userId now get
+// it from the session (see sessionUserGuard.js).
+app.use(sessionUserGuard);
 
 // Mounted under /api — the frontend has SPA pages at bare paths like
 // /friends and /communications, so the friends/messaging/notifications API
@@ -174,6 +194,13 @@ app.get('/api/events', requireAuth, eventsHandler);
 // Gallery routes live at bare paths (/stories/:id/gallery, /gallery-images/:id),
 // same as the rest of the story routes below — not under /api.
 app.use(galleryRouter);
+// Settings / people / clone / delete for screenplays and comics (workRoutes.js).
+app.use(createWorkRouter('screenplay'));
+app.use(createWorkRouter('comic'));
+app.use(workContributionsRouter);
+app.use(workEditionsRouter);
+app.use(workMediaRouter);
+app.use(branchSyncRouter);
 app.use(comicsRouter);
 app.use(translationsRouter);
 app.use(editionsRouter);
@@ -1803,7 +1830,7 @@ app.get('/health', async (_req, res) => {
 });
 
 app.post('/auth/login', async (req, res) => {
-  const { email, password } = req.body ?? {};
+  const { email, password, client } = req.body ?? {};
 
   if (!email || !password) {
     return res.status(400).json({ error: 'Email and password are required' });
@@ -1813,6 +1840,12 @@ app.post('/auth/login', async (req, res) => {
     const authResult = await loginWithEmailPassword(email, password);
     const session = await createSession(authResult.id);
     res.cookie(SESSION_COOKIE_NAME, session.token, SESSION_COOKIE_OPTIONS);
+    // Native apps (no browser cookie jar) also get the token in the body and
+    // send it back as `Authorization: Bearer`. Browsers never ask for it, so
+    // the token stays out of reach of page JS there.
+    if (NATIVE_CLIENTS.has(client)) {
+      return res.json({ ...authResult, token: session.token, expiresAt: session.expires_at });
+    }
     res.json(authResult);
   } catch (err) {
     console.error('[auth/login] failed:', err);
@@ -1840,7 +1873,7 @@ app.get('/auth/me', requireAuth, async (req, res) => {
 // Invalidates the session server-side (not just clearing the cookie
 // client-side) so a stolen cookie stops working immediately.
 app.post('/auth/logout', async (req, res) => {
-  const token = req.cookies?.[SESSION_COOKIE_NAME];
+  const token = sessionTokenFrom(req);
   try {
     await destroySession(token);
   } catch (err) {
@@ -2451,16 +2484,14 @@ app.patch('/profiles/:userId', handleProfileUpdate);
 
 // Create screenplay title + initial scene and blocks in a single transaction.
 // This is analogous to /stories/template but for screenplays.
-app.post('/screenplays/template', async (req, res) => {
-  const { title, formatType, userId } = req.body ?? {};
+app.post('/screenplays/template', requireAuth, async (req, res) => {
+  const { title, formatType } = req.body ?? {};
+  // The session decides who owns the new screenplay, never the request body.
+  const userId = req.user.id;
 
   const screenplayTitle = typeof title === 'string' && title.trim()
     ? title.trim()
     : 'Untitled Screenplay';
-
-  if (!userId) {
-    return res.status(400).json({ error: 'userId is required' });
-  }
 
   const client = await pool.connect();
   try {
@@ -2625,56 +2656,46 @@ app.get('/screenplays/most-popular', async (req, res) => {
   }
 });
 
-// Get a single screenplay by ID (no visibility rules yet; keep simple for v1)
-// Mirrors the story_title visibility gate at GET /story-titles/:storyTitleId
-// (creator/screenplay_access always allowed; unlisted/private otherwise
-// blocked for everyone else) — screenplays had no such check at all before
-// this, so a "private" screenplay was viewable by anyone who had its id.
-async function checkScreenplayAccess(screenplay, userId) {
-  const visibility = screenplay.visibility ?? 'public';
-  if (visibility === 'public') return { allowed: true };
-
-  if (userId && screenplay.creator_id === userId) return { allowed: true };
-
-  if (userId) {
-    try {
-      const access = await pool.query(
-        'SELECT 1 FROM screenplay_access WHERE screenplay_id = $1 AND user_id = $2 LIMIT 1',
-        [screenplay.screenplay_id, userId],
-      );
-      if (access.rows.length > 0) return { allowed: true };
-    } catch {}
+// Screenplay write guard: signed-in team members (creator or an explicit
+// screenplay_access row) may change content; `ownerOnly` limits a route to the
+// owner. Readers who aren't on the team suggest changes instead (proposals)
+// or ask to collaborate. Sends the error response and returns null when the
+// caller may not write.
+async function guardScreenplayWrite(req, res, screenplayId, { ownerOnly = false } = {}) {
+  const work = await loadWork(pool, 'screenplay', screenplayId);
+  if (!work) {
+    res.status(404).json({ error: 'Screenplay not found' });
+    return null;
   }
-
-  if (visibility === 'unlisted') {
-    return {
-      allowed: false,
-      message: 'This screenplay is unlisted. You need an invitation from the owner to view it.',
-    };
+  const allowed = ownerOnly
+    ? await isWorkOwner(pool, 'screenplay', work, req.user.id)
+    : await isWorkTeam(pool, 'screenplay', work, req.user.id);
+  if (!allowed) {
+    res.status(403).json({
+      error: ownerOnly
+        ? 'Only the screenplay owner can do this'
+        : "You can't change this screenplay directly. Suggest changes instead, or ask the author to invite you.",
+    });
+    return null;
   }
-  return {
-    allowed: false,
-    message: 'This screenplay is private. Please log in or ask the owner for access.',
-  };
+  return work;
 }
 
+// Get a single screenplay. Visibility mirrors GET /story-titles/:id: public
+// for everyone, unlisted for the team plus invited viewers, private for the
+// team only. The viewer comes from the session cookie.
 app.get('/screenplays/:screenplayId', async (req, res) => {
   const { screenplayId } = req.params;
-  const userId = req.query.userId ?? null;
   try {
-    const { rows } = await pool.query(
-      'SELECT * FROM screenplay_title WHERE screenplay_id = $1',
-      [screenplayId],
-    );
-    if (rows.length === 0) {
+    const screenplay = await loadWork(pool, 'screenplay', screenplayId);
+    if (!screenplay) {
       return res.status(404).json({ error: 'Screenplay not found' });
     }
-    const screenplay = rows[0];
-    const access = await checkScreenplayAccess(screenplay, userId);
-    if (!access.allowed) {
-      return res.status(403).json({ error: access.message });
+    const userId = await optionalUserId(req);
+    if (!(await canViewWork(pool, 'screenplay', screenplay, userId))) {
+      return res.status(403).json({ error: viewDeniedMessage('screenplay', screenplay) });
     }
-    res.json(screenplay);
+    res.json({ ...screenplay, ...(await policyFlags(pool, 'screenplay', screenplay, userId)) });
   } catch (err) {
     console.error('[GET /screenplays/:screenplayId] failed:', err);
     res.status(500).json({ error: 'Failed to fetch screenplay' });
@@ -2682,9 +2703,10 @@ app.get('/screenplays/:screenplayId', async (req, res) => {
 });
 
 // Update screenplay metadata
-app.patch('/screenplays/:screenplayId', async (req, res) => {
+app.patch('/screenplays/:screenplayId', requireAuth, async (req, res) => {
   const { screenplayId } = req.params;
   const { title, visibility, published, genre, tags, formatType, description } = req.body ?? {};
+  if (!(await guardScreenplayWrite(req, res, screenplayId, { ownerOnly: true }))) return;
 
   const fields = [];
   const values = [];
@@ -2740,46 +2762,28 @@ app.patch('/screenplays/:screenplayId', async (req, res) => {
   }
 });
 
-// Delete a screenplay and cascade to scenes/blocks
-app.delete('/screenplays/:screenplayId', async (req, res) => {
-  const { screenplayId } = req.params;
-
-  try {
-    const { rowCount } = await pool.query(
-      'DELETE FROM screenplay_title WHERE screenplay_id = $1',
-      [screenplayId],
-    );
-    if (rowCount === 0) {
-      return res.status(404).json({ error: 'Screenplay not found' });
-    }
-    res.status(204).send();
-  } catch (err) {
-    console.error('[DELETE /screenplays/:screenplayId] failed:', err);
-    res.status(500).json({ error: 'Failed to delete screenplay' });
-  }
-});
+// DELETE /screenplays/:id lives in workRoutes.js (owner or platform staff).
 
 // Get scenes + (optionally) blocks for a screenplay
 app.get('/screenplays/:screenplayId/scenes', async (req, res) => {
   const { screenplayId } = req.params;
-  const userId = req.query.userId ?? null;
   const includeBlocks = req.query.includeBlocks === 'true';
 
   try {
-    const titleRes = await pool.query(
-      'SELECT screenplay_id, creator_id, visibility FROM screenplay_title WHERE screenplay_id = $1',
-      [screenplayId],
-    );
-    if (titleRes.rows.length === 0) {
+    const screenplay = await loadWork(pool, 'screenplay', screenplayId);
+    if (!screenplay) {
       return res.status(404).json({ error: 'Screenplay not found' });
     }
-    const access = await checkScreenplayAccess(titleRes.rows[0], userId);
-    if (!access.allowed) {
-      return res.status(403).json({ error: access.message });
+    const userId = await optionalUserId(req);
+    if (!(await canViewWork(pool, 'screenplay', screenplay, userId))) {
+      return res.status(403).json({ error: viewDeniedMessage('screenplay', screenplay) });
     }
+    // Unpublished scenes are drafts: only the team sees them.
+    const team = await isWorkTeam(pool, 'screenplay', screenplay, userId);
 
     const { rows: scenes } = await pool.query(
-      'SELECT * FROM screenplay_scene WHERE screenplay_id = $1 ORDER BY scene_index ASC',
+      `SELECT * FROM screenplay_scene WHERE screenplay_id = $1 ${team ? '' : 'AND published = true'}
+       ORDER BY scene_index ASC`,
       [screenplayId],
     );
 
@@ -2788,7 +2792,10 @@ app.get('/screenplays/:screenplayId/scenes', async (req, res) => {
     }
 
     const { rows: blocks } = await pool.query(
-      'SELECT * FROM screenplay_block WHERE screenplay_id = $1 ORDER BY block_index ASC',
+      `SELECT b.* FROM screenplay_block b
+        WHERE b.screenplay_id = $1
+          ${team ? '' : 'AND (b.scene_id IS NULL OR b.scene_id IN (SELECT scene_id FROM screenplay_scene WHERE screenplay_id = $1 AND published = true))'}
+        ORDER BY b.block_index ASC`,
       [screenplayId],
     );
 
@@ -2800,13 +2807,14 @@ app.get('/screenplays/:screenplayId/scenes', async (req, res) => {
 });
 
 // Create a new scene
-app.post('/screenplays/:screenplayId/scenes', async (req, res) => {
+app.post('/screenplays/:screenplayId/scenes', requireAuth, async (req, res) => {
   const { screenplayId } = req.params;
-  const { sceneIndex, slugline, location, timeOfDay, isInterior, synopsis, userId } = req.body ?? {};
+  const { sceneIndex, slugline, location, timeOfDay, isInterior, synopsis } = req.body ?? {};
 
   if (!slugline) {
     return res.status(400).json({ error: 'slugline is required' });
   }
+  if (!(await guardScreenplayWrite(req, res, screenplayId))) return;
 
   const index = Number.isInteger(sceneIndex) ? sceneIndex : 1;
 
@@ -2815,11 +2823,6 @@ app.post('/screenplays/:screenplayId/scenes', async (req, res) => {
       'INSERT INTO screenplay_scene (screenplay_id, scene_index, slugline, location, time_of_day, is_interior, synopsis) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
       [screenplayId, index, slugline, location || null, timeOfDay || null, isInterior ?? null, synopsis || null],
     );
-
-    // Best-effort: mark this user as a contributor on the screenplay
-    if (userId) {
-      await ensureScreenplayAccessRow(screenplayId, userId, 'contributor');
-    }
 
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -2922,9 +2925,15 @@ async function syncSceneToLinkedSpaceItem(sceneId, user) {
 }
 
 // Update a scene
-app.patch('/screenplay-scenes/:sceneId', async (req, res) => {
+app.patch('/screenplay-scenes/:sceneId', requireAuth, async (req, res) => {
   const { sceneId } = req.params;
-  const { sceneIndex, slugline, location, timeOfDay, isInterior, synopsis, userId } = req.body ?? {};
+  const { sceneIndex, slugline, location, timeOfDay, isInterior, synopsis } = req.body ?? {};
+  const userId = req.user.id;
+  const sceneOwner = await pool.query('SELECT screenplay_id FROM screenplay_scene WHERE scene_id = $1', [sceneId]).catch(() => ({ rows: [] }));
+  if (sceneOwner.rows.length === 0) {
+    return res.status(404).json({ error: 'Scene not found' });
+  }
+  if (!(await guardScreenplayWrite(req, res, sceneOwner.rows[0].screenplay_id))) return;
 
   const fields = [];
   const values = [];
@@ -2979,14 +2988,6 @@ app.patch('/screenplay-scenes/:sceneId', async (req, res) => {
 
     const updated = rows[0];
 
-    // Best-effort: mark this user as a contributor on the screenplay
-    if (userId) {
-      const screenplayId = updated.screenplay_id;
-      if (screenplayId) {
-        await ensureScreenplayAccessRow(screenplayId, userId, 'contributor');
-      }
-    }
-
     // Best-effort: insert screenplay revision row
     if (existing && updated.screenplay_id) {
       try {
@@ -3019,11 +3020,40 @@ app.patch('/screenplay-scenes/:sceneId', async (req, res) => {
   }
 });
 
+// Publish / unpublish a scene (owner-only, like PATCH /chapters/:id/publish).
+// Unpublished scenes are hidden from readers outside the team.
+app.patch('/screenplay-scenes/:sceneId/publish', requireAuth, async (req, res) => {
+  const { sceneId } = req.params;
+  const { published } = req.body ?? {};
+  try {
+    const sceneOwner = await pool.query('SELECT screenplay_id FROM screenplay_scene WHERE scene_id = $1', [sceneId]);
+    if (sceneOwner.rows.length === 0) {
+      return res.status(404).json({ error: 'Scene not found' });
+    }
+    if (!(await guardScreenplayWrite(req, res, sceneOwner.rows[0].screenplay_id, { ownerOnly: true }))) return;
+    const { rows } = await pool.query(
+      'UPDATE screenplay_scene SET published = $1, updated_at = now() WHERE scene_id = $2 RETURNING *',
+      [published !== false, sceneId],
+    );
+    res.json(rows[0]);
+  } catch (err) {
+    console.error('[PATCH /screenplay-scenes/:sceneId/publish] failed:', err);
+    res.status(500).json({ error: 'Failed to update scene' });
+  }
+});
+
 // Delete a scene
-app.delete('/screenplay-scenes/:sceneId', async (req, res) => {
+app.delete('/screenplay-scenes/:sceneId', requireAuth, async (req, res) => {
   const { sceneId } = req.params;
 
   try {
+    const sceneOwner = await pool.query('SELECT screenplay_id FROM screenplay_scene WHERE scene_id = $1', [sceneId]);
+    if (sceneOwner.rows.length === 0) {
+      return res.status(404).json({ error: 'Scene not found' });
+    }
+    // Deleting a scene is owner-only, like deleting a chapter.
+    if (!(await guardScreenplayWrite(req, res, sceneOwner.rows[0].screenplay_id, { ownerOnly: true }))) return;
+
     const { rowCount } = await pool.query(
       'DELETE FROM screenplay_scene WHERE scene_id = $1',
       [sceneId],
@@ -3039,26 +3069,39 @@ app.delete('/screenplay-scenes/:sceneId', async (req, res) => {
 });
 
 // Create a new screenplay block
-app.post('/screenplays/:screenplayId/blocks', async (req, res) => {
+app.post('/screenplays/:screenplayId/blocks', requireAuth, async (req, res) => {
   const { screenplayId } = req.params;
-  const { sceneId, blockIndex, blockType, text, metadata, userId } = req.body ?? {};
+  const { sceneId, blockIndex, blockType, text, metadata, afterBlockId } = req.body ?? {};
+  const userId = req.user.id;
 
   if (!blockType || !text) {
     return res.status(400).json({ error: 'blockType and text are required' });
   }
+  if (!(await guardScreenplayWrite(req, res, screenplayId))) return;
 
-  const index = Number.isInteger(blockIndex) ? blockIndex : 1;
+  let index = Number.isInteger(blockIndex) ? blockIndex : 1;
 
   try {
+    // Inserting after an existing element: take the next position and shift
+    // the scene's later elements down by one.
+    if (afterBlockId && sceneId) {
+      const after = await pool.query(
+        'SELECT block_index FROM screenplay_block WHERE block_id = $1 AND scene_id = $2',
+        [afterBlockId, sceneId],
+      );
+      if (after.rows.length > 0) {
+        index = after.rows[0].block_index + 1;
+        await pool.query(
+          'UPDATE screenplay_block SET block_index = block_index + 1 WHERE scene_id = $1 AND block_index >= $2',
+          [sceneId, index],
+        );
+      }
+    }
+
     const { rows } = await pool.query(
       'INSERT INTO screenplay_block (screenplay_id, scene_id, block_index, block_type, text, metadata) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
       [screenplayId, sceneId || null, index, blockType, text, metadata || null],
     );
-
-    // Best-effort: mark this user as a contributor on the screenplay
-    if (userId) {
-      await ensureScreenplayAccessRow(screenplayId, userId, 'contributor');
-    }
 
     if (sceneId) await syncSceneToLinkedSpaceItem(sceneId, { id: userId || null });
 
@@ -3070,9 +3113,15 @@ app.post('/screenplays/:screenplayId/blocks', async (req, res) => {
 });
 
 // Update a screenplay block
-app.patch('/screenplay-blocks/:blockId', async (req, res) => {
+app.patch('/screenplay-blocks/:blockId', requireAuth, async (req, res) => {
   const { blockId } = req.params;
-  const { sceneId, blockIndex, blockType, text, metadata, userId } = req.body ?? {};
+  const { sceneId, blockIndex, blockType, text, metadata } = req.body ?? {};
+  const userId = req.user.id;
+  const blockOwner = await pool.query('SELECT screenplay_id FROM screenplay_block WHERE block_id = $1', [blockId]).catch(() => ({ rows: [] }));
+  if (blockOwner.rows.length === 0) {
+    return res.status(404).json({ error: 'Block not found' });
+  }
+  if (!(await guardScreenplayWrite(req, res, blockOwner.rows[0].screenplay_id))) return;
 
   const fields = [];
   const values = [];
@@ -3123,14 +3172,6 @@ app.patch('/screenplay-blocks/:blockId', async (req, res) => {
 
     const updated = rows[0];
 
-    // Best-effort: mark this user as a contributor on the screenplay
-    if (userId) {
-      const screenplayId = updated.screenplay_id;
-      if (screenplayId) {
-        await ensureScreenplayAccessRow(screenplayId, userId, 'contributor');
-      }
-    }
-
     // Best-effort: insert screenplay revision row for block change
     if (existing && updated.screenplay_id) {
       try {
@@ -3164,11 +3205,15 @@ app.patch('/screenplay-blocks/:blockId', async (req, res) => {
 });
 
 // Delete a screenplay block
-app.delete('/screenplay-blocks/:blockId', async (req, res) => {
+app.delete('/screenplay-blocks/:blockId', requireAuth, async (req, res) => {
   const { blockId } = req.params;
 
   try {
-    const existingRes = await pool.query('SELECT scene_id FROM screenplay_block WHERE block_id = $1', [blockId]);
+    const existingRes = await pool.query('SELECT scene_id, screenplay_id FROM screenplay_block WHERE block_id = $1', [blockId]);
+    if (existingRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Block not found' });
+    }
+    if (!(await guardScreenplayWrite(req, res, existingRes.rows[0].screenplay_id))) return;
     const sceneId = existingRes.rows[0]?.scene_id || null;
 
     const { rowCount } = await pool.query(
@@ -3179,7 +3224,7 @@ app.delete('/screenplay-blocks/:blockId', async (req, res) => {
       return res.status(404).json({ error: 'Block not found' });
     }
 
-    if (sceneId) await syncSceneToLinkedSpaceItem(sceneId, { id: req.body?.userId || null });
+    if (sceneId) await syncSceneToLinkedSpaceItem(sceneId, { id: req.user.id });
 
     res.status(204).send();
   } catch (err) {
@@ -3289,12 +3334,7 @@ app.post('/screenplays/:screenplayId/sync-desktop', requireAuth, async (req, res
       [newTitle, newFormatType, screenplayId],
     );
 
-    // Capture the scenes/blocks about to be destroyed so a revision trail
-    // can be written below — this sync destroys and recreates every scene
-    // with a fresh scene_id each time, so a scene-scoped revision row would
-    // itself get cascade-deleted on the very next sync (screenplay_revisions.scene_id
-    // is ON DELETE CASCADE). A title-scoped row (scene_id NULL) below survives
-    // that and is what closes this route's previously-zero revision trail.
+    // Previous state, for the title-scoped revision row written below.
     const prevStateRes = await client.query(
       `SELECT sc.scene_index, sc.slugline, sc.location, sc.time_of_day, sc.is_interior, sc.synopsis,
               COALESCE(json_agg(json_build_object('blockType', b.block_type, 'text', b.text) ORDER BY b.block_index)
@@ -3308,10 +3348,31 @@ app.post('/screenplays/:screenplayId/sync-desktop', requireAuth, async (req, res
     );
     const prevScenes = prevStateRes.rows;
 
-    // Replace scenes and blocks in a simple, deterministic way.
-    await client.query('DELETE FROM screenplay_block WHERE screenplay_id = $1', [screenplayId]);
-    await client.query('DELETE FROM screenplay_scene WHERE screenplay_id = $1', [screenplayId]);
-
+    // Update scenes and blocks IN PLACE, so everything attached to them —
+    // element branches, proposals, scene comments/reactions, scene media,
+    // revisions — survives a desktop sync. Rows are matched by the ids the
+    // desktop sends back (sceneId / blocks[].blockId, returned by this route);
+    // payloads without ids (older desktop versions) are matched by position.
+    // Rows the payload no longer contains are deleted.
+    const existingScenesRes = await client.query(
+      'SELECT scene_id FROM screenplay_scene WHERE screenplay_id = $1 ORDER BY scene_index, created_at',
+      [screenplayId],
+    );
+    const existingBlocksRes = await client.query(
+      'SELECT block_id, scene_id, block_type, text FROM screenplay_block WHERE screenplay_id = $1 ORDER BY block_index',
+      [screenplayId],
+    );
+    const existingSceneIds = existingScenesRes.rows.map((r) => r.scene_id);
+    const blocksByScene = new Map(existingSceneIds.map((id) => [id, []]));
+    const blockById = new Map();
+    for (const b of existingBlocksRes.rows) {
+      blockById.set(b.block_id, b);
+      if (blocksByScene.has(b.scene_id)) blocksByScene.get(b.scene_id).push(b);
+    }
+    const payloadHasIds = scenes.some((sc) => sc && typeof sc.sceneId === 'string');
+    const usedScenes = new Set();
+    const usedBlocks = new Set();
+    const syncedScenes = [];
     let nextBlockIndex = 1;
 
     for (let i = 0; i < scenes.length; i += 1) {
@@ -3323,32 +3384,85 @@ app.post('/screenplays/:screenplayId/sync-desktop', requireAuth, async (req, res
           ? scene.slugline.trim()
           : `Scene ${sceneIndex}`;
 
-      const sceneRes = await client.query(
-        'INSERT INTO screenplay_scene (screenplay_id, scene_index, slugline, location, time_of_day, is_interior, synopsis) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING scene_id',
-        [screenplayId, sceneIndex, slugline, null, null, null, null],
-      );
-      const sceneId = sceneRes.rows[0].scene_id;
+      let sceneId = null;
+      if (typeof scene.sceneId === 'string' && blocksByScene.has(scene.sceneId) && !usedScenes.has(scene.sceneId)) {
+        sceneId = scene.sceneId;
+      } else if (!payloadHasIds && existingSceneIds[i] && !usedScenes.has(existingSceneIds[i])) {
+        sceneId = existingSceneIds[i];
+      }
 
-      const paragraphs = Array.isArray(scene.paragraphs) ? scene.paragraphs : [];
-      for (const para of paragraphs) {
-        const text = typeof para === 'string' ? para : '';
-        if (!text.trim()) continue;
+      if (sceneId) {
+        await client.query(
+          'UPDATE screenplay_scene SET scene_index = $1, slugline = $2, updated_at = now() WHERE scene_id = $3',
+          [sceneIndex, slugline, sceneId],
+        );
+      } else {
+        const sceneRes = await client.query(
+          'INSERT INTO screenplay_scene (screenplay_id, scene_index, slugline) VALUES ($1, $2, $3) RETURNING scene_id',
+          [screenplayId, sceneIndex, slugline],
+        );
+        sceneId = sceneRes.rows[0].scene_id;
+      }
+      usedScenes.add(sceneId);
 
+      // blocks: [{ blockId?, text, blockType? }] (current desktop) or
+      // paragraphs: [text] (older desktop).
+      const incoming = Array.isArray(scene.blocks)
+        ? scene.blocks.map((b) => ({ blockId: b?.blockId, text: typeof b?.text === 'string' ? b.text : '', blockType: b?.blockType }))
+        : (Array.isArray(scene.paragraphs) ? scene.paragraphs : []).map((p) => ({ text: typeof p === 'string' ? p : '' }));
+      const sceneExisting = blocksByScene.get(sceneId) ?? [];
+      const syncedBlocks = [];
+      let position = 0;
+      for (const blk of incoming) {
+        if (!blk.text.trim()) continue;
+        let match = null;
+        if (typeof blk.blockId === 'string') {
+          const candidate = blockById.get(blk.blockId);
+          if (candidate && !usedBlocks.has(candidate.block_id)) match = candidate;
+        } else if (!payloadHasIds) {
+          const candidate = sceneExisting[position];
+          if (candidate && !usedBlocks.has(candidate.block_id)) match = candidate;
+        }
+        position += 1;
         const blockIndex = nextBlockIndex;
         nextBlockIndex += 1;
-
-        // Best-effort block type inference based on common screenplay
-        // conventions so that the web UI can render richer element types —
-        // shared with screenplayMarkdown.js's scene<->Space-file sync so
-        // both places agree on what a CHARACTER cue / (parenthetical) /
-        // TRANSITION: / action line looks like.
-        const blockType = inferBlockType(text);
-
-        await client.query(
-          'INSERT INTO screenplay_block (screenplay_id, scene_id, block_index, block_type, text, metadata) VALUES ($1, $2, $3, $4, $5, $6)',
-          [screenplayId, sceneId, blockIndex, blockType, text, null],
-        );
+        // Element type: as sent, else kept when the text is unchanged, else
+        // inferred from screenplay conventions (shared with screenplayMarkdown.js).
+        const blockType =
+          typeof blk.blockType === 'string' && blk.blockType
+            ? blk.blockType
+            : match && match.text === blk.text
+              ? match.block_type
+              : inferBlockType(blk.text);
+        let blockId;
+        if (match) {
+          blockId = match.block_id;
+          await client.query(
+            `UPDATE screenplay_block SET scene_id = $1, block_index = $2, block_type = $3, text = $4, updated_at = now()
+              WHERE block_id = $5`,
+            [sceneId, blockIndex, blockType, blk.text, blockId],
+          );
+        } else {
+          const ins = await client.query(
+            'INSERT INTO screenplay_block (screenplay_id, scene_id, block_index, block_type, text, metadata) VALUES ($1, $2, $3, $4, $5, $6) RETURNING block_id',
+            [screenplayId, sceneId, blockIndex, blockType, blk.text, null],
+          );
+          blockId = ins.rows[0].block_id;
+        }
+        usedBlocks.add(blockId);
+        syncedBlocks.push({ blockId, blockType, text: blk.text });
       }
+      syncedScenes.push({ sceneId, sceneIndex, slugline, blocks: syncedBlocks });
+    }
+
+    // Whatever the desktop no longer has is removed (its branches etc. with it).
+    const staleBlocks = existingBlocksRes.rows.map((b) => b.block_id).filter((id) => !usedBlocks.has(id));
+    if (staleBlocks.length > 0) {
+      await client.query('DELETE FROM screenplay_block WHERE block_id = ANY($1::uuid[])', [staleBlocks]);
+    }
+    const staleScenes = existingSceneIds.filter((id) => !usedScenes.has(id));
+    if (staleScenes.length > 0) {
+      await client.query('DELETE FROM screenplay_scene WHERE scene_id = ANY($1::uuid[])', [staleScenes]);
     }
 
     // Best-effort: record this desktop sync in the revision trail (title-scoped,
@@ -3387,6 +3501,8 @@ app.post('/screenplays/:screenplayId/sync-desktop', requireAuth, async (req, res
       ok: true,
       screenplayId,
       syncedScenes: scenes.length,
+      // Ids to send back on the next sync, so rows are updated in place.
+      scenes: syncedScenes,
     });
   } catch (err) {
     await client.query('ROLLBACK');
@@ -4434,15 +4550,18 @@ app.get('/users/:userId/branches', async (req, res) => {
 
 app.post('/users/:userId/story-status', async (req, res) => {
   const { userId } = req.params;
-  const { contentType, storyTitleId, screenplayId, isFavorite, isLiving, isLived } =
+  const { contentType, storyTitleId, screenplayId, comicId, isFavorite, isLiving, isLived } =
     req.body ?? {};
 
   if (!userId) {
     return res.status(400).json({ error: 'userId is required' });
   }
 
-  if (contentType !== 'story' && contentType !== 'screenplay') {
-    return res.status(400).json({ error: 'contentType must be "story" or "screenplay"' });
+  if (!['story', 'screenplay', 'comic'].includes(contentType)) {
+    return res.status(400).json({ error: 'contentType must be "story", "screenplay" or "comic"' });
+  }
+  if (contentType === 'comic' && !comicId) {
+    return res.status(400).json({ error: 'comicId is required for contentType="comic"' });
   }
 
   if (contentType === 'story' && !storyTitleId) {
@@ -4459,6 +4578,7 @@ app.post('/users/:userId/story-status', async (req, res) => {
       contentType,
       storyTitleId,
       screenplayId,
+      comicId,
       isFavorite,
       isLiving,
       isLived,
@@ -4571,7 +4691,7 @@ async function canViewSpace(space, req, userId) {
   const visibility = String(space.visibility ?? 'private').toLowerCase();
   if (visibility === 'public') return true;
   if (visibility !== 'selected') return false;
-  const viewer = await getSessionUser(req.cookies?.[SESSION_COOKIE_NAME]);
+  const viewer = await getSessionUser(sessionTokenFrom(req));
   if (!viewer) return false;
   const { rowCount } = await pool.query(
     'SELECT 1 FROM creative_space_access WHERE space_id = $1 AND user_id = $2',
@@ -7808,6 +7928,8 @@ app.post('/reactions', async (req, res) => {
     paragraphIndex,
     screenplayId,
     screenplaySceneId,
+    comicId,
+    comicIssueId,
     reactionType,
   } = req.body ?? {};
 
@@ -7817,16 +7939,11 @@ app.post('/reactions', async (req, res) => {
 
   const hasStoryFields = !!storyTitleId || !!chapterId;
   const hasScreenplayFields = !!screenplayId || !!screenplaySceneId;
+  const hasComicFields = !!comicId || !!comicIssueId;
 
-  if (hasStoryFields && hasScreenplayFields) {
+  if ([hasStoryFields, hasScreenplayFields, hasComicFields].filter(Boolean).length !== 1) {
     return res.status(400).json({
-      error: 'Provide either storyTitleId/chapterId or screenplayId/screenplaySceneId, not both',
-    });
-  }
-
-  if (!hasStoryFields && !hasScreenplayFields) {
-    return res.status(400).json({
-      error: 'storyTitleId/chapterId or screenplayId/screenplaySceneId is required',
+      error: 'Provide exactly one of storyTitleId/chapterId, screenplayId/screenplaySceneId or comicId/comicIssueId',
     });
   }
 
@@ -7860,8 +7977,8 @@ app.post('/reactions', async (req, res) => {
       } else {
         // No existing reaction for this user/target -> insert new
         await client.query(
-          `INSERT INTO reactions (user_id, story_title_id, chapter_id, paragraph_index, screenplay_id, screenplay_scene_id, reaction_type)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          `INSERT INTO reactions (user_id, story_title_id, chapter_id, paragraph_index, screenplay_id, screenplay_scene_id, comic_id, comic_issue_id, reaction_type)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
           [
             userId,
             storyTitleId || null,
@@ -7869,6 +7986,8 @@ app.post('/reactions', async (req, res) => {
             paragraphIndex ?? null,
             screenplayId || null,
             screenplaySceneId || null,
+            comicId || null,
+            comicIssueId || null,
             reactionType,
           ],
         );
@@ -7881,6 +8000,15 @@ app.post('/reactions', async (req, res) => {
         'COALESCE(story_title_id::text, \'\') = COALESCE($2::text, \'\') AND COALESCE(chapter_id::text, \'\') = COALESCE($3::text, \'\') AND COALESCE(paragraph_index, -1) = COALESCE($4, -1) AND screenplay_id IS NULL AND screenplay_scene_id IS NULL';
       const whereParams = [storyTitleId || null, chapterId || null, paragraphIndex ?? null];
       await handleToggle(whereSql, whereParams);
+    } else if (hasComicFields) {
+      // Comic / issue reactions: match on comic_id + comic_issue_id
+      if (!comicId) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'comicId is required for comic reactions' });
+      }
+      const whereSql =
+        'COALESCE(comic_id::text, \'\') = COALESCE($2::text, \'\') AND COALESCE(comic_issue_id::text, \'\') = COALESCE($3::text, \'\') AND story_title_id IS NULL AND chapter_id IS NULL AND screenplay_id IS NULL';
+      await handleToggle(whereSql, [comicId || null, comicIssueId || null]);
     } else {
       // Screenplay/scene reactions: match on screenplay_id + screenplay_scene_id
       if (!screenplayId) {
@@ -7908,21 +8036,26 @@ app.post('/reactions', async (req, res) => {
 });
 
 app.get('/reactions', async (req, res) => {
-  const { storyTitleId, chapterId, screenplayId, screenplaySceneId } = req.query;
+  const { storyTitleId, chapterId, screenplayId, screenplaySceneId, comicId, comicIssueId } = req.query;
 
   const hasStory = !!storyTitleId || !!chapterId;
   const hasScreenplay = !!screenplayId || !!screenplaySceneId;
+  const hasComic = !!comicId || !!comicIssueId;
 
-  if ((hasStory && hasScreenplay) || (!hasStory && !hasScreenplay)) {
+  if ([hasStory, hasScreenplay, hasComic].filter(Boolean).length !== 1) {
     return res.status(400).json({
-      error: 'Provide storyTitleId/chapterId or (screenplayId/screenplaySceneId)',
+      error: 'Provide storyTitleId/chapterId, screenplayId/screenplaySceneId or comicId/comicIssueId',
     });
   }
 
   let where = '';
   let param = null;
 
-  if (hasStory) {
+  if (hasComic) {
+    // Comic-level reactions exclude the per-issue ones, like screenplays'.
+    where = comicIssueId ? 'comic_issue_id = $1' : 'comic_id = $1 AND comic_issue_id IS NULL';
+    param = comicIssueId || comicId;
+  } else if (hasStory) {
     if (chapterId) {
       where = 'chapter_id = $1';
       param = chapterId;
@@ -8277,6 +8410,14 @@ app.post('/proposals/:proposalId/approve', requireAuth, async (req, res) => {
       }
       const proposal = propRows[0];
 
+      // Screenplay / comic proposals are applied by workContributions.js.
+      if (!proposal.story_title_id) {
+        await client.query('ROLLBACK');
+        return decideWorkProposal(req, res, proposalId, true, ({ sceneId, userId }) =>
+          syncSceneToLinkedSpaceItem(sceneId, { id: userId }),
+        );
+      }
+
       const role = await getStoryAccessRole(proposal.story_title_id, req.user.id);
       if (role !== 'owner' && !(await isPlatformAdminOrEditor(req.user.id))) {
         await client.query('ROLLBACK');
@@ -8409,6 +8550,9 @@ app.post('/proposals/:proposalId/decline', requireAuth, async (req, res) => {
     if (propRows.length === 0) {
       return res.status(404).json({ error: 'Proposal not found' });
     }
+    if (!propRows[0].story_title_id) {
+      return decideWorkProposal(req, res, proposalId, false);
+    }
     const role = await getStoryAccessRole(propRows[0].story_title_id, req.user.id);
     if (role !== 'owner' && !(await isPlatformAdminOrEditor(req.user.id))) {
       return res.status(403).json({ error: 'Only the story owner may decline proposals' });
@@ -8452,6 +8596,8 @@ app.post('/comments', async (req, res) => {
     screenplayId,
     chapterId,
     screenplaySceneId,
+    comicId,
+    comicIssueId,
     paragraphIndex,
     body,
     parentCommentId,
@@ -8465,20 +8611,29 @@ app.post('/comments', async (req, res) => {
 
   const hasStoryFields = !!storyTitleId || !!chapterId;
   const hasScreenplayFields = !!screenplayId || !!screenplaySceneId;
+  const hasComicFields = !!comicId || !!comicIssueId;
 
-  if (hasStoryFields && hasScreenplayFields) {
+  if ([hasStoryFields, hasScreenplayFields, hasComicFields].filter(Boolean).length !== 1) {
     return res.status(400).json({
-      error: 'Provide either storyTitleId/chapterId or screenplayId/screenplaySceneId, not both',
-    });
-  }
-
-  if (!hasStoryFields && !hasScreenplayFields) {
-    return res.status(400).json({
-      error: 'storyTitleId/chapterId or screenplayId/screenplaySceneId is required',
+      error: 'Provide exactly one of storyTitleId/chapterId, screenplayId/screenplaySceneId or comicId/comicIssueId',
     });
   }
 
   try {
+    // Comic comments (optionally issue-scoped).
+    if (hasComicFields) {
+      if (!comicId) {
+        return res.status(400).json({ error: 'comicId is required for comic comments' });
+      }
+      const { rows } = await pool.query(
+        `INSERT INTO comments (user_id, comic_id, comic_issue_id, body, parent_comment_id)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING *`,
+        [userId, comicId, comicIssueId || null, body, parentCommentId || null],
+      );
+      return res.status(201).json(rows[0]);
+    }
+
     // Story comments (optionally chapter/paragraph scoped)
     if (hasStoryFields) {
       let finalStoryTitleId = storyTitleId || null;
@@ -8551,27 +8706,25 @@ app.post('/comments', async (req, res) => {
 });
 
 app.get('/comments', async (req, res) => {
-  const { storyTitleId, screenplayId, chapterId, screenplaySceneId } = req.query;
+  const { storyTitleId, screenplayId, chapterId, screenplaySceneId, comicId, comicIssueId } = req.query;
 
   const hasStoryFields = !!storyTitleId || !!chapterId;
   const hasScreenplayFields = !!screenplayId || !!screenplaySceneId;
+  const hasComicFields = !!comicId || !!comicIssueId;
 
-  if (hasStoryFields && hasScreenplayFields) {
+  if ([hasStoryFields, hasScreenplayFields, hasComicFields].filter(Boolean).length !== 1) {
     return res.status(400).json({
-      error: 'Provide either storyTitleId/chapterId or screenplayId/screenplaySceneId, not both',
-    });
-  }
-
-  if (!hasStoryFields && !hasScreenplayFields) {
-    return res.status(400).json({
-      error: 'storyTitleId, chapterId, screenplayId, or screenplaySceneId is required',
+      error: 'Provide exactly one of storyTitleId/chapterId, screenplayId/screenplaySceneId or comicId/comicIssueId',
     });
   }
 
   let where = '';
   let params = [];
 
-  if (hasStoryFields) {
+  if (hasComicFields) {
+    where = comicIssueId ? 'comic_issue_id = $1' : 'comic_id = $1 AND comic_issue_id IS NULL';
+    params = [comicIssueId || comicId];
+  } else if (hasStoryFields) {
     if (chapterId) {
       where = 'chapter_id = $1';
       params = [chapterId];
@@ -10570,7 +10723,7 @@ const { repo, wss } = createCrdtRepo({
   authorizeDocAccess: (peerId, documentId, wsAdapter) => authorizeDocAccess(peerId, documentId, wsAdapter, pool),
 });
 crdtRepo = repo;
-attachCrdtWebSocketServer(httpServer, { wss, getSessionUser });
+attachCrdtWebSocketServer(httpServer, { wss, getSessionUser, sessionTokenFrom });
 
 // These three each bulk-load every existing doc of their kind and attach a
 // listener to it — run one after another, not concurrently, so a server

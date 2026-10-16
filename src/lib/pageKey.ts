@@ -13,9 +13,9 @@ const ROUTE_PATTERNS: string[] = [
   "/platform-admin", "/admin", "/support", "/admin/invite-users",
   "/friends", "/communications", "/search",
   "/story/:story_id", "/story/:story_id/chapter/:chapter_id",
-  "/story/:story_id/details", "/screenplay/:screenplay_id",
+  "/story/:story_id/details", "/screenplay/:screenplay_id", "/screenplay/:screenplay_id/scene/:scene_id",
   "/creative_space/:spaceId", "/favorites", "/newest_stories",
-  "/newest_screenplays", "/newest_comics", "/comic/:comic_id",
+  "/newest_screenplays", "/newest_comics", "/comic/:comic_id", "/comic/:comic_id/issue/:issue_id",
   "/living_stories", "/lived_stories", "/alpha",
   "/:username", // catch-all — kept last for readability; matchRoutes ranks by specificity regardless of order
   "*",          // NotFound
@@ -26,6 +26,8 @@ const ROUTE_PATTERNS: string[] = [
 // the same UI text under multiple page_path values.
 const CANONICAL_ALIASES: Record<string, string> = {
   "/story/:story_id/chapter/:chapter_id": "/story/:story_id",
+  "/screenplay/:screenplay_id/scene/:scene_id": "/screenplay/:screenplay_id",
+  "/comic/:comic_id/issue/:issue_id": "/comic/:comic_id",
 };
 
 const ROUTE_OBJECTS: RouteObject[] = ROUTE_PATTERNS.map((path) => ({ path }));

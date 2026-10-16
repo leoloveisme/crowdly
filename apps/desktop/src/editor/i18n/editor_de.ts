@@ -4,6 +4,26 @@
 <context>
     <name>MainWindow</name>
     <message>
+        <source>as .comic file</source>
+        <translation>als .comic-Datei</translation>
+    </message>
+    <message>
+        <source>Save as Comic</source>
+        <translation>Als Comic speichern</translation>
+    </message>
+    <message>
+        <source>Comic files (*.comic);;All files (*)</source>
+        <translation>Comic-Dateien (*.comic);;Alle Dateien (*)</translation>
+    </message>
+    <message>
+        <source>Saved comic to: {path}</source>
+        <translation>Comic gespeichert unter: {path}</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the comic.</source>
+        <translation>Beim Speichern des Comics ist ein unerwarteter Fehler aufgetreten.</translation>
+    </message>
+    <message>
         <source>Edit description</source>
         <translation>Beschreibung bearbeiten</translation>
     </message>
@@ -198,6 +218,82 @@ Eigene Werke, gemeinfreie und Creative-Commons-Bücher öffnen sich als Geschich
     <message>
         <source>Import failed</source>
         <translation>Import fehlgeschlagen</translation>
+    </message>
+    <message>
+        <source>Branch</source>
+        <translation>Zweig</translation>
+    </message>
+    <message>
+        <source>Text layer</source>
+        <translation>Textebene</translation>
+    </message>
+    <message>
+        <source>Page alternative...</source>
+        <translation>Seitenalternative...</translation>
+    </message>
+    <message>
+        <source>Comic sync failed.</source>
+        <translation>Comic-Synchronisierung fehlgeschlagen.</translation>
+    </message>
+    <message>
+        <source>Comic synced to the web.</source>
+        <translation>Comic mit dem Web synchronisiert.</translation>
+    </message>
+    <message>
+        <source>Only the team can change this work directly; you have no changes to suggest.</source>
+        <translation>Nur das Team kann dieses Werk direkt ändern; Sie haben keine Änderungen vorzuschlagen.</translation>
+    </message>
+    <message>
+        <source>Suggest changes</source>
+        <translation>Änderungen vorschlagen</translation>
+    </message>
+    <message>
+        <source>You&apos;re not on this work&apos;s team, so your edits can&apos;t be synced directly.
+
+Send your {count} change(s) to the owner as suggestions?</source>
+        <translation>Sie gehören nicht zum Team dieses Werks, daher können Ihre Änderungen nicht direkt synchronisiert werden.
+
+Ihre {count} Änderung(en) dem Eigentümer als Vorschläge senden?</translation>
+    </message>
+    <message>
+        <source>Sent {count} suggestion(s) to the owner.</source>
+        <translation>{count} Vorschlag/Vorschläge an den Eigentümer gesendet.</translation>
+    </message>
+    <message>
+        <source>{count} branch edit(s) were sent to the owner as suggestions.</source>
+        <translation>{count} Zweigänderung(en) wurden dem Eigentümer als Vorschläge gesendet.</translation>
+    </message>
+    <message>
+        <source>Branches can be added to .story and .screenplay files.</source>
+        <translation>Zweige können zu .story- und .screenplay-Dateien hinzugefügt werden.</translation>
+    </message>
+    <message>
+        <source>Branch name (optional):</source>
+        <translation>Name des Zweigs (optional):</translation>
+    </message>
+    <message>
+        <source>Alternative text</source>
+        <translation>Alternativer Text</translation>
+    </message>
+    <message>
+        <source>Text layers can be added to .comic files.</source>
+        <translation>Textebenen können zu .comic-Dateien hinzugefügt werden.</translation>
+    </message>
+    <message>
+        <source>Speech bubble text</source>
+        <translation>Text der Sprechblase</translation>
+    </message>
+    <message>
+        <source>Page alternative</source>
+        <translation>Seitenalternative</translation>
+    </message>
+    <message>
+        <source>Page alternatives can be added to .comic files.</source>
+        <translation>Seitenalternativen können zu .comic-Dateien hinzugefügt werden.</translation>
+    </message>
+    <message>
+        <source>Name (optional):</source>
+        <translation>Name (optional):</translation>
     </message>
 </context>
 <context>

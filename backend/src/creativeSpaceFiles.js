@@ -17,7 +17,7 @@ import fs from 'fs';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { pool } from './db.js';
-import { getSessionUser, SESSION_COOKIE_NAME } from './sessions.js';
+import { getSessionUser, sessionTokenFrom } from './sessions.js';
 import { scheduleGithubPush } from './githubSync.js';
 import { scheduleGoogleDrivePush } from './googleDriveSync.js';
 
@@ -70,7 +70,7 @@ async function canRead(item, userId, req) {
   const itemVisibility = String(item.visibility || 'private').toLowerCase();
   if (spaceVisibility === 'public') return itemVisibility === 'public';
   if (spaceVisibility !== 'selected') return false;
-  const viewer = await getSessionUser(req.cookies?.[SESSION_COOKIE_NAME]);
+  const viewer = await getSessionUser(sessionTokenFrom(req));
   if (!viewer) return false;
   const { rowCount } = await pool.query(
     'SELECT 1 FROM creative_space_access WHERE space_id = $1 AND user_id = $2',
@@ -192,6 +192,25 @@ router.put('/creative-spaces/:spaceId/items/:itemId/content', async (req, res) =
   } catch (err) {
     console.error('[PUT /creative-spaces/:spaceId/items/:itemId/content] failed:', err);
     res.status(500).json({ error: 'Failed to save file content' });
+  }
+});
+
+// One item's metadata (name, path, kind, mime type) — lets the web app open
+// a file straight from its URL without listing its parent folder first.
+router.get('/creative-spaces/:spaceId/items/:itemId', async (req, res) => {
+  const { spaceId, itemId } = req.params;
+  const userId = req.query.userId ?? null;
+  try {
+    const item = await loadItemWithSpace(spaceId, itemId);
+    if (!item) return res.status(404).json({ error: 'Item not found' });
+    if (!(await canRead(item, userId, req))) {
+      return res.status(403).json({ error: 'You do not have access to this item' });
+    }
+    const { space_owner_id: spaceOwnerId, space_visibility: _spaceVisibility, ...rest } = item;
+    res.json({ ...rest, can_write: canWrite(item, userId), space_owner_id: spaceOwnerId });
+  } catch (err) {
+    console.error('[GET /creative-spaces/:spaceId/items/:itemId] failed:', err);
+    res.status(500).json({ error: 'Failed to load item' });
   }
 });
 

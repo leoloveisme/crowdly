@@ -10,7 +10,6 @@ import { WebSocketServer } from 'ws';
 import { Repo } from '@automerge/automerge-repo';
 import { NodeWSServerAdapter } from '@automerge/automerge-repo-network-websocket';
 import * as Automerge from '@automerge/automerge';
-import { parse as parseCookieHeader } from 'cookie';
 import { PostgresStorageAdapter } from './postgresStorageAdapter.js';
 
 export const CRDT_WS_PATH = '/crdt-sync';
@@ -53,12 +52,11 @@ export function createCrdtRepo({ pool, authorizeDocAccess }) {
 
 /**
  * Wires the CRDT WebSocket upgrade path onto an existing http.Server.
- * Authenticates using the same session cookie the rest of the backend
- * already relies on (see sessions.js) — there is no bearer-token flow in
- * this backend yet, so native/mobile clients will need one added
- * separately (flagged in docs/mobile-crdt-spec.md).
+ * Authenticates with the same session the rest of the backend relies on
+ * (see sessions.js): the session cookie from browsers, or an
+ * `Authorization: Bearer <token>` header from native (mobile) clients.
  */
-export function attachCrdtWebSocketServer(httpServer, { wss, getSessionUser }) {
+export function attachCrdtWebSocketServer(httpServer, { wss, getSessionUser, sessionTokenFrom }) {
   httpServer.on('upgrade', async (req, socket, head) => {
     let pathname;
     try {
@@ -76,8 +74,7 @@ export function attachCrdtWebSocketServer(httpServer, { wss, getSessionUser }) {
 
     let user = null;
     try {
-      const cookies = parseCookieHeader(req.headers.cookie || '');
-      user = await getSessionUser(cookies.crowdly_session);
+      user = await getSessionUser(sessionTokenFrom(req));
     } catch (err) {
       console.error('[crdt] WS auth check failed:', err);
     }

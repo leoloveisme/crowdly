@@ -34,7 +34,13 @@ interface EditableContentContextType {
 
 const EditableContentContext = createContext<EditableContentContextType | undefined>(undefined);
 
-export const EditableContentProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const EditableContentProvider: React.FC<{
+  children: ReactNode;
+  /** Maps the router pathname to a page key. Defaults to the platform's
+   * getPageKey; the standalone web app (apps/web) passes its own so its
+   * pages get distinct `/editor/...` keys. */
+  pageKeyFor?: (pathname: string) => string;
+}> = ({ children, pageKeyFor = getPageKey }) => {
   // Layout content (Header/Footer) is scoped independently of the current
   // page — it's the same on every route — while page content is scoped to
   // the current page's canonical key. Kept as two maps so navigating between
@@ -51,7 +57,7 @@ export const EditableContentProvider: React.FC<{ children: ReactNode }> = ({ chi
 
   // Canonical key for the current page (route pattern, not literal URL) —
   // e.g. "/story/:story_id" regardless of which story is being viewed.
-  const pageKey = useMemo(() => getPageKey(location.pathname), [location.pathname]);
+  const pageKey = useMemo(() => pageKeyFor(location.pathname), [pageKeyFor, location.pathname]);
 
   const contents = useMemo(
     () => ({ ...layoutContents, ...pageContents }),

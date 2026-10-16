@@ -16,7 +16,7 @@ export type SupportStatus =
   | "wont_fix"
   | "duplicate"
   | "closed";
-export type BugArea = "web_platform" | "desktop_app" | "web_editor" | "other";
+export type BugArea = "web_platform" | "desktop_app" | "web_editor" | "android_app" | "other";
 export type BugSeverity = "blocker" | "annoying" | "cosmetic";
 export type BugFrequency = "always" | "sometimes" | "once";
 
@@ -61,7 +61,7 @@ export const BUG_STATUSES: SupportStatus[] = [
   "new", "triaged", "confirmed", "in_progress", "fixed", "released", "wont_fix", "duplicate",
 ];
 export const CATEGORIES: SupportCategory[] = ["account", "stories", "desktop_app", "spaces_sync", "other"];
-export const BUG_AREAS: BugArea[] = ["web_platform", "desktop_app", "web_editor", "other"];
+export const BUG_AREAS: BugArea[] = ["web_platform", "desktop_app", "web_editor", "android_app", "other"];
 export const BUG_SEVERITIES: BugSeverity[] = ["blocker", "annoying", "cosmetic"];
 export const BUG_FREQUENCIES: BugFrequency[] = ["always", "sometimes", "once"];
 

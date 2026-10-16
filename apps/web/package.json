@@ -1,36 +1,14 @@
 {
-  "name": "web-editor",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "crowdly-web-app",
+  "private": true,
+  "version": "2.0.0",
+  "type": "module",
+  "description": "Crowdly web app: the desktop editor in the browser. Shares its toolkit and dependencies with the platform at the repo root (no node_modules of its own; run `npm ci` at the root first).",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "docx": "^9.5.1",
-    "file-saver": "^2.0.5",
-    "html2canvas": "^1.4.1",
-    "jspdf": "^4.1.0",
-    "jszip": "^3.10.1",
-    "mammoth": "^1.11.0",
-    "pdfjs-dist": "^5.4.624",
-    "react": "^19.2.3",
-    "react-dom": "^19.2.3",
-    "turndown": "^7.2.2"
-  },
-  "devDependencies": {
-    "@types/file-saver": "^2.0.7",
-    "@types/react": "^19.2.7",
-    "@types/react-dom": "^19.2.3",
-    "@types/turndown": "^5.0.6",
-    "@vitejs/plugin-react": "^5.1.2",
-    "typescript": "^5.9.3",
-    "vite": "^7.2.7"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test:formats": "node scripts/test-formats.ts"
   }
 }

@@ -1,0 +1,89 @@
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.compose)
+}
+
+// The backend the app talks to until the user picks another one in Settings:
+// the production API host, which proxies everything to the backend
+// (Documentation/Android_app.md). For a local backend:
+//   ./gradlew installDebug -Pcrowdly.server=http://10.0.2.2:4000   (emulator → the Mac)
+val debugServer = (findProperty("crowdly.server") as String?) ?: "https://api.crowdly.cloud"
+val releaseServer = (findProperty("crowdly.releaseServer") as String?) ?: "https://api.crowdly.cloud"
+
+android {
+    namespace = "cloud.crowdly.app"
+    compileSdk = 37
+
+    defaultConfig {
+        applicationId = "cloud.crowdly.app"
+        minSdk = 29
+        targetSdk = 36
+        versionCode = (findProperty("crowdly.versionCode") as String?)?.toInt() ?: 1
+        versionName = (findProperty("crowdly.versionName") as String?) ?: "0.1.0"
+    }
+
+    signingConfigs {
+        // Release signing comes from the environment (GitHub secrets in CI);
+        // without it, release builds stay unsigned.
+        val storeFile = System.getenv("CROWDLY_KEYSTORE")
+        if (storeFile != null) {
+            create("release") {
+                this.storeFile = file(storeFile)
+                storePassword = System.getenv("CROWDLY_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("CROWDLY_KEY_ALIAS")
+                keyPassword = System.getenv("CROWDLY_KEY_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            buildConfigField("String", "DEFAULT_SERVER", "\"$debugServer\"")
+        }
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            buildConfigField("String", "DEFAULT_SERVER", "\"$releaseServer\"")
+            // Signed with the upload key from the environment (CI); for trying a release build
+            // on a phone locally, -Pcrowdly.debugSignRelease signs it with the debug key instead.
+            signingConfigs.findByName("release")?.let { signingConfig = it }
+                ?: if (findProperty("crowdly.debugSignRelease") != null) signingConfig = signingConfigs.getByName("debug") else Unit
+        }
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
+}
+
+dependencies {
+    implementation(project(":core"))
+    val composeBom = platform(libs.androidx.compose.bom)
+    implementation(composeBom)
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons.extended)
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.work.runtime)
+    implementation(libs.androidx.browser)
+    implementation(libs.androidx.documentfile)
+    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.session)
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
+    implementation(libs.okhttp)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlinx.coroutines.core)
+    implementation(libs.kotlinx.coroutines.guava)
+    debugImplementation(libs.androidx.compose.ui.tooling)
+    testImplementation(libs.junit)
+}

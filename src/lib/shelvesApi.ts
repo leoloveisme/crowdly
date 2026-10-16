@@ -5,7 +5,7 @@ import { apiFetch } from "./apiBase";
 
 export type SystemShelfKey = "favorites" | "living" | "lived" | "newest" | "most_active" | "most_popular";
 export type ShelfSort = "manual" | "title" | "added" | "progress" | "last_read";
-export type ShelfItemType = "library_item" | "story" | "screenplay";
+export type ShelfItemType = "library_item" | "story" | "screenplay" | "comic";
 
 export interface ShelfRule {
   field: string;

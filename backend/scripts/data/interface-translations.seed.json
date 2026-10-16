@@ -5302,7 +5302,7 @@
     "page_key": "/comic/:comic_id",
     "element_id": "comic-reader-empty",
     "en": "No pages yet.",
-    "ru": "Страниц пока нет.",
+    "ru": "Пока нет страниц.",
     "de": "Noch keine Seiten."
   },
   {
@@ -7319,7 +7319,7 @@
     "element_id": "screenplay-export-btn",
     "en": "Export",
     "ru": "Экспорт",
-    "de": "Export"
+    "de": "Exportieren"
   },
   {
     "page_key": "/new-story-template",
@@ -7415,9 +7415,9 @@
   {
     "page_key": "/screenplay/:screenplay_id",
     "element_id": "screenplay-no-scenes",
-    "en": "No scenes yet. Use the \"Add scene\" button above to create your first scene.",
-    "ru": "Сцен пока нет. Используйте кнопку «Добавить сцену» выше, чтобы создать первую сцену.",
-    "de": "Noch keine Szenen. Verwende die Schaltfläche „Szene hinzufügen“ oben, um deine erste Szene zu erstellen."
+    "en": "No scenes yet.",
+    "ru": "Пока нет сцен.",
+    "de": "Noch keine Szenen."
   },
   {
     "page_key": "/new-story-template",
@@ -7429,9 +7429,9 @@
   {
     "page_key": "/screenplay/:screenplay_id",
     "element_id": "screenplay-clone-scene",
-    "en": "Clone",
-    "ru": "Клонировать",
-    "de": "Klonen"
+    "en": "Clone scene",
+    "ru": "Клонировать сцену",
+    "de": "Szene klonen"
   },
   {
     "page_key": "/new-story-template",
@@ -10279,8 +10279,8 @@
     "page_key": "/comic/:comic_id",
     "element_id": "comic-reader-reorder-hint",
     "en": "Drag a page thumbnail, or use the arrows under it, to change the page order.",
-    "ru": "Перетащите миниатюру страницы или используйте стрелки под ней, чтобы изменить порядок страниц.",
-    "de": "Ziehe eine Seitenvorschau oder nutze die Pfeile darunter, um die Seitenreihenfolge zu ändern."
+    "ru": "Перетащите миниатюру страницы или используйте стрелки под ней, чтобы изменить порядок.",
+    "de": "Ziehen Sie eine Seitenminiatur oder nutzen Sie die Pfeile darunter, um die Reihenfolge zu ändern."
   },
   {
     "page_key": "/software",
@@ -11009,5 +11009,5780 @@
     "en": "Decline",
     "ru": "Отклонить",
     "de": "Ablehnen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-mode-viewing",
+    "en": "Viewing",
+    "ru": "Просмотр",
+    "de": "Ansehen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-mode-editing",
+    "en": "Editing",
+    "ru": "Редактирование",
+    "de": "Bearbeiten"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-badge-private",
+    "en": "Private",
+    "ru": "Приватный",
+    "de": "Privat"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-badge-unlisted",
+    "en": "Unlisted",
+    "ru": "По ссылке",
+    "de": "Nicht gelistet"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-badge-public",
+    "en": "Public",
+    "ru": "Публичный",
+    "de": "Öffentlich"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-badge-unpublished",
+    "en": "Unpublished",
+    "ru": "Не опубликован",
+    "de": "Unveröffentlicht"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-badge-completed",
+    "en": "Completed",
+    "ru": "Завершён",
+    "de": "Abgeschlossen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-badge-draft",
+    "en": "Draft",
+    "ru": "Черновик",
+    "de": "Entwurf"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-btn",
+    "en": "Settings",
+    "ru": "Настройки",
+    "de": "Einstellungen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-mark-finished-btn",
+    "en": "Mark as finished",
+    "ru": "Отметить как прочитанное",
+    "de": "Als beendet markieren"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-clone-btn",
+    "en": "Clone",
+    "ru": "Клонировать",
+    "de": "Klonen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-delete-btn",
+    "en": "Delete Screenplay",
+    "ru": "Удалить сценарий",
+    "de": "Drehbuch löschen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-title",
+    "en": "Screenplay settings",
+    "ru": "Настройки: сценарий",
+    "de": "Drehbuch-Einstellungen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-desc",
+    "en": "Only you, as the screenplay owner, can change these.",
+    "ru": "Изменять это можете только вы как владелец.",
+    "de": "Nur Sie als Eigentümer können dies ändern."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-publishing",
+    "en": "Publishing",
+    "ru": "Публикация",
+    "de": "Veröffentlichung"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-visibility",
+    "en": "Visibility",
+    "ru": "Видимость",
+    "de": "Sichtbarkeit"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-viewers",
+    "en": "Viewers",
+    "ru": "Читатели",
+    "de": "Leser"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-published",
+    "en": "Published in listings",
+    "ru": "Показывать в списках",
+    "de": "In Listen veröffentlicht"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-completed",
+    "en": "Screenplay is completed",
+    "ru": "Работа завершена",
+    "de": "Drehbuch ist abgeschlossen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-permissions",
+    "en": "Permissions",
+    "ru": "Разрешения",
+    "de": "Berechtigungen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-clone",
+    "en": "Who can clone",
+    "ru": "Кто может клонировать",
+    "de": "Wer darf klonen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-cloners",
+    "en": "Cloners",
+    "ru": "Кто клонирует",
+    "de": "Kloner"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-export",
+    "en": "Who can export",
+    "ru": "Кто может экспортировать",
+    "de": "Wer darf exportieren"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-exporters",
+    "en": "Exporters",
+    "ru": "Кто экспортирует",
+    "de": "Exporteure"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-translate",
+    "en": "Who can translate",
+    "ru": "Кто может переводить",
+    "de": "Wer darf übersetzen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-translators",
+    "en": "Translators",
+    "ru": "Переводчики",
+    "de": "Übersetzer"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-narrate",
+    "en": "Who can narrate",
+    "ru": "Кто может озвучивать",
+    "de": "Wer darf vorlesen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-narrators",
+    "en": "Narrators",
+    "ru": "Чтецы",
+    "de": "Sprecher"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-details",
+    "en": "Details",
+    "ru": "Подробности",
+    "de": "Details"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-description-label",
+    "en": "Description",
+    "ru": "Описание",
+    "de": "Beschreibung"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-tags-label",
+    "en": "Tags",
+    "ru": "Теги",
+    "de": "Tags"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-collaborators-label",
+    "en": "Collaborators",
+    "ru": "Соавторы",
+    "de": "Mitwirkende"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-danger",
+    "en": "Danger zone",
+    "ru": "Опасная зона",
+    "de": "Gefahrenbereich"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-delete-confirm-title",
+    "en": "Permanently delete this screenplay?",
+    "ru": "Удалить навсегда?",
+    "de": "Endgültig löschen?"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-delete-confirm-desc",
+    "en": "All of its content, revisions and comments will be removed. This cannot be undone.",
+    "ru": "Всё содержимое, ревизии и комментарии будут удалены. Это нельзя отменить.",
+    "de": "Alle Inhalte, Revisionen und Kommentare werden entfernt. Das kann nicht rückgängig gemacht werden."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-dialog-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-transfer-ownership-label",
+    "en": "Transfer ownership to",
+    "ru": "Передать права владельца",
+    "de": "Eigentum übertragen an"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-transfer-btn",
+    "en": "Transfer",
+    "ru": "Передать",
+    "de": "Übertragen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-transfer-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-authors-label",
+    "en": "Authors",
+    "ru": "Авторы",
+    "de": "Autoren"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-coauthors-label",
+    "en": "Co-authors",
+    "ru": "Соавторы",
+    "de": "Co-Autoren"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-team-label",
+    "en": "Team (can edit directly)",
+    "ru": "Команда (может редактировать напрямую)",
+    "de": "Team (kann direkt bearbeiten)"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-team-invite-btn",
+    "en": "Invite",
+    "ru": "Пригласить",
+    "de": "Einladen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-collab-requests-title",
+    "en": "Requests to collaborate on this screenplay",
+    "ru": "Запросы на участие в работе",
+    "de": "Anfragen zur Mitarbeit"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-contribute-btn",
+    "en": "I want to contribute to the screenplay",
+    "ru": "Я хочу внести свой вклад",
+    "de": "Ich möchte beitragen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-contribute-suggest-desc",
+    "en": "Suggest changes right on the page. The owner reviews each suggestion.",
+    "ru": "Предлагайте изменения прямо на странице. Владелец рассмотрит каждое предложение.",
+    "de": "Schlagen Sie Änderungen direkt auf der Seite vor. Der Eigentümer prüft jeden Vorschlag."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-contribute-suggest-btn",
+    "en": "Suggest changes",
+    "ru": "Предложить изменения",
+    "de": "Änderungen vorschlagen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-contribute-ask-title",
+    "en": "Ask to join the team",
+    "ru": "Попросить о вступлении в команду",
+    "de": "Um Aufnahme ins Team bitten"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-contribute-pending",
+    "en": "Your request is waiting for the owner's answer.",
+    "ru": "Ваш запрос ждёт ответа владельца.",
+    "de": "Ihre Anfrage wartet auf die Antwort des Eigentümers."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-contribute-declined",
+    "en": "The owner declined your last request. You can ask again.",
+    "ru": "Владелец отклонил ваш последний запрос. Можно попросить снова.",
+    "de": "Der Eigentümer hat Ihre letzte Anfrage abgelehnt. Sie können erneut fragen."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-contribute-ask-btn",
+    "en": "Send request",
+    "ru": "Отправить запрос",
+    "de": "Anfrage senden"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-contribute-close",
+    "en": "Close",
+    "ru": "Закрыть",
+    "de": "Schließen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-contributors-loading",
+    "en": "Loading contributors...",
+    "ru": "Загрузка участников...",
+    "de": "Mitwirkende werden geladen..."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-contributors-empty",
+    "en": "No contributors yet.",
+    "ru": "Пока нет участников.",
+    "de": "Noch keine Mitwirkenden."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-role-creator",
+    "en": "Creator",
+    "ru": "Создатель",
+    "de": "Ersteller"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-role-owner",
+    "en": "Owner",
+    "ru": "Владелец",
+    "de": "Eigentümer"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-role-contributor",
+    "en": "Contributor",
+    "ru": "Участник",
+    "de": "Mitwirkender"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-role-author",
+    "en": "Author",
+    "ru": "Автор",
+    "de": "Autor"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-role-coauthor",
+    "en": "Co-author",
+    "ru": "Соавтор",
+    "de": "Co-Autor"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-cover-add",
+    "en": "Add cover",
+    "ru": "Добавить обложку",
+    "de": "Cover hinzufügen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-sidebar-heading",
+    "en": "Scenes",
+    "ru": "Сцены",
+    "de": "Szenen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-sidebar-view",
+    "en": "View",
+    "ru": "Просмотр",
+    "de": "Ansicht"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-sidebar-edit",
+    "en": "Edit",
+    "ru": "Правка",
+    "de": "Bearbeiten"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-sidebar-empty",
+    "en": "No scenes yet.",
+    "ru": "Пока нет: сцены.",
+    "de": "Noch keine Szenen."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-sidebar-untitled",
+    "en": "Untitled scene",
+    "ru": "Без названия",
+    "de": "Unbenannte Szene"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-sidebar-rename",
+    "en": "Rename",
+    "ru": "Переименовать",
+    "de": "Umbenennen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-sidebar-insert-after",
+    "en": "Insert scene after",
+    "ru": "Вставить после",
+    "de": "Szene danach einfügen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-sidebar-publish",
+    "en": "Publish scene",
+    "ru": "Опубликовать",
+    "de": "Szene veröffentlichen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-sidebar-unpublish",
+    "en": "Unpublish scene",
+    "ru": "Снять с публикации",
+    "de": "Szene zurückziehen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-sidebar-delete",
+    "en": "Delete",
+    "ru": "Удалить",
+    "de": "Löschen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-sidebar-add",
+    "en": "+ Add scene",
+    "ru": "+ Добавить: сцена",
+    "de": "+ Szene hinzufügen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-sidebar-reorder-hint",
+    "en": "Drag the handle or use the ⋯ menu to reorder. Double-click a title to rename.",
+    "ru": "Перетаскивайте за ручку или используйте меню ⋯. Двойной щелчок по названию — переименовать.",
+    "de": "Ziehen Sie am Griff oder nutzen Sie das ⋯-Menü. Doppelklick auf einen Titel zum Umbenennen."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-sidebar-delete-title",
+    "en": "Delete this scene?",
+    "ru": "Удалить?",
+    "de": "Diese Szene löschen?"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-sidebar-delete-desc",
+    "en": "This cannot be undone.",
+    "ru": "Это нельзя отменить.",
+    "de": "Das kann nicht rückgängig gemacht werden."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-sidebar-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "story-sidebar-move-top",
+    "en": "Move to top",
+    "ru": "Переместить в начало",
+    "de": "Nach ganz oben"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "story-sidebar-move-up",
+    "en": "Move up",
+    "ru": "Переместить выше",
+    "de": "Nach oben"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "story-sidebar-move-down",
+    "en": "Move down",
+    "ru": "Переместить ниже",
+    "de": "Nach unten"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "story-sidebar-move-bottom",
+    "en": "Move to bottom",
+    "ru": "Переместить в конец",
+    "de": "Nach ganz unten"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "story-collab-approve",
+    "en": "Invite as collaborator",
+    "ru": "Пригласить в соавторы",
+    "de": "Als Mitwirkenden einladen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "story-collab-decline",
+    "en": "Decline",
+    "ru": "Отклонить",
+    "de": "Ablehnen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-mode-viewing",
+    "en": "Viewing",
+    "ru": "Просмотр",
+    "de": "Ansehen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-mode-editing",
+    "en": "Editing",
+    "ru": "Редактирование",
+    "de": "Bearbeiten"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-badge-private",
+    "en": "Private",
+    "ru": "Приватный",
+    "de": "Privat"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-badge-unlisted",
+    "en": "Unlisted",
+    "ru": "По ссылке",
+    "de": "Nicht gelistet"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-badge-public",
+    "en": "Public",
+    "ru": "Публичный",
+    "de": "Öffentlich"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-badge-unpublished",
+    "en": "Unpublished",
+    "ru": "Не опубликован",
+    "de": "Unveröffentlicht"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-badge-completed",
+    "en": "Completed",
+    "ru": "Завершён",
+    "de": "Abgeschlossen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-badge-draft",
+    "en": "Draft",
+    "ru": "Черновик",
+    "de": "Entwurf"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-btn",
+    "en": "Settings",
+    "ru": "Настройки",
+    "de": "Einstellungen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-mark-finished-btn",
+    "en": "Mark as finished",
+    "ru": "Отметить как прочитанное",
+    "de": "Als beendet markieren"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-clone-btn",
+    "en": "Clone",
+    "ru": "Клонировать",
+    "de": "Klonen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-export-btn",
+    "en": "Export",
+    "ru": "Экспорт",
+    "de": "Exportieren"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-delete-btn",
+    "en": "Delete Comic",
+    "ru": "Удалить комикс",
+    "de": "Comic löschen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-title",
+    "en": "Comic settings",
+    "ru": "Настройки: комикс",
+    "de": "Comic-Einstellungen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-desc",
+    "en": "Only you, as the comic owner, can change these.",
+    "ru": "Изменять это можете только вы как владелец.",
+    "de": "Nur Sie als Eigentümer können dies ändern."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-publishing",
+    "en": "Publishing",
+    "ru": "Публикация",
+    "de": "Veröffentlichung"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-visibility",
+    "en": "Visibility",
+    "ru": "Видимость",
+    "de": "Sichtbarkeit"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-viewers",
+    "en": "Viewers",
+    "ru": "Читатели",
+    "de": "Leser"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-published",
+    "en": "Published in listings",
+    "ru": "Показывать в списках",
+    "de": "In Listen veröffentlicht"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-completed",
+    "en": "Comic is completed",
+    "ru": "Работа завершена",
+    "de": "Comic ist abgeschlossen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-permissions",
+    "en": "Permissions",
+    "ru": "Разрешения",
+    "de": "Berechtigungen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-clone",
+    "en": "Who can clone",
+    "ru": "Кто может клонировать",
+    "de": "Wer darf klonen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-cloners",
+    "en": "Cloners",
+    "ru": "Кто клонирует",
+    "de": "Kloner"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-export",
+    "en": "Who can export",
+    "ru": "Кто может экспортировать",
+    "de": "Wer darf exportieren"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-exporters",
+    "en": "Exporters",
+    "ru": "Кто экспортирует",
+    "de": "Exporteure"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-translate",
+    "en": "Who can translate",
+    "ru": "Кто может переводить",
+    "de": "Wer darf übersetzen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-translators",
+    "en": "Translators",
+    "ru": "Переводчики",
+    "de": "Übersetzer"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-narrate",
+    "en": "Who can narrate",
+    "ru": "Кто может озвучивать",
+    "de": "Wer darf vorlesen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-narrators",
+    "en": "Narrators",
+    "ru": "Чтецы",
+    "de": "Sprecher"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-details",
+    "en": "Details",
+    "ru": "Подробности",
+    "de": "Details"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-description-label",
+    "en": "Description",
+    "ru": "Описание",
+    "de": "Beschreibung"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-tags-label",
+    "en": "Tags",
+    "ru": "Теги",
+    "de": "Tags"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-collaborators-label",
+    "en": "Collaborators",
+    "ru": "Соавторы",
+    "de": "Mitwirkende"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-danger",
+    "en": "Danger zone",
+    "ru": "Опасная зона",
+    "de": "Gefahrenbereich"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-delete-confirm-title",
+    "en": "Permanently delete this comic?",
+    "ru": "Удалить навсегда?",
+    "de": "Endgültig löschen?"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-delete-confirm-desc",
+    "en": "All of its content, revisions and comments will be removed. This cannot be undone.",
+    "ru": "Всё содержимое, ревизии и комментарии будут удалены. Это нельзя отменить.",
+    "de": "Alle Inhalte, Revisionen und Kommentare werden entfernt. Das kann nicht rückgängig gemacht werden."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-dialog-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-transfer-ownership-label",
+    "en": "Transfer ownership to",
+    "ru": "Передать права владельца",
+    "de": "Eigentum übertragen an"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-transfer-btn",
+    "en": "Transfer",
+    "ru": "Передать",
+    "de": "Übertragen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-transfer-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-authors-label",
+    "en": "Authors",
+    "ru": "Авторы",
+    "de": "Autoren"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-coauthors-label",
+    "en": "Co-authors",
+    "ru": "Соавторы",
+    "de": "Co-Autoren"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-team-label",
+    "en": "Team (can edit directly)",
+    "ru": "Команда (может редактировать напрямую)",
+    "de": "Team (kann direkt bearbeiten)"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-team-invite-btn",
+    "en": "Invite",
+    "ru": "Пригласить",
+    "de": "Einladen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-collab-requests-title",
+    "en": "Requests to collaborate on this comic",
+    "ru": "Запросы на участие в работе",
+    "de": "Anfragen zur Mitarbeit"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-contribute-btn",
+    "en": "I want to contribute to the comic",
+    "ru": "Я хочу внести свой вклад",
+    "de": "Ich möchte beitragen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-contribute-suggest-desc",
+    "en": "Suggest changes right on the page. The owner reviews each suggestion.",
+    "ru": "Предлагайте изменения прямо на странице. Владелец рассмотрит каждое предложение.",
+    "de": "Schlagen Sie Änderungen direkt auf der Seite vor. Der Eigentümer prüft jeden Vorschlag."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-contribute-suggest-btn",
+    "en": "Suggest changes",
+    "ru": "Предложить изменения",
+    "de": "Änderungen vorschlagen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-contribute-ask-title",
+    "en": "Ask to join the team",
+    "ru": "Попросить о вступлении в команду",
+    "de": "Um Aufnahme ins Team bitten"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-contribute-pending",
+    "en": "Your request is waiting for the owner's answer.",
+    "ru": "Ваш запрос ждёт ответа владельца.",
+    "de": "Ihre Anfrage wartet auf die Antwort des Eigentümers."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-contribute-declined",
+    "en": "The owner declined your last request. You can ask again.",
+    "ru": "Владелец отклонил ваш последний запрос. Можно попросить снова.",
+    "de": "Der Eigentümer hat Ihre letzte Anfrage abgelehnt. Sie können erneut fragen."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-contribute-ask-btn",
+    "en": "Send request",
+    "ru": "Отправить запрос",
+    "de": "Anfrage senden"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-contribute-close",
+    "en": "Close",
+    "ru": "Закрыть",
+    "de": "Schließen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-contributors-loading",
+    "en": "Loading contributors...",
+    "ru": "Загрузка участников...",
+    "de": "Mitwirkende werden geladen..."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-contributors-empty",
+    "en": "No contributors yet.",
+    "ru": "Пока нет участников.",
+    "de": "Noch keine Mitwirkenden."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-role-creator",
+    "en": "Creator",
+    "ru": "Создатель",
+    "de": "Ersteller"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-role-owner",
+    "en": "Owner",
+    "ru": "Владелец",
+    "de": "Eigentümer"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-role-contributor",
+    "en": "Contributor",
+    "ru": "Участник",
+    "de": "Mitwirkender"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-role-author",
+    "en": "Author",
+    "ru": "Автор",
+    "de": "Autor"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-role-coauthor",
+    "en": "Co-author",
+    "ru": "Соавтор",
+    "de": "Co-Autor"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-cover-add",
+    "en": "Add cover",
+    "ru": "Добавить обложку",
+    "de": "Cover hinzufügen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-sidebar-heading",
+    "en": "Issues",
+    "ru": "Выпуски",
+    "de": "Ausgaben"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-sidebar-view",
+    "en": "View",
+    "ru": "Просмотр",
+    "de": "Ansicht"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-sidebar-edit",
+    "en": "Edit",
+    "ru": "Правка",
+    "de": "Bearbeiten"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-sidebar-empty",
+    "en": "No issues yet.",
+    "ru": "Пока нет: выпуски.",
+    "de": "Noch keine Ausgaben."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-sidebar-untitled",
+    "en": "Untitled issue",
+    "ru": "Без названия",
+    "de": "Unbenannte Ausgabe"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-sidebar-rename",
+    "en": "Rename",
+    "ru": "Переименовать",
+    "de": "Umbenennen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-sidebar-insert-after",
+    "en": "Insert issue after",
+    "ru": "Вставить после",
+    "de": "Ausgabe danach einfügen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-sidebar-publish",
+    "en": "Publish issue",
+    "ru": "Опубликовать",
+    "de": "Ausgabe veröffentlichen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-sidebar-unpublish",
+    "en": "Unpublish issue",
+    "ru": "Снять с публикации",
+    "de": "Ausgabe zurückziehen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-sidebar-delete",
+    "en": "Delete",
+    "ru": "Удалить",
+    "de": "Löschen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-sidebar-add",
+    "en": "+ Add issue",
+    "ru": "+ Добавить: выпуск",
+    "de": "+ Ausgabe hinzufügen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-sidebar-reorder-hint",
+    "en": "Drag the handle or use the ⋯ menu to reorder. Double-click a title to rename.",
+    "ru": "Перетаскивайте за ручку или используйте меню ⋯. Двойной щелчок по названию — переименовать.",
+    "de": "Ziehen Sie am Griff oder nutzen Sie das ⋯-Menü. Doppelklick auf einen Titel zum Umbenennen."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-sidebar-delete-title",
+    "en": "Delete this issue?",
+    "ru": "Удалить?",
+    "de": "Diese Ausgabe löschen?"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-sidebar-delete-desc",
+    "en": "This cannot be undone.",
+    "ru": "Это нельзя отменить.",
+    "de": "Das kann nicht rückgängig gemacht werden."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-sidebar-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "story-sidebar-move-top",
+    "en": "Move to top",
+    "ru": "Переместить в начало",
+    "de": "Nach ganz oben"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "story-sidebar-move-up",
+    "en": "Move up",
+    "ru": "Переместить выше",
+    "de": "Nach oben"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "story-sidebar-move-down",
+    "en": "Move down",
+    "ru": "Переместить ниже",
+    "de": "Nach unten"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "story-sidebar-move-bottom",
+    "en": "Move to bottom",
+    "ru": "Переместить в конец",
+    "de": "Nach ganz unten"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "story-collab-approve",
+    "en": "Invite as collaborator",
+    "ru": "Пригласить в соавторы",
+    "de": "Als Mitwirkenden einladen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "story-collab-decline",
+    "en": "Decline",
+    "ru": "Отклонить",
+    "de": "Ablehnen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-tab-screenplay",
+    "en": "Screenplay",
+    "ru": "Сценарий",
+    "de": "Drehbuch"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-tab-contributors",
+    "en": "Contributors",
+    "ru": "Участники",
+    "de": "Mitwirkende"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-tab-revisions",
+    "en": "Revisions",
+    "ru": "Ревизии",
+    "de": "Revisionen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-untitled-scene",
+    "en": "Untitled scene",
+    "ru": "Сцена без названия",
+    "de": "Unbenannte Szene"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-scene-prev",
+    "en": "Previous",
+    "ru": "Назад",
+    "de": "Zurück"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-scene-next",
+    "en": "Next",
+    "ru": "Далее",
+    "de": "Weiter"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-scene-of-label",
+    "en": "Scene",
+    "ru": "Сцена",
+    "de": "Szene"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-scene-empty",
+    "en": "This scene is empty.",
+    "ru": "Эта сцена пуста.",
+    "de": "Diese Szene ist leer."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-scene-label",
+    "en": "Scene",
+    "ru": "Сцена",
+    "de": "Szene"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-settings-format",
+    "en": "Format",
+    "ru": "Формат",
+    "de": "Format"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-tab-comic",
+    "en": "Comic",
+    "ru": "Комикс",
+    "de": "Comic"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-tab-contributors",
+    "en": "Contributors",
+    "ru": "Участники",
+    "de": "Mitwirkende"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-no-issues",
+    "en": "No issues yet.",
+    "ru": "Пока нет выпусков.",
+    "de": "Noch keine Ausgaben."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-issue-prev",
+    "en": "Previous issue",
+    "ru": "Предыдущий выпуск",
+    "de": "Vorherige Ausgabe"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-issue-next",
+    "en": "Next issue",
+    "ru": "Следующий выпуск",
+    "de": "Nächste Ausgabe"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-settings-direction",
+    "en": "Reading direction",
+    "ru": "Направление чтения",
+    "de": "Leserichtung"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-export-title",
+    "en": "Export comic",
+    "ru": "Экспорт комикса",
+    "de": "Comic exportieren"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-export-desc",
+    "en": "All published pages, issue by issue, in reading order.",
+    "ru": "Все опубликованные страницы по выпускам в порядке чтения.",
+    "de": "Alle veröffentlichten Seiten, Ausgabe für Ausgabe, in Lesereihenfolge."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-export-pdf",
+    "en": "PDF",
+    "ru": "PDF",
+    "de": "PDF"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-export-cbz",
+    "en": "Comic book archive (CBZ)",
+    "ru": "Архив комикса (CBZ)",
+    "de": "Comic-Archiv (CBZ)"
+  },
+  {
+    "page_key": "/new-story-template",
+    "element_id": "screenplay-format-label",
+    "en": "Format",
+    "ru": "Формат",
+    "de": "Format"
+  },
+  {
+    "page_key": "/shelves",
+    "element_id": "shelves-value-comic",
+    "en": "Comic",
+    "ru": "Комикс",
+    "de": "Comic"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-proposals-pending-title",
+    "en": "Suggestions waiting for your review",
+    "ru": "Предложения ждут вашего решения",
+    "de": "Vorschläge warten auf Ihre Prüfung"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-proposal-merge",
+    "en": "OK & merge",
+    "ru": "Принять и объединить",
+    "de": "OK & übernehmen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-proposal-deny",
+    "en": "Deny",
+    "ru": "Отклонить",
+    "de": "Ablehnen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-contributions-heading",
+    "en": "Contributions",
+    "ru": "Вклад",
+    "de": "Beiträge"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-target-title",
+    "en": "Title",
+    "ru": "Название",
+    "de": "Titel"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-target-scene",
+    "en": "Scene heading",
+    "ru": "Заголовок сцены",
+    "de": "Szenenüberschrift"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-target-block",
+    "en": "Element",
+    "ru": "Элемент",
+    "de": "Element"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-target-branch",
+    "en": "Branch",
+    "ru": "Ветка",
+    "de": "Zweig"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-target-issue",
+    "en": "Issue title",
+    "ru": "Название выпуска",
+    "de": "Ausgabentitel"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-target-page-layer",
+    "en": "Page text",
+    "ru": "Текст страницы",
+    "de": "Seitentext"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "filter-total",
+    "en": "total",
+    "ru": "всего",
+    "de": "gesamt"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "filter-approved",
+    "en": "approved",
+    "ru": "принято",
+    "de": "angenommen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "filter-denied",
+    "en": "denied",
+    "ru": "отклонено",
+    "de": "abgelehnt"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "filter-undecided",
+    "en": "undecided",
+    "ru": "не решено",
+    "de": "offen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "contrib-user-heading",
+    "en": "User",
+    "ru": "Пользователь",
+    "de": "Benutzer"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "contrib-date-heading",
+    "en": "Date",
+    "ru": "Дата",
+    "de": "Datum"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "contrib-words-heading",
+    "en": "Words",
+    "ru": "Слова",
+    "de": "Wörter"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "contrib-likes-heading",
+    "en": "Likes",
+    "ru": "Лайки",
+    "de": "Likes"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "contrib-dislikes-heading",
+    "en": "Dislikes",
+    "ru": "Дизлайки",
+    "de": "Dislikes"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "contrib-comments-heading",
+    "en": "Comments",
+    "ru": "Комментарии",
+    "de": "Kommentare"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-proposals-pending-title",
+    "en": "Suggestions waiting for your review",
+    "ru": "Предложения ждут вашего решения",
+    "de": "Vorschläge warten auf Ihre Prüfung"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-proposal-merge",
+    "en": "OK & merge",
+    "ru": "Принять и объединить",
+    "de": "OK & übernehmen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-proposal-deny",
+    "en": "Deny",
+    "ru": "Отклонить",
+    "de": "Ablehnen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-contributions-heading",
+    "en": "Contributions",
+    "ru": "Вклад",
+    "de": "Beiträge"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-target-title",
+    "en": "Title",
+    "ru": "Название",
+    "de": "Titel"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-target-scene",
+    "en": "Scene heading",
+    "ru": "Заголовок сцены",
+    "de": "Szenenüberschrift"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-target-block",
+    "en": "Element",
+    "ru": "Элемент",
+    "de": "Element"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-target-branch",
+    "en": "Branch",
+    "ru": "Ветка",
+    "de": "Zweig"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-target-issue",
+    "en": "Issue title",
+    "ru": "Название выпуска",
+    "de": "Ausgabentitel"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-target-page-layer",
+    "en": "Page text",
+    "ru": "Текст страницы",
+    "de": "Seitentext"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "filter-total",
+    "en": "total",
+    "ru": "всего",
+    "de": "gesamt"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "filter-approved",
+    "en": "approved",
+    "ru": "принято",
+    "de": "angenommen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "filter-denied",
+    "en": "denied",
+    "ru": "отклонено",
+    "de": "abgelehnt"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "filter-undecided",
+    "en": "undecided",
+    "ru": "не решено",
+    "de": "offen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "contrib-user-heading",
+    "en": "User",
+    "ru": "Пользователь",
+    "de": "Benutzer"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "contrib-date-heading",
+    "en": "Date",
+    "ru": "Дата",
+    "de": "Datum"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "contrib-words-heading",
+    "en": "Words",
+    "ru": "Слова",
+    "de": "Wörter"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "contrib-likes-heading",
+    "en": "Likes",
+    "ru": "Лайки",
+    "de": "Likes"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "contrib-dislikes-heading",
+    "en": "Dislikes",
+    "ru": "Дизлайки",
+    "de": "Dislikes"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "contrib-comments-heading",
+    "en": "Comments",
+    "ru": "Комментарии",
+    "de": "Kommentare"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-contrib-story-title-heading",
+    "en": "Screenplay",
+    "ru": "Сценарий",
+    "de": "Drehbuch"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-contrib-chapter-title-heading",
+    "en": "Scene",
+    "ru": "Сцена",
+    "de": "Szene"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-contrib-paragraph-heading",
+    "en": "Suggestion",
+    "ru": "Предложение",
+    "de": "Vorschlag"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-tab-contributions",
+    "en": "Contributions",
+    "ru": "Вклад",
+    "de": "Beiträge"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-tab-branches",
+    "en": "Branches",
+    "ru": "Ветки",
+    "de": "Zweige"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-suggested-label",
+    "en": "Suggested",
+    "ru": "Предложено",
+    "de": "Vorgeschlagen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-suggest-banner",
+    "en": "You're suggesting changes: each edit is sent to the owner for review.",
+    "ru": "Вы предлагаете изменения: каждая правка отправляется владельцу на рассмотрение.",
+    "de": "Sie schlagen Änderungen vor: Jede Bearbeitung geht zur Prüfung an den Eigentümer."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-branches-count",
+    "en": "alternatives",
+    "ru": "вариантов",
+    "de": "Alternativen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-branch-add",
+    "en": "Add",
+    "ru": "Добавить",
+    "de": "Hinzufügen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-branch-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-branch-create",
+    "en": "Create branch",
+    "ru": "Создать ветку",
+    "de": "Zweig erstellen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-branches-empty",
+    "en": "No branches yet. In Editing mode, use \"Create branch\" under an element to write an alternative.",
+    "ru": "Веток пока нет. В режиме редактирования нажмите «Создать ветку» под элементом, чтобы написать вариант.",
+    "de": "Noch keine Zweige. Nutzen Sie im Bearbeitungsmodus „Zweig erstellen“ unter einem Element, um eine Alternative zu schreiben."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-contrib-story-title-heading",
+    "en": "Comic",
+    "ru": "Комикс",
+    "de": "Comic"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-contrib-chapter-title-heading",
+    "en": "Issue",
+    "ru": "Выпуск",
+    "de": "Ausgabe"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-contrib-paragraph-heading",
+    "en": "Suggestion",
+    "ru": "Предложение",
+    "de": "Vorschlag"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-tab-contributions",
+    "en": "Contributions",
+    "ru": "Вклад",
+    "de": "Beiträge"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-tab-revisions",
+    "en": "Revisions",
+    "ru": "Ревизии",
+    "de": "Revisionen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-tab-branches",
+    "en": "Branches",
+    "ru": "Ветки",
+    "de": "Zweige"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-layers-title",
+    "en": "Text on this page",
+    "ru": "Текст на этой странице",
+    "de": "Text auf dieser Seite"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-layers-hint",
+    "en": "Click on the page to add a speech bubble or text box.",
+    "ru": "Щёлкните по странице, чтобы добавить реплику или текстовый блок.",
+    "de": "Klicken Sie auf die Seite, um eine Sprechblase oder ein Textfeld hinzuzufügen."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-layers-empty",
+    "en": "No text yet.",
+    "ru": "Текста пока нет.",
+    "de": "Noch kein Text."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-layers-save",
+    "en": "Save text",
+    "ru": "Сохранить текст",
+    "de": "Text speichern"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-layers-suggest",
+    "en": "Send as a suggestion",
+    "ru": "Отправить как предложение",
+    "de": "Als Vorschlag senden"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-layers-edit-btn",
+    "en": "Edit text",
+    "ru": "Изменить текст",
+    "de": "Text bearbeiten"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-layers-suggest-btn",
+    "en": "Suggest text",
+    "ru": "Предложить текст",
+    "de": "Text vorschlagen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-alternatives-label",
+    "en": "Alternatives",
+    "ru": "Варианты",
+    "de": "Alternativen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-alternative-title",
+    "en": "Page alternative",
+    "ru": "Вариант страницы",
+    "de": "Seitenalternative"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-alternative-edit-text",
+    "en": "Edit text",
+    "ru": "Изменить текст",
+    "de": "Text bearbeiten"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-alternative-delete",
+    "en": "Delete",
+    "ru": "Удалить",
+    "de": "Löschen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-pending-suggestions",
+    "en": "suggested text change(s) waiting for review",
+    "ru": "предложенных изменений текста ждут решения",
+    "de": "vorgeschlagene Textänderung(en) warten auf Prüfung"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-suggest-banner",
+    "en": "You're suggesting changes: page text you edit is sent to the owner for review.",
+    "ru": "Вы предлагаете изменения: изменённый текст страницы отправляется владельцу на рассмотрение.",
+    "de": "Sie schlagen Änderungen vor: Bearbeiteter Seitentext geht zur Prüfung an den Eigentümer."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-branches-empty",
+    "en": "No page alternatives yet. Use the + under a page's Alternatives to add one.",
+    "ru": "Вариантов страниц пока нет. Нажмите + под «Варианты» у страницы, чтобы добавить.",
+    "de": "Noch keine Seitenalternativen. Nutzen Sie das + unter „Alternativen“ einer Seite."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-rev-loading",
+    "en": "Loading revisions...",
+    "ru": "Загрузка ревизий...",
+    "de": "Revisionen werden geladen..."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-rev-empty",
+    "en": "No changes recorded yet.",
+    "ru": "Изменений пока нет.",
+    "de": "Noch keine Änderungen aufgezeichnet."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-rev-pages-added",
+    "en": "Pages added",
+    "ru": "Добавлены страницы",
+    "de": "Seiten hinzugefügt"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-rev-pages-reordered",
+    "en": "Pages reordered",
+    "ru": "Изменён порядок страниц",
+    "de": "Seiten neu angeordnet"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-rev-page-deleted",
+    "en": "Page deleted",
+    "ru": "Страница удалена",
+    "de": "Seite gelöscht"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-rev-layers-edited",
+    "en": "Page text edited",
+    "ru": "Изменён текст страницы",
+    "de": "Seitentext bearbeitet"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-rev-layers-approved",
+    "en": "Suggested page text merged",
+    "ru": "Принят предложенный текст страницы",
+    "de": "Vorgeschlagener Seitentext übernommen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-rev-alternative-added",
+    "en": "Page alternative added",
+    "ru": "Добавлен вариант страницы",
+    "de": "Seitenalternative hinzugefügt"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-rev-issue-added",
+    "en": "Issue added",
+    "ru": "Добавлен выпуск",
+    "de": "Ausgabe hinzugefügt"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-rev-issue-renamed",
+    "en": "Issue renamed",
+    "ru": "Выпуск переименован",
+    "de": "Ausgabe umbenannt"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-rev-issue-deleted",
+    "en": "Issue deleted",
+    "ru": "Выпуск удалён",
+    "de": "Ausgabe gelöscht"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-edition-new",
+    "en": "New edition",
+    "ru": "Новое издание",
+    "de": "Neue Edition"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-edition-builder-title",
+    "en": "Build an edition",
+    "ru": "Собрать издание",
+    "de": "Edition zusammenstellen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-edition-builder-desc",
+    "en": "Pick the original or one of its branches wherever alternatives exist. The edition is frozen when you save.",
+    "ru": "Выберите оригинал или одну из веток там, где есть варианты. Издание фиксируется при сохранении.",
+    "de": "Wählen Sie überall, wo es Alternativen gibt, das Original oder einen Zweig. Die Edition wird beim Speichern eingefroren."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-edition-visible",
+    "en": "Visible to readers",
+    "ru": "Видно читателям",
+    "de": "Für Leser sichtbar"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-edition-save",
+    "en": "Save edition",
+    "ru": "Сохранить издание",
+    "de": "Edition speichern"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-media-pending",
+    "en": "waiting for review",
+    "ru": "ждёт проверки",
+    "de": "wartet auf Prüfung"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-media-rejected",
+    "en": "rejected",
+    "ru": "отклонено",
+    "de": "abgelehnt"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-media-audio",
+    "en": "Audio",
+    "ru": "Аудио",
+    "de": "Audio"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-media-video",
+    "en": "Video",
+    "ru": "Видео",
+    "de": "Video"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-ai-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-media-upload-audio",
+    "en": "Upload a narration (audio file)",
+    "ru": "Загрузить озвучку (аудиофайл)",
+    "de": "Vertonung hochladen (Audiodatei)"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-media-no-narration",
+    "en": "The owner hasn't opened this work for narration.",
+    "ru": "Владелец не открыл эту работу для озвучивания.",
+    "de": "Der Eigentümer hat dieses Werk nicht zum Vorlesen freigegeben."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-media-add-video",
+    "en": "Add a video (YouTube / Vimeo link or a file)",
+    "ru": "Добавить видео (ссылка YouTube / Vimeo или файл)",
+    "de": "Video hinzufügen (YouTube-/Vimeo-Link oder Datei)"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-media-add-btn",
+    "en": "Add",
+    "ru": "Добавить",
+    "de": "Hinzufügen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-ai-narrate",
+    "en": "Generate narration with AI",
+    "ru": "Создать озвучку с ИИ",
+    "de": "Vertonung mit KI erzeugen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-ai-start",
+    "en": "Start",
+    "ru": "Начать",
+    "de": "Starten"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-ai-video",
+    "en": "Generate a video with AI (experimental)",
+    "ru": "Создать видео с ИИ (экспериментально)",
+    "de": "Video mit KI erzeugen (experimentell)"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-media-review-hint",
+    "en": "What you add is shown to readers once the team approves it.",
+    "ru": "Добавленное вами увидят читатели после одобрения командой.",
+    "de": "Was Sie hinzufügen, sehen Leser, sobald das Team es freigibt."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-media-close",
+    "en": "Close",
+    "ru": "Закрыть",
+    "de": "Schließen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-media-add-own",
+    "en": "Add your own: narration · video",
+    "ru": "Добавьте своё: озвучка · видео",
+    "de": "Eigenes hinzufügen: Vertonung · Video"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-ai-draft-label",
+    "en": "Draft this part from the original with AI",
+    "ru": "Черновик этой части по оригиналу с ИИ",
+    "de": "Diesen Teil mit KI aus dem Original entwerfen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-ai-draft-btn",
+    "en": "Draft",
+    "ru": "Черновик",
+    "de": "Entwerfen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-lang-heading",
+    "en": "Language versions",
+    "ru": "Языковые версии",
+    "de": "Sprachversionen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-lang-original",
+    "en": "Original",
+    "ru": "Оригинал",
+    "de": "Original"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-lang-official",
+    "en": "Official translation",
+    "ru": "Официальный перевод",
+    "de": "Offizielle Übersetzung"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-lang-community",
+    "en": "Community translation",
+    "ru": "Перевод сообщества",
+    "de": "Community-Übersetzung"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-lang-draft",
+    "en": "draft",
+    "ru": "черновик",
+    "de": "Entwurf"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-lang-stale",
+    "en": "out of date",
+    "ru": "устарело",
+    "de": "veraltet"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-lang-translate",
+    "en": "Translate this screenplay…",
+    "ru": "Перевести сценарий…",
+    "de": "Drehbuch übersetzen…"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-translate-title",
+    "en": "Translate this screenplay",
+    "ru": "Перевести сценарий",
+    "de": "Drehbuch übersetzen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-translate-desc",
+    "en": "The translation becomes its own screenplay that you own, linked to the original scene by scene. It stays a draft until you publish it.",
+    "ru": "Перевод станет отдельной работой, которой владеете вы, связанной с оригиналом по частям. Он остаётся черновиком, пока вы его не опубликуете.",
+    "de": "Die Übersetzung wird ein eigenes Werk in Ihrem Besitz, Teil für Teil mit dem Original verknüpft. Sie bleibt ein Entwurf, bis Sie sie veröffentlichen."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-translate-language",
+    "en": "Translate into",
+    "ru": "Перевести на",
+    "de": "Übersetzen in"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-translate-source-lang",
+    "en": "This screenplay is marked as written in",
+    "ru": "Указанный язык оригинала:",
+    "de": "Als Sprache des Originals angegeben:"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-translate-source-lang-hint",
+    "en": "If that's wrong, the owner can change it in Settings → Language.",
+    "ru": "Если это неверно, владелец может изменить это в Настройки → Язык.",
+    "de": "Falls das falsch ist, kann der Eigentümer es unter Einstellungen → Sprache ändern."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-translate-start",
+    "en": "Start from",
+    "ru": "Начать с",
+    "de": "Beginnen mit"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-translate-blank",
+    "en": "Blank scenes",
+    "ru": "Пустые сцены",
+    "de": "Leere Szenen"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-translate-blank-desc",
+    "en": "The layout is copied; you write each scene next to the original.",
+    "ru": "Структура копируется; вы пишете каждую часть рядом с оригиналом.",
+    "de": "Der Aufbau wird kopiert; Sie schreiben jeden Teil neben dem Original."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-translate-copy",
+    "en": "Copy of the original text",
+    "ru": "Копия исходного текста",
+    "de": "Kopie des Originaltexts"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-translate-copy-desc",
+    "en": "Every scene starts with the original text for you to overwrite.",
+    "ru": "Каждая часть начинается с исходного текста, который вы перепишете.",
+    "de": "Jeder Teil beginnt mit dem Originaltext zum Überschreiben."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-translate-ai",
+    "en": "AI draft",
+    "ru": "Черновик ИИ",
+    "de": "KI-Entwurf"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-translate-ai-desc",
+    "en": "Pre-fill a draft using your own AI provider, connected in your settings.",
+    "ru": "Заполните черновик с помощью своего ИИ-провайдера, подключённого в настройках.",
+    "de": "Füllen Sie einen Entwurf mit Ihrem eigenen KI-Anbieter vor, verbunden in Ihren Einstellungen."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-translate-ai-ready",
+    "en": "Every scene is drafted in the background with your AI; you review and edit next to the original.",
+    "ru": "Каждая часть переводится в фоне вашим ИИ; вы проверяете и правите рядом с оригиналом.",
+    "de": "Jeder Teil wird im Hintergrund mit Ihrer KI entworfen; Sie prüfen und bearbeiten neben dem Original."
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-translate-ai-connect",
+    "en": "Connect an AI provider in your profile",
+    "ru": "Подключите ИИ-провайдера в профиле",
+    "de": "Verbinden Sie einen KI-Anbieter in Ihrem Profil"
+  },
+  {
+    "page_key": "/screenplay/:screenplay_id",
+    "element_id": "screenplay-translate-create",
+    "en": "Create translation",
+    "ru": "Создать перевод",
+    "de": "Übersetzung erstellen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-edition-new",
+    "en": "New edition",
+    "ru": "Новое издание",
+    "de": "Neue Edition"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-edition-builder-title",
+    "en": "Build an edition",
+    "ru": "Собрать издание",
+    "de": "Edition zusammenstellen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-edition-builder-desc",
+    "en": "Pick the original or one of its branches wherever alternatives exist. The edition is frozen when you save.",
+    "ru": "Выберите оригинал или одну из веток там, где есть варианты. Издание фиксируется при сохранении.",
+    "de": "Wählen Sie überall, wo es Alternativen gibt, das Original oder einen Zweig. Die Edition wird beim Speichern eingefroren."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-edition-visible",
+    "en": "Visible to readers",
+    "ru": "Видно читателям",
+    "de": "Für Leser sichtbar"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-edition-save",
+    "en": "Save edition",
+    "ru": "Сохранить издание",
+    "de": "Edition speichern"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-media-pending",
+    "en": "waiting for review",
+    "ru": "ждёт проверки",
+    "de": "wartet auf Prüfung"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-media-rejected",
+    "en": "rejected",
+    "ru": "отклонено",
+    "de": "abgelehnt"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-media-audio",
+    "en": "Audio",
+    "ru": "Аудио",
+    "de": "Audio"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-media-video",
+    "en": "Video",
+    "ru": "Видео",
+    "de": "Video"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-ai-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-media-upload-audio",
+    "en": "Upload a narration (audio file)",
+    "ru": "Загрузить озвучку (аудиофайл)",
+    "de": "Vertonung hochladen (Audiodatei)"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-media-no-narration",
+    "en": "The owner hasn't opened this work for narration.",
+    "ru": "Владелец не открыл эту работу для озвучивания.",
+    "de": "Der Eigentümer hat dieses Werk nicht zum Vorlesen freigegeben."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-media-add-video",
+    "en": "Add a video (YouTube / Vimeo link or a file)",
+    "ru": "Добавить видео (ссылка YouTube / Vimeo или файл)",
+    "de": "Video hinzufügen (YouTube-/Vimeo-Link oder Datei)"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-media-add-btn",
+    "en": "Add",
+    "ru": "Добавить",
+    "de": "Hinzufügen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-ai-narrate",
+    "en": "Generate narration with AI",
+    "ru": "Создать озвучку с ИИ",
+    "de": "Vertonung mit KI erzeugen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-ai-start",
+    "en": "Start",
+    "ru": "Начать",
+    "de": "Starten"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-ai-video",
+    "en": "Generate a video with AI (experimental)",
+    "ru": "Создать видео с ИИ (экспериментально)",
+    "de": "Video mit KI erzeugen (experimentell)"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-media-review-hint",
+    "en": "What you add is shown to readers once the team approves it.",
+    "ru": "Добавленное вами увидят читатели после одобрения командой.",
+    "de": "Was Sie hinzufügen, sehen Leser, sobald das Team es freigibt."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-media-close",
+    "en": "Close",
+    "ru": "Закрыть",
+    "de": "Schließen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-media-add-own",
+    "en": "Add your own: narration · video",
+    "ru": "Добавьте своё: озвучка · видео",
+    "de": "Eigenes hinzufügen: Vertonung · Video"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-ai-draft-label",
+    "en": "Draft this part from the original with AI",
+    "ru": "Черновик этой части по оригиналу с ИИ",
+    "de": "Diesen Teil mit KI aus dem Original entwerfen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-ai-draft-btn",
+    "en": "Draft",
+    "ru": "Черновик",
+    "de": "Entwerfen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-lang-heading",
+    "en": "Language versions",
+    "ru": "Языковые версии",
+    "de": "Sprachversionen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-lang-original",
+    "en": "Original",
+    "ru": "Оригинал",
+    "de": "Original"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-lang-official",
+    "en": "Official translation",
+    "ru": "Официальный перевод",
+    "de": "Offizielle Übersetzung"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-lang-community",
+    "en": "Community translation",
+    "ru": "Перевод сообщества",
+    "de": "Community-Übersetzung"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-lang-draft",
+    "en": "draft",
+    "ru": "черновик",
+    "de": "Entwurf"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-lang-stale",
+    "en": "out of date",
+    "ru": "устарело",
+    "de": "veraltet"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-lang-translate",
+    "en": "Translate this comic…",
+    "ru": "Перевести комикс…",
+    "de": "Comic übersetzen…"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-translate-title",
+    "en": "Translate this comic",
+    "ru": "Перевести комикс",
+    "de": "Comic übersetzen"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-translate-desc",
+    "en": "The translation becomes its own comic that you own, linked to the original issue by issue. It stays a draft until you publish it.",
+    "ru": "Перевод станет отдельной работой, которой владеете вы, связанной с оригиналом по частям. Он остаётся черновиком, пока вы его не опубликуете.",
+    "de": "Die Übersetzung wird ein eigenes Werk in Ihrem Besitz, Teil für Teil mit dem Original verknüpft. Sie bleibt ein Entwurf, bis Sie sie veröffentlichen."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-translate-language",
+    "en": "Translate into",
+    "ru": "Перевести на",
+    "de": "Übersetzen in"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-translate-source-lang",
+    "en": "This comic is marked as written in",
+    "ru": "Указанный язык оригинала:",
+    "de": "Als Sprache des Originals angegeben:"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-translate-source-lang-hint",
+    "en": "If that's wrong, the owner can change it in Settings → Language.",
+    "ru": "Если это неверно, владелец может изменить это в Настройки → Язык.",
+    "de": "Falls das falsch ist, kann der Eigentümer es unter Einstellungen → Sprache ändern."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-translate-start",
+    "en": "Start from",
+    "ru": "Начать с",
+    "de": "Beginnen mit"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-translate-blank",
+    "en": "Blank issues",
+    "ru": "Пустые выпуски",
+    "de": "Leere Ausgaben"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-translate-blank-desc",
+    "en": "The layout is copied; you write each issue next to the original.",
+    "ru": "Структура копируется; вы пишете каждую часть рядом с оригиналом.",
+    "de": "Der Aufbau wird kopiert; Sie schreiben jeden Teil neben dem Original."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-translate-copy",
+    "en": "Copy of the original text",
+    "ru": "Копия исходного текста",
+    "de": "Kopie des Originaltexts"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-translate-copy-desc",
+    "en": "Every issue starts with the original text for you to overwrite.",
+    "ru": "Каждая часть начинается с исходного текста, который вы перепишете.",
+    "de": "Jeder Teil beginnt mit dem Originaltext zum Überschreiben."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-translate-ai",
+    "en": "AI draft",
+    "ru": "Черновик ИИ",
+    "de": "KI-Entwurf"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-translate-ai-desc",
+    "en": "Pre-fill a draft using your own AI provider, connected in your settings.",
+    "ru": "Заполните черновик с помощью своего ИИ-провайдера, подключённого в настройках.",
+    "de": "Füllen Sie einen Entwurf mit Ihrem eigenen KI-Anbieter vor, verbunden in Ihren Einstellungen."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-translate-ai-ready",
+    "en": "Every issue is drafted in the background with your AI; you review and edit next to the original.",
+    "ru": "Каждая часть переводится в фоне вашим ИИ; вы проверяете и правите рядом с оригиналом.",
+    "de": "Jeder Teil wird im Hintergrund mit Ihrer KI entworfen; Sie prüfen und bearbeiten neben dem Original."
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-translate-ai-connect",
+    "en": "Connect an AI provider in your profile",
+    "ru": "Подключите ИИ-провайдера в профиле",
+    "de": "Verbinden Sie einen KI-Anbieter in Ihrem Profil"
+  },
+  {
+    "page_key": "/comic/:comic_id",
+    "element_id": "comic-translate-create",
+    "en": "Create translation",
+    "ru": "Создать перевод",
+    "de": "Übersetzung erstellen"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-contribute-btn",
+    "en": "I want to contribute to the screenplay",
+    "ru": "Я хочу внести свой вклад",
+    "de": "Ich möchte beitragen"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-contribute-suggest-desc",
+    "en": "Suggest changes right on the page. The owner reviews each suggestion.",
+    "ru": "Предлагайте изменения прямо на странице. Владелец рассмотрит каждое предложение.",
+    "de": "Schlagen Sie Änderungen direkt auf der Seite vor. Der Eigentümer prüft jeden Vorschlag."
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-contribute-suggest-btn",
+    "en": "Suggest changes",
+    "ru": "Предложить изменения",
+    "de": "Änderungen vorschlagen"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-contribute-ask-title",
+    "en": "Ask to join the team",
+    "ru": "Попросить о вступлении в команду",
+    "de": "Um Aufnahme ins Team bitten"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-contribute-pending",
+    "en": "Your request is waiting for the owner's answer.",
+    "ru": "Ваш запрос ждёт ответа владельца.",
+    "de": "Ihre Anfrage wartet auf die Antwort des Eigentümers."
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-contribute-declined",
+    "en": "The owner declined your last request. You can ask again.",
+    "ru": "Владелец отклонил ваш последний запрос. Можно попросить снова.",
+    "de": "Der Eigentümer hat Ihre letzte Anfrage abgelehnt. Sie können erneut fragen."
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-contribute-ask-btn",
+    "en": "Send request",
+    "ru": "Отправить запрос",
+    "de": "Anfrage senden"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-contribute-close",
+    "en": "Close",
+    "ru": "Закрыть",
+    "de": "Schließen"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-branches-count",
+    "en": "alternatives",
+    "ru": "вариантов",
+    "de": "Alternativen"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-branch-add",
+    "en": "Add",
+    "ru": "Добавить",
+    "de": "Hinzufügen"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-branch-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-branch-create",
+    "en": "Create branch",
+    "ru": "Создать ветку",
+    "de": "Zweig erstellen"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-branches-empty",
+    "en": "No branches yet. In Editing mode, use \"Create branch\" under an element to write an alternative.",
+    "ru": "Веток пока нет. В режиме редактирования нажмите «Создать ветку» под элементом, чтобы написать вариант.",
+    "de": "Noch keine Zweige. Nutzen Sie im Bearbeitungsmodus „Zweig erstellen“ unter einem Element, um eine Alternative zu schreiben."
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-edition-new",
+    "en": "New edition",
+    "ru": "Новое издание",
+    "de": "Neue Edition"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-edition-builder-title",
+    "en": "Build an edition",
+    "ru": "Собрать издание",
+    "de": "Edition zusammenstellen"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-edition-builder-desc",
+    "en": "Pick the original or one of its branches wherever alternatives exist. The edition is frozen when you save.",
+    "ru": "Выберите оригинал или одну из веток там, где есть варианты. Издание фиксируется при сохранении.",
+    "de": "Wählen Sie überall, wo es Alternativen gibt, das Original oder einen Zweig. Die Edition wird beim Speichern eingefroren."
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-edition-visible",
+    "en": "Visible to readers",
+    "ru": "Видно читателям",
+    "de": "Für Leser sichtbar"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "screenplay-edition-save",
+    "en": "Save edition",
+    "ru": "Сохранить издание",
+    "de": "Edition speichern"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-contribute-btn",
+    "en": "I want to contribute to the comic",
+    "ru": "Я хочу внести свой вклад",
+    "de": "Ich möchte beitragen"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-contribute-suggest-desc",
+    "en": "Suggest changes right on the page. The owner reviews each suggestion.",
+    "ru": "Предлагайте изменения прямо на странице. Владелец рассмотрит каждое предложение.",
+    "de": "Schlagen Sie Änderungen direkt auf der Seite vor. Der Eigentümer prüft jeden Vorschlag."
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-contribute-suggest-btn",
+    "en": "Suggest changes",
+    "ru": "Предложить изменения",
+    "de": "Änderungen vorschlagen"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-contribute-ask-title",
+    "en": "Ask to join the team",
+    "ru": "Попросить о вступлении в команду",
+    "de": "Um Aufnahme ins Team bitten"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-contribute-pending",
+    "en": "Your request is waiting for the owner's answer.",
+    "ru": "Ваш запрос ждёт ответа владельца.",
+    "de": "Ihre Anfrage wartet auf die Antwort des Eigentümers."
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-contribute-declined",
+    "en": "The owner declined your last request. You can ask again.",
+    "ru": "Владелец отклонил ваш последний запрос. Можно попросить снова.",
+    "de": "Der Eigentümer hat Ihre letzte Anfrage abgelehnt. Sie können erneut fragen."
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-contribute-ask-btn",
+    "en": "Send request",
+    "ru": "Отправить запрос",
+    "de": "Anfrage senden"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-contribute-close",
+    "en": "Close",
+    "ru": "Закрыть",
+    "de": "Schließen"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-layers-title",
+    "en": "Text on this page",
+    "ru": "Текст на этой странице",
+    "de": "Text auf dieser Seite"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-layers-hint",
+    "en": "Click on the page to add a speech bubble or text box.",
+    "ru": "Щёлкните по странице, чтобы добавить реплику или текстовый блок.",
+    "de": "Klicken Sie auf die Seite, um eine Sprechblase oder ein Textfeld hinzuzufügen."
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-layers-empty",
+    "en": "No text yet.",
+    "ru": "Текста пока нет.",
+    "de": "Noch kein Text."
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-layers-save",
+    "en": "Save text",
+    "ru": "Сохранить текст",
+    "de": "Text speichern"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-layers-suggest",
+    "en": "Send as a suggestion",
+    "ru": "Отправить как предложение",
+    "de": "Als Vorschlag senden"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-layers-edit-btn",
+    "en": "Edit text",
+    "ru": "Изменить текст",
+    "de": "Text bearbeiten"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-layers-suggest-btn",
+    "en": "Suggest text",
+    "ru": "Предложить текст",
+    "de": "Text vorschlagen"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-alternatives-label",
+    "en": "Alternatives",
+    "ru": "Варианты",
+    "de": "Alternativen"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-alternative-title",
+    "en": "Page alternative",
+    "ru": "Вариант страницы",
+    "de": "Seitenalternative"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-alternative-edit-text",
+    "en": "Edit text",
+    "ru": "Изменить текст",
+    "de": "Text bearbeiten"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-alternative-delete",
+    "en": "Delete",
+    "ru": "Удалить",
+    "de": "Löschen"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-edition-new",
+    "en": "New edition",
+    "ru": "Новое издание",
+    "de": "Neue Edition"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-edition-builder-title",
+    "en": "Build an edition",
+    "ru": "Собрать издание",
+    "de": "Edition zusammenstellen"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-edition-builder-desc",
+    "en": "Pick the original or one of its branches wherever alternatives exist. The edition is frozen when you save.",
+    "ru": "Выберите оригинал или одну из веток там, где есть варианты. Издание фиксируется при сохранении.",
+    "de": "Wählen Sie überall, wo es Alternativen gibt, das Original oder einen Zweig. Die Edition wird beim Speichern eingefroren."
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-edition-visible",
+    "en": "Visible to readers",
+    "ru": "Видно читателям",
+    "de": "Für Leser sichtbar"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "comic-edition-save",
+    "en": "Save edition",
+    "ru": "Сохранить издание",
+    "de": "Edition speichern"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "webapp-review-title",
+    "en": "Suggestions and requests",
+    "ru": "Предложения и запросы",
+    "de": "Vorschläge und Anfragen"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "webapp-review-empty",
+    "en": "Nothing waiting for you.",
+    "ru": "Ничего не ждёт вашего решения.",
+    "de": "Nichts wartet auf Sie."
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "webapp-review-wants",
+    "en": "wants to collaborate",
+    "ru": "хочет участвовать",
+    "de": "möchte mitarbeiten"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "webapp-review-accept",
+    "en": "Accept",
+    "ru": "Принять",
+    "de": "Annehmen"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "webapp-review-decline",
+    "en": "Decline",
+    "ru": "Отклонить",
+    "de": "Ablehnen"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "webapp-review-approve",
+    "en": "Approve",
+    "ru": "Одобрить",
+    "de": "Annehmen"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "webapp-review-reject",
+    "en": "Decline",
+    "ru": "Отклонить",
+    "de": "Ablehnen"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "webapp-sp-suggesting",
+    "en": "You're suggesting changes: each edited element is sent to the owner when you leave it.",
+    "ru": "Вы предлагаете изменения: каждый изменённый элемент отправляется владельцу, когда вы выходите из него.",
+    "de": "Sie schlagen Änderungen vor: Jedes bearbeitete Element geht an den Eigentümer, sobald Sie es verlassen."
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "webapp-sp-stop-suggesting",
+    "en": "Stop suggesting",
+    "ru": "Прекратить предлагать",
+    "de": "Vorschlagen beenden"
+  },
+  {
+    "page_key": "/editor/screenplay/:id",
+    "element_id": "webapp-sp-suggested",
+    "en": "Suggested",
+    "ru": "Предложено",
+    "de": "Vorgeschlagen"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "webapp-review-title",
+    "en": "Suggestions and requests",
+    "ru": "Предложения и запросы",
+    "de": "Vorschläge und Anfragen"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "webapp-review-empty",
+    "en": "Nothing waiting for you.",
+    "ru": "Ничего не ждёт вашего решения.",
+    "de": "Nichts wartet auf Sie."
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "webapp-review-wants",
+    "en": "wants to collaborate",
+    "ru": "хочет участвовать",
+    "de": "möchte mitarbeiten"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "webapp-review-accept",
+    "en": "Accept",
+    "ru": "Принять",
+    "de": "Annehmen"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "webapp-review-decline",
+    "en": "Decline",
+    "ru": "Отклонить",
+    "de": "Ablehnen"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "webapp-review-approve",
+    "en": "Approve",
+    "ru": "Одобрить",
+    "de": "Annehmen"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "webapp-review-reject",
+    "en": "Decline",
+    "ru": "Отклонить",
+    "de": "Ablehnen"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "webapp-comic-readonly",
+    "en": "Only this comic's team manages its pages. You can suggest page text and add page alternatives.",
+    "ru": "Страницами этого комикса управляет только его команда. Вы можете предложить текст страниц и добавить варианты страниц.",
+    "de": "Nur das Team dieses Comics verwaltet die Seiten. Sie können Seitentext vorschlagen und Seitenalternativen hinzufügen."
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "webapp-comic-edit-text",
+    "en": "Edit text",
+    "ru": "Изменить текст",
+    "de": "Text bearbeiten"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "webapp-comic-suggest-text",
+    "en": "Suggest text",
+    "ru": "Предложить текст",
+    "de": "Text vorschlagen"
+  },
+  {
+    "page_key": "/editor/comic/:id",
+    "element_id": "webapp-comic-pending",
+    "en": "Suggested text waiting for review",
+    "ru": "Предложенный текст ждёт проверки",
+    "de": "Vorgeschlagener Text wartet auf Prüfung"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-status-rejected",
+    "en": "edits made offline couldn't be applied: what you edited changed or was deleted while you were away.",
+    "ru": "изменения, сделанные офлайн, не удалось применить: то, что вы правили, изменилось или было удалено, пока вас не было.",
+    "de": "offline gemachte Änderungen konnten nicht übernommen werden: Was du bearbeitet hast, wurde inzwischen geändert oder gelöscht."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-ok",
+    "en": "OK",
+    "ru": "ОК",
+    "de": "OK"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-status-online",
+    "en": "Online",
+    "ru": "В сети",
+    "de": "Online"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-status-offline",
+    "en": "Offline: your edits are kept on this phone",
+    "ru": "Нет сети: ваши правки сохраняются на этом телефоне",
+    "de": "Offline: Deine Änderungen bleiben auf diesem Telefon"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-status-pending",
+    "en": "unsent",
+    "ru": "не отправлено",
+    "de": "nicht gesendet"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-signin-tagline",
+    "en": "Every single story has more possibilities",
+    "ru": "У каждой истории есть больше возможностей",
+    "de": "Jede einzelne Geschichte hat mehr Möglichkeiten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-signin-email",
+    "en": "Email",
+    "ru": "Эл. почта",
+    "de": "E-Mail"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-signin-password",
+    "en": "Password",
+    "ru": "Пароль",
+    "de": "Passwort"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-signin-create",
+    "en": "Create account",
+    "ru": "Создать аккаунт",
+    "de": "Konto erstellen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-signin-submit",
+    "en": "Sign in",
+    "ru": "Войти",
+    "de": "Anmelden"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-signin-have-account",
+    "en": "I already have an account",
+    "ru": "У меня уже есть аккаунт",
+    "de": "Ich habe schon ein Konto"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-signin-new",
+    "en": "New to Crowdly? Create an account",
+    "ru": "Впервые на Crowdly? Создайте аккаунт",
+    "de": "Neu bei Crowdly? Konto erstellen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-signin-open-web",
+    "en": "Open Crowdly on the web",
+    "ru": "Открыть Crowdly в браузере",
+    "de": "Crowdly im Web öffnen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-signin-server",
+    "en": "Server",
+    "ru": "Сервер",
+    "de": "Server"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-signin-server-url",
+    "en": "Server address",
+    "ru": "Адрес сервера",
+    "de": "Serveradresse"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-signin-insecure",
+    "en": "Not encrypted: use only for a development server on your own network.",
+    "ru": "Без шифрования: только для сервера разработки в вашей сети.",
+    "de": "Nicht verschlüsselt: nur für einen Entwicklungsserver im eigenen Netz verwenden."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-save",
+    "en": "Save",
+    "ru": "Сохранить",
+    "de": "Speichern"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-back",
+    "en": "Back",
+    "ru": "Назад",
+    "de": "Zurück"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-retry",
+    "en": "Retry",
+    "ru": "Повторить",
+    "de": "Erneut versuchen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-cancel",
+    "en": "Cancel",
+    "ru": "Отмена",
+    "de": "Abbrechen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-find",
+    "en": "Find",
+    "ru": "Найти",
+    "de": "Suchen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-find-prev",
+    "en": "Previous",
+    "ru": "Предыдущее",
+    "de": "Vorheriges"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-find-next",
+    "en": "Next",
+    "ru": "Следующее",
+    "de": "Nächstes"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-close",
+    "en": "Close",
+    "ru": "Закрыть",
+    "de": "Schließen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-find-case",
+    "en": "Match case",
+    "ru": "С учётом регистра",
+    "de": "Groß/Klein beachten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-find-word",
+    "en": "Whole words",
+    "ru": "Слово целиком",
+    "de": "Ganze Wörter"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-replace-with",
+    "en": "Replace with",
+    "ru": "Заменить на",
+    "de": "Ersetzen durch"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-replace-all",
+    "en": "Replace all",
+    "ru": "Заменить всё",
+    "de": "Alle ersetzen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-pages",
+    "en": "pages",
+    "ru": "страниц",
+    "de": "Seiten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-rtl",
+    "en": "right to left",
+    "ru": "справа налево",
+    "de": "von rechts nach links"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-upload",
+    "en": "Add pages",
+    "ru": "Добавить страницы",
+    "de": "Seiten hinzufügen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-camera",
+    "en": "Take a photo",
+    "ru": "Сделать фото",
+    "de": "Foto aufnehmen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-more",
+    "en": "More",
+    "ru": "Ещё",
+    "de": "Mehr"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-reorder",
+    "en": "Reorder pages",
+    "ru": "Изменить порядок страниц",
+    "de": "Seiten neu anordnen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-add-issue",
+    "en": "New issue",
+    "ru": "Новый выпуск",
+    "de": "Neue Ausgabe"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-rename-issue",
+    "en": "Rename issue",
+    "ru": "Переименовать выпуск",
+    "de": "Ausgabe umbenennen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-unpublish",
+    "en": "Unpublish issue",
+    "ru": "Снять выпуск с публикации",
+    "de": "Ausgabe zurückziehen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-publish",
+    "en": "Publish issue",
+    "ru": "Опубликовать выпуск",
+    "de": "Ausgabe veröffentlichen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-delete-issue",
+    "en": "Delete issue",
+    "ru": "Удалить выпуск",
+    "de": "Ausgabe löschen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-review",
+    "en": "Suggestions and requests",
+    "ru": "Предложения и запросы",
+    "de": "Vorschläge und Anfragen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-editions",
+    "en": "Editions",
+    "ru": "Издания",
+    "de": "Editionen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-read",
+    "en": "Read",
+    "ru": "Читать",
+    "de": "Lesen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-export",
+    "en": "Export or share",
+    "ru": "Экспорт или отправка",
+    "de": "Exportieren oder teilen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-work-settings",
+    "en": "Settings",
+    "ru": "Настройки",
+    "de": "Einstellungen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-change",
+    "en": "I want to change this",
+    "ru": "Я хочу это изменить",
+    "de": "Ich möchte das ändern"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-open-platform",
+    "en": "Open on the platform",
+    "ru": "Открыть на платформе",
+    "de": "Auf der Plattform öffnen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-delete",
+    "en": "Delete comic",
+    "ru": "Удалить комикс",
+    "de": "Comic löschen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-readonly",
+    "en": "You're reading this comic. Open a page to suggest its text.",
+    "ru": "Вы читаете этот комикс. Откройте страницу, чтобы предложить текст.",
+    "de": "Du liest diesen Comic. Öffne eine Seite, um ihren Text vorzuschlagen."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-empty-edit",
+    "en": "No pages yet. Add pictures from the gallery or take photos.",
+    "ru": "Страниц пока нет. Добавьте картинки из галереи или сделайте фото.",
+    "de": "Noch keine Seiten. Füge Bilder aus der Galerie hinzu oder nimm Fotos auf."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-empty",
+    "en": "No pages yet.",
+    "ru": "Страниц пока нет.",
+    "de": "Noch keine Seiten."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-drag",
+    "en": "Drag to reorder",
+    "ru": "Перетащите, чтобы изменить порядок",
+    "de": "Zum Neuordnen ziehen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-page",
+    "en": "Page",
+    "ru": "Страница",
+    "de": "Seite"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-delete",
+    "en": "Delete",
+    "ru": "Удалить",
+    "de": "Löschen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-direction",
+    "en": "Read right to left (manga)",
+    "ru": "Читать справа налево (манга)",
+    "de": "Von rechts nach links lesen (Manga)"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-create",
+    "en": "Create",
+    "ru": "Создать",
+    "de": "Erstellen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-delete-issue-text",
+    "en": "and its pages.",
+    "ru": "и его страницы.",
+    "de": "und ihre Seiten."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-cant-undo",
+    "en": "this can't be undone.",
+    "ru": "это нельзя отменить.",
+    "de": "das lässt sich nicht rückgängig machen."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-alternative",
+    "en": "Alternative",
+    "ru": "Вариант",
+    "de": "Alternative"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-new-bubble",
+    "en": "Text",
+    "ru": "Текст",
+    "de": "Text"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-new-caption",
+    "en": "Caption",
+    "ru": "Подпись",
+    "de": "Bildtext"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-add-bubble",
+    "en": "Add a speech bubble",
+    "ru": "Добавить облачко реплики",
+    "de": "Sprechblase hinzufügen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-add-caption",
+    "en": "Add a caption",
+    "ru": "Добавить подпись",
+    "de": "Bildtext hinzufügen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-add-alt",
+    "en": "Add an alternative",
+    "ru": "Добавить вариант",
+    "de": "Alternative hinzufügen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-original",
+    "en": "Original",
+    "ru": "Оригинал",
+    "de": "Original"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-save-text",
+    "en": "Save text",
+    "ru": "Сохранить текст",
+    "de": "Text speichern"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-suggest-text",
+    "en": "Suggest text",
+    "ru": "Предложить текст",
+    "de": "Text vorschlagen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-discard",
+    "en": "Discard",
+    "ru": "Отменить",
+    "de": "Verwerfen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-alt-text",
+    "en": "Describe the page (for screen readers)",
+    "ru": "Опишите страницу (для экранных дикторов)",
+    "de": "Seite beschreiben (für Screenreader)"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-delete-alt",
+    "en": "Delete this alternative",
+    "ru": "Удалить этот вариант",
+    "de": "Diese Alternative löschen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-edit-layer",
+    "en": "Text layer",
+    "ru": "Текстовый слой",
+    "de": "Textebene"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-bubble",
+    "en": "Speech bubble",
+    "ru": "Облачко реплики",
+    "de": "Sprechblase"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comic-caption",
+    "en": "Caption box",
+    "ru": "Блок подписи",
+    "de": "Textkasten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-name",
+    "en": "Name",
+    "ru": "Название",
+    "de": "Name"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-home-not-found",
+    "en": "No story, screenplay or comic with that id.",
+    "ru": "Нет истории, сценария или комикса с таким id.",
+    "de": "Keine Geschichte, kein Drehbuch und kein Comic mit dieser ID."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-home-title",
+    "en": "Create",
+    "ru": "Творчество",
+    "de": "Erschaffen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-refresh",
+    "en": "Refresh",
+    "ru": "Обновить",
+    "de": "Aktualisieren"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-home-open",
+    "en": "Open",
+    "ru": "Открыть",
+    "de": "Öffnen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-home-open-link",
+    "en": "Open by link or id",
+    "ru": "Открыть по ссылке или id",
+    "de": "Per Link oder ID öffnen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-home-import",
+    "en": "Import a file",
+    "ru": "Импортировать файл",
+    "de": "Datei importieren"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-home-new-space",
+    "en": "New Space",
+    "ru": "Новое пространство",
+    "de": "Neuer Space"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-home-new",
+    "en": "New",
+    "ru": "Новое",
+    "de": "Neu"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-home-stories",
+    "en": "Stories",
+    "ru": "Истории",
+    "de": "Geschichten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-home-stories-empty",
+    "en": "No stories yet.",
+    "ru": "Историй пока нет.",
+    "de": "Noch keine Geschichten."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-home-screenplays",
+    "en": "Screenplays",
+    "ru": "Сценарии",
+    "de": "Drehbücher"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-home-screenplays-empty",
+    "en": "No screenplays yet.",
+    "ru": "Сценариев пока нет.",
+    "de": "Noch keine Drehbücher."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-home-comics",
+    "en": "Comics & manga",
+    "ru": "Комиксы и манга",
+    "de": "Comics & Manga"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-home-comics-empty",
+    "en": "No comics yet.",
+    "ru": "Комиксов пока нет.",
+    "de": "Noch keine Comics."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-home-spaces",
+    "en": "Spaces",
+    "ru": "Пространства",
+    "de": "Spaces"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-home-spaces-empty",
+    "en": "No Spaces yet.",
+    "ru": "Пространств пока нет.",
+    "de": "Noch keine Spaces."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-home-shared",
+    "en": "shared",
+    "ru": "общее",
+    "de": "geteilt"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-open",
+    "en": "Open",
+    "ru": "Открыть",
+    "de": "Öffnen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-new-title",
+    "en": "New",
+    "ru": "Новое",
+    "de": "Neu"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-new-story",
+    "en": "Story",
+    "ru": "История",
+    "de": "Geschichte"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-new-screenplay",
+    "en": "Screenplay",
+    "ru": "Сценарий",
+    "de": "Drehbuch"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-new-comic",
+    "en": "Comic or manga",
+    "ru": "Комикс или манга",
+    "de": "Comic oder Manga"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-title",
+    "en": "Title",
+    "ru": "Название",
+    "de": "Titel"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-new-space",
+    "en": "Keep it in a Space (optional)",
+    "ru": "Хранить в пространстве (необязательно)",
+    "de": "In einem Space ablegen (optional)"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-none",
+    "en": "None",
+    "ru": "Нет",
+    "de": "Keiner"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-languages",
+    "en": "Languages",
+    "ru": "Языки",
+    "de": "Sprachen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-translate",
+    "en": "Translate",
+    "ru": "Перевести",
+    "de": "Übersetzen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-original",
+    "en": "original",
+    "ru": "оригинал",
+    "de": "Original"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-official",
+    "en": "official",
+    "ru": "официальный",
+    "de": "offiziell"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-stale",
+    "en": "out of date",
+    "ru": "устарело",
+    "de": "veraltet"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-no-languages",
+    "en": "Only the original language so far.",
+    "ru": "Пока только язык оригинала.",
+    "de": "Bisher nur die Originalsprache."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-ai-jobs",
+    "en": "AI jobs",
+    "ru": "Задачи ИИ",
+    "de": "KI-Aufgaben"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-audio",
+    "en": "Audio",
+    "ru": "Аудио",
+    "de": "Audio"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-cartoon",
+    "en": "Cartoon",
+    "ru": "Мультфильм",
+    "de": "Cartoon"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-video",
+    "en": "Video",
+    "ru": "Видео",
+    "de": "Video"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-no-media",
+    "en": "Couldn't load this chapter's formats.",
+    "ru": "Не удалось загрузить форматы этой главы.",
+    "de": "Die Formate dieses Kapitels konnten nicht geladen werden."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-audio-empty",
+    "en": "No narration for this chapter yet.",
+    "ru": "Озвучки этой главы пока нет.",
+    "de": "Für dieses Kapitel gibt es noch keine Lesung."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-cartoon-empty",
+    "en": "No cartoon for this chapter yet.",
+    "ru": "Мультфильма к этой главе пока нет.",
+    "de": "Für dieses Kapitel gibt es noch keinen Cartoon."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-video-empty",
+    "en": "No video for this chapter yet.",
+    "ru": "Видео к этой главе пока нет.",
+    "de": "Für dieses Kapitel gibt es noch kein Video."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-add",
+    "en": "Add",
+    "ru": "Добавить",
+    "de": "Hinzufügen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-label",
+    "en": "Label (optional)",
+    "ru": "Подпись (необязательно)",
+    "de": "Bezeichnung (optional)"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-upload-audio",
+    "en": "Upload narration",
+    "ru": "Загрузить озвучку",
+    "de": "Lesung hochladen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-ai-narrate",
+    "en": "Narrate with AI",
+    "ru": "Озвучить с ИИ",
+    "de": "Mit KI vorlesen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-add-frames",
+    "en": "Make a cartoon from pictures",
+    "ru": "Сделать мультфильм из картинок",
+    "de": "Cartoon aus Bildern erstellen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-ai-cartoon",
+    "en": "Draw with AI",
+    "ru": "Нарисовать с ИИ",
+    "de": "Mit KI zeichnen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-add-video",
+    "en": "Add video link",
+    "ru": "Добавить ссылку на видео",
+    "de": "Videolink hinzufügen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-ai-video",
+    "en": "Make a video with AI",
+    "ru": "Сделать видео с ИИ",
+    "de": "Video mit KI erstellen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-ai-prompt",
+    "en": "What should the AI video show? (optional)",
+    "ru": "Что должно быть в видео? (необязательно)",
+    "de": "Was soll das KI-Video zeigen? (optional)"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-review-approve",
+    "en": "Approve",
+    "ru": "Принять",
+    "de": "Annehmen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-primary",
+    "en": "Make primary",
+    "ru": "Сделать основной",
+    "de": "Als Hauptversion festlegen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-start-copy",
+    "en": "Start from a copy",
+    "ru": "Начать с копии",
+    "de": "Mit einer Kopie beginnen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-start-blank",
+    "en": "Blank",
+    "ru": "С чистого листа",
+    "de": "Leer"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-start-ai",
+    "en": "AI draft",
+    "ru": "Черновик ИИ",
+    "de": "KI-Entwurf"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-translate-start",
+    "en": "Start translating",
+    "ru": "Начать перевод",
+    "de": "Übersetzung beginnen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sp-scenes",
+    "en": "scenes",
+    "ru": "сцен",
+    "de": "Szenen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sp-outline",
+    "en": "Outline",
+    "ru": "Структура",
+    "de": "Gliederung"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sp-add-scene",
+    "en": "Add scene",
+    "ru": "Добавить сцену",
+    "de": "Szene hinzufügen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-replace",
+    "en": "Replace",
+    "ru": "Заменить",
+    "de": "Ersetzen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sp-delete",
+    "en": "Delete screenplay",
+    "ru": "Удалить сценарий",
+    "de": "Drehbuch löschen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sp-suggesting",
+    "en": "Suggesting: each change you make is sent to the owner when you leave the element.",
+    "ru": "Режим предложений: каждое изменение отправляется владельцу, когда вы уходите с элемента.",
+    "de": "Vorschlagsmodus: Jede Änderung geht an die Eigentümer:in, sobald du das Element verlässt."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-done",
+    "en": "Done",
+    "ru": "Готово",
+    "de": "Fertig"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sp-readonly",
+    "en": "You're reading this screenplay.",
+    "ru": "Вы читаете этот сценарий.",
+    "de": "Du liest dieses Drehbuch."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-change-short",
+    "en": "Change",
+    "ru": "Изменить",
+    "de": "Ändern"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sp-add-element",
+    "en": "Add an element",
+    "ru": "Добавить элемент",
+    "de": "Element hinzufügen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-branches",
+    "en": "Branches",
+    "ru": "Ветки",
+    "de": "Zweige"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sp-delete-scene",
+    "en": "Delete scene",
+    "ru": "Удалить сцену",
+    "de": "Szene löschen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sp-delete-scene-text",
+    "en": "and everything in it.",
+    "ru": "и всё, что в ней.",
+    "de": "und alles darin."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-revisions",
+    "en": "Compare revisions",
+    "ru": "Сравнить версии",
+    "de": "Versionen vergleichen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sp-branches-none",
+    "en": "No branches on this element yet.",
+    "ru": "У этого элемента пока нет веток.",
+    "de": "Dieses Element hat noch keine Zweige."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-branch",
+    "en": "Branch",
+    "ru": "Ветка",
+    "de": "Zweig"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-branches-name",
+    "en": "Branch name (optional)",
+    "ru": "Название ветки (необязательно)",
+    "de": "Name des Zweigs (optional)"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sp-branch-text",
+    "en": "Another version of this element",
+    "ru": "Другая версия этого элемента",
+    "de": "Eine andere Fassung dieses Elements"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-branches-create",
+    "en": "Create branch",
+    "ru": "Создать ветку",
+    "de": "Zweig erstellen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-words",
+    "en": "words",
+    "ru": "слов",
+    "de": "Wörter"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-chapters",
+    "en": "Chapters",
+    "ru": "Главы",
+    "de": "Kapitel"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-preview",
+    "en": "Preview",
+    "ru": "Просмотр",
+    "de": "Vorschau"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-error",
+    "en": "This story couldn't be opened.",
+    "ru": "Не удалось открыть эту историю.",
+    "de": "Diese Geschichte konnte nicht geöffnet werden."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-suggesting",
+    "en": "You're editing a suggestion copy. The author sees your changes once you send them.",
+    "ru": "Вы правите копию с предложениями. Автор увидит изменения, когда вы их отправите.",
+    "de": "Du bearbeitest eine Vorschlagskopie. Die Autor:in sieht deine Änderungen, sobald du sie sendest."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-send-suggestions",
+    "en": "Send",
+    "ru": "Отправить",
+    "de": "Senden"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-readonly",
+    "en": "You're reading this story. To change it, use \"I want to change this\".",
+    "ru": "Вы читаете эту историю. Чтобы изменить её, выберите «Я хочу это изменить».",
+    "de": "Du liest diese Geschichte. Um sie zu ändern, wähle „Ich möchte das ändern“."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-no-chapters",
+    "en": "This story has no chapters yet.",
+    "ru": "В этой истории пока нет глав.",
+    "de": "Diese Geschichte hat noch keine Kapitel."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-chapter-title",
+    "en": "Chapter title",
+    "ru": "Название главы",
+    "de": "Kapiteltitel"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-placeholder",
+    "en": "Once upon a time…",
+    "ru": "Жили-были…",
+    "de": "Es war einmal…"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-rename",
+    "en": "Rename story",
+    "ru": "Переименовать историю",
+    "de": "Geschichte umbenennen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-delete",
+    "en": "Delete story",
+    "ru": "Удалить историю",
+    "de": "Geschichte löschen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-delete-text",
+    "en": "this story and all its chapters will be deleted. This can't be undone.",
+    "ru": "история и все её главы будут удалены. Это нельзя отменить.",
+    "de": "die Geschichte und alle ihre Kapitel werden gelöscht. Das lässt sich nicht rückgängig machen."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-add-chapter",
+    "en": "Add chapter",
+    "ru": "Добавить главу",
+    "de": "Kapitel hinzufügen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-unpublished",
+    "en": "Not published",
+    "ru": "Не опубликовано",
+    "de": "Nicht veröffentlicht"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-publish",
+    "en": "Published",
+    "ru": "Опубликовано",
+    "de": "Veröffentlicht"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-delete-chapter",
+    "en": "Delete chapter",
+    "ru": "Удалить главу",
+    "de": "Kapitel löschen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-branches-none",
+    "en": "No branches on this paragraph yet.",
+    "ru": "У этого абзаца пока нет веток.",
+    "de": "Dieser Absatz hat noch keine Zweige."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-branches-configure",
+    "en": "Configure",
+    "ru": "Настроить",
+    "de": "Einrichten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-branches-new",
+    "en": "New branch from this paragraph",
+    "ru": "Новая ветка от этого абзаца",
+    "de": "Neuer Zweig ab diesem Absatz"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-branches-text",
+    "en": "How else could this go?",
+    "ru": "Как ещё это могло бы быть?",
+    "de": "Wie könnte es sonst weitergehen?"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-branches-configure-title",
+    "en": "Configure branch",
+    "ru": "Настроить ветку",
+    "de": "Zweig einrichten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comments-empty",
+    "en": "No comments yet.",
+    "ru": "Комментариев пока нет.",
+    "de": "Noch keine Kommentare."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comments-write",
+    "en": "Write a comment",
+    "ru": "Напишите комментарий",
+    "de": "Kommentar schreiben"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comments-send",
+    "en": "Post",
+    "ru": "Опубликовать",
+    "de": "Posten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-review-empty",
+    "en": "Nothing waiting for you.",
+    "ru": "Ничего не ждёт вашего решения.",
+    "de": "Nichts wartet auf dich."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-review-wants",
+    "en": "wants to collaborate",
+    "ru": "хочет участвовать",
+    "de": "möchte mitarbeiten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-review-decline",
+    "en": "Decline",
+    "ru": "Отклонить",
+    "de": "Ablehnen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-meta-genre",
+    "en": "Genre",
+    "ru": "Жанр",
+    "de": "Genre"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-meta-description",
+    "en": "Description",
+    "ru": "Описание",
+    "de": "Beschreibung"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-meta-tags",
+    "en": "Tags",
+    "ru": "Теги",
+    "de": "Tags"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-meta-public",
+    "en": "Public (anyone can read it)",
+    "ru": "Публичная (читать может каждый)",
+    "de": "Öffentlich (alle können sie lesen)"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-meta-published",
+    "en": "Published",
+    "ru": "Опубликовано",
+    "de": "Veröffentlicht"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-meta-more",
+    "en": "More settings (people, policies, cover) on the platform",
+    "ru": "Другие настройки (люди, правила, обложка) на платформе",
+    "de": "Weitere Einstellungen (Personen, Regeln, Cover) auf der Plattform"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-suggest",
+    "en": "Suggest changes",
+    "ru": "Предложить изменения",
+    "de": "Änderungen vorschlagen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-suggest-desc",
+    "en": "Edit a copy here; your changes are sent to the author as suggestions they can accept.",
+    "ru": "Правьте копию здесь; изменения уйдут автору как предложения, которые он может принять.",
+    "de": "Bearbeite hier eine Kopie; deine Änderungen gehen als Vorschläge an die Autor:in, die sie annehmen kann."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-clone",
+    "en": "Make my own version",
+    "ru": "Сделать свою версию",
+    "de": "Eigene Version erstellen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-clone-desc",
+    "en": "Copy the story into a new one that you own.",
+    "ru": "Скопировать историю в новую, которая будет вашей.",
+    "de": "Die Geschichte in eine neue kopieren, die dir gehört."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-translate",
+    "en": "Translate",
+    "ru": "Перевести",
+    "de": "Übersetzen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-translate-desc",
+    "en": "Start a translation linked to this story.",
+    "ru": "Начать перевод, связанный с этой историей.",
+    "de": "Eine mit dieser Geschichte verknüpfte Übersetzung beginnen."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-collab",
+    "en": "Ask to collaborate",
+    "ru": "Попросить об участии",
+    "de": "Um Mitarbeit bitten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-collab-asked",
+    "en": "You already asked",
+    "ru": "Вы уже просили",
+    "de": "Du hast schon gefragt"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-collab-desc",
+    "en": "Ask the author to add you to the story's team.",
+    "ru": "Попросите автора добавить вас в команду истории.",
+    "de": "Bitte die Autor:in, dich ins Team der Geschichte aufzunehmen."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-collab-message",
+    "en": "Tell the author what you'd like to work on",
+    "ru": "Расскажите автору, над чем хотите работать",
+    "de": "Schreib der Autorin, woran du arbeiten möchtest"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-collab-send",
+    "en": "Send request",
+    "ru": "Отправить запрос",
+    "de": "Anfrage senden"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-pick-language",
+    "en": "Choose a language",
+    "ru": "Выберите язык",
+    "de": "Sprache wählen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-editions-new",
+    "en": "New edition",
+    "ru": "Новое издание",
+    "de": "Neue Edition"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-editions-empty",
+    "en": "No editions yet. An edition freezes one choice of branches so it can be read as one version.",
+    "ru": "Изданий пока нет. Издание фиксирует один выбор веток, чтобы его можно было читать как одну версию.",
+    "de": "Noch keine Editionen. Eine Edition hält eine Auswahl von Zweigen fest, damit sie sich als eine Fassung lesen lässt."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-editions-branches",
+    "en": "branches",
+    "ru": "веток",
+    "de": "Zweige"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-editions-delete",
+    "en": "Delete edition",
+    "ru": "Удалить издание",
+    "de": "Edition löschen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-editions-publish",
+    "en": "Published",
+    "ru": "Опубликовано",
+    "de": "Veröffentlicht"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-editions-no-branches",
+    "en": "There are no branches to choose from yet; the edition will freeze the text as it is.",
+    "ru": "Пока не из чего выбирать: издание зафиксирует текст как есть.",
+    "de": "Noch keine Zweige zur Auswahl; die Edition hält den Text so fest, wie er ist."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-editions-original",
+    "en": "Original",
+    "ru": "Оригинал",
+    "de": "Original"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-revisions-title",
+    "en": "Compare revisions",
+    "ru": "Сравнить версии",
+    "de": "Versionen vergleichen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-revisions-empty",
+    "en": "No revisions yet. They appear as you edit.",
+    "ru": "Версий пока нет. Они появляются по мере правки.",
+    "de": "Noch keine Versionen. Sie entstehen beim Bearbeiten."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-revisions-pick",
+    "en": "Pick up to four revisions to compare, or one to restore.",
+    "ru": "Выберите до четырёх версий для сравнения или одну для восстановления.",
+    "de": "Wähle bis zu vier Versionen zum Vergleichen oder eine zum Wiederherstellen."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-revisions-restore",
+    "en": "Restore this revision",
+    "ru": "Восстановить эту версию",
+    "de": "Diese Version wiederherstellen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-revisions-restore-text",
+    "en": "the current text is replaced by this revision, as a new change. Every revision stays in the history.",
+    "ru": "текущий текст заменяется этой версией как новое изменение. Все версии остаются в истории.",
+    "de": "der aktuelle Text wird durch diese Version ersetzt, als neue Änderung. Alle Versionen bleiben im Verlauf."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-revisions-restore-btn",
+    "en": "Restore",
+    "ru": "Восстановить",
+    "de": "Wiederherstellen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-revisions-restore-short",
+    "en": "Restore",
+    "ru": "Восстановить",
+    "de": "Wiederherstellen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-export-native",
+    "en": "Crowdly file, opens in the desktop and web apps",
+    "ru": "файл Crowdly, открывается в настольном и веб-приложении",
+    "de": "Crowdly-Datei, öffnet sich in der Desktop- und der Web-App"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-export-to-space",
+    "en": "Save to a Space…",
+    "ru": "Сохранить в пространство…",
+    "de": "In einem Space speichern…"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-export-pdf",
+    "en": "Print / save PDF",
+    "ru": "Печать / сохранить PDF",
+    "de": "Drucken / als PDF speichern"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-export-share",
+    "en": "Share",
+    "ru": "Поделиться",
+    "de": "Teilen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-export-save",
+    "en": "Save on this phone",
+    "ru": "Сохранить на телефоне",
+    "de": "Auf diesem Telefon speichern"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-suggest-work-desc",
+    "en": "Edit here; each change you make is sent to the owner as a suggestion.",
+    "ru": "Правьте здесь; каждое изменение уйдёт владельцу как предложение.",
+    "de": "Bearbeite hier; jede Änderung geht als Vorschlag an die Eigentümer:in."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-clone-work-desc",
+    "en": "Copy it into a new one that you own.",
+    "ru": "Скопировать в новую работу, которая будет вашей.",
+    "de": "In ein neues Werk kopieren, das dir gehört."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-collab-work-desc",
+    "en": "Ask the owner to add you to the team.",
+    "ru": "Попросите владельца добавить вас в команду.",
+    "de": "Bitte die Eigentümer:in, dich ins Team aufzunehmen."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-item-unfavorite",
+    "en": "Remove from favorites",
+    "ru": "Убрать из избранного",
+    "de": "Aus Favoriten entfernen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-item-favorite",
+    "en": "Add to favorites",
+    "ru": "В избранное",
+    "de": "Zu Favoriten hinzufügen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-item-add-to-shelf",
+    "en": "Add to shelf",
+    "ru": "Добавить на полку",
+    "de": "Zu Regal hinzufügen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-item-no-shelves",
+    "en": "No shelves yet",
+    "ru": "Полок пока нет",
+    "de": "Noch keine Regale"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-item-remove",
+    "en": "Remove",
+    "ru": "Убрать",
+    "de": "Entfernen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-tab-discover",
+    "en": "Discover",
+    "ru": "Обзор",
+    "de": "Entdecken"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-disc-search",
+    "en": "Search stories, screenplays and comics",
+    "ru": "Искать истории, сценарии и комиксы",
+    "de": "Geschichten, Drehbücher und Comics suchen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-disc-results",
+    "en": "Results",
+    "ru": "Результаты",
+    "de": "Ergebnisse"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-disc-no-results",
+    "en": "Nothing found.",
+    "ru": "Ничего не найдено.",
+    "de": "Nichts gefunden."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-lib-title",
+    "en": "My library",
+    "ru": "Моя библиотека",
+    "de": "Meine Bibliothek"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-lib-add",
+    "en": "Add books",
+    "ru": "Добавить книги",
+    "de": "Bücher hinzufügen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-lib-privacy",
+    "en": "Books you add stay private to your account. DRM-protected books can't be added.",
+    "ru": "Добавленные книги видны только вам. Книги с DRM добавить нельзя.",
+    "de": "Hinzugefügte Bücher bleiben privat in deinem Konto. DRM-geschützte Bücher lassen sich nicht hinzufügen."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-lib-empty",
+    "en": "Your library is empty. Add EPUB, PDF, text or audio books.",
+    "ru": "Библиотека пуста. Добавьте книги EPUB, PDF, текст или аудио.",
+    "de": "Deine Bibliothek ist leer. Füge EPUB-, PDF-, Text- oder Hörbücher hinzu."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-lib-remove-text",
+    "en": "remove it from your library?",
+    "ru": "убрать её из библиотеки?",
+    "de": "aus deiner Bibliothek entfernen?"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-disc-row-continue",
+    "en": "Continue reading",
+    "ru": "Продолжить чтение",
+    "de": "Weiterlesen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-disc-row-favorites",
+    "en": "Favorites",
+    "ru": "Избранное",
+    "de": "Favoriten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-disc-row-newest",
+    "en": "Newest stories",
+    "ru": "Новые истории",
+    "de": "Neueste Geschichten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-disc-row-newest-sp",
+    "en": "Newest screenplays",
+    "ru": "Новые сценарии",
+    "de": "Neueste Drehbücher"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-disc-row-popular",
+    "en": "Most popular",
+    "ru": "Самое популярное",
+    "de": "Am beliebtesten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-disc-row-popular-sp",
+    "en": "Most popular screenplays",
+    "ru": "Самые популярные сценарии",
+    "de": "Beliebteste Drehbücher"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-disc-row-active",
+    "en": "Most active",
+    "ru": "Самое активное",
+    "de": "Am aktivsten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-disc-row-active-sp",
+    "en": "Most active screenplays",
+    "ru": "Самые активные сценарии",
+    "de": "Aktivste Drehbücher"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-disc-row-living",
+    "en": "Living (experiencing now)",
+    "ru": "Проживаю (сейчас)",
+    "de": "Erlebe ich gerade"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-disc-row-lived",
+    "en": "Lived (experienced)",
+    "ru": "Прожито",
+    "de": "Erlebt"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-lib-rights-personal",
+    "en": "A copy I own, for my own reading",
+    "ru": "Моя копия, для личного чтения",
+    "de": "Eine eigene Kopie, zum privaten Lesen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-lib-rights-own",
+    "en": "My own work",
+    "ru": "Моё произведение",
+    "de": "Mein eigenes Werk"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-lib-rights-pd",
+    "en": "Public domain",
+    "ru": "Общественное достояние",
+    "de": "Gemeinfrei"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-lib-rights-cc",
+    "en": "Creative Commons",
+    "ru": "Creative Commons",
+    "de": "Creative Commons"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-tab-shelves",
+    "en": "Shelves",
+    "ru": "Полки",
+    "de": "Regale"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelves-new",
+    "en": "New shelf",
+    "ru": "Новая полка",
+    "de": "Neues Regal"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelves-new-smart",
+    "en": "New smart shelf",
+    "ru": "Новая умная полка",
+    "de": "Neues smartes Regal"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelves-mine",
+    "en": "My shelves",
+    "ru": "Мои полки",
+    "de": "Meine Regale"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelves-empty",
+    "en": "No shelves of your own yet. Make a shelf and add books to it, or a smart shelf that fills itself.",
+    "ru": "Своих полок пока нет. Создайте полку и добавьте книги или умную полку, которая наполняется сама.",
+    "de": "Noch keine eigenen Regale. Lege ein Regal an und füge Bücher hinzu, oder ein smartes Regal, das sich selbst füllt."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelves-smart",
+    "en": "Smart shelf",
+    "ru": "Умная полка",
+    "de": "Smartes Regal"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelves-arrange",
+    "en": "Arrange",
+    "ru": "Упорядочить",
+    "de": "Anordnen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelves-edit",
+    "en": "Edit",
+    "ru": "Изменить",
+    "de": "Bearbeiten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelves-items-empty",
+    "en": "Nothing on this shelf yet.",
+    "ru": "На этой полке пока ничего нет.",
+    "de": "Auf diesem Regal ist noch nichts."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelves-rename",
+    "en": "Rename shelf",
+    "ru": "Переименовать полку",
+    "de": "Regal umbenennen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelves-delete",
+    "en": "Delete shelf",
+    "ru": "Удалить полку",
+    "de": "Regal löschen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelves-delete-text",
+    "en": "the books stay in your library.",
+    "ru": "книги останутся в библиотеке.",
+    "de": "die Bücher bleiben in deiner Bibliothek."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-smart-title",
+    "en": "Smart shelf",
+    "ru": "Умная полка",
+    "de": "Smartes Regal"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-smart-match",
+    "en": "Match",
+    "ru": "Совпадение",
+    "de": "Treffer"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-smart-all",
+    "en": "all rules",
+    "ru": "все правила",
+    "de": "alle Regeln"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-smart-any",
+    "en": "any rule",
+    "ru": "любое правило",
+    "de": "eine Regel"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-smart-remove-rule",
+    "en": "Remove rule",
+    "ru": "Удалить правило",
+    "de": "Regel entfernen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-smart-add-rule",
+    "en": "Add rule",
+    "ru": "Добавить правило",
+    "de": "Regel hinzufügen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelf-favorites",
+    "en": "Favorites",
+    "ru": "Избранное",
+    "de": "Favoriten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelf-living",
+    "en": "Living",
+    "ru": "Проживаю",
+    "de": "Erlebe ich"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelf-lived",
+    "en": "Lived",
+    "ru": "Прожито",
+    "de": "Erlebt"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelf-newest",
+    "en": "Newest",
+    "ru": "Новое",
+    "de": "Neueste"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelf-active",
+    "en": "Most active",
+    "ru": "Самое активное",
+    "de": "Am aktivsten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-shelf-popular",
+    "en": "Most popular",
+    "ru": "Самое популярное",
+    "de": "Am beliebtesten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-local-title",
+    "en": "Files on this phone",
+    "ru": "Файлы на этом телефоне",
+    "de": "Dateien auf diesem Telefon"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-local-linked",
+    "en": "synced with a Space",
+    "ru": "синхронизируется с пространством",
+    "de": "mit einem Space synchronisiert"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-local-sync",
+    "en": "Sync now",
+    "ru": "Синхронизировать",
+    "de": "Jetzt synchronisieren"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-local-open",
+    "en": "Open a folder",
+    "ru": "Открыть папку",
+    "de": "Ordner öffnen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-local-desc",
+    "en": "Work on a folder on this phone like the desktop app does with a local Space, and sync it with a Crowdly Space. .story, .screenplay and .comic files also sync with their Crowdly work.",
+    "ru": "Работайте с папкой на телефоне, как настольное приложение с локальным пространством, и синхронизируйте её с пространством Crowdly. Файлы .story, .screenplay и .comic также синхронизируются со своей работой на Crowdly.",
+    "de": "Arbeite mit einem Ordner auf diesem Telefon wie die Desktop-App mit einem lokalen Space und synchronisiere ihn mit einem Crowdly-Space. .story-, .screenplay- und .comic-Dateien synchronisieren sich außerdem mit ihrem Crowdly-Werk."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-local-none",
+    "en": "No folders yet.",
+    "ru": "Папок пока нет.",
+    "de": "Noch keine Ordner."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sync-last",
+    "en": "last synced",
+    "ru": "последняя синхронизация",
+    "de": "zuletzt synchronisiert"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-local-forget",
+    "en": "Forget",
+    "ru": "Забыть",
+    "de": "Vergessen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-local-empty",
+    "en": "This folder is empty.",
+    "ru": "Эта папка пуста.",
+    "de": "Dieser Ordner ist leer."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-local-link",
+    "en": "Sync this folder with a Space",
+    "ru": "Синхронизировать папку с пространством",
+    "de": "Diesen Ordner mit einem Space synchronisieren"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-local-new-space",
+    "en": "Make a new Space for it",
+    "ru": "Создать для неё новое пространство",
+    "de": "Einen neuen Space dafür anlegen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-local-synced",
+    "en": "Synced",
+    "ru": "Синхронизировано",
+    "de": "Synchronisiert"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-local-kept-both",
+    "en": "Kept both versions of",
+    "ru": "Сохранены обе версии",
+    "de": "Beide Fassungen behalten von"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-local-forget-text",
+    "en": "The app stops showing this folder. Nothing on the phone or in the Space is deleted.",
+    "ru": "Приложение перестанет показывать эту папку. На телефоне и в пространстве ничего не удаляется.",
+    "de": "Die App zeigt diesen Ordner nicht mehr an. Auf dem Telefon und im Space wird nichts gelöscht."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-local-linked-work",
+    "en": "linked to Crowdly",
+    "ru": "связано с Crowdly",
+    "de": "mit Crowdly verknüpft"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-local-sync-work",
+    "en": "Sync with Crowdly",
+    "ru": "Синхронизировать с Crowdly",
+    "de": "Mit Crowdly synchronisieren"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-local-open-work",
+    "en": "Open on Crowdly",
+    "ru": "Открыть на Crowdly",
+    "de": "Auf Crowdly öffnen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-tab-more",
+    "en": "More",
+    "ru": "Ещё",
+    "de": "Mehr"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-more-local",
+    "en": "Files on this phone",
+    "ru": "Файлы на этом телефоне",
+    "de": "Dateien auf diesem Telefon"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-more-local-sub",
+    "en": ".story, .screenplay, .comic and .master files, synced with Crowdly",
+    "ru": "файлы .story, .screenplay, .comic и .master, синхронизация с Crowdly",
+    "de": ".story-, .screenplay-, .comic- und .master-Dateien, mit Crowdly synchronisiert"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-more-settings",
+    "en": "Settings",
+    "ru": "Настройки",
+    "de": "Einstellungen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-more-platform",
+    "en": "Open the Crowdly platform",
+    "ru": "Открыть платформу Crowdly",
+    "de": "Crowdly-Plattform öffnen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-more-help",
+    "en": "Help",
+    "ru": "Помощь",
+    "de": "Hilfe"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-more-bug",
+    "en": "Report a bug",
+    "ru": "Сообщить об ошибке",
+    "de": "Fehler melden"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-more-feedback",
+    "en": "Send feedback",
+    "ru": "Оставить отзыв",
+    "de": "Feedback senden"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-more-desktop",
+    "en": "Get the desktop app",
+    "ru": "Скачать настольное приложение",
+    "de": "Desktop-App holen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-more-signout",
+    "en": "Sign out",
+    "ru": "Выйти",
+    "de": "Abmelden"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-more-signout-pending",
+    "en": "Edits not yet sent to Crowdly will be lost on this phone.",
+    "ru": "Правки, ещё не отправленные в Crowdly, на этом телефоне пропадут.",
+    "de": "Noch nicht an Crowdly gesendete Änderungen gehen auf diesem Telefon verloren."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-more-signout-text",
+    "en": "You can sign in again any time.",
+    "ru": "Войти снова можно в любой момент.",
+    "de": "Du kannst dich jederzeit wieder anmelden."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-language",
+    "en": "Interface language",
+    "ru": "Язык интерфейса",
+    "de": "Sprache der Oberfläche"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-edit-ui",
+    "en": "Edit interface text",
+    "ru": "Редактировать тексты интерфейса",
+    "de": "Oberflächentexte bearbeiten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-edit-ui-sub",
+    "en": "Long-press any label to translate it into the current language.",
+    "ru": "Нажмите и удерживайте любую надпись, чтобы перевести её на текущий язык.",
+    "de": "Halte eine Beschriftung gedrückt, um sie in die aktuelle Sprache zu übersetzen."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-start",
+    "en": "When the app starts",
+    "ru": "При запуске",
+    "de": "Beim Start"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-start-create",
+    "en": "Start in Create",
+    "ru": "Открывать «Творчество»",
+    "de": "In „Erschaffen“ starten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-start-discover",
+    "en": "Start in Discover",
+    "ru": "Открывать «Обзор»",
+    "de": "In „Entdecken“ starten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-restore",
+    "en": "Reopen what I had open last time",
+    "ru": "Открывать то, что было открыто в прошлый раз",
+    "de": "Öffnen, was zuletzt offen war"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-editor",
+    "en": "Editor",
+    "ru": "Редактор",
+    "de": "Editor"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-live",
+    "en": "Live co-editing",
+    "ru": "Совместная правка в реальном времени",
+    "de": "Gemeinsam live bearbeiten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-live-sub",
+    "en": "See others' edits in a chapter you both have open, as they type.",
+    "ru": "Видеть правки других в главе, которую вы открыли вместе, по мере набора.",
+    "de": "Änderungen anderer in einem gemeinsam geöffneten Kapitel beim Tippen sehen."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-reader",
+    "en": "Reader",
+    "ru": "Читалка",
+    "de": "Lesen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-font",
+    "en": "Text size",
+    "ru": "Размер текста",
+    "de": "Textgröße"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-theme",
+    "en": "Theme",
+    "ru": "Тема",
+    "de": "Design"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-theme-system",
+    "en": "Follow the phone",
+    "ru": "Как на телефоне",
+    "de": "Wie das Telefon"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-theme-light",
+    "en": "Light",
+    "ru": "Светлая",
+    "de": "Hell"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-theme-dark",
+    "en": "Dark",
+    "ru": "Тёмная",
+    "de": "Dunkel"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-offline",
+    "en": "Offline",
+    "ru": "Офлайн",
+    "de": "Offline"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-outbox",
+    "en": "Unsent edits",
+    "ru": "Неотправленные правки",
+    "de": "Nicht gesendete Änderungen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-sent",
+    "en": "Sent",
+    "ru": "Отправлено",
+    "de": "Gesendet"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-send-now",
+    "en": "Send now",
+    "ru": "Отправить сейчас",
+    "de": "Jetzt senden"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-cache",
+    "en": "Saved for offline",
+    "ru": "Сохранено для офлайн",
+    "de": "Offline gespeichert"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-clear",
+    "en": "Clear",
+    "ru": "Очистить",
+    "de": "Leeren"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-server",
+    "en": "Server",
+    "ru": "Сервер",
+    "de": "Server"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-platform-url",
+    "en": "Platform address",
+    "ru": "Адрес платформы",
+    "de": "Adresse der Plattform"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-account",
+    "en": "Account",
+    "ru": "Аккаунт",
+    "de": "Konto"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-signed-in",
+    "en": "Signed in as",
+    "ru": "Вы вошли как",
+    "de": "Angemeldet als"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-account-link",
+    "en": "Account, password and privacy on the platform",
+    "ru": "Аккаунт, пароль и конфиденциальность на платформе",
+    "de": "Konto, Passwort und Datenschutz auf der Plattform"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-settings-about",
+    "en": "About",
+    "ru": "О приложении",
+    "de": "Über"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-bug-sent",
+    "en": "Thank you, your report was sent.",
+    "ru": "Спасибо, ваше сообщение отправлено.",
+    "de": "Danke, deine Meldung wurde gesendet."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-bug-subject",
+    "en": "What went wrong, in a few words",
+    "ru": "Что пошло не так, в двух словах",
+    "de": "Was ist schiefgelaufen, in wenigen Worten"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-bug-actual",
+    "en": "What happened",
+    "ru": "Что произошло",
+    "de": "Was passiert ist"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-bug-expected",
+    "en": "What you expected",
+    "ru": "Чего вы ожидали",
+    "de": "Was du erwartet hast"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-bug-send",
+    "en": "Send",
+    "ru": "Отправить",
+    "de": "Senden"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-reader-text",
+    "en": "Text",
+    "ru": "Текст",
+    "de": "Text"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-reader-notes",
+    "en": "Highlights and notes",
+    "ru": "Выделения и заметки",
+    "de": "Markierungen und Notizen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-reader-open-editor",
+    "en": "Open in the editor",
+    "ru": "Открыть в редакторе",
+    "de": "Im Editor öffnen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-reader-current",
+    "en": "Current text",
+    "ru": "Текущий текст",
+    "de": "Aktueller Text"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-reader-edition",
+    "en": "Edition",
+    "ru": "Издание",
+    "de": "Edition"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-reader-add-library",
+    "en": "Add to my library",
+    "ru": "Добавить в мою библиотеку",
+    "de": "Zu meiner Bibliothek hinzufügen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-reader-empty",
+    "en": "Nothing to read here yet.",
+    "ru": "Здесь пока нечего читать.",
+    "de": "Hier gibt es noch nichts zu lesen."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-reader-highlight",
+    "en": "Highlight",
+    "ru": "Выделение",
+    "de": "Markierung"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-reader-note",
+    "en": "Note",
+    "ru": "Заметка",
+    "de": "Notiz"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-reader-remove-highlight",
+    "en": "Remove highlight",
+    "ru": "Убрать выделение",
+    "de": "Markierung entfernen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-reader-no-notes",
+    "en": "Long-press a paragraph to highlight it or add a note.",
+    "ru": "Нажмите и удерживайте абзац, чтобы выделить его или добавить заметку.",
+    "de": "Halte einen Absatz gedrückt, um ihn zu markieren oder eine Notiz hinzuzufügen."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-reader-back30",
+    "en": "Back 30 seconds",
+    "ru": "Назад на 30 секунд",
+    "de": "30 Sekunden zurück"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-reader-fwd30",
+    "en": "Forward 30 seconds",
+    "ru": "Вперёд на 30 секунд",
+    "de": "30 Sekunden vor"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-file-readonly",
+    "en": "read only",
+    "ru": "только чтение",
+    "de": "schreibgeschützt"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-file-to-story",
+    "en": "Make it a Crowdly story",
+    "ru": "Сделать историей Crowdly",
+    "de": "Zu einer Crowdly-Geschichte machen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-file-to-screenplay",
+    "en": "Make it a Crowdly screenplay",
+    "ru": "Сделать сценарием Crowdly",
+    "de": "Zu einem Crowdly-Drehbuch machen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-file-to-comic",
+    "en": "Make it a Crowdly comic",
+    "ru": "Сделать комиксом Crowdly",
+    "de": "Zu einem Crowdly-Comic machen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-master-parts",
+    "en": "parts",
+    "ru": "частей",
+    "de": "Teile"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-master-add",
+    "en": "Add a file",
+    "ru": "Добавить файл",
+    "de": "Datei hinzufügen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-master-hint",
+    "en": "Each part shows a file from this Space. Unlocked parts write your edits back to their file.",
+    "ru": "Каждая часть показывает файл из этого пространства. Незаблокированные части записывают ваши правки обратно в свой файл.",
+    "de": "Jeder Teil zeigt eine Datei aus diesem Space. Nicht gesperrte Teile schreiben deine Änderungen in ihre Datei zurück."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-master-empty",
+    "en": "No parts yet — add files from the Space.",
+    "ru": "Частей пока нет — добавьте файлы из пространства.",
+    "de": "Noch keine Teile — füge Dateien aus dem Space hinzu."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-master-part-title",
+    "en": "Part title",
+    "ru": "Название части",
+    "de": "Titel des Teils"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-master-no-file",
+    "en": "(no file)",
+    "ru": "(без файла)",
+    "de": "(keine Datei)"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-master-live",
+    "en": "Edits go to the file",
+    "ru": "Правки идут в файл",
+    "de": "Änderungen gehen in die Datei"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-master-frozen",
+    "en": "Frozen copy",
+    "ru": "Замороженная копия",
+    "de": "Eingefrorene Kopie"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-master-pull",
+    "en": "Reload from the file",
+    "ru": "Перезагрузить из файла",
+    "de": "Aus der Datei neu laden"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-master-clone",
+    "en": "Duplicate",
+    "ru": "Дублировать",
+    "de": "Duplizieren"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-master-up",
+    "en": "Up",
+    "ru": "Вверх",
+    "de": "Nach oben"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-upload",
+    "en": "Upload",
+    "ru": "Загрузить",
+    "de": "Hochladen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-new",
+    "en": "New",
+    "ru": "Новое",
+    "de": "Neu"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-new-folder",
+    "en": "New folder",
+    "ru": "Новая папка",
+    "de": "Neuer Ordner"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-new-file",
+    "en": "New file",
+    "ru": "Новый файл",
+    "de": "Neue Datei"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-sync",
+    "en": "GitHub and Google Drive",
+    "ru": "GitHub и Google Drive",
+    "de": "GitHub und Google Drive"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-platform",
+    "en": "On the platform",
+    "ru": "На платформе",
+    "de": "Auf der Plattform"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-clone",
+    "en": "Copy this Space",
+    "ru": "Копировать это пространство",
+    "de": "Diesen Space kopieren"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-rename-space",
+    "en": "Rename Space",
+    "ru": "Переименовать пространство",
+    "de": "Space umbenennen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-delete",
+    "en": "Delete Space",
+    "ru": "Удалить пространство",
+    "de": "Space löschen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-only-me",
+    "en": "Only me",
+    "ru": "Только я",
+    "de": "Nur ich"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-selected",
+    "en": "Selected people",
+    "ru": "Выбранные люди",
+    "de": "Ausgewählte Personen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-everyone",
+    "en": "Everyone",
+    "ru": "Все",
+    "de": "Alle"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-empty",
+    "en": "This folder is empty. Upload files or make new ones.",
+    "ru": "Эта папка пуста. Загрузите файлы или создайте новые.",
+    "de": "Dieser Ordner ist leer. Lade Dateien hoch oder erstelle neue."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-works",
+    "en": "Stories in this Space",
+    "ru": "Истории в этом пространстве",
+    "de": "Geschichten in diesem Space"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-open",
+    "en": "Open",
+    "ru": "Открыть",
+    "de": "Öffnen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-download",
+    "en": "Share or save a copy",
+    "ru": "Поделиться или сохранить копию",
+    "de": "Teilen oder eine Kopie speichern"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-rename",
+    "en": "Rename",
+    "ru": "Переименовать",
+    "de": "Umbenennen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-move",
+    "en": "Move to…",
+    "ru": "Переместить в…",
+    "de": "Verschieben nach…"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-no-preview",
+    "en": "This file can't be shown here. Share it to open it in another app.",
+    "ru": "Этот файл нельзя показать здесь. Поделитесь им, чтобы открыть в другом приложении.",
+    "de": "Diese Datei lässt sich hier nicht anzeigen. Teile sie, um sie in einer anderen App zu öffnen."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-move-to",
+    "en": "Move to folder (path inside the Space, empty = top level)",
+    "ru": "Переместить в папку (путь внутри пространства, пусто = верхний уровень)",
+    "de": "In Ordner verschieben (Pfad im Space, leer = oberste Ebene)"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-move-btn",
+    "en": "Move",
+    "ru": "Переместить",
+    "de": "Verschieben"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-space-delete-text",
+    "en": "and every file in it?",
+    "ru": "и все файлы в нём?",
+    "de": "und alle Dateien darin?"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sync-title",
+    "en": "Sync this Space",
+    "ru": "Синхронизация пространства",
+    "de": "Diesen Space synchronisieren"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sync-github-off",
+    "en": "GitHub sync isn't available on this server.",
+    "ru": "Синхронизация с GitHub на этом сервере недоступна.",
+    "de": "GitHub-Synchronisierung ist auf diesem Server nicht verfügbar."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sync-on",
+    "en": "Sync on",
+    "ru": "Синхронизация включена",
+    "de": "Synchronisierung an"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sync-now",
+    "en": "Sync now",
+    "ru": "Синхронизировать",
+    "de": "Jetzt synchronisieren"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sync-disconnect",
+    "en": "Disconnect",
+    "ru": "Отключить",
+    "de": "Trennen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sync-github-pick",
+    "en": "Choose a repository from",
+    "ru": "Выберите репозиторий из",
+    "de": "Repository auswählen aus"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sync-github-list",
+    "en": "Show repositories",
+    "ru": "Показать репозитории",
+    "de": "Repositorys anzeigen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sync-github-connect",
+    "en": "Connect a GitHub repository",
+    "ru": "Подключить репозиторий GitHub",
+    "de": "GitHub-Repository verbinden"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sync-drive-off",
+    "en": "Google Drive sync isn't available on this server.",
+    "ru": "Синхронизация с Google Drive на этом сервере недоступна.",
+    "de": "Google-Drive-Synchronisierung ist auf diesem Server nicht verfügbar."
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sync-drive-log",
+    "en": "Sync log",
+    "ru": "Журнал синхронизации",
+    "de": "Synchronisierungsprotokoll"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sync-drive-browse",
+    "en": "Choose a folder",
+    "ru": "Выбрать папку",
+    "de": "Ordner auswählen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sync-drive-use",
+    "en": "Sync this Space with this folder",
+    "ru": "Синхронизировать пространство с этой папкой",
+    "de": "Diesen Space mit diesem Ordner synchronisieren"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sync-drive-connect",
+    "en": "Connect Google Drive",
+    "ru": "Подключить Google Drive",
+    "de": "Google Drive verbinden"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-tab-create",
+    "en": "Create",
+    "ru": "Творчество",
+    "de": "Erschaffen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-tab-library",
+    "en": "Library",
+    "ru": "Библиотека",
+    "de": "Bibliothek"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-formats-title",
+    "en": "Formats and translations",
+    "ru": "Форматы и переводы",
+    "de": "Formate und Übersetzungen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-sp-branches",
+    "en": "Element branches",
+    "ru": "Ветки элемента",
+    "de": "Zweige des Elements"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-insert-image",
+    "en": "Insert image",
+    "ru": "Вставить изображение",
+    "de": "Bild einfügen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-comments",
+    "en": "Comments",
+    "ru": "Комментарии",
+    "de": "Kommentare"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-formats",
+    "en": "Formats and translations",
+    "ru": "Форматы и переводы",
+    "de": "Formate und Übersetzungen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-story-metadata",
+    "en": "Story metadata",
+    "ru": "Данные истории",
+    "de": "Angaben zur Geschichte"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-branches-title",
+    "en": "Paragraph branches",
+    "ru": "Ветки абзацев",
+    "de": "Absatz-Zweige"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-comments-title",
+    "en": "Comments",
+    "ru": "Комментарии",
+    "de": "Kommentare"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-review-title",
+    "en": "Suggestions and requests",
+    "ru": "Предложения и запросы",
+    "de": "Vorschläge und Anfragen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-meta-title",
+    "en": "Story metadata",
+    "ru": "Данные истории",
+    "de": "Angaben zur Geschichte"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-title",
+    "en": "I want to change this story",
+    "ru": "Я хочу изменить эту историю",
+    "de": "Ich möchte diese Geschichte ändern"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-editions-title",
+    "en": "Editions",
+    "ru": "Издания",
+    "de": "Editionen"
+  },
+  {
+    "page_key": "/__android__",
+    "element_id": "android-change-work-title",
+    "en": "I want to change this",
+    "ru": "Я хочу это изменить",
+    "de": "Ich möchte das ändern"
   }
 ]

@@ -1001,7 +1001,7 @@ const CreativeSpacePage: React.FC = () => {
     } else if (linkContentType === "screenplay") {
       const params = new URLSearchParams();
       if (authUser?.id) params.set("userId", authUser.id);
-      fetch(`${API_BASE}/screenplays/${linkTargetId}/scenes?${params.toString()}`)
+      fetch(`${API_BASE}/screenplays/${linkTargetId}/scenes?${params.toString()}`, { credentials: "include" })
         .then((res) => res.json())
         .then((body) => {
           // The route responds with { scenes: [...] }, not a bare array.

@@ -1,0 +1,15 @@
+[comic_title center direction=ltr]Moon Courier[/comic_title]
+
+[issue id=77777777-7777-7777-7777-777777777777]Issue 1[/issue]
+
+[page alt=Cover id=88888888-8888-8888-8888-888888888888](pages/001.png)[/page]
+
+[layer x=20 y=15 style=bubble]Who's there?[/layer]
+
+[layer x=50.5 y=90 style=box]Midnight.[/layer]
+
+[alt name="Night version" id=99999999-9999-9999-9999-999999999999](pages/001-night.png)[/alt]
+
+[layer x=20 y=15 style=bubble]Anyone?[/layer]
+
+[page](pages/002.png)[/page]

@@ -31,6 +31,7 @@ export const AREA_LABELS: Record<BugArea, string> = {
   web_platform: "Web platform",
   desktop_app: "Desktop app",
   web_editor: "Web editor",
+  android_app: "Android app",
   other: "Other",
 };
 

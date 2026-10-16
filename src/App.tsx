@@ -118,12 +118,14 @@ const App = () => {
                   <Route path="/story/:story_id/chapter/:chapter_id" element={<AlphaGuard><Story /></AlphaGuard>} />
                   <Route path="/story/:story_id/details" element={<AlphaGuard><StoryDetails /></AlphaGuard>} />
                   <Route path="/screenplay/:screenplay_id" element={<AlphaGuard><Screenplay /></AlphaGuard>} />
+                  <Route path="/screenplay/:screenplay_id/scene/:scene_id" element={<AlphaGuard><Screenplay /></AlphaGuard>} />
                   <Route path="/creative_space/:spaceId" element={<AlphaGuard><CreativeSpacePage /></AlphaGuard>} />
                   <Route path="/favorites" element={<AlphaGuard><FavoritesOutput /></AlphaGuard>} />
                   <Route path="/newest_stories" element={<AlphaGuard><NewestStoriesOutput /></AlphaGuard>} />
                   <Route path="/newest_screenplays" element={<AlphaGuard><NewestScreenplaysOutput /></AlphaGuard>} />
                   <Route path="/newest_comics" element={<AlphaGuard><NewestComicsOutput /></AlphaGuard>} />
                   <Route path="/comic/:comic_id" element={<AlphaGuard><Comic /></AlphaGuard>} />
+                  <Route path="/comic/:comic_id/issue/:issue_id" element={<AlphaGuard><Comic /></AlphaGuard>} />
                   <Route path="/living_stories" element={<AlphaGuard><LivingStoriesOutput /></AlphaGuard>} />
                   <Route path="/lived_stories" element={<AlphaGuard><LivedStoriesOutput /></AlphaGuard>} />
                   {/* Public user page, e.g. /leolove */}

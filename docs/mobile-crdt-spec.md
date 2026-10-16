@@ -1,6 +1,6 @@
 # Mobile (Android/iOS) revisioning & real-time sync spec
 
-This describes what a future Android or iOS Crowdly client needs to implement to participate in the same real-time collaborative revisioning system as the main web platform, the web editor (`apps/web`), and the desktop app. It targets the backend built in `backend/src/crdt/` and the `/crdt/docs/*` routes in `backend/src/server.js`. No mobile code exists in this repo — this is a specification for a from-scratch implementation, not a description of existing code.
+This describes what a future Android or iOS Crowdly client needs to implement to participate in the same real-time collaborative revisioning system as the main web platform, the web editor (`apps/web`), and the desktop app. It targets the backend built in `backend/src/crdt/` and the `/crdt/docs/*` routes in `backend/src/server.js`. The Android app (`apps/android`) implements it; iOS will follow the same spec.
 
 ## 1. Data model
 
@@ -30,7 +30,7 @@ Two transports, both against the same backend:
 - `POST /crdt/docs/:docKey/restore` — body `{ toHeads: string[] }`. Restores live content to a historical value **as a new forward change** — this is non-destructive; the restored-from state and every change after it stay in history. A restore can itself be undone by restoring again.
 - `POST /crdt/docs/:docKey/apply-content` — body `{ value: object, source?: string }`. Applies a whole new document value as one attributed change. This is the fallback path for a client with no native Automerge implementation (see §4) — prefer real operational sync (§2b) when available.
 
-All four require the session cookie described in §5.
+All four require the session (cookie or bearer token) described in §5.
 
 ### 2b. Real-time WebSocket sync (requires an Automerge client library)
 
@@ -55,9 +55,12 @@ A client never mints a `DocumentId` itself. To start editing a chapter/scene/tit
 
 ## 5. Authentication
 
-The existing backend uses an httpOnly session cookie (`crowdly_session`, see `backend/src/sessions.js`), set by `POST /auth/login`, checked by `requireAuth` on every `/crdt/docs/*` route and by the WebSocket upgrade handler for `/crdt-sync`. This maps cleanly onto a browser client (`credentials: "include"` on every fetch — see `apps/web/src/Index.tsx`'s login call for the pattern) but **does not map cleanly onto a native mobile HTTP/WebSocket client**, which typically has no shared cookie jar with a browser and no reason to emulate one.
+The backend accepts two forms of the same server-side session (`backend/src/sessions.js`, `sessionTokenFrom()`):
 
-**This is a required backend addition, not a mobile-side workaround**: add a bearer-token auth path (e.g. `POST /auth/login` optionally returning a long-lived API token, checked via an `Authorization: Bearer <token>` header as an alternative to the session cookie in `requireAuth` and in the `/crdt-sync` upgrade handler) before a real mobile client can authenticate. Do not attempt to have a mobile client fake or manually manage the cookie-based flow.
+- **Browsers:** the httpOnly `crowdly_session` cookie set by `POST /auth/login` (`credentials: "include"` on every fetch).
+- **Native apps (Android now, iOS next):** `POST /auth/login` with `{ email, password, client: "android" }` (or `"ios"`) also returns `{ token, expiresAt }` in the body. Send it as `Authorization: Bearer <token>` on every REST call **and** on the `/crdt-sync` WebSocket upgrade request. Browsers never ask for the token, so it stays out of reach of page JS.
+
+The token is the session itself: the same 30-day absolute / 7-day idle expiry, and `POST /auth/logout` with the bearer header ends it. A `401` means sign in again. Store the token in platform secure storage (Android Keystore, iOS Keychain), never in plain preferences. `POST /auth/register` creates the account only; follow it with a login.
 
 ## 6. Restore UX expectations
 
@@ -67,3 +70,13 @@ Match the model in §2a exactly: restore is presented as "go back to this revisi
 
 - **Reuse the shared layout-preset data** described for the other two web apps (`src/lib/revision-layouts.ts` / `apps/web/src/lib/revision-layouts.ts` — 25 tiling presets total for viewing/comparing 2-4 revisions side by side, matching the desktop editor's `_LAYOUTS` table in `apps/desktop/src/editor/ui/compare_revisions.py`). Port the same preset geometries natively; there is no reason for mobile to invent a fourth, different set.
 - **Do not reimplement diffing from scratch** if a platform-native text-diff library is available; the main platform uses `diff-match-patch`, the web editor uses a small from-scratch word-level LCS diff (`apps/web/src/lib/word-diff.ts`) precisely because it had no other dependency — pick whichever fits the mobile platform's ecosystem, the algorithm choice is not load-bearing.
+
+## 8. How the Android app does it (`apps/android`)
+
+- **No native Automerge on Android.** `org.automerge:automerge` (automerge-java 0.0.9) ships JNI libraries for desktop Linux, macOS and Windows only; its arm64 Linux build links against glibc and won't load on Android's bionic.
+- **Live sync runs the web client in a hidden WebView.** `apps/android/live/bridge.ts` is the same automerge-repo client as `apps/web/src/lib/live.ts` (character-level `updateText` splices, presence over ephemeral messages). It is bundled with the repo's own `@automerge/*` packages into `app/src/main/assets/live/bridge.js` by `apps/android/live/build.sh`, with the WASM inlined. `sync/LiveSession.kt` loads it into a WebView whose page origin is the API server and sets the session cookie for that origin, so the `/crdt-sync` WebSocket authenticates exactly like a browser. Kotlin and the page talk through a JavaScript interface: `open`, `push`, `presence`, `close`, and the `onRemote`, `onPeers` and `onState` callbacks.
+- **When it's used:** the story editor goes live for owners when "Live co-editing" is on in Settings and the phone is online. Otherwise edits save over REST (`PATCH /chapters/:id`, queued offline) and are mirrored into the CRDT history with `apply-content` (§2a, §4).
+- **Revision history and restore** use the REST routes in §2a (`RevisionsScreen` in `ui/create/WorkPanels.kt`).
+- **Auth:** bearer token (§5) for REST; the same token as the `crowdly_session` cookie inside the live WebView.
+- **Host:** the app talks to `https://api.crowdly.cloud`, an nginx host proxying everything (REST and the `/crdt-sync` WebSocket) to the backend; see `Documentation/Android_app.md`.
+- **iOS** can use the same bridge in a `WKWebView`, or the official Swift binding if that's preferable at the time.

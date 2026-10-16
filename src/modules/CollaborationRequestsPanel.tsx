@@ -9,9 +9,13 @@ import {
   answerCollaborationRequest,
   listCollaborationRequests,
 } from "@/lib/collaborationApi";
+import { listWorkCollaborationRequests, type WorkKind } from "@/lib/workApi";
 
 interface Props {
-  storyTitleId: string;
+  /** The story whose requests to show… */
+  storyTitleId?: string;
+  /** …or a screenplay / comic. */
+  work?: { kind: WorkKind; id: string };
   onChanged?: () => void;
 }
 
@@ -20,18 +24,23 @@ interface Props {
  * makes the reader a collaborator who can change the story directly (also
  * from the desktop app).
  */
-const CollaborationRequestsPanel: React.FC<Props> = ({ storyTitleId, onChanged }) => {
+const CollaborationRequestsPanel: React.FC<Props> = ({ storyTitleId, work, onChanged }) => {
+  const workKind = work?.kind;
+  const workId = work?.id;
   const [requests, setRequests] = useState<CollaborationRequest[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const data = await listCollaborationRequests(storyTitleId);
-      setRequests(data.requests);
+      const data =
+        workKind && workId
+          ? await listWorkCollaborationRequests(workKind, workId)
+          : await listCollaborationRequests(storyTitleId ?? "");
+      setRequests(data.requests as CollaborationRequest[]);
     } catch {
       setRequests([]);
     }
-  }, [storyTitleId]);
+  }, [storyTitleId, workKind, workId]);
 
   useEffect(() => {
     load();
@@ -56,7 +65,11 @@ const CollaborationRequestsPanel: React.FC<Props> = ({ storyTitleId, onChanged }
     <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3">
       <div className="flex items-center gap-2 font-medium text-amber-900 mb-2">
         <UserPlus className="h-4 w-4" />
-        <EditableText id="story-collab-requests-title">Requests to collaborate on this story</EditableText>
+        {work ? (
+          <EditableText id={`${work.kind}-collab-requests-title`}>{`Requests to collaborate on this ${work.kind}`}</EditableText>
+        ) : (
+          <EditableText id="story-collab-requests-title">Requests to collaborate on this story</EditableText>
+        )}
       </div>
       <ul className="space-y-2">
         {requests.map((request) => (

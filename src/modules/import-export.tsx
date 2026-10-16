@@ -461,6 +461,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onOpenChange }
         } else if (importKind === "screenplay" && screenplayParsed) {
           const res = await fetch(`${API_BASE}/screenplays/template`, {
             method: "POST",
+            credentials: "include",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               title: screenplayParsed.title,
@@ -488,6 +489,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onOpenChange }
             try {
               const sceneRes = await fetch(`${API_BASE}/screenplays/${screenplayId}/scenes`, {
                 method: "POST",
+                credentials: "include",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   slugline: scene.slugline,
@@ -502,6 +504,7 @@ export const ImportDialog: React.FC<ImportDialogProps> = ({ open, onOpenChange }
                   try {
                     await fetch(`${API_BASE}/screenplays/${screenplayId}/blocks`, {
                       method: "POST",
+                      credentials: "include",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({
                         sceneId,

@@ -17,6 +17,7 @@ import express from 'express';
 import { pool } from './db.js';
 import { requireAuth } from './sessions.js';
 import { loadStory, canViewStory } from './storyAccess.js';
+import { loadWork, canView as canViewWork } from './workAccess.js';
 import {
   fetchNewestStories,
   fetchMostActiveStories,
@@ -34,7 +35,8 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const isUuid = (value) => typeof value === 'string' && UUID_RE.test(value);
 const clip = (value, max) => (typeof value === 'string' ? value.trim().slice(0, max) : '');
 
-const ITEM_TYPES = new Set(['library_item', 'story', 'screenplay']);
+const ITEM_TYPES = new Set(['library_item', 'story', 'screenplay', 'comic']);
+const ITEM_COLUMNS = { library_item: 'library_item_id', story: 'story_title_id', screenplay: 'screenplay_id', comic: 'comic_id' };
 const SORTS = new Set(['manual', 'title', 'added', 'progress', 'last_read']);
 const SYSTEM_STATUS_SHELVES = { favorites: 'is_favorite', living: 'is_living', lived: 'is_lived' };
 const SYSTEM_LIST_SHELVES = {
@@ -52,7 +54,7 @@ const MAX_RULES = 20;
 // field -> { ops, values? (allowed enum), type }
 export const RULE_FIELDS = {
   source: { ops: ['is'], values: ['library', 'crowdly'] },
-  format: { ops: ['is'], values: ['epub', 'pdf', 'audio', 'text', 'story', 'screenplay'] },
+  format: { ops: ['is'], values: ['epub', 'pdf', 'audio', 'text', 'story', 'screenplay', 'comic'] },
   language: { ops: ['is'], type: 'text' },
   title: { ops: ['contains'], type: 'text' },
   author: { ops: ['contains'], type: 'text' },
@@ -153,14 +155,15 @@ async function loadCandidates(userId) {
       [userId],
     ),
     pool.query(
-      `SELECT us.content_type, us.story_title_id, us.screenplay_id, us.created_at,
+      `SELECT us.content_type, us.story_title_id, us.screenplay_id, us.comic_id, us.created_at,
               us.is_favorite, us.is_living, us.is_lived,
-              COALESCE(st.title, sp.title) AS title,
-              st.language
+              COALESCE(st.title, sp.title, ct.title) AS title,
+              COALESCE(st.language, sp.language, ct.language) AS language
          FROM user_story_status us
          LEFT JOIN story_title st ON st.story_title_id = us.story_title_id
          LEFT JOIN screenplay_title sp ON sp.screenplay_id = us.screenplay_id
-        WHERE us.user_id = $1 AND COALESCE(st.title, sp.title) IS NOT NULL`,
+         LEFT JOIN comic_title ct ON ct.comic_id = us.comic_id
+        WHERE us.user_id = $1 AND COALESCE(st.title, sp.title, ct.title) IS NOT NULL`,
       [userId],
     ),
     pool.query(
@@ -193,7 +196,7 @@ async function loadCandidates(userId) {
   }
   for (const r of statuses.rows) {
     const type = r.content_type;
-    const id = type === 'story' ? r.story_title_id : r.screenplay_id;
+    const id = r[ITEM_COLUMNS[type]];
     items.set(`${type}:${id}`, {
       type,
       id,
@@ -254,15 +257,16 @@ async function loadOwnShelf(userId, shelfId) {
 /** Items of a manual shelf, enriched from the candidate map where possible. */
 async function manualShelfItems(shelf, candidates) {
   const { rows } = await pool.query(
-    `SELECT si.id AS entry_id, si.item_type, si.library_item_id, si.story_title_id, si.screenplay_id,
+    `SELECT si.id AS entry_id, si.item_type, si.library_item_id, si.story_title_id, si.screenplay_id, si.comic_id,
             si.position, si.added_at,
             li.title AS library_title, li.author, li.language AS library_language, li.format, li.deleted_at,
             st.title AS story_title, st.language AS story_language,
-            sp.title AS screenplay_title
+            sp.title AS screenplay_title, ct.title AS comic_title
        FROM shelf_items si
        LEFT JOIN library_items li ON li.id = si.library_item_id
        LEFT JOIN story_title st ON st.story_title_id = si.story_title_id
        LEFT JOIN screenplay_title sp ON sp.screenplay_id = si.screenplay_id
+       LEFT JOIN comic_title ct ON ct.comic_id = si.comic_id
       WHERE si.shelf_id = $1
       ORDER BY si.position ASC, si.added_at ASC`,
     [shelf.id],
@@ -270,12 +274,12 @@ async function manualShelfItems(shelf, candidates) {
   const items = [];
   for (const r of rows) {
     if (r.item_type === 'library_item' && r.deleted_at) continue;
-    const id = r.library_item_id || r.story_title_id || r.screenplay_id;
+    const id = r.library_item_id || r.story_title_id || r.screenplay_id || r.comic_id;
     const known = candidates.get(`${r.item_type}:${id}`);
     const base = known ?? {
       type: r.item_type,
       id,
-      title: r.library_title || r.story_title || r.screenplay_title || '',
+      title: r.library_title || r.story_title || r.screenplay_title || r.comic_title || '',
       subtitle: r.author || null,
       author: r.author || '',
       language: r.library_language || r.story_language || '',
@@ -315,7 +319,8 @@ const AUTHOR_SQL = `COALESCE(NULLIF(p.nickname, ''), NULLIF(trim(concat_ws(' ', 
 async function enrichItems(items) {
   const storyIds = [...new Set(items.filter((i) => i.type === 'story' && isUuid(i.id)).map((i) => i.id))];
   const screenplayIds = [...new Set(items.filter((i) => i.type === 'screenplay' && isUuid(i.id)).map((i) => i.id))];
-  const [stories, screenplays] = await Promise.all([
+  const comicIds = [...new Set(items.filter((i) => i.type === 'comic' && isUuid(i.id)).map((i) => i.id))];
+  const [stories, screenplays, comics] = await Promise.all([
     storyIds.length
       ? pool.query(
           `SELECT st.story_title_id AS id, st.description, st.language, st.cover_image_url, st.genre,
@@ -329,7 +334,7 @@ async function enrichItems(items) {
       : { rows: [] },
     screenplayIds.length
       ? pool.query(
-          `SELECT sp.screenplay_id AS id, sp.description, NULL AS language, NULL AS cover_image_url, sp.genre,
+          `SELECT sp.screenplay_id AS id, sp.description, sp.language, sp.cover_image_url, sp.genre,
                   ${AUTHOR_SQL} AS author,
                   (SELECT count(*) FROM screenplay_scene ss WHERE ss.screenplay_id = sp.screenplay_id) AS parts
              FROM screenplay_title sp
@@ -338,10 +343,22 @@ async function enrichItems(items) {
           [screenplayIds],
         )
       : { rows: [] },
+    comicIds.length
+      ? pool.query(
+          `SELECT ct.comic_id AS id, ct.description, ct.language, ct.cover_image_url, ct.genre,
+                  ${AUTHOR_SQL} AS author,
+                  (SELECT count(*) FROM comic_page cp WHERE cp.comic_id = ct.comic_id) AS parts
+             FROM comic_title ct
+             LEFT JOIN profiles p ON p.id = ct.creator_id
+            WHERE ct.comic_id = ANY($1::uuid[])`,
+          [comicIds],
+        )
+      : { rows: [] },
   ]);
   const meta = new Map();
   for (const r of stories.rows) meta.set(`story:${r.id}`, r);
   for (const r of screenplays.rows) meta.set(`screenplay:${r.id}`, r);
+  for (const r of comics.rows) meta.set(`comic:${r.id}`, r);
   return items.map((item) => {
     const m = meta.get(`${item.type}:${item.id}`);
     if (!m) return item;
@@ -496,7 +513,7 @@ router.get('/shelves/membership', requireAuth, async (req, res) => {
   const id = String(req.query.id || '');
   if (!ITEM_TYPES.has(type) || !isUuid(id)) return res.status(400).json({ error: 'type and id are required' });
   const userId = req.user.id;
-  const column = { library_item: 'library_item_id', story: 'story_title_id', screenplay: 'screenplay_id' }[type];
+  const column = ITEM_COLUMNS[type];
   try {
     const { rows } = await pool.query(
       `SELECT s.id, s.name, EXISTS (
@@ -512,7 +529,7 @@ router.get('/shelves/membership', requireAuth, async (req, res) => {
     if (type !== 'library_item') {
       const statusRows = await pool.query(
         `SELECT is_favorite, is_living, is_lived FROM user_story_status
-          WHERE user_id = $1 AND content_type = $2 AND ${type === 'story' ? 'story_title_id' : 'screenplay_id'} = $3`,
+          WHERE user_id = $1 AND content_type = $2 AND ${ITEM_COLUMNS[type]} = $3`,
         [userId, type, id],
       );
       const s = statusRows.rows[0];
@@ -640,11 +657,13 @@ router.post('/shelves/:id/items', requireAuth, async (req, res) => {
         return res.status(404).json({ error: 'Story not found' });
       }
     } else {
-      const sp = await pool.query('SELECT 1 FROM screenplay_title WHERE screenplay_id = $1', [id]);
-      if (sp.rows.length === 0) return res.status(404).json({ error: 'Screenplay not found' });
+      const work = await loadWork(pool, type, id);
+      if (!work || !(await canViewWork(pool, type, work, userId))) {
+        return res.status(404).json({ error: type === 'comic' ? 'Comic not found' : 'Screenplay not found' });
+      }
     }
 
-    const column = { library_item: 'library_item_id', story: 'story_title_id', screenplay: 'screenplay_id' }[type];
+    const column = ITEM_COLUMNS[type];
     const existing = await pool.query(
       `SELECT id FROM shelf_items WHERE shelf_id = $1 AND item_type = $2 AND ${column} = $3`,
       [shelf.id, type, id],
@@ -675,7 +694,7 @@ router.delete('/shelves/:id/items/:itemId', requireAuth, async (req, res) => {
     if (!isUuid(itemId)) return res.status(404).json({ error: 'Shelf item not found' });
     let result;
     if (ITEM_TYPES.has(type)) {
-      const column = { library_item: 'library_item_id', story: 'story_title_id', screenplay: 'screenplay_id' }[type];
+      const column = ITEM_COLUMNS[type];
       result = await pool.query(
         `DELETE FROM shelf_items WHERE shelf_id = $1 AND item_type = $2 AND ${column} = $3`,
         [shelf.id, type, itemId],
@@ -753,12 +772,12 @@ router.get('/discover/home', requireAuth, async (req, res) => {
 // POST /users/:userId/story-status this checks the session, and only the
 // flags that are sent change.
 router.put('/me/story-status', requireAuth, async (req, res) => {
-  const { contentType, storyTitleId, screenplayId, isFavorite, isLiving, isLived } = req.body ?? {};
-  if (contentType !== 'story' && contentType !== 'screenplay') {
-    return res.status(400).json({ error: 'contentType must be "story" or "screenplay"' });
+  const { contentType, storyTitleId, screenplayId, comicId, isFavorite, isLiving, isLived } = req.body ?? {};
+  if (!['story', 'screenplay', 'comic'].includes(contentType)) {
+    return res.status(400).json({ error: 'contentType must be "story", "screenplay" or "comic"' });
   }
-  const id = contentType === 'story' ? storyTitleId : screenplayId;
-  if (!isUuid(id)) return res.status(400).json({ error: 'A story or screenplay id is required' });
+  const id = { story: storyTitleId, screenplay: screenplayId, comic: comicId }[contentType];
+  if (!isUuid(id)) return res.status(400).json({ error: 'A story, screenplay or comic id is required' });
   try {
     if (contentType === 'story') {
       const story = await loadStory(pool, id);
@@ -766,13 +785,16 @@ router.put('/me/story-status', requireAuth, async (req, res) => {
         return res.status(404).json({ error: 'Story not found' });
       }
     } else {
-      const sp = await pool.query('SELECT 1 FROM screenplay_title WHERE screenplay_id = $1', [id]);
-      if (sp.rows.length === 0) return res.status(404).json({ error: 'Screenplay not found' });
+      const work = await loadWork(pool, contentType, id);
+      if (!work || !(await canViewWork(pool, contentType, work, req.user.id))) {
+        return res.status(404).json({ error: 'Not found' });
+      }
     }
     const row = await setUserStoryStatus(pool, req.user.id, {
       contentType,
       storyTitleId,
       screenplayId,
+      comicId,
       isFavorite,
       isLiving,
       isLived,

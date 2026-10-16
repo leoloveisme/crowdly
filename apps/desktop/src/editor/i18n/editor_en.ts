@@ -172,6 +172,26 @@
         <translation >.screenplay file</translation>
     </message>
     <message>
+        <source>as .comic file</source>
+        <translation>as .comic file</translation>
+    </message>
+    <message>
+        <source>Save as Comic</source>
+        <translation>Save as Comic</translation>
+    </message>
+    <message>
+        <source>Comic files (*.comic);;All files (*)</source>
+        <translation>Comic files (*.comic);;All files (*)</translation>
+    </message>
+    <message>
+        <source>Saved comic to: {path}</source>
+        <translation>Saved comic to: {path}</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the comic.</source>
+        <translation>An unexpected error occurred while saving the comic.</translation>
+    </message>
+    <message>
         <source>Import</source>
         <translation >Import</translation>
     </message>
@@ -824,6 +844,82 @@ Details: {error}</source>
         <translation>Your bug report could not be sent.
 
 Details: {error}</translation>
+    </message>
+    <message>
+        <source>Branch</source>
+        <translation>Branch</translation>
+    </message>
+    <message>
+        <source>Text layer</source>
+        <translation>Text layer</translation>
+    </message>
+    <message>
+        <source>Page alternative...</source>
+        <translation>Page alternative...</translation>
+    </message>
+    <message>
+        <source>Comic sync failed.</source>
+        <translation>Comic sync failed.</translation>
+    </message>
+    <message>
+        <source>Comic synced to the web.</source>
+        <translation>Comic synced to the web.</translation>
+    </message>
+    <message>
+        <source>Only the team can change this work directly; you have no changes to suggest.</source>
+        <translation>Only the team can change this work directly; you have no changes to suggest.</translation>
+    </message>
+    <message>
+        <source>Suggest changes</source>
+        <translation>Suggest changes</translation>
+    </message>
+    <message>
+        <source>You&apos;re not on this work&apos;s team, so your edits can&apos;t be synced directly.
+
+Send your {count} change(s) to the owner as suggestions?</source>
+        <translation>You&apos;re not on this work&apos;s team, so your edits can&apos;t be synced directly.
+
+Send your {count} change(s) to the owner as suggestions?</translation>
+    </message>
+    <message>
+        <source>Sent {count} suggestion(s) to the owner.</source>
+        <translation>Sent {count} suggestion(s) to the owner.</translation>
+    </message>
+    <message>
+        <source>{count} branch edit(s) were sent to the owner as suggestions.</source>
+        <translation>{count} branch edit(s) were sent to the owner as suggestions.</translation>
+    </message>
+    <message>
+        <source>Branches can be added to .story and .screenplay files.</source>
+        <translation>Branches can be added to .story and .screenplay files.</translation>
+    </message>
+    <message>
+        <source>Branch name (optional):</source>
+        <translation>Branch name (optional):</translation>
+    </message>
+    <message>
+        <source>Alternative text</source>
+        <translation>Alternative text</translation>
+    </message>
+    <message>
+        <source>Text layers can be added to .comic files.</source>
+        <translation>Text layers can be added to .comic files.</translation>
+    </message>
+    <message>
+        <source>Speech bubble text</source>
+        <translation>Speech bubble text</translation>
+    </message>
+    <message>
+        <source>Page alternative</source>
+        <translation>Page alternative</translation>
+    </message>
+    <message>
+        <source>Page alternatives can be added to .comic files.</source>
+        <translation>Page alternatives can be added to .comic files.</translation>
+    </message>
+    <message>
+        <source>Name (optional):</source>
+        <translation>Name (optional):</translation>
     </message>
 </context>
 <context>

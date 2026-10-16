@@ -32,6 +32,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { isChapterUntitled, type StoryChapter } from "./types";
+import { STORY_SIDEBAR_LABELS, type ChapterSidebarLabels, type SidebarLabelKey } from "./sidebarLabels";
 
 export type ChapterSidebarMode = "view" | "edit";
 
@@ -51,6 +52,8 @@ interface ChapterSidebarProps {
   onDelete: (chapterId: string) => void;
   /** Opens the add-chapter form; null appends at the end. */
   onInsertAfter: (chapterId: string | null) => void;
+  /** Wording for other kinds of parts (scenes, issues); defaults to chapters. */
+  labels?: ChapterSidebarLabels;
 }
 
 /**
@@ -70,8 +73,10 @@ const ChapterSidebar: React.FC<ChapterSidebarProps> = ({
   onTogglePublish,
   onDelete,
   onInsertAfter,
+  labels = STORY_SIDEBAR_LABELS,
 }) => {
   const editing = canEdit && mode === "edit";
+  const L = (key: SidebarLabelKey) => <EditableText id={labels[key].id}>{labels[key].text}</EditableText>;
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [draggedId, setDraggedId] = useState<string | null>(null);
@@ -112,7 +117,7 @@ const ChapterSidebar: React.FC<ChapterSidebarProps> = ({
     <div className="text-sm">
       <div className="flex items-center justify-between gap-2 mb-2">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-          <EditableText id="story-sidebar-heading">Chapters</EditableText>
+          {L("heading")}
           <span className="ml-1 font-normal normal-case">· {chapters.length}</span>
         </h3>
         {canEdit && (
@@ -128,11 +133,7 @@ const ChapterSidebar: React.FC<ChapterSidebarProps> = ({
                   mode === m ? "bg-white shadow-sm text-blue-700 font-medium" : "text-gray-600 hover:text-gray-900",
                 )}
               >
-                {m === "view" ? (
-                  <EditableText id="story-sidebar-view">View</EditableText>
-                ) : (
-                  <EditableText id="story-sidebar-edit">Edit</EditableText>
-                )}
+                {m === "view" ? L("view") : L("edit")}
               </button>
             ))}
           </div>
@@ -141,7 +142,7 @@ const ChapterSidebar: React.FC<ChapterSidebarProps> = ({
 
       {chapters.length === 0 && (
         <p className="text-xs text-gray-500 px-1 py-2">
-          <EditableText id="story-sidebar-empty">No chapters yet.</EditableText>
+          {L("empty")}
         </p>
       )}
 
@@ -208,7 +209,7 @@ const ChapterSidebar: React.FC<ChapterSidebarProps> = ({
                         setRenamingId(null);
                       }
                     }}
-                    placeholder="Chapter title"
+                    placeholder={labels.placeholder.text}
                     className="flex-1 min-w-0 border-b border-dashed border-blue-400 bg-transparent px-1 py-0.5 focus:outline-none"
                   />
                 </div>
@@ -231,7 +232,7 @@ const ChapterSidebar: React.FC<ChapterSidebarProps> = ({
                     )}
                   >
                     {untitled ? (
-                      <EditableText id="story-sidebar-untitled">Untitled chapter</EditableText>
+                      L("untitled")
                     ) : (
                       chapter.chapter_title
                     )}
@@ -273,11 +274,11 @@ const ChapterSidebar: React.FC<ChapterSidebarProps> = ({
                   <DropdownMenuContent align="end" className="w-52">
                     <DropdownMenuItem onSelect={() => startRename(chapter)}>
                       <Pencil className="h-3.5 w-3.5 mr-2" />
-                      <EditableText id="story-chapter-rename-btn">Rename</EditableText>
+                      {L("rename")}
                     </DropdownMenuItem>
                     <DropdownMenuItem onSelect={() => onInsertAfter(chapter.chapter_id)}>
                       <Plus className="h-3.5 w-3.5 mr-2" />
-                      <EditableText id="story-sidebar-insert-after">Insert chapter after</EditableText>
+                      {L("insertAfter")}
                     </DropdownMenuItem>
                     {isOwner && (
                       <>
@@ -309,12 +310,12 @@ const ChapterSidebar: React.FC<ChapterSidebarProps> = ({
                           {chapter.published ? (
                             <>
                               <EyeOff className="h-3.5 w-3.5 mr-2" />
-                              <EditableText id="story-sidebar-unpublish">Unpublish chapter</EditableText>
+                              {L("unpublish")}
                             </>
                           ) : (
                             <>
                               <Eye className="h-3.5 w-3.5 mr-2" />
-                              <EditableText id="story-sidebar-publish">Publish chapter</EditableText>
+                              {L("publish")}
                             </>
                           )}
                         </DropdownMenuItem>
@@ -324,7 +325,7 @@ const ChapterSidebar: React.FC<ChapterSidebarProps> = ({
                           onSelect={() => setPendingDelete(chapter)}
                         >
                           <Trash2 className="h-3.5 w-3.5 mr-2" />
-                          <EditableText id="story-chapter-delete-btn">Delete</EditableText>
+                          {L("delete")}
                         </DropdownMenuItem>
                       </>
                     )}
@@ -342,14 +343,12 @@ const ChapterSidebar: React.FC<ChapterSidebarProps> = ({
           onClick={() => onInsertAfter(null)}
           className="mt-2 w-full flex items-center justify-center gap-1 px-3 py-2 text-xs rounded border border-dashed border-blue-300 text-blue-700 hover:bg-blue-50"
         >
-          <EditableText id="story-chapter-add-btn">+ Add chapter</EditableText>
+          {L("add")}
         </button>
       )}
       {editing && isOwner && chapters.length > 1 && (
         <p className="mt-2 text-[11px] text-gray-400 leading-snug">
-          <EditableText id="story-sidebar-reorder-hint">
-            Drag the handle or use the ⋯ menu to reorder. Double-click a title to rename.
-          </EditableText>
+          {L("reorderHint")}
         </p>
       )}
 
@@ -357,16 +356,16 @@ const ChapterSidebar: React.FC<ChapterSidebarProps> = ({
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              <EditableText id="story-chapter-delete-title">Delete this chapter?</EditableText>
+              {L("deleteTitle")}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {pendingDelete?.chapter_title ? `“${pendingDelete.chapter_title}” — ` : ""}
-              <EditableText id="story-chapter-delete-desc">This cannot be undone.</EditableText>
+              {L("deleteDesc")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>
-              <EditableText id="story-dialog-cancel">Cancel</EditableText>
+              {L("cancel")}
             </AlertDialogCancel>
             <AlertDialogAction
               className="bg-red-600 hover:bg-red-700"
@@ -375,7 +374,7 @@ const ChapterSidebar: React.FC<ChapterSidebarProps> = ({
                 setPendingDelete(null);
               }}
             >
-              <EditableText id="story-chapter-delete-btn">Delete</EditableText>
+              {L("delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

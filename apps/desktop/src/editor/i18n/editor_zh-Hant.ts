@@ -168,6 +168,26 @@
       <translation>as .screenplay file</translation>
     </message>
     <message>
+        <source>as .comic file</source>
+        <translation>儲存為 .comic 檔案</translation>
+    </message>
+    <message>
+        <source>Save as Comic</source>
+        <translation>另存為漫畫</translation>
+    </message>
+    <message>
+        <source>Comic files (*.comic);;All files (*)</source>
+        <translation>漫畫檔案 (*.comic);;所有檔案 (*)</translation>
+    </message>
+    <message>
+        <source>Saved comic to: {path}</source>
+        <translation>漫畫已儲存至：{path}</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the comic.</source>
+        <translation>儲存漫畫時發生意外錯誤。</translation>
+    </message>
+    <message>
       <source>Import</source>
       <translation>Import</translation>
     </message>
@@ -792,6 +812,82 @@ Details: {error}</source>
         <translation>無法傳送問題回報。
 
 詳細資訊：{error}</translation>
+    </message>
+    <message>
+        <source>Branch</source>
+        <translation>分支</translation>
+    </message>
+    <message>
+        <source>Text layer</source>
+        <translation>文字圖層</translation>
+    </message>
+    <message>
+        <source>Page alternative...</source>
+        <translation>替代頁面...</translation>
+    </message>
+    <message>
+        <source>Comic sync failed.</source>
+        <translation>漫畫同步失敗。</translation>
+    </message>
+    <message>
+        <source>Comic synced to the web.</source>
+        <translation>漫畫已同步到網頁。</translation>
+    </message>
+    <message>
+        <source>Only the team can change this work directly; you have no changes to suggest.</source>
+        <translation>只有團隊可以直接修改此作品；你沒有可提議的修改。</translation>
+    </message>
+    <message>
+        <source>Suggest changes</source>
+        <translation>提議修改</translation>
+    </message>
+    <message>
+        <source>You&apos;re not on this work&apos;s team, so your edits can&apos;t be synced directly.
+
+Send your {count} change(s) to the owner as suggestions?</source>
+        <translation>你不在此作品的團隊中，因此你的編輯無法直接同步。
+
+將你的 {count} 處修改作為建議傳送給擁有者？</translation>
+    </message>
+    <message>
+        <source>Sent {count} suggestion(s) to the owner.</source>
+        <translation>已向擁有者傳送 {count} 則建議。</translation>
+    </message>
+    <message>
+        <source>{count} branch edit(s) were sent to the owner as suggestions.</source>
+        <translation>已將 {count} 處分支編輯作為建議傳送給擁有者。</translation>
+    </message>
+    <message>
+        <source>Branches can be added to .story and .screenplay files.</source>
+        <translation>分支可以加入 .story 和 .screenplay 檔案。</translation>
+    </message>
+    <message>
+        <source>Branch name (optional):</source>
+        <translation>分支名稱（選填）：</translation>
+    </message>
+    <message>
+        <source>Alternative text</source>
+        <translation>替代文字</translation>
+    </message>
+    <message>
+        <source>Text layers can be added to .comic files.</source>
+        <translation>文字圖層可以加入 .comic 檔案。</translation>
+    </message>
+    <message>
+        <source>Speech bubble text</source>
+        <translation>對話氣泡文字</translation>
+    </message>
+    <message>
+        <source>Page alternative</source>
+        <translation>替代頁面</translation>
+    </message>
+    <message>
+        <source>Page alternatives can be added to .comic files.</source>
+        <translation>替代頁面可以加入 .comic 檔案。</translation>
+    </message>
+    <message>
+        <source>Name (optional):</source>
+        <translation>名稱（選填）：</translation>
     </message>
 </context>
 <context>

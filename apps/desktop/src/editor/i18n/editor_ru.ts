@@ -264,6 +264,26 @@
         <translation >.screenplay файл</translation>
     </message>
     <message>
+        <source>as .comic file</source>
+        <translation>как файл .comic</translation>
+    </message>
+    <message>
+        <source>Save as Comic</source>
+        <translation>Сохранить как комикс</translation>
+    </message>
+    <message>
+        <source>Comic files (*.comic);;All files (*)</source>
+        <translation>Файлы комиксов (*.comic);;Все файлы (*)</translation>
+    </message>
+    <message>
+        <source>Saved comic to: {path}</source>
+        <translation>Комикс сохранён в: {path}</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the comic.</source>
+        <translation>Произошла непредвиденная ошибка при сохранении комикса.</translation>
+    </message>
+    <message>
         <source>Import</source>
         <translation >Импорт</translation>
     </message>
@@ -888,6 +908,82 @@ Details: {error}</source>
         <translation>Не удалось отправить отчёт об ошибке.
 
 Подробности: {error}</translation>
+    </message>
+    <message>
+        <source>Branch</source>
+        <translation>Ветка</translation>
+    </message>
+    <message>
+        <source>Text layer</source>
+        <translation>Текстовый слой</translation>
+    </message>
+    <message>
+        <source>Page alternative...</source>
+        <translation>Вариант страницы...</translation>
+    </message>
+    <message>
+        <source>Comic sync failed.</source>
+        <translation>Не удалось синхронизировать комикс.</translation>
+    </message>
+    <message>
+        <source>Comic synced to the web.</source>
+        <translation>Комикс синхронизирован с веб-платформой.</translation>
+    </message>
+    <message>
+        <source>Only the team can change this work directly; you have no changes to suggest.</source>
+        <translation>Изменять эту работу напрямую может только команда; у вас нет изменений, которые можно предложить.</translation>
+    </message>
+    <message>
+        <source>Suggest changes</source>
+        <translation>Предложить изменения</translation>
+    </message>
+    <message>
+        <source>You&apos;re not on this work&apos;s team, so your edits can&apos;t be synced directly.
+
+Send your {count} change(s) to the owner as suggestions?</source>
+        <translation>Вы не входите в команду этой работы, поэтому ваши правки нельзя синхронизировать напрямую.
+
+Отправить владельцу ваши изменения ({count}) как предложения?</translation>
+    </message>
+    <message>
+        <source>Sent {count} suggestion(s) to the owner.</source>
+        <translation>Владельцу отправлено предложений: {count}.</translation>
+    </message>
+    <message>
+        <source>{count} branch edit(s) were sent to the owner as suggestions.</source>
+        <translation>Правок веток отправлено владельцу как предложения: {count}.</translation>
+    </message>
+    <message>
+        <source>Branches can be added to .story and .screenplay files.</source>
+        <translation>Ветки можно добавлять в файлы .story и .screenplay.</translation>
+    </message>
+    <message>
+        <source>Branch name (optional):</source>
+        <translation>Название ветки (необязательно):</translation>
+    </message>
+    <message>
+        <source>Alternative text</source>
+        <translation>Альтернативный текст</translation>
+    </message>
+    <message>
+        <source>Text layers can be added to .comic files.</source>
+        <translation>Текстовые слои можно добавлять в файлы .comic.</translation>
+    </message>
+    <message>
+        <source>Speech bubble text</source>
+        <translation>Текст реплики</translation>
+    </message>
+    <message>
+        <source>Page alternative</source>
+        <translation>Вариант страницы</translation>
+    </message>
+    <message>
+        <source>Page alternatives can be added to .comic files.</source>
+        <translation>Варианты страниц можно добавлять в файлы .comic.</translation>
+    </message>
+    <message>
+        <source>Name (optional):</source>
+        <translation>Название (необязательно):</translation>
     </message>
 </context>
 <context>

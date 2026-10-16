@@ -1,0 +1,13 @@
+[screenplay_title center]Night Shift[/screenplay_title]
+
+[scene_slugline left id=33333333-3333-3333-3333-333333333333]INT. HOSPITAL CORRIDOR - NIGHT[/scene_slugline]
+
+[character id=44444444-4444-4444-4444-444444444444]MARA[/character]
+
+[dialogue id=55555555-5555-5555-5555-555555555555]Is anyone there?[/dialogue]
+
+[branch name="Bolder" id=66666666-6666-6666-6666-666666666666]Show yourself.[/branch]
+
+[branch]Hello?[/branch]
+
+[transition]CUT TO:[/transition]

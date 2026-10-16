@@ -615,7 +615,8 @@ class CrowdlyClient:
             "storyTitleId": story_id,
             "title": chapter_row.get("chapter_title") or "",
             "paragraphs": chapter_row.get("paragraphs") or [],
-            "branches": {},
+            # No "branches" key: branches sync through /stories/:id/branches/sync,
+            # and leaving the key out keeps the doc's branches untouched.
             "meta": {},
         }
         self._http_post_json(
@@ -864,6 +865,95 @@ class CrowdlyClient:
             payload["targetPath"] = target_path
         data = self._http_post_json(f"{self.base_url}/stories/{story_id}/proposals", payload)
         return data if isinstance(data, dict) else {}
+
+    # -- Branching, comics and suggestions for every kind of work ------------
+    # (contract: Documentation/branching-api.md)
+
+    _WORK_BASE = {"story": "stories", "screenplay": "screenplays", "comic": "comics"}
+
+    def sync_branches(self, kind: str, work_id: str, entries: list[dict[str, Any]]) -> dict[str, Any]:
+        """``POST /{stories|screenplays|comics}/:id/branches/sync`` — creates,
+        updates, deletes or proposes per entry; never touches branches it isn't
+        told about. Returns ``{"results": [...], "branches": [...]}``."""
+
+        self.login()
+        data = self._http_post_json(
+            f"{self.base_url}/{self._WORK_BASE[kind]}/{work_id}/branches/sync", {"branches": entries}
+        )
+        return data if isinstance(data, dict) else {"results": [], "branches": []}
+
+    def create_work_proposal(self, kind: str, work_id: str, proposal: dict[str, Any]) -> dict[str, Any]:
+        """A suggestion for a screenplay or comic the user can't change directly."""
+
+        self.login()
+        data = self._http_post_json(f"{self.base_url}/{self._WORK_BASE[kind]}/{work_id}/proposals", proposal)
+        return data if isinstance(data, dict) else {}
+
+    def create_comic(self, title: str, direction: str = "ltr") -> str:
+        """Create a comic owned by the signed-in user; returns its id."""
+
+        self.login()
+        data = self._http_post_json(
+            f"{self.base_url}/comics", {"title": title or "Untitled comic", "reading_direction": direction}
+        )
+        comic_id = data.get("comic_id") if isinstance(data, dict) else None
+        if not isinstance(comic_id, str):
+            raise CrowdlyClientError("Unexpected create-comic response.", kind="invalid_response")
+        return comic_id
+
+    def get_comic(self, comic_id: str) -> dict[str, Any]:
+        data = self._http_get_json(f"{self.base_url}/comics/{comic_id}")
+        if not isinstance(data, dict):
+            raise CrowdlyClientError("Unexpected comic response.", kind="invalid_response")
+        return data
+
+    def upload_comic_image(self, comic_id: str, filename: str, content: bytes, mime: str) -> str:
+        """Upload one page (or alternative) image; returns its Crowdly URL."""
+
+        self.login()
+        data = self._http_post_multipart(
+            f"{self.base_url}/comics/{comic_id}/page-images", "image", filename, content, mime
+        )
+        url = data.get("url") if isinstance(data, dict) else None
+        if not isinstance(url, str):
+            raise CrowdlyClientError("Unexpected upload response.", kind="invalid_response")
+        return url
+
+    def sync_desktop_comic(self, comic_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+        """``POST /comics/:id/sync-desktop`` (team only); returns the issue/page ids."""
+
+        self.login()
+        data = self._http_post_json(f"{self.base_url}/comics/{comic_id}/sync-desktop", payload)
+        return data if isinstance(data, dict) else {}
+
+    def _http_post_multipart(self, url: str, field: str, filename: str, content: bytes, mime: str) -> Any:
+        import uuid as _uuid
+
+        boundary = f"----crowdly{_uuid.uuid4().hex}"
+        safe_name = filename.replace('"', "_")
+        body = (
+            f"--{boundary}\r\n"
+            f'Content-Disposition: form-data; name="{field}"; filename="{safe_name}"\r\n'
+            f"Content-Type: {mime}\r\n\r\n"
+        ).encode("utf-8") + content + f"\r\n--{boundary}--\r\n".encode("utf-8")
+        req = urllib.request.Request(
+            url,
+            data=body,
+            headers={
+                "User-Agent": "crowdly-editor/0.1",
+                "Accept": "application/json",
+                "Content-Type": f"multipart/form-data; boundary={boundary}",
+            },
+            method="POST",
+        )
+        try:
+            with self._opener.open(req, timeout=max(self.timeout_seconds, 60)) as resp:
+                charset = resp.headers.get_content_charset() or "utf-8"
+                return json.loads(resp.read().decode(charset, errors="replace"))
+        except urllib.error.HTTPError as exc:
+            raise self._post_error(exc)
+        except urllib.error.URLError as exc:
+            raise CrowdlyClientError(f"Network error: {exc}", kind="network")
 
     def request_collaboration(self, story_id: str, message: str) -> dict[str, Any]:
         self.login()

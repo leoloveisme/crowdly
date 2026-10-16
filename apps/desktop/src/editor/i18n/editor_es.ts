@@ -4,6 +4,26 @@
 <context>
     <name>MainWindow</name>
     <message>
+        <source>as .comic file</source>
+        <translation>como archivo .comic</translation>
+    </message>
+    <message>
+        <source>Save as Comic</source>
+        <translation>Guardar como cómic</translation>
+    </message>
+    <message>
+        <source>Comic files (*.comic);;All files (*)</source>
+        <translation>Archivos de cómic (*.comic);;Todos los archivos (*)</translation>
+    </message>
+    <message>
+        <source>Saved comic to: {path}</source>
+        <translation>Cómic guardado en: {path}</translation>
+    </message>
+    <message>
+        <source>An unexpected error occurred while saving the comic.</source>
+        <translation>Se produjo un error inesperado al guardar el cómic.</translation>
+    </message>
+    <message>
         <source>Edit description</source>
         <translation>Editar descripción</translation>
     </message>
@@ -198,6 +218,82 @@ Tu propia obra y los libros de dominio público o Creative Commons se abren como
     <message>
         <source>Import failed</source>
         <translation>Error al importar</translation>
+    </message>
+    <message>
+        <source>Branch</source>
+        <translation>Rama</translation>
+    </message>
+    <message>
+        <source>Text layer</source>
+        <translation>Capa de texto</translation>
+    </message>
+    <message>
+        <source>Page alternative...</source>
+        <translation>Página alternativa...</translation>
+    </message>
+    <message>
+        <source>Comic sync failed.</source>
+        <translation>No se pudo sincronizar el cómic.</translation>
+    </message>
+    <message>
+        <source>Comic synced to the web.</source>
+        <translation>Cómic sincronizado con la web.</translation>
+    </message>
+    <message>
+        <source>Only the team can change this work directly; you have no changes to suggest.</source>
+        <translation>Solo el equipo puede cambiar esta obra directamente; no tienes cambios que sugerir.</translation>
+    </message>
+    <message>
+        <source>Suggest changes</source>
+        <translation>Sugerir cambios</translation>
+    </message>
+    <message>
+        <source>You&apos;re not on this work&apos;s team, so your edits can&apos;t be synced directly.
+
+Send your {count} change(s) to the owner as suggestions?</source>
+        <translation>No formas parte del equipo de esta obra, así que tus cambios no se pueden sincronizar directamente.
+
+¿Enviar tus {count} cambio(s) al propietario como sugerencias?</translation>
+    </message>
+    <message>
+        <source>Sent {count} suggestion(s) to the owner.</source>
+        <translation>Se enviaron {count} sugerencia(s) al propietario.</translation>
+    </message>
+    <message>
+        <source>{count} branch edit(s) were sent to the owner as suggestions.</source>
+        <translation>{count} cambio(s) de rama se enviaron al propietario como sugerencias.</translation>
+    </message>
+    <message>
+        <source>Branches can be added to .story and .screenplay files.</source>
+        <translation>Las ramas se pueden añadir a archivos .story y .screenplay.</translation>
+    </message>
+    <message>
+        <source>Branch name (optional):</source>
+        <translation>Nombre de la rama (opcional):</translation>
+    </message>
+    <message>
+        <source>Alternative text</source>
+        <translation>Texto alternativo</translation>
+    </message>
+    <message>
+        <source>Text layers can be added to .comic files.</source>
+        <translation>Las capas de texto se pueden añadir a archivos .comic.</translation>
+    </message>
+    <message>
+        <source>Speech bubble text</source>
+        <translation>Texto del bocadillo</translation>
+    </message>
+    <message>
+        <source>Page alternative</source>
+        <translation>Página alternativa</translation>
+    </message>
+    <message>
+        <source>Page alternatives can be added to .comic files.</source>
+        <translation>Las páginas alternativas se pueden añadir a archivos .comic.</translation>
+    </message>
+    <message>
+        <source>Name (optional):</source>
+        <translation>Nombre (opcional):</translation>
     </message>
 </context>
 <context>

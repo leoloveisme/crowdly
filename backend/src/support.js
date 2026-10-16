@@ -16,7 +16,7 @@ import fs from 'fs';
 import { randomUUID } from 'crypto';
 import { fileURLToPath } from 'url';
 import { pool } from './db.js';
-import { requireAuth, getSessionUser, SESSION_COOKIE_NAME } from './sessions.js';
+import { requireAuth, getSessionUser, sessionTokenFrom } from './sessions.js';
 import { createNotification } from './notifications.js';
 import { verifyCaptcha } from './feedback.js';
 import { isMailerConfigured, sendSupportRequestEmail, sendSupportStatusEmail } from './email.js';
@@ -30,7 +30,7 @@ const isUuid = (value) => typeof value === 'string' && UUID_RE.test(value);
 
 const KINDS = ['request', 'bug'];
 const CATEGORIES = ['account', 'stories', 'desktop_app', 'spaces_sync', 'other'];
-const SOURCES = ['web', 'desktop'];
+const SOURCES = ['web', 'desktop', 'android'];
 const STATUSES = [
   'new', 'triaged', 'confirmed', 'in_progress', 'fixed', 'released',
   'resolved', 'wont_fix', 'duplicate', 'closed',
@@ -90,7 +90,7 @@ function isRateLimited(key) {
 
 async function optionalUser(req) {
   try {
-    return await getSessionUser(req.cookies?.[SESSION_COOKIE_NAME]);
+    return await getSessionUser(sessionTokenFrom(req));
   } catch {
     return null;
   }

@@ -97,6 +97,34 @@ export default defineConfig(({ mode }) => ({
         target: "http://localhost:4000",
         changeOrigin: true,
       },
+      "/comic-issues": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/proposals": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/screenplay-block-branches": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/comic-page-branches": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/screenplay-editions": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/comic-editions": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
+      "/work-media": {
+        target: "http://localhost:4000",
+        changeOrigin: true,
+      },
       "/users": {
         target: "http://localhost:4000",
         changeOrigin: true,

@@ -5,11 +5,11 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  // apps/web is a separate standalone app (its own package.json, no lint
-  // script of its own) — not part of this repo's build/deploy pipeline.
+  // apps/web (the web app) is linted with the rest — it shares this
+  // toolkit and is built and deployed by deploy.yml.
   // apps/desktop is a Python app; its .venv contains vendored JS, and its
   // i18n/*.ts files are Qt Linguist XML translation files, not TypeScript.
-  { ignores: ["dist", "apps/web", "apps/desktop"] },
+  { ignores: ["dist", "apps/web/dist*", "apps/desktop"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],

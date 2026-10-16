@@ -59,7 +59,7 @@ const CrowdlyHeader = () => {
         <>
           {n.payload.requesterName ?? ""}{" "}
           <EditableText id="header-notif-collab-request" layoutScoped>asks to collaborate on</EditableText>{" "}
-          <Link to={`/story/${n.payload.storyTitleId}`} className="text-indigo-700 underline">
+          <Link to={n.payload.workPath ?? `/story/${n.payload.storyTitleId}`} className="text-indigo-700 underline">
             {n.payload.storyTitle}
           </Link>
         </>
@@ -68,7 +68,7 @@ const CrowdlyHeader = () => {
     if (n.type === "collaboration_request_decided") {
       return (
         <>
-          <Link to={`/story/${n.payload.storyTitleId}`} className="text-indigo-700 underline">
+          <Link to={n.payload.workPath ?? `/story/${n.payload.storyTitleId}`} className="text-indigo-700 underline">
             {n.payload.storyTitle}
           </Link>
           {": "}

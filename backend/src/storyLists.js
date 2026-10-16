@@ -409,9 +409,24 @@ export async function fetchUserExperienceItems(userId, flagColumn) {
     [userId],
   );
 
-  const [storyRowsResult, screenplayRowsResult] = await Promise.all([
+  const comicRowsPromise = pool.query(
+    `SELECT us.id, us.comic_id, ct.title, ct.created_at, us.is_favorite, us.is_living, us.is_lived
+       FROM user_story_status us
+       JOIN comic_title ct ON ct.comic_id = us.comic_id
+       LEFT JOIN creative_spaces cs ON cs.id = ct.creative_space_id
+      WHERE us.user_id = $1
+        AND us.content_type = 'comic'
+        AND us.${flagColumn} = true
+        AND ct.visibility = 'public'
+        AND ct.published = true
+        AND (ct.creative_space_id IS NULL OR cs.visibility = 'public')`,
+    [userId],
+  );
+
+  const [storyRowsResult, screenplayRowsResult, comicRowsResult] = await Promise.all([
     storyRowsPromise,
     screenplayRowsPromise,
+    comicRowsPromise,
   ]);
 
   // Build a flat list of items from stories + screenplays first.
@@ -446,6 +461,20 @@ export async function fetchUserExperienceItems(userId, flagColumn) {
     });
   }
 
+  for (const row of comicRowsResult.rows) {
+    rawItems.push({
+      id: row.id,
+      content_type: 'comic',
+      content_id: row.comic_id,
+      title: row.title,
+      created_at: row.created_at,
+      is_favorite: row.is_favorite,
+      is_living: row.is_living,
+      is_lived: row.is_lived,
+      kind: 'comic',
+    });
+  }
+
   // Deduplicate by (content_type, content_id) so each story/screenplay
   // appears at most once per user and flag (favorites / living / lived).
   const uniqueMap = new Map();
@@ -471,21 +500,20 @@ export async function fetchUserExperienceItems(userId, flagColumn) {
  * Only the flags passed (not undefined/null) change; the others keep their
  * stored value. One row per user and item (see migration 0019).
  */
-export async function setUserStoryStatus(db, userId, { contentType, storyTitleId, screenplayId, isFavorite, isLiving, isLived }) {
+export async function setUserStoryStatus(db, userId, { contentType, storyTitleId, screenplayId, comicId, isFavorite, isLiving, isLived }) {
   const flag = (value) => (value === undefined || value === null ? null : Boolean(value));
-  const target = contentType === 'story'
-    ? '(user_id, story_title_id) WHERE content_type = \'story\''
-    : '(user_id, screenplay_id) WHERE content_type = \'screenplay\'';
+  const column = { story: 'story_title_id', screenplay: 'screenplay_id', comic: 'comic_id' }[contentType];
+  const target = `(user_id, ${column}) WHERE content_type = '${contentType}'`;
   const { rows } = await db.query(
-    `INSERT INTO user_story_status (user_id, content_type, story_title_id, screenplay_id,
+    `INSERT INTO user_story_status (user_id, content_type, story_title_id, screenplay_id, comic_id,
                                     is_favorite, is_living, is_lived)
-     VALUES ($1, $2, $3, $4,
-             COALESCE($5::boolean, false), COALESCE($6::boolean, false), COALESCE($7::boolean, false))
+     VALUES ($1, $2, $3, $4, $5,
+             COALESCE($6::boolean, false), COALESCE($7::boolean, false), COALESCE($8::boolean, false))
      ON CONFLICT ${target}
      DO UPDATE SET
-       is_favorite = COALESCE($5::boolean, user_story_status.is_favorite),
-       is_living   = COALESCE($6::boolean, user_story_status.is_living),
-       is_lived    = COALESCE($7::boolean, user_story_status.is_lived),
+       is_favorite = COALESCE($6::boolean, user_story_status.is_favorite),
+       is_living   = COALESCE($7::boolean, user_story_status.is_living),
+       is_lived    = COALESCE($8::boolean, user_story_status.is_lived),
        updated_at  = now()
      RETURNING *`,
     [
@@ -493,6 +521,7 @@ export async function setUserStoryStatus(db, userId, { contentType, storyTitleId
       contentType,
       contentType === 'story' ? storyTitleId : null,
       contentType === 'screenplay' ? screenplayId : null,
+      contentType === 'comic' ? comicId : null,
       flag(isFavorite),
       flag(isLiving),
       flag(isLived),

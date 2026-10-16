@@ -1,0 +1,20 @@
+{
+  "title": "The Lighthouse",
+  "chapters": [
+    {
+      "title": "Chapter 1: Arrival",
+      "paragraphs": ["The boat came in at dusk.", "Mara stepped onto the pier\nand looked up at the light."],
+      "branches": {
+        "1": [
+          { "name": "She turns back", "text": "Mara stayed on the boat and watched the light from the water." },
+          { "name": "", "text": "The pier was empty." }
+        ]
+      }
+    },
+    {
+      "title": "Chapter 2",
+      "paragraphs": ["A raw line from an older file becomes a paragraph.", "![](images/lighthouse.png)"],
+      "branches": {}
+    }
+  ]
+}
