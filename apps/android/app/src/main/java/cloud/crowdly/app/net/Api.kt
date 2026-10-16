@@ -1,5 +1,6 @@
 package cloud.crowdly.app.net
 
+import cloud.crowdly.app.data.Db
 import cloud.crowdly.app.data.Outbox
 import cloud.crowdly.app.data.Prefs
 import java.io.IOException
@@ -32,7 +33,7 @@ fun Throwable.isNetwork(): Boolean = this is IOException && this !is ApiError
  * `Authorization: Bearer <token>` (backend/src/sessions.js sessionTokenFrom);
  * writes given an [offlineKey] go to the outbox when the network is down.
  */
-class Api(private val prefs: Prefs, private val outbox: Outbox) {
+class Api(private val prefs: Prefs, private val outbox: Outbox, private val db: Db) {
     val base: String get() = prefs.server.trimEnd('/')
 
     private val _unauthorized = MutableStateFlow(0)
@@ -77,6 +78,20 @@ class Api(private val prefs: Prefs, private val outbox: Outbox) {
     }
 
     suspend fun get(path: String) = request("GET", path)
+
+    /**
+     * GET that remembers its last answer, so what was opened once still opens
+     * offline. Falls back to the cached copy only when the server can't be
+     * reached; a real error from the server is still an error.
+     */
+    suspend fun getCached(path: String, prefix: String = "work:"): JsonElement {
+        val key = prefix + path
+        return try {
+            request("GET", path).also { db.cachePut(key, it.toString()) }
+        } catch (e: IOException) {
+            db.cacheGet(key)?.let { JsonCodec.parseToJsonElement(it) } ?: throw e
+        }
+    }
     suspend fun post(path: String, body: Any? = JsonObject(emptyMap())) = request("POST", path, body)
     suspend fun patch(path: String, body: Any? = JsonObject(emptyMap())) = request("PATCH", path, body)
     suspend fun put(path: String, body: Any? = JsonObject(emptyMap())) = request("PUT", path, body)
