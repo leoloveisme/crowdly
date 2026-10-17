@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { askConfirm, askText } from "@web/shell/ask";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -8,6 +8,7 @@ import { useEditableContent } from "@/contexts/EditableContentContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { PenLine, BookOpen, LogIn, LogOut } from "lucide-react";
 import { UI_LANGUAGES } from "@web/lib/languages";
@@ -144,6 +145,10 @@ export const AppShell: React.FC = () => {
   const inCreation = ws.mode === "creation";
   const a = ws.actions;
 
+  // Show/hide a pane (desktop: the top-bar checkboxes); setPrefs keeps one visible.
+  const toggleSource = useCallback(() => ws.setPrefs({ showSource: !ws.prefs.showSource }), [ws]);
+  const toggleVisual = useCallback(() => ws.setPrefs({ showVisual: !ws.prefs.showVisual }), [ws]);
+
   const groups: MenuGroup[] = useMemo(() => {
     const needUser = (fn: () => void) => () => (user ? fn() : setLoginOpen(true));
 
@@ -252,8 +257,8 @@ export const AppShell: React.FC = () => {
         label: "View",
         items: [
           { id: "webapp-menu-view-windows", label: "Show windows", onSelect: () => setTabsOpen(true) },
-          { id: "webapp-menu-view-source", label: "Markdown (MD) / HTML pane", hidden: !inCreation, checked: ws.prefs.showSource, onSelect: () => ws.setPrefs({ showSource: !ws.prefs.showSource || !ws.prefs.showVisual ? !ws.prefs.showSource : false }) },
-          { id: "webapp-menu-view-visual", label: "WYSIWYG pane", hidden: !inCreation, checked: ws.prefs.showVisual, onSelect: () => ws.setPrefs({ showVisual: !ws.prefs.showVisual || !ws.prefs.showSource ? !ws.prefs.showVisual : false }) },
+          { id: "webapp-menu-view-source", label: "Markdown (MD) / HTML pane", hidden: !inCreation, checked: ws.prefs.showSource, onSelect: toggleSource },
+          { id: "webapp-menu-view-visual", label: "WYSIWYG pane", hidden: !inCreation, checked: ws.prefs.showVisual, onSelect: toggleVisual },
           { id: "webapp-menu-view-focus", label: "Distraction-free mode", checked: ws.distractionFree, onSelect: () => ws.setDistractionFree(!ws.distractionFree) },
         ],
       },
@@ -341,7 +346,7 @@ export const AppShell: React.FC = () => {
       },
     ];
     return g;
-  }, [user, a, inCreation, spaces, activeSpace, ws, currentLanguage, isAdmin, isEditingEnabled, navigate, qc, base, setCurrentLanguage, toggleEditingMode]);
+  }, [user, a, inCreation, spaces, activeSpace, ws, currentLanguage, isAdmin, isEditingEnabled, navigate, qc, base, setCurrentLanguage, toggleEditingMode, toggleSource, toggleVisual]);
 
   if (ws.distractionFree) {
     return (
@@ -365,6 +370,22 @@ export const AppShell: React.FC = () => {
           </div>
         )}
         {isMobile && <div className="flex-1" />}
+        {inCreation && !isMobile && (
+          <div className="flex shrink-0 items-center gap-3 text-sm">
+            <label className="flex cursor-pointer items-center gap-1.5" title="Markdown (MD) / HTML">
+              <Checkbox checked={ws.prefs.showSource} onCheckedChange={toggleSource} aria-label="Markdown (MD) / HTML" />
+              <span className="hidden lg:inline">
+                <EditableText id="webapp-topbar-source">Markdown (MD) / HTML</EditableText>
+              </span>
+            </label>
+            <label className="flex cursor-pointer items-center gap-1.5" title="WYSIWYG">
+              <Checkbox checked={ws.prefs.showVisual} onCheckedChange={toggleVisual} aria-label="WYSIWYG" />
+              <span className="hidden lg:inline">
+                <EditableText id="webapp-topbar-visual">WYSIWYG</EditableText>
+              </span>
+            </label>
+          </div>
+        )}
         <ToggleGroup
           type="single"
           size="sm"

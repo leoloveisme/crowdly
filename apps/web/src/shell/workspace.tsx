@@ -89,6 +89,8 @@ function load(): Persisted {
     if (raw) {
       const p = JSON.parse(raw) as Partial<Persisted>;
       const prefs = { ...DEFAULT_PREFS, ...(p.prefs ?? {}) };
+      // At least one editor pane is always visible.
+      if (!prefs.showSource && !prefs.showVisual) prefs.showVisual = true;
       return {
         mode: prefs.launch === "restore" ? (p.mode ?? prefs.startMode) : prefs.startMode,
         tabs: prefs.launch === "restore" ? (p.tabs ?? []) : [],
@@ -215,7 +217,19 @@ export const WorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
   }, []);
 
-  const setPrefs = useCallback((patch: Partial<Prefs>) => setPrefsState((p) => ({ ...p, ...patch })), []);
+  const setPrefs = useCallback(
+    (patch: Partial<Prefs>) =>
+      setPrefsState((p) => {
+        const next = { ...p, ...patch };
+        // Like the desktop's pane checkboxes: refuse to hide the last visible pane.
+        if (!next.showSource && !next.showVisual) {
+          next.showSource = p.showSource;
+          next.showVisual = p.showVisual;
+        }
+        return next;
+      }),
+    [],
+  );
   const setStatus = useCallback(
     (patch: StatusInfo, replace = false) => setStatusState((s) => (replace ? patch : { ...s, ...patch })),
     [],

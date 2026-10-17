@@ -78,10 +78,10 @@ const SettingsPage: React.FC = () => {
 
       <Section id="webapp-settings-editor" title="Editor">
         <Row id="webapp-settings-source" label="Markdown (MD) / HTML pane">
-          <Switch checked={prefs.showSource} onCheckedChange={(c) => setPrefs({ showSource: c, showVisual: c ? prefs.showVisual : true })} />
+          <Switch checked={prefs.showSource} onCheckedChange={(c) => setPrefs({ showSource: c })} />
         </Row>
         <Row id="webapp-settings-visual" label="WYSIWYG pane">
-          <Switch checked={prefs.showVisual} onCheckedChange={(c) => setPrefs({ showVisual: c, showSource: c ? prefs.showSource : true })} />
+          <Switch checked={prefs.showVisual} onCheckedChange={(c) => setPrefs({ showVisual: c })} />
         </Row>
         <Row id="webapp-settings-live" label="Live co-editing" descId="webapp-settings-live-desc" desc="See and merge your team's edits as they type.">
           <Switch checked={prefs.liveCollab} onCheckedChange={(c) => setPrefs({ liveCollab: c })} />
