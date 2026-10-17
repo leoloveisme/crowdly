@@ -77,3 +77,6 @@ apps/android/local.properties
 apps/android/.idea/
 *.jks
 *.keystore
+
+# Local keys and passwords (e.g. the Android upload key)
+secrets/
