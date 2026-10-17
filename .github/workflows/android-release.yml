@@ -1,7 +1,9 @@
 # Signed release build of the Android app (apps/android): push a tag like
 # `android-v0.2.0` or use "Run workflow". Produces the release APK and the
-# Play Store bundle (.aab) as artifacts; uploading to the Play Console stays
-# a manual step (Documentation/Android_app.md).
+# Play Store bundle (.aab) as artifacts, and publishes the signed APK on the
+# VPS for the /software page (apps/android/upload-apk.sh, same VPS_* secrets
+# as the desktop downloads). Uploading to the Play Console stays a manual
+# step (Documentation/Android_app.md).
 #
 # Secrets for signing (all four, or the build stays unsigned):
 #   ANDROID_KEYSTORE_BASE64   base64 of the upload keystore (.jks)
@@ -49,8 +51,9 @@ jobs:
           if [ -n "$KEYSTORE_BASE64" ]; then
             echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/upload.jks"
             echo "CROWDLY_KEYSTORE=$RUNNER_TEMP/upload.jks" >> "$GITHUB_ENV"
+            echo "CROWDLY_SIGNED=1" >> "$GITHUB_ENV"
           else
-            echo "::warning::ANDROID_KEYSTORE_BASE64 isn't set; the release build will be unsigned."
+            echo "::warning::ANDROID_KEYSTORE_BASE64 isn't set; the release build will be unsigned and not published."
           fi
 
       - name: Release APK and bundle
@@ -61,6 +64,7 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#android-v}"
           case "$VERSION" in refs/*|"$GITHUB_REF_NAME") VERSION="0.0.${{ github.run_number }}";; esac
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           ./gradlew :app:assembleRelease :app:bundleRelease \
             -Pcrowdly.versionCode=${{ github.run_number }} \
             -Pcrowdly.versionName="$VERSION" \
@@ -72,3 +76,26 @@ jobs:
           path: |
             apps/android/app/build/outputs/apk/release/*.apk
             apps/android/app/build/outputs/bundle/release/*.aab
+
+      # Signed builds only: an unsigned APK doesn't install.
+      - name: Set up deploy SSH key
+        if: env.CROWDLY_SIGNED == '1'
+        run: |
+          set -eu
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "${{ secrets.VPS_SSH_PORT || 22 }}" "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Publish the APK on crowdly.cloud/downloads/android/
+        if: env.CROWDLY_SIGNED == '1'
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_PORT: ${{ secrets.VPS_SSH_PORT || 22 }}
+        run: SSH_KEY="$HOME/.ssh/deploy_key" ./upload-apk.sh
+
+      - name: Remove deploy key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
