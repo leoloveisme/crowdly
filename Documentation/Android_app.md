@@ -95,6 +95,7 @@ To rebuild the bridge after an Automerge upgrade, run `npm ci` at the repo root,
 
 - **CI:** `.github/workflows/android.yml` runs on pushes to `dev`/`alpha` and on pull requests that touch the app. It runs the tests, lint, the translation check and a debug build, and keeps the APK as an artifact.
 - **Release builds:** `.github/workflows/android-release.yml` runs when you push a tag like `android-v0.2.0` or use "Run workflow". It builds the signed APK and the Play Store bundle (`.aab`) and keeps both as artifacts. The version code is the run number, and the version name comes from the tag.
+- **Download on the website:** when the build is signed, the same workflow publishes the APK with `apps/android/upload-apk.sh` (same `VPS_HOST`/`VPS_USER`/`VPS_SSH_KEY` secrets as the desktop downloads). It lands in `/var/www/crowdly-downloads/android/<version>/` and the stable name `https://crowdly.cloud/downloads/android/crowdly-android.apk` (plus `SHA256SUMS` and `latest.json` with the version and size) is switched to it. The `/software#android` page links there and shows a QR code. Unsigned builds aren't published. To publish by hand: `VERSION=0.2.0 VPS_HOST=... VPS_USER=... apps/android/upload-apk.sh` (`UPLOAD=0` only packages).
 - **Signing:** create an upload keystore once (`keytool -genkeypair -v -keystore upload.jks -keyalg RSA -keysize 4096 -validity 10000 -alias crowdly`), then set these repo secrets:
   - `ANDROID_KEYSTORE_BASE64` (from `base64 -i upload.jks`)
   - `ANDROID_KEYSTORE_PASSWORD`

@@ -10451,6 +10451,160 @@
     "de": "Crowdly auf GitHub ansehen"
   },
   {
+    "page_key": "/software",
+    "element_id": "software-intro-v2",
+    "en": "Write, read, listen and watch with Crowdly. Download the desktop app or the Android app now - the web app and iPhone apps are on the way.",
+    "ru": "Пишите, читайте, слушайте и смотрите с Crowdly. Скачайте настольное приложение или приложение для Android уже сейчас — веб-приложение и приложения для iPhone на подходе.",
+    "de": "Schreibe, lies, höre und schau mit Crowdly. Lade jetzt die Desktop-App oder die Android-App herunter – die Web-App und die iPhone-Apps sind unterwegs."
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-android-jump",
+    "en": "Get the Android app",
+    "ru": "Скачать приложение для Android",
+    "de": "Android-App holen"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-android-heading",
+    "en": "Crowdly in your pocket.",
+    "ru": "Crowdly у вас в кармане.",
+    "de": "Crowdly für die Hosentasche."
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-android-intro",
+    "en": "The Android app brings Discovery and Creation together in one app. Read and listen on the go, and keep writing wherever you are.",
+    "ru": "Приложение для Android объединяет Discovery и Creation в одном приложении. Читайте и слушайте в пути и продолжайте писать, где бы вы ни были.",
+    "de": "Die Android-App vereint Discovery und Creation in einer App. Lies und höre unterwegs und schreibe weiter, wo immer du bist."
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-android-title",
+    "en": "Crowdly for Android",
+    "ru": "Crowdly для Android",
+    "de": "Crowdly für Android"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-android-tagline",
+    "en": "Discover and create on your phone.",
+    "ru": "Открывайте и создавайте на телефоне.",
+    "de": "Entdecken und erschaffen auf deinem Handy."
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-android-discover-title",
+    "en": "Discover",
+    "ru": "Открывайте",
+    "de": "Entdecken"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-android-discover-text",
+    "en": "stories, your library, shelves and the reader for books, PDFs and audiobooks",
+    "ru": "истории, ваша библиотека, полки и читалка для книг, PDF и аудиокниг",
+    "de": "Geschichten, deine Bibliothek, Regale und der Reader für Bücher, PDFs und Hörbücher"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-android-create-title",
+    "en": "Create",
+    "ru": "Создавайте",
+    "de": "Erschaffen"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-android-create-text",
+    "en": "write stories and screenplays, and work in your Spaces",
+    "ru": "пишите истории и сценарии и работайте в своих пространствах",
+    "de": "schreibe Geschichten und Drehbücher und arbeite in deinen Spaces"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-android-together-title",
+    "en": "Write together",
+    "ru": "Пишите вместе",
+    "de": "Gemeinsam schreiben"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-android-together-text",
+    "en": "live co-editing with others",
+    "ru": "совместное редактирование в реальном времени",
+    "de": "live mit anderen zusammen bearbeiten"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-android-offline-title",
+    "en": "Works offline",
+    "ru": "Работает офлайн",
+    "de": "Funktioniert offline"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-android-offline-text",
+    "en": "your files stay on your phone and sync later",
+    "ru": "ваши файлы остаются на телефоне и синхронизируются позже",
+    "de": "deine Dateien bleiben auf deinem Handy und werden später synchronisiert"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-android-download",
+    "en": "Download APK",
+    "ru": "Скачать APK",
+    "de": "APK herunterladen"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-android-version",
+    "en": "Version",
+    "ru": "Версия",
+    "de": "Version"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-android-checksum",
+    "en": "SHA-256 checksum",
+    "ru": "Контрольная сумма SHA-256",
+    "de": "SHA-256-Prüfsumme"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-android-qr-hint",
+    "en": "On a computer? Scan with your phone to download.",
+    "ru": "Вы за компьютером? Отсканируйте код телефоном, чтобы скачать.",
+    "de": "Am Computer? Scanne den Code mit deinem Handy, um die App herunterzuladen."
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-android-requirements",
+    "en": "Android 10 or newer. Google Play will follow.",
+    "ru": "Android 10 или новее. Версия в Google Play появится позже.",
+    "de": "Android 10 oder neuer. Google Play folgt."
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-android-install-note",
+    "en": "Open the downloaded file on your phone. If Android asks, allow your browser to install apps, then tap Install. Updates: download the latest APK from this page and install it over the old one - your data stays.",
+    "ru": "Откройте загруженный файл на телефоне. Если Android спросит, разрешите браузеру устанавливать приложения, затем нажмите «Установить». Обновления: скачайте последнюю версию APK с этой страницы и установите её поверх старой — ваши данные сохранятся.",
+    "de": "Öffne die heruntergeladene Datei auf deinem Handy. Wenn Android fragt, erlaube deinem Browser, Apps zu installieren, und tippe dann auf „Installieren“. Updates: Lade die neueste APK von dieser Seite herunter und installiere sie über die alte – deine Daten bleiben erhalten."
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-ios-title",
+    "en": "iPhone and iPad apps are on the way",
+    "ru": "Приложения для iPhone и iPad на подходе",
+    "de": "iPhone- und iPad-Apps sind unterwegs"
+  },
+  {
+    "page_key": "/software",
+    "element_id": "software-ios-soon",
+    "en": "Crowdly for iPhone and iPad will follow.",
+    "ru": "Crowdly для iPhone и iPad появится позже.",
+    "de": "Crowdly für iPhone und iPad folgt."
+  },
+  {
     "page_key": "/shelves",
     "element_id": "shelves-system-favorites",
     "en": "Favorites",
