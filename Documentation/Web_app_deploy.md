@@ -106,3 +106,6 @@ npm run dev --prefix apps/web   # http://localhost:5173/
 - `npm run typecheck --prefix apps/web`
 - `npx eslint apps/web`
 - `node apps/web/scripts/test-formats.ts`: the `.story`/`.screenplay`/`.comic`/`.master` parsers against the fixtures shared with the desktop app. It needs Node 22+.
+
+## Moving to a separate VPS
+If the web app or its API ever moves off the platform VPS, read `Data_sync_platform_webapp_separate_VPSes.md` first. It sets out the staged path and what has to change at each stage.

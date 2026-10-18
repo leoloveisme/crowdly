@@ -28,13 +28,15 @@ The project is quite complex and currently it has:
 
 - Crowdly platform
 - a desktop app written in Python, which easily could be ported to Windows,
-  MacOS and Linux and 
-- a web app, which is currently in it's very early development stage. 
+  MacOS and Linux 
+- a web app, which is currently can only be accessed locally and
+- an Android app 
 
-Apps for major mobile OSes: Android and iOS are in planning. // We've been
-using desktop apps for Linux and MacOS for almost two years by now. 
+which you can download from our platform.  
+
+Apps for iOS are in planning. 
 
 \#Crowdly #entertainment #platform #CrowdlyEntertainment
 \#crowd_created_eintertainment #crowdcreatedentertainment
-\#entertainment_platform #entertainmentplatform #FOSS 
+\#entertainment_platform #entertainmentplatform #FOSS #software
 
